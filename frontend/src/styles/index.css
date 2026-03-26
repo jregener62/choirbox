@@ -1227,15 +1227,18 @@ body {
 
 .recording-actions {
   display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
+  gap: 6px;
 }
 
 .recording-action-btn {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  gap: 4px;
+  flex: 1 1 0;
+  min-width: 0;
+  font-size: 13px;
+  padding: 8px 4px;
   min-height: 44px;
 }
 
