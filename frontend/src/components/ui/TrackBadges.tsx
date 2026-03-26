@@ -46,7 +46,7 @@ export function TrackBadges({ filename, folderName, size = 'sm', inline = false 
     <>
       <span
         className={chipClass}
-        style={{ background: color + '25', color }}
+        style={{ background: color, color: 'white' }}
       >
         {voiceDisplay(parsed.voiceKey)}
       </span>
