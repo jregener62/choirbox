@@ -34,3 +34,9 @@ Thumbs.db
 # Logs
 *.log
 .logs/
+
+# Scripts & tools
+analyze_filenames.py
+rename_files.py
+choirbox_rename_plan.xlsx
+mockups/
