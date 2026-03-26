@@ -40,7 +40,13 @@ ssh choirbox@204.168.218.188
 - **Token:** 95d6c47a-ad7d-4e9b-b15f-840c0f4b0cc2
 - **Dashboard:** https://www.duckdns.org
 
-IP manuell aktualisieren (falls Server-IP sich ändert):
+**Auto-Update (Cronjob):** Alle 5 Minuten via `/etc/cron.d/duckdns` auf dem Server:
+```
+*/5 * * * * root curl -s "https://www.duckdns.org/update?domains=choirbox&token=95d6c47a-ad7d-4e9b-b15f-840c0f4b0cc2&ip=" > /dev/null 2>&1
+```
+Ohne `ip=`-Wert erkennt DuckDNS die Server-IP automatisch.
+
+IP manuell aktualisieren (falls nötig):
 ```bash
 curl "https://www.duckdns.org/update?domains=choirbox&token=95d6c47a-ad7d-4e9b-b15f-840c0f4b0cc2&ip=NEUE_IP"
 ```
@@ -62,6 +68,7 @@ Beide URIs müssen in der Dropbox App unter OAuth 2 > Redirect URIs eingetragen 
 | Node.js | 22.22.2 |
 | npm | 10.9.7 |
 | Nginx | 1.24.0 |
+| FFmpeg | 6.1.1 (Audio-Konvertierung zu MP3) |
 | Certbot | (Let's Encrypt) |
 
 ## Verzeichnisstruktur auf dem Server
@@ -168,6 +175,8 @@ Falls du den Server neu aufsetzen musst, hier die Reihenfolge:
 5. Python 3.13: `add-apt-repository ppa:deadsnakes/ppa -y && apt install python3.13 python3.13-venv python3.13-dev -y`
 6. Node.js 22: `curl -fsSL https://deb.nodesource.com/setup_22.x | bash - && apt install nodejs -y`
 7. Nginx + Certbot: `apt install nginx certbot python3-certbot-nginx -y`
-8. App deployen (siehe Deployment-Sektion)
-9. Systemd Service einrichten
-10. Nginx konfigurieren + `certbot --nginx -d choirbox.duckdns.org`
+8. FFmpeg: `apt install ffmpeg -y` (für Audio-Konvertierung zu MP3)
+9. DuckDNS-Cronjob einrichten (siehe DNS-Sektion)
+10. App deployen (siehe Deployment-Sektion)
+11. Systemd Service einrichten
+12. Nginx konfigurieren + `certbot --nginx -d choirbox.duckdns.org`

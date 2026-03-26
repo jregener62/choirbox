@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import logging
 import secrets
+import time
 from datetime import datetime
 from typing import Optional
 
@@ -20,8 +21,14 @@ logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Simple token store (in production: use JWT)
-_tokens: dict[str, str] = {}
+# Token store: token -> (user_id, created_at_timestamp)
+_tokens: dict[str, tuple[str, float]] = {}
+TOKEN_MAX_AGE = 7 * 24 * 3600  # 7 days in seconds
+
+# Rate limiting for login: ip -> list of attempt timestamps
+_login_attempts: dict[str, list[float]] = {}
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_WINDOW = 60  # seconds
 
 VALID_VOICE_PARTS = {"Sopran", "Alt", "Tenor", "Bass"}
 
@@ -45,8 +52,32 @@ def _verify_password(password: str, password_hash: str) -> bool:
 
 def _create_token(user_id: str) -> str:
     token = secrets.token_urlsafe(32)
-    _tokens[token] = user_id
+    _tokens[token] = (user_id, time.time())
     return token
+
+
+def _cleanup_expired_tokens():
+    """Remove expired tokens (called periodically)."""
+    now = time.time()
+    expired = [t for t, (_, created) in _tokens.items() if now - created > TOKEN_MAX_AGE]
+    for t in expired:
+        del _tokens[t]
+
+
+def _check_rate_limit(ip: str):
+    """Raise 429 if too many login attempts from this IP."""
+    now = time.time()
+    attempts = _login_attempts.get(ip, [])
+    # Keep only attempts within the window
+    attempts = [t for t in attempts if now - t < LOGIN_WINDOW]
+    _login_attempts[ip] = attempts
+    if len(attempts) >= LOGIN_MAX_ATTEMPTS:
+        raise HTTPException(429, "Zu viele Anmeldeversuche. Bitte warte eine Minute.")
+
+
+def _record_login_attempt(ip: str):
+    """Record a login attempt for rate limiting."""
+    _login_attempts.setdefault(ip, []).append(time.time())
 
 
 def get_current_user(request: Request, session: Session = Depends(get_session)) -> Optional[User]:
@@ -59,8 +90,12 @@ def get_current_user(request: Request, session: Session = Depends(get_session)) 
 
     if not token:
         return None
-    user_id = _tokens.get(token)
-    if not user_id:
+    entry = _tokens.get(token)
+    if not entry:
+        return None
+    user_id, created_at = entry
+    if time.time() - created_at > TOKEN_MAX_AGE:
+        del _tokens[token]
         return None
     return session.get(User, user_id)
 
@@ -93,7 +128,10 @@ def _user_response(user: User) -> dict:
 
 
 @router.post("/login")
-def login(data: dict, session: Session = Depends(get_session)):
+def login(data: dict, request: Request, session: Session = Depends(get_session)):
+    ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(ip)
+
     username = data.get("username", "").strip()
     password = data.get("password", "")
     if not username or not password:
@@ -101,50 +139,12 @@ def login(data: dict, session: Session = Depends(get_session)):
 
     user = session.exec(select(User).where(User.username == username)).first()
     if not user or not _verify_password(password, user.password_hash):
+        _record_login_attempt(ip)
         raise HTTPException(401, "Invalid credentials")
 
+    _cleanup_expired_tokens()
+
     user.last_login_at = datetime.utcnow()
-    session.add(user)
-    session.commit()
-    session.refresh(user)
-
-    token = _create_token(user.id)
-    return {"token": token, "user": _user_response(user)}
-
-
-@router.post("/register")
-def register(data: dict, session: Session = Depends(get_session)):
-    code = data.get("registration_code", "").strip()
-    username = data.get("username", "").strip()
-    display_name = data.get("display_name", "").strip()
-    password = data.get("password", "")
-    voice_part = data.get("voice_part", "").strip()
-
-    if not username or not password:
-        raise HTTPException(400, "Username and password required")
-    if len(password) < 4:
-        raise HTTPException(400, "Password must be at least 4 characters")
-    if voice_part not in VALID_VOICE_PARTS:
-        raise HTTPException(400, f"Voice part must be one of: {', '.join(sorted(VALID_VOICE_PARTS))}")
-
-    # Validate registration code
-    settings = session.get(AppSettings, 1)
-    expected_code = (settings.registration_code if settings else None) or REGISTRATION_CODE
-    if expected_code and code != expected_code:
-        raise HTTPException(403, "Invalid registration code")
-
-    # Check uniqueness
-    existing = session.exec(select(User).where(User.username == username)).first()
-    if existing:
-        raise HTTPException(409, "Username already exists")
-
-    user = User(
-        username=username,
-        display_name=display_name or username,
-        role="guest",
-        voice_part=voice_part,
-        password_hash=_hash_password(password),
-    )
     session.add(user)
     session.commit()
     session.refresh(user)
@@ -188,6 +188,51 @@ def change_password(data: dict, user: User = Depends(require_user), session: Ses
     session.add(user)
     session.commit()
     return ActionResponse.success()
+
+
+@router.post("/register")
+def register(data: dict, request: Request, session: Session = Depends(get_session)):
+    ip = request.client.host if request.client else "unknown"
+    _check_rate_limit(ip)
+
+    code = data.get("registration_code", "").strip()
+    username = data.get("username", "").strip()
+    display_name = data.get("display_name", "").strip()
+    password = data.get("password", "")
+    voice_part = data.get("voice_part", "").strip()
+
+    if not username or not password:
+        raise HTTPException(400, "Username and password required")
+    if len(password) < 4:
+        raise HTTPException(400, "Password must be at least 4 characters")
+    if voice_part not in VALID_VOICE_PARTS:
+        raise HTTPException(400, f"Voice part must be one of: {', '.join(sorted(VALID_VOICE_PARTS))}")
+
+    # Validate registration code
+    settings = session.get(AppSettings, 1)
+    expected_code = (settings.registration_code if settings else None) or REGISTRATION_CODE
+    if expected_code and code != expected_code:
+        _record_login_attempt(ip)
+        raise HTTPException(403, "Invalid registration code")
+
+    # Check uniqueness
+    existing = session.exec(select(User).where(User.username == username)).first()
+    if existing:
+        raise HTTPException(409, "Username already exists")
+
+    user = User(
+        username=username,
+        display_name=display_name or username,
+        role="guest",
+        voice_part=voice_part,
+        password_hash=_hash_password(password),
+    )
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    token = _create_token(user.id)
+    return {"token": token, "user": _user_response(user)}
 
 
 @router.post("/logout")
