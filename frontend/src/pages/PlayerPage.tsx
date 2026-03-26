@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag } from 'lucide-react'
+import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -106,6 +106,14 @@ export function PlayerPage() {
               </button>
             </span>
           ))}
+          <button
+            className="marker-chip-remove"
+            style={{ padding: '4px 8px' }}
+            onClick={() => usePlayerStore.getState().clearMarkers()}
+            title="Alle Marker loeschen"
+          >
+            <Trash2 size={13} />
+          </button>
         </div>
       )}
 
