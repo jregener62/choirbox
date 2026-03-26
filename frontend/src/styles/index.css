@@ -1065,18 +1065,42 @@ body {
 
 /* Marker chips */
 .marker-chip {
-  padding: 4px 10px;
+  padding: 2px 4px 2px 10px;
   border-radius: 14px;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   font-size: 11px;
   color: var(--text-secondary);
-  cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 3px;
+  font-variant-numeric: tabular-nums;
+}
+
+.marker-chip-jump {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 11px;
   font-family: inherit;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  padding: 2px 2px;
+}
+
+.marker-chip-remove {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  border-radius: 50%;
+}
+
+.marker-chip-remove:active {
+  background: var(--bg-tertiary);
 }
 
 .marker-dot {

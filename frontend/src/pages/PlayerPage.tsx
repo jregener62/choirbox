@@ -93,10 +93,18 @@ export function PlayerPage() {
       {markers.length > 0 && (
         <div className="player-markers">
           {markers.map((m) => (
-            <button key={m.id} className="marker-chip" onClick={() => seek(m.time)}>
+            <span key={m.id} className="marker-chip">
               <span className="marker-dot" />
-              {formatTime(m.time)}
-            </button>
+              <button className="marker-chip-jump" onClick={() => seek(m.time)}>
+                {formatTime(m.time)}
+              </button>
+              <button
+                className="marker-chip-remove"
+                onClick={() => usePlayerStore.getState().removeMarker(m.id)}
+              >
+                <X size={12} />
+              </button>
+            </span>
           ))}
         </div>
       )}
