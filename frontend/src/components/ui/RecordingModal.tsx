@@ -3,6 +3,7 @@ import { Mic, Square, Play, Pause, Upload, X, RotateCcw, Check } from 'lucide-re
 import { useRecorder } from '@/hooks/useRecorder'
 import { apiUpload } from '@/api/client'
 import { useAppStore } from '@/stores/appStore'
+import { usePlayerStore } from '@/stores/playerStore'
 import { formatTime } from '@/utils/formatters'
 
 const VOICES = [
@@ -75,6 +76,7 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   const setModalOpen = useAppStore((s) => s.setModalOpen)
   useEffect(() => {
     setModalOpen(true)
+    usePlayerStore.getState().setPlaying(false)
     return () => setModalOpen(false)
   }, [setModalOpen])
 
