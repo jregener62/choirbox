@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LogOut, ChevronRight } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LogOut, ChevronRight, Pencil, Lock, Check, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -24,6 +24,17 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = user?.role === 'admin'
+
+  // Profile edit state
+  const [editingProfile, setEditingProfile] = useState(false)
+  const [editName, setEditName] = useState(user?.display_name || '')
+  const [editVoice, setEditVoice] = useState(user?.voice_part || '')
+
+  // Password change state
+  const [changingPw, setChangingPw] = useState(false)
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [newPwConfirm, setNewPwConfirm] = useState('')
 
   // Dropbox state
   const [dbxStatus, setDbxStatus] = useState<DropboxStatus | null>(null)
@@ -99,6 +110,43 @@ export function SettingsPage() {
   }, [loadDropboxStatus])
 
   // Save registration code
+  // Save profile
+  const saveProfile = async () => {
+    try {
+      await api('/auth/me', { method: 'PUT', body: { display_name: editName, voice_part: editVoice } })
+      // Update local store
+      const updatedUser = { ...user!, display_name: editName, voice_part: editVoice }
+      localStorage.setItem('choirbox_user', JSON.stringify(updatedUser))
+      useAuthStore.setState({ user: updatedUser })
+      setEditingProfile(false)
+      setMessage('Profil aktualisiert')
+    } catch {
+      setMessage('Fehler beim Speichern')
+    }
+  }
+
+  // Change password
+  const changePassword = async () => {
+    if (newPw !== newPwConfirm) {
+      setMessage('Passwoerter stimmen nicht ueberein')
+      return
+    }
+    if (newPw.length < 4) {
+      setMessage('Passwort muss mindestens 4 Zeichen haben')
+      return
+    }
+    try {
+      await api('/auth/me/password', { method: 'PUT', body: { old_password: oldPw, new_password: newPw } })
+      setChangingPw(false)
+      setOldPw('')
+      setNewPw('')
+      setNewPwConfirm('')
+      setMessage('Passwort geaendert')
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Fehler beim Aendern')
+    }
+  }
+
   const saveRegCode = async () => {
     setRegCodeSaving(true)
     try {
@@ -136,25 +184,95 @@ export function SettingsPage() {
 
         {/* -- Profil -- */}
         <section>
-          <h3 className="settings-heading"><User size={14} /> Profil</h3>
-          <div className="settings-rows">
-            <div className="settings-row">
-              <span className="settings-label">Name</span>
-              <span>{user?.display_name}</span>
-            </div>
-            <div className="settings-row">
-              <span className="settings-label">Benutzername</span>
-              <span>{user?.username}</span>
-            </div>
-            <div className="settings-row">
-              <span className="settings-label">Rolle</span>
-              <span>{isAdmin ? 'Admin' : 'Mitglied'}</span>
-            </div>
-            <div className="settings-row">
-              <span className="settings-label">Stimmgruppe</span>
-              <span>{user?.voice_part}</span>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <h3 className="settings-heading" style={{ marginBottom: 0 }}><User size={14} /> Profil</h3>
+            {!editingProfile && (
+              <button className="player-header-btn" onClick={() => { setEditName(user?.display_name || ''); setEditVoice(user?.voice_part || ''); setEditingProfile(true) }}>
+                <Pencil size={16} />
+              </button>
+            )}
           </div>
+          {editingProfile ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 12 }}>
+              <div className="auth-field">
+                <label className="auth-label">Anzeigename</label>
+                <input className="auth-input" value={editName} onChange={(e) => setEditName(e.target.value)} />
+              </div>
+              <div className="auth-field">
+                <label className="auth-label">Stimmgruppe</label>
+                <div className="voice-part-selector">
+                  {['Sopran', 'Alt', 'Tenor', 'Bass'].map((part) => (
+                    <button key={part} type="button"
+                      className={`voice-part-btn ${editVoice === part ? 'selected' : ''}`}
+                      onClick={() => setEditVoice(part)}
+                    >{part}</button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="auth-submit" style={{ flex: 1 }} onClick={saveProfile}>
+                  <Check size={16} style={{ marginRight: 4 }} /> Speichern
+                </button>
+                <button className="btn btn-secondary" onClick={() => setEditingProfile(false)}>
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="settings-rows" style={{ marginTop: 12 }}>
+              <div className="settings-row">
+                <span className="settings-label">Name</span>
+                <span>{user?.display_name}</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Benutzername</span>
+                <span>{user?.username}</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Rolle</span>
+                <span>{isAdmin ? 'Admin' : 'Mitglied'}</span>
+              </div>
+              <div className="settings-row">
+                <span className="settings-label">Stimmgruppe</span>
+                <span>{user?.voice_part}</span>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* -- Passwort -- */}
+        <section>
+          <h3 className="settings-heading"><Lock size={14} /> Passwort</h3>
+          {changingPw ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+              <div className="auth-field">
+                <label className="auth-label">Aktuelles Passwort</label>
+                <input className="auth-input" type="password" value={oldPw} onChange={(e) => setOldPw(e.target.value)} />
+              </div>
+              <div className="auth-field">
+                <label className="auth-label">Neues Passwort</label>
+                <input className="auth-input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+              </div>
+              <div className="auth-field">
+                <label className="auth-label">Neues Passwort wiederholen</label>
+                <input className="auth-input" type="password" value={newPwConfirm} onChange={(e) => setNewPwConfirm(e.target.value)} />
+              </div>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button className="auth-submit" style={{ flex: 1 }} onClick={changePassword}>
+                  Passwort aendern
+                </button>
+                <button className="btn btn-secondary" onClick={() => { setChangingPw(false); setOldPw(''); setNewPw(''); setNewPwConfirm('') }}>
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="settings-nav-item" onClick={() => setChangingPw(true)}>
+              <Lock size={18} />
+              <span>Passwort aendern</span>
+              <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+            </button>
+          )}
         </section>
 
         {/* -- Darstellung -- */}
