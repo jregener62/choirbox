@@ -20,29 +20,47 @@ interface TrackBadgesProps {
   inline?: boolean
 }
 
+const VOICE_LABELS: Record<string, string> = {
+  S: 'Sopran',
+  A: 'Alt',
+  T: 'Tenor',
+  B: 'Bass',
+}
+
+function voiceDisplay(voiceKey: string): string {
+  if (voiceKey.length === 1) return VOICE_LABELS[voiceKey] || voiceKey
+  return voiceKey.split('').map(l => VOICE_LABELS[l] || l).join('+')
+}
+
 export function TrackBadges({ filename, folderName, size = 'sm', inline = false }: TrackBadgesProps) {
   const parsed = parseTrackFilename(filename, folderName)
   if (!parsed) return null
 
-  // Only show section badges (not voice name or freetext)
+  const chipClass = size === 'sm' ? 'label-chip-sm' : 'label-chip'
+  const color = voiceColor(parsed.voiceKey)
   const sectionLabel = parsed.sectionKey !== 'Gesamt'
     ? formatSectionLabel(parsed.sectionKey)
     : null
 
-  if (!sectionLabel) return null
-
-  const chipClass = size === 'sm' ? 'label-chip-sm' : 'label-chip'
-  const color = voiceColor(parsed.voiceKey)
-
-  const chip = (
-    <span
-      className={chipClass}
-      style={{ color, border: `1px solid ${color}`, background: 'none' }}
-    >
-      {sectionLabel}
-    </span>
+  const chips = (
+    <>
+      <span
+        className={chipClass}
+        style={{ background: color + '25', color }}
+      >
+        {voiceDisplay(parsed.voiceKey)}
+      </span>
+      {sectionLabel && (
+        <span
+          className={chipClass}
+          style={{ color, border: `1px solid ${color}`, background: 'none' }}
+        >
+          {sectionLabel}
+        </span>
+      )}
+    </>
   )
 
-  if (inline) return chip
-  return <div className="file-labels">{chip}</div>
+  if (inline) return chips
+  return <div className="file-labels">{chips}</div>
 }
