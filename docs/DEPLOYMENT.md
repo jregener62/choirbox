@@ -119,6 +119,7 @@ WorkingDirectory=/home/choirbox/choirbox
 ExecStart=/home/choirbox/choirbox/venv/bin/python run.py
 Restart=always
 RestartSec=5
+Environment=UVICORN_RELOAD=false
 Environment=PATH=/home/choirbox/choirbox/venv/bin:/usr/bin
 
 [Install]
