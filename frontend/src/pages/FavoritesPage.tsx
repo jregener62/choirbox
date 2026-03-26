@@ -1,30 +1,76 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Heart, Music, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
+import { useLabelsStore } from '@/hooks/useLabels.ts'
 
 export function FavoritesPage() {
   const { favorites, loaded, load, toggle } = useFavoritesStore()
+  const { labels, assignments, loaded: labelsLoaded, load: loadLabels, getLabelsForPath } = useLabelsStore()
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const [activeFilters, setActiveFilters] = useState<number[]>([])
 
   useEffect(() => {
     if (!loaded) load()
-  }, [loaded, load])
+    if (!labelsLoaded) loadLabels()
+  }, [loaded, load, labelsLoaded, loadLabels])
 
   const handlePlay = (dropboxPath: string, fileName: string) => {
     usePlayerStore.getState().setTrack(dropboxPath, fileName)
     usePlayerStore.getState().setPlaying(true)
   }
 
+  const toggleFilter = (labelId: number) => {
+    setActiveFilters((prev) =>
+      prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId]
+    )
+  }
+
+  // Filter favorites by active labels
+  const filteredFavs = activeFilters.length === 0
+    ? favorites
+    : favorites.filter((fav) => {
+        const trackLabels = getLabelsForPath(fav.dropbox_path)
+        return trackLabels.some((l) => activeFilters.includes(l.id))
+      })
+
+  // Show filter bar if any favorites have labels
+  const hasLabels = assignments.some((a) =>
+    favorites.some((f) => f.dropbox_path === a.dropbox_path)
+  )
+
   return (
     <div>
       <div className="topbar">
         <div className="topbar-title">Favoriten</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '0 8px' }}>
-          {loaded ? favorites.length : ''}
+          {loaded ? filteredFavs.length : ''}
         </div>
       </div>
+
+      {/* Label filter */}
+      {hasLabels && labels.length > 0 && (
+        <div className="filter-bar">
+          <button
+            className={`filter-chip ${activeFilters.length === 0 ? 'active' : ''}`}
+            onClick={() => setActiveFilters([])}
+          >
+            Alle
+          </button>
+          {labels.map((l) => (
+            <button
+              key={l.id}
+              className={`filter-chip ${activeFilters.includes(l.id) ? 'active' : ''}`}
+              style={activeFilters.includes(l.id) ? { background: l.color + '25', color: l.color, borderColor: l.color } : {}}
+              onClick={() => toggleFilter(l.id)}
+            >
+              <span className="filter-chip-dot" style={{ background: l.color }} />
+              {l.name}
+            </button>
+          ))}
+        </div>
+      )}
 
       {!loaded && <div className="empty-state">Laden...</div>}
 
@@ -38,9 +84,16 @@ export function FavoritesPage() {
         </div>
       )}
 
+      {loaded && favorites.length > 0 && filteredFavs.length === 0 && (
+        <div className="empty-state">
+          <div>Keine Favoriten mit diesem Label</div>
+        </div>
+      )}
+
       <ul className="file-list">
-        {favorites.map((fav) => {
+        {filteredFavs.map((fav) => {
           const isActive = fav.dropbox_path === currentPath
+          const trackLabels = getLabelsForPath(fav.dropbox_path)
           return (
             <li
               key={fav.id}
@@ -60,7 +113,15 @@ export function FavoritesPage() {
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {fav.file_name}
                 </div>
-                <div className="file-meta">{fav.dropbox_path}</div>
+                {trackLabels.length > 0 && (
+                  <div className="file-labels">
+                    {trackLabels.map((l) => (
+                      <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
+                        {l.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 className="fav-toggle"
