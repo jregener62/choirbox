@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { Folder, Music, ArrowUp, ChevronRight, Search } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -54,6 +55,9 @@ export function BrowsePage() {
     <div>
       <div className="topbar">
         <div className="topbar-title">Dateien</div>
+        <button className="btn-icon" style={{ color: 'var(--text-muted)' }}>
+          <Search size={20} />
+        </button>
       </div>
 
       {browsePath && (
@@ -65,8 +69,8 @@ export function BrowsePage() {
             const path = '/' + pathParts.slice(0, i + 1).join('/')
             const isLast = i === pathParts.length - 1
             return (
-              <span key={path}>
-                <span className="breadcrumb-separator"> / </span>
+              <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                 {isLast ? (
                   <span className="breadcrumb-current">{part}</span>
                 ) : (
@@ -90,7 +94,7 @@ export function BrowsePage() {
 
       {!loading && !error && entries.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">{'\uD83D\uDCC2'}</div>
+          <Folder size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
           <div>Keine Dateien in diesem Ordner</div>
         </div>
       )}
@@ -98,9 +102,11 @@ export function BrowsePage() {
       <ul className="file-list">
         {browsePath && (
           <li className="file-item" onClick={navigateUp}>
-            <div className="file-icon">{'\u2B06\uFE0F'}</div>
+            <div className="file-icon-box file-icon-folder">
+              <ArrowUp size={18} />
+            </div>
             <div className="file-info">
-              <div className="file-name">..</div>
+              <div className="file-name" style={{ color: 'var(--text-muted)' }}>..</div>
             </div>
           </li>
         )}
@@ -112,17 +118,34 @@ export function BrowsePage() {
               className={`file-item ${isActive ? 'file-item--active' : ''}`}
               onClick={() => handleEntryClick(entry)}
             >
-              <div className="file-icon">
-                {isActive && isPlaying ? '\uD83D\uDD0A' : entry.type === 'folder' ? '\uD83D\uDCC1' : '\uD83C\uDFB5'}
-              </div>
+              {entry.type === 'folder' ? (
+                <div className="file-icon-box file-icon-folder">
+                  <Folder size={18} />
+                </div>
+              ) : isActive && isPlaying ? (
+                <div className="file-icon-box file-icon-playing">
+                  <div className="playing-bars">
+                    <span /><span /><span />
+                  </div>
+                </div>
+              ) : (
+                <div className="file-icon-box file-icon-audio">
+                  <Music size={18} />
+                </div>
+              )}
               <div className="file-info">
-                <div className="file-name">{entry.name}</div>
+                <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
+                  {entry.name}
+                </div>
                 {entry.type === 'file' && entry.size && (
                   <div className="file-meta">
                     {(entry.size / 1024 / 1024).toFixed(1)} MB
                   </div>
                 )}
               </div>
+              {entry.type === 'folder' && (
+                <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              )}
             </li>
           )
         })}

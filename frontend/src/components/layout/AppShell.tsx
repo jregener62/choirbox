@@ -1,4 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
+import { FolderOpen, Heart, Settings, Play, Pause, SkipForward, Music } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { formatTime } from '@/utils/formatters.ts'
@@ -10,9 +11,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { togglePlay } = useAudioPlayer()
 
   const navItems = [
-    { path: '/browse', icon: '\uD83D\uDCC2', label: 'Dateien' },
-    { path: '/favorites', icon: '\u2764\uFE0F', label: 'Favoriten' },
-    { path: '/settings', icon: '\u2699\uFE0F', label: 'Einstellungen' },
+    { path: '/browse', icon: FolderOpen, label: 'Dateien' },
+    { path: '/favorites', icon: Heart, label: 'Favoriten' },
+    { path: '/settings', icon: Settings, label: 'Einstellungen' },
   ]
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
@@ -26,43 +27,50 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       {currentName && !onPlayerPage && (
         <div className="mini-player" onClick={() => navigate('/player')}>
-          <button
-            className="btn-icon"
-            style={{ color: 'var(--player-text)' }}
-            onClick={(e) => {
-              e.stopPropagation()
-              togglePlay()
-            }}
-          >
-            {isPlaying ? '\u23F8' : '\u25B6'}
-          </button>
+          <div className="mini-player-icon">
+            <Music size={16} />
+          </div>
           <div className="mini-player-info">
             <div className="mini-player-title">{currentName}</div>
-            <div className="mini-player-progress">
-              <div
-                className="mini-player-progress-fill"
-                style={{ width: `${progress}%` }}
-              />
-            </div>
+            <div className="mini-player-time">{formatTime(currentTime)}</div>
           </div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>
-            {formatTime(currentTime)}
+          <button
+            className="mini-player-btn"
+            onClick={(e) => { e.stopPropagation(); togglePlay() }}
+          >
+            {isPlaying ? <Pause size={22} /> : <Play size={22} />}
+          </button>
+          <button
+            className="mini-player-btn"
+            onClick={(e) => { e.stopPropagation() }}
+          >
+            <SkipForward size={18} />
+          </button>
+          <div className="mini-player-progress">
+            <div className="mini-player-progress-fill" style={{ width: `${progress}%` }} />
           </div>
         </div>
       )}
 
-      {!onPlayerPage && <nav className="bottom-nav">
-        {navItems.map((item) => (
-          <button
-            key={item.path}
-            className={`bottom-nav-item ${location.pathname === item.path || (item.path === '/browse' && location.pathname === '/') ? 'active' : ''}`}
-            onClick={() => navigate(item.path)}
-          >
-            <span>{item.icon}</span>
-            {item.label}
-          </button>
-        ))}
-      </nav>}
+      {!onPlayerPage && (
+        <nav className="bottom-nav">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path ||
+              (item.path === '/browse' && location.pathname === '/')
+            const Icon = item.icon
+            return (
+              <button
+                key={item.path}
+                className={`bottom-nav-item ${isActive ? 'active' : ''}`}
+                onClick={() => navigate(item.path)}
+              >
+                <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+                <span className="bottom-nav-label">{item.label}</span>
+              </button>
+            )
+          })}
+        </nav>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Gauge, Heart, X } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -21,25 +22,11 @@ export function PlayerPage() {
     return null
   }
 
-  const setA = () => {
-    usePlayerStore.getState().setLoopStart(currentTime)
-  }
-
-  const setB = () => {
-    usePlayerStore.getState().setLoopEnd(currentTime)
-  }
-
-  const toggleLoop = () => {
-    usePlayerStore.getState().toggleLoop()
-  }
-
-  const clearLoop = () => {
-    usePlayerStore.getState().clearLoop()
-  }
-
-  const addMarker = () => {
-    usePlayerStore.getState().addMarker(currentTime)
-  }
+  const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
+  const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
+  const toggleLoop = () => usePlayerStore.getState().toggleLoop()
+  const clearLoop = () => usePlayerStore.getState().clearLoop()
+  const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
 
@@ -47,42 +34,20 @@ export function PlayerPage() {
     <div className="player-page">
       {/* Header */}
       <div className="player-header">
-        <button className="btn-icon" onClick={() => navigate(-1)}>
-          {'\u25BE'}
+        <button className="player-header-btn" onClick={() => navigate(-1)}>
+          <ChevronDown size={24} />
         </button>
-        <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>Wird abgespielt</span>
-        <div style={{ width: 44 }} />
+        <span className="player-header-title">Wird abgespielt</span>
+        <div style={{ width: 40 }} />
       </div>
 
-      {/* Track info */}
+      {/* Track Info */}
       <div className="player-track-info">
-        <div className="player-track-icon">{'\uD83C\uDFB5'}</div>
         <div className="player-track-name">{currentName}</div>
         <div className="player-track-path">{folderPath}</div>
       </div>
 
-      {/* Markers */}
-      {markers.length > 0 && (
-        <div className="player-markers">
-          {markers.map((m) => (
-            <button
-              key={m.id}
-              className="player-marker-btn"
-              onClick={() => seek(m.time)}
-            >
-              {'\u25CF'} {formatTime(m.time)}
-            </button>
-          ))}
-        </div>
-      )}
-
-      {/* Time */}
-      <div className="player-time">
-        <span>{formatTime(currentTime)}</span>
-        <span>{formatTime(duration)}</span>
-      </div>
-
-      {/* Waveform with cycle region */}
+      {/* Waveform */}
       <Waveform
         peaks={peaks}
         currentTime={currentTime}
@@ -94,53 +59,80 @@ export function PlayerPage() {
         onSeek={seek}
       />
 
-      {/* Transport controls */}
-      <div className="player-transport">
-        <button className="player-transport-btn" onClick={() => skip(-15)}>
-          {'\u23EA'} 15
-        </button>
-        <button className="player-transport-btn player-transport-play" onClick={togglePlay}>
-          {isPlaying ? '\u23F8' : '\u25B6'}
-        </button>
-        <button className="player-transport-btn" onClick={() => skip(15)}>
-          15 {'\u23E9'}
-        </button>
+      {/* Timestamps */}
+      <div className="player-time">
+        <span>{formatTime(currentTime)}</span>
+        <span>{formatTime(duration)}</span>
       </div>
 
-      {/* Cycle play controls */}
-      <div className="player-cycle">
+      {/* Markers */}
+      {markers.length > 0 && (
+        <div className="player-markers">
+          {markers.map((m) => (
+            <button key={m.id} className="marker-chip" onClick={() => seek(m.time)}>
+              <span className="marker-dot" />
+              {formatTime(m.time)}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Divider */}
+      <div className="player-divider" />
+
+      {/* KERN: A + Play + B */}
+      <div className="player-core">
         <button
-          className={`player-cycle-btn ${loopStart !== null ? 'active' : ''}`}
+          className={`player-ab-btn ${loopStart !== null ? 'active' : ''}`}
           onClick={setA}
         >
           A
         </button>
+        <button className="player-play-btn" onClick={togglePlay}>
+          {isPlaying ? <Pause size={32} /> : <Play size={32} style={{ marginLeft: 3 }} />}
+        </button>
         <button
-          className={`player-cycle-btn ${loopEnd !== null ? 'active' : ''}`}
+          className={`player-ab-btn ${loopEnd !== null ? 'active' : ''}`}
           onClick={setB}
         >
           B
         </button>
+      </div>
+
+      {/* Skip + Loop */}
+      <div className="player-controls">
+        <button className="player-ctrl-btn" onClick={() => skip(-15)}>
+          <Rewind size={18} /> 15s
+        </button>
         <button
-          className={`player-cycle-btn ${loopEnabled ? 'active' : ''}`}
+          className={`player-ctrl-btn ${loopEnabled ? 'player-ctrl-amber' : ''}`}
           onClick={toggleLoop}
           disabled={loopStart === null || loopEnd === null}
         >
-          {'\uD83D\uDD01'}
+          <Repeat size={18} /> Loop
         </button>
-        <button
-          className="player-cycle-btn"
-          onClick={clearLoop}
-          disabled={loopStart === null && loopEnd === null}
-        >
-          {'\uD83D\uDDD1'}
+        {(loopStart !== null || loopEnd !== null) && (
+          <button className="player-ctrl-btn" onClick={clearLoop}>
+            <X size={18} />
+          </button>
+        )}
+        <button className="player-ctrl-btn" onClick={() => skip(15)}>
+          15s <FastForward size={18} />
         </button>
       </div>
 
-      {/* Marker button */}
-      <button className="player-marker-add" onClick={addMarker}>
-        {'\uD83D\uDCCC'} Marker setzen
-      </button>
+      {/* Marker + Tempo + Favorit */}
+      <div className="player-actions">
+        <button className="player-action-btn" onClick={addMarker}>
+          <Pin size={14} /> Marker
+        </button>
+        <button className="player-action-btn">
+          <Gauge size={14} /> 1.0x
+        </button>
+        <button className="player-action-btn">
+          <Heart size={14} /> Favorit
+        </button>
+      </div>
     </div>
   )
 }
