@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Gauge, Heart, X } from 'lucide-react'
+import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -133,9 +133,6 @@ export function PlayerPage() {
       <div className="player-actions">
         <button className="player-action-btn" onClick={addMarker}>
           <Pin size={14} /> Marker
-        </button>
-        <button className="player-action-btn">
-          <Gauge size={14} /> 1.0x
         </button>
         <button
           className={`player-action-btn ${isFav ? 'player-action-btn--active' : ''}`}
