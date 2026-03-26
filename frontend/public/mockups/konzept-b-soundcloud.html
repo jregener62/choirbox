@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Konzept B: SoundCloud-Style</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1;
+    --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.25);
+    --border: #334155;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text);
+         max-width: 390px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column;
+         -webkit-font-smoothing: antialiased; }
+
+  .topbar { display: flex; align-items: center; padding: 12px 16px; gap: 12px; }
+  .topbar-back { background: none; border: none; color: var(--text2); cursor: pointer; padding: 8px; }
+  .topbar-title { flex: 1; text-align: center; font-size: 13px; color: var(--text2); font-weight: 500; }
+
+  .player { flex: 1; display: flex; flex-direction: column; padding: 0 20px 20px; overflow-y: auto; }
+
+  /* -- Waveform GROSS -- */
+  .waveform-hero { margin-bottom: 4px; }
+  .waveform { display: flex; align-items: center; height: 120px; gap: 1.5px; }
+  .waveform-bar { flex: 1; border-radius: 2px; min-width: 2px; }
+  .waveform-bar.played { background: var(--accent); }
+  .waveform-bar.unplayed { background: var(--bg3); }
+  .waveform-bar.loop-played { background: var(--amber); }
+  .waveform-bar.loop-unplayed { background: var(--amber-dim); }
+  .loop-labels { position: relative; height: 14px; margin-top: -2px; }
+  .loop-label { position: absolute; font-size: 10px; font-weight: 700; color: var(--amber); }
+  .timestamps { display: flex; justify-content: space-between; font-size: 12px; color: var(--text3);
+                 font-variant-numeric: tabular-nums; margin-bottom: 20px; }
+
+  /* -- Track Info (nach Waveform) -- */
+  .track-info { margin-bottom: 24px; }
+  .track-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .track-path { font-size: 13px; color: var(--text3); }
+
+  /* -- A-B Controls (direkt unter Waveform) -- */
+  .ab-row { display: flex; gap: 10px; margin-bottom: 28px; }
+  .ab-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1.5px solid var(--border); background: none;
+            color: var(--text); font-size: 14px; font-weight: 600; cursor: pointer; font-family: inherit;
+            display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .ab-btn.active { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
+
+  /* -- Transport (ganz unten) -- */
+  .transport { display: flex; align-items: center; justify-content: center; gap: 32px; margin-bottom: 24px; }
+  .skip-btn { background: none; border: none; color: var(--text2); cursor: pointer; padding: 12px;
+              display: flex; align-items: center; gap: 4px; font-size: 14px; font-weight: 600; }
+  .play-btn { width: 72px; height: 72px; border-radius: 50%; background: var(--accent); border: none;
+              color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+  .play-btn:active { background: var(--accent-hover); transform: scale(0.95); }
+
+  /* -- Markers -- */
+  .marker-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .marker-chip { padding: 5px 12px; border-radius: 16px; background: var(--bg2); border: 1px solid var(--border);
+                 font-size: 12px; color: var(--text); cursor: pointer; display: flex; align-items: center; gap: 5px; }
+  .marker-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--amber); }
+  .marker-add { padding: 5px 14px; border-radius: 16px; background: none; border: 1.5px dashed var(--border);
+                font-size: 12px; color: var(--text3); cursor: pointer; display: flex; align-items: center; gap: 4px;
+                font-family: inherit; }
+
+  .concept-label { position: fixed; top: 8px; right: 8px; background: #f97316; color: white;
+                   padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; z-index: 10; }
+</style>
+</head>
+<body>
+
+<div class="concept-label">Konzept B: SoundCloud-Style</div>
+
+<div class="topbar">
+  <button class="topbar-back"><i data-lucide="chevron-down" style="width:24px;height:24px"></i></button>
+  <div class="topbar-title">Wird abgespielt</div>
+  <div style="width:40px"></div>
+</div>
+
+<div class="player">
+  <!-- Waveform HERO (gross) -->
+  <div class="waveform-hero">
+    <div class="waveform" id="waveform"></div>
+    <div class="loop-labels">
+      <span class="loop-label" style="left:25%">A</span>
+      <span class="loop-label" style="left:62%">B</span>
+    </div>
+  </div>
+  <div class="timestamps">
+    <span>0:42</span>
+    <span>1:36</span>
+  </div>
+
+  <!-- Track Info -->
+  <div class="track-info">
+    <div class="track-name">A - Bring Me Little Water (Brian).mp3</div>
+    <div class="track-path">/Bring Me Little Water</div>
+  </div>
+
+  <!-- A-B Controls (nah an Waveform) -->
+  <div class="ab-row">
+    <button class="ab-btn active">A</button>
+    <button class="ab-btn active">B</button>
+    <button class="ab-btn active"><i data-lucide="repeat" style="width:16px;height:16px"></i> Loop</button>
+    <button class="ab-btn"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+  </div>
+
+  <!-- Transport -->
+  <div class="transport">
+    <button class="skip-btn"><i data-lucide="rewind" style="width:20px;height:20px"></i> 15</button>
+    <button class="play-btn"><i data-lucide="pause" style="width:32px;height:32px"></i></button>
+    <button class="skip-btn">15 <i data-lucide="fast-forward" style="width:20px;height:20px"></i></button>
+  </div>
+
+  <!-- Markers -->
+  <div class="marker-row">
+    <div class="marker-chip"><span class="marker-dot"></span> 0:12</div>
+    <div class="marker-chip"><span class="marker-dot"></span> 0:45</div>
+    <div class="marker-chip"><span class="marker-dot"></span> 1:23</div>
+    <button class="marker-add"><i data-lucide="pin" style="width:12px;height:12px"></i> Marker</button>
+  </div>
+</div>
+
+<script>
+  const wf = document.getElementById('waveform');
+  const bars = 100;
+  const playPos = 0.45;
+  const loopA = 0.25, loopB = 0.62;
+  for (let i = 0; i < bars; i++) {
+    const frac = i / bars;
+    const h = 12 + Math.random() * 75;
+    const bar = document.createElement('div');
+    bar.className = 'waveform-bar';
+    bar.style.height = h + '%';
+    const inLoop = frac >= loopA && frac <= loopB;
+    const played = frac <= playPos;
+    if (inLoop && played) bar.classList.add('loop-played');
+    else if (inLoop) bar.classList.add('loop-unplayed');
+    else if (played) bar.classList.add('played');
+    else bar.classList.add('unplayed');
+    wf.appendChild(bar);
+  }
+  lucide.createIcons();
+</script>
+</body>
+</html>
