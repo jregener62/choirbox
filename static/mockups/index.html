@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ChoirBox — UI Mockups</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+         background: #0f172a; color: #f1f5f9; padding: 24px; }
+  h1 { font-size: 22px; margin-bottom: 8px; }
+  p { font-size: 14px; color: #94a3b8; margin-bottom: 24px; }
+  .cards { display: flex; flex-direction: column; gap: 12px; }
+  a { display: block; padding: 16px; background: #1e293b; border: 1px solid #334155;
+      border-radius: 10px; text-decoration: none; color: #f1f5f9; }
+  a:active { background: #334155; }
+  .label { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .desc { font-size: 13px; color: #94a3b8; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px;
+         font-weight: 600; margin-left: 8px; vertical-align: middle; }
+  .tag-rec { background: #22c55e; color: white; }
+  .tag-a { background: #818cf8; color: white; }
+  .tag-b { background: #f97316; color: white; }
+</style>
+</head>
+<body>
+  <h1>UI Mockups</h1>
+  <p>Tippe auf ein Konzept um es anzusehen</p>
+  <div class="cards">
+    <a href="/mockups/konzept-a-spotify.html">
+      <div class="label">Konzept A <span class="tag tag-a">Spotify-Style</span></div>
+      <div class="desc">Track-Info oben, Waveform mittig, Transport mit Repeat/Skip</div>
+    </a>
+    <a href="/mockups/konzept-b-soundcloud.html">
+      <div class="label">Konzept B <span class="tag tag-b">SoundCloud-Style</span></div>
+      <div class="desc">Grosse Waveform als Hero, A-B Controls nah an der Waveform</div>
+    </a>
+    <a href="/mockups/konzept-c-practice.html">
+      <div class="label">Konzept C <span class="tag tag-rec">Empfehlung</span></div>
+      <div class="desc">A + Play + B auf einer Zeile — optimiert fuer Ueben</div>
+    </a>
+    <a href="/mockups/browser-und-miniplayer.html">
+      <div class="label">Datei-Browser + Mini-Player</div>
+      <div class="desc">Lucide Icons, animierte Equalizer-Balken, 2px Progress-Linie</div>
+    </a>
+  </div>
+</body>
+</html>
