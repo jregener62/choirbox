@@ -132,6 +132,43 @@ Datei: `/etc/nginx/sites-available/choirbox`
 
 Certbot hat die Config automatisch auf HTTPS umgestellt mit Redirect von HTTP -> HTTPS.
 
+## Datenbank-Backup
+
+Die SQLite-Datenbank (`choirbox.db`) wird **täglich um 3:00 Uhr** automatisch nach Dropbox gesichert.
+
+| Eigenschaft | Wert |
+|-------------|------|
+| **Script** | `backup_db.py` (im Projekt-Root) |
+| **Ziel** | Dropbox `/backups/` |
+| **Rotation** | Behält die letzten 7 Backups |
+| **Log** | `.logs/backup.log` |
+| **Cronjob** | `crontab -e -u choirbox` |
+
+```
+0 3 * * * cd /home/choirbox/choirbox && venv/bin/python backup_db.py >> /home/choirbox/choirbox/.logs/backup.log 2>&1
+```
+
+Das Script nutzt die SQLite Backup-API für einen konsistenten Snapshot (sicher bei WAL-Mode) und liest den Dropbox-Refresh-Token aus der Datenbank. Voraussetzung: Dropbox muss in der App verbunden sein.
+
+**Manuell ausführen:**
+```bash
+ssh choirbox@204.168.218.188 "cd ~/choirbox && venv/bin/python backup_db.py"
+```
+
+**Backup-Log prüfen:**
+```bash
+ssh choirbox@204.168.218.188 "tail -20 ~/choirbox/.logs/backup.log"
+```
+
+## Autostart
+
+Der systemd Service ist mit `systemctl enable choirbox` aktiviert — die App startet automatisch beim Server-Neustart. Bei Crashes wird automatisch nach 5 Sekunden neu gestartet (`Restart=always`, `RestartSec=5`).
+
+```bash
+# Prüfen ob Autostart aktiv
+systemctl is-enabled choirbox    # → "enabled"
+```
+
 ## Verwaltung
 
 ```bash
@@ -179,5 +216,6 @@ Falls du den Server neu aufsetzen musst, hier die Reihenfolge:
 8. FFmpeg: `apt install ffmpeg -y` (für Audio-Konvertierung zu MP3)
 9. DuckDNS-Cronjob einrichten (siehe DNS-Sektion)
 10. App deployen (siehe Deployment-Sektion)
-11. Systemd Service einrichten
+11. Systemd Service einrichten + `systemctl enable choirbox`
 12. Nginx konfigurieren + `certbot --nginx -d choirbox.duckdns.org`
+13. Dropbox verbinden (Admin-UI), dann DB-Backup-Cronjob einrichten (siehe Datenbank-Backup)
