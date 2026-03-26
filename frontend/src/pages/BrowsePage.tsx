@@ -118,21 +118,28 @@ export function BrowsePage() {
     )
   }
 
-  // Filter entries by active labels (OR logic: show if file has ANY of the active labels)
-  const filteredEntries = activeFilters.length === 0
-    ? entries
-    : entries.filter((e) => {
-        if (e.type === 'folder') return true // always show folders
-        const trackLabels = getLabelsForPath(e.path)
-        return trackLabels.some((l) => activeFilters.includes(l.id))
-      })
+  // When filter active: flat list of ALL files with matching labels (across all folders)
+  const isFiltering = activeFilters.length > 0
+  const filteredEntries = isFiltering
+    ? assignments
+        .filter((a) => activeFilters.includes(a.label_id))
+        .reduce<DropboxEntry[]>((acc, a) => {
+          if (!acc.some((e) => e.path === a.dropbox_path)) {
+            acc.push({
+              name: a.dropbox_path.split('/').pop() || a.dropbox_path,
+              path: a.dropbox_path,
+              type: 'file',
+            })
+          }
+          return acc
+        }, [])
+        .sort((a, b) => a.name.localeCompare(b.name))
+    : entries
 
   const displayEntries = isSearching ? searchResults : filteredEntries
 
-  // Check if any files in current folder have labels (to show filter bar)
-  const hasLabelsInFolder = assignments.some((a) =>
-    entries.some((e) => e.type === 'file' && e.path === a.dropbox_path)
-  )
+  // Show filter bar if user has any label assignments at all
+  const hasAnyLabels = assignments.length > 0
 
   return (
     <div>
@@ -164,8 +171,8 @@ export function BrowsePage() {
         </div>
       )}
 
-      {/* Breadcrumb (hidden during search) */}
-      {!isSearching && browsePath && (
+      {/* Breadcrumb (hidden during search or active filter) */}
+      {!isSearching && !isFiltering && browsePath && (
         <div className="breadcrumb">
           <span className="breadcrumb-item" onClick={() => loadFolder('')}>
             Root
@@ -189,8 +196,8 @@ export function BrowsePage() {
         </div>
       )}
 
-      {/* Label filter bar */}
-      {!isSearching && hasLabelsInFolder && labels.length > 0 && (
+      {/* Label filter bar — always visible if user has any labels */}
+      {!isSearching && hasAnyLabels && labels.length > 0 && (
         <div className="filter-bar">
           <button
             className={`filter-chip ${activeFilters.length === 0 ? 'active' : ''}`}
@@ -241,7 +248,7 @@ export function BrowsePage() {
 
       {/* File list */}
       <ul className="file-list">
-        {!isSearching && browsePath && (
+        {!isSearching && !isFiltering && browsePath && (
           <li className="file-item" onClick={navigateUp}>
             <div className="file-icon-box file-icon-folder">
               <ArrowUp size={18} />
@@ -278,7 +285,7 @@ export function BrowsePage() {
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {entry.name}
                 </div>
-                {isSearching && (
+                {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>
                 )}
                 {!isSearching && entry.type === 'file' && entry.size && (
