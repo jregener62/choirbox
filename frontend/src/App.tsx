@@ -7,6 +7,7 @@ import { AppShell } from '@/components/layout/AppShell.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { FavoritesPage } from '@/pages/FavoritesPage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
+import { UsersPage } from '@/pages/admin/UsersPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -36,6 +37,7 @@ export function App() {
                   <Route path="/browse" element={<BrowsePage />} />
                   <Route path="/favorites" element={<FavoritesPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
+                  <Route path="/admin/users" element={<UsersPage />} />
                 </Routes>
               </AppShell>
             </AuthGuard>
