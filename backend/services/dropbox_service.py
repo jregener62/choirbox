@@ -95,7 +95,50 @@ class DropboxService:
 
         raise RuntimeError(f"Dropbox API error ({endpoint}): max retries exceeded")
 
-    # -- High-level helpers (read-only for ChoirBox) --
+    async def upload_file(self, file_content: bytes, dropbox_path: str) -> dict:
+        """Upload a file to Dropbox via the simple upload endpoint (max 150 MB).
+
+        Uses content.dropboxapi.com with binary body + Dropbox-API-Arg header.
+        """
+        token = await self._get_access_token()
+
+        api_arg = json.dumps({
+            "path": dropbox_path,
+            "mode": "add",
+            "autorename": True,
+            "mute": False,
+        })
+
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/octet-stream",
+            "Dropbox-API-Arg": api_arg,
+        }
+
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                "https://content.dropboxapi.com/2/files/upload",
+                headers=headers,
+                content=file_content,
+            )
+
+        if resp.status_code == 401:
+            self._access_token = None
+            token = await self._get_access_token()
+            headers["Authorization"] = f"Bearer {token}"
+            async with httpx.AsyncClient(timeout=60.0) as client:
+                resp = await client.post(
+                    "https://content.dropboxapi.com/2/files/upload",
+                    headers=headers,
+                    content=file_content,
+                )
+
+        if resp.status_code != 200:
+            raise RuntimeError(f"Dropbox upload error: {resp.text}")
+
+        return resp.json()
+
+    # -- High-level helpers --
 
     async def list_folder(self, path: str) -> list[dict]:
         """List files and folders at a Dropbox path with full pagination."""
@@ -119,7 +162,7 @@ class DropboxService:
             "query": query,
             "options": {
                 "max_results": 50,
-                "file_extensions": ["mp3"],
+                "file_extensions": ["mp3", "webm", "m4a"],
             },
         }
         if path:

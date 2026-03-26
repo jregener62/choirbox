@@ -4,7 +4,7 @@ import secrets
 from datetime import datetime
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
@@ -167,7 +167,7 @@ async def dropbox_browse(
                 "path": e.get("path_display", ""),
                 "type": "folder",
             })
-        elif tag == "file" and name.lower().endswith(".mp3"):
+        elif tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a")):
             filtered.append({
                 "name": name,
                 "path": e.get("path_display", ""),
@@ -207,7 +207,7 @@ async def dropbox_search(
     for e in results:
         tag = e.get(".tag", "")
         name = e.get("name", "")
-        if tag == "folder" or (tag == "file" and name.lower().endswith(".mp3")):
+        if tag == "folder" or (tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a"))):
             entries.append({
                 "name": name,
                 "path": e.get("path_display", ""),
@@ -240,6 +240,46 @@ async def dropbox_stream(
         raise HTTPException(502, str(e))
 
     return {"link": link, "expires_in": 14400}
+
+
+@router.post("/upload")
+async def dropbox_upload(
+    file: UploadFile = File(...),
+    target_path: str = Form(...),
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Upload a recording to Dropbox."""
+    from backend.services.dropbox_service import get_dropbox_service
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox not connected")
+
+    filename = file.filename or "recording"
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    if ext not in ("webm", "m4a", "mp4", "ogg"):
+        raise HTTPException(400, f"Unsupported file format: .{ext}")
+
+    content = await file.read()
+    if len(content) > 20 * 1024 * 1024:
+        raise HTTPException(413, "File too large (max 20 MB)")
+
+    if target_path and not target_path.startswith("/"):
+        target_path = "/" + target_path
+
+    dropbox_path = f"{target_path}/{filename}".replace("//", "/")
+
+    try:
+        result = await dbx.upload_file(content, dropbox_path)
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+
+    return ActionResponse.success(data={
+        "name": result.get("name", filename),
+        "path": result.get("path_display", dropbox_path),
+        "size": result.get("size", len(content)),
+    })
 
 
 @router.post("/disconnect")

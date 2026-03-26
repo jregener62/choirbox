@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart } from 'lucide-react'
+import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart, Mic } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
+import { RecordingModal } from '@/components/ui/RecordingModal'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -24,6 +25,7 @@ export function BrowsePage() {
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [recordingOpen, setRecordingOpen] = useState(false)
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
@@ -169,6 +171,9 @@ export function BrowsePage() {
       ) : (
         <div className="topbar">
           <div className="topbar-title">Dateien</div>
+          <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
+            <Mic size={20} />
+          </button>
           <button className="player-header-btn" onClick={openSearch}>
             <Search size={20} />
           </button>
@@ -328,6 +333,14 @@ export function BrowsePage() {
           )
         })}
       </ul>
+
+      {recordingOpen && (
+        <RecordingModal
+          targetPath={browsePath}
+          onClose={() => setRecordingOpen(false)}
+          onUploadComplete={() => loadFolder(browsePath)}
+        />
+      )}
     </div>
   )
 }
