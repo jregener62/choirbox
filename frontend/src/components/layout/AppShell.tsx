@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { FolderOpen, Heart, Settings, Play, Pause, SkipForward, Music } from 'lucide-react'
+import { FolderOpen, Heart, Settings, Play, Pause, Music, ChevronUp } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { formatTime } from '@/utils/formatters.ts'
@@ -41,10 +41,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {isPlaying ? <Pause size={22} /> : <Play size={22} />}
           </button>
           <button
-            className="mini-player-btn"
-            onClick={(e) => { e.stopPropagation() }}
+            className="mini-player-expand"
+            onClick={() => navigate('/player')}
           >
-            <SkipForward size={18} />
+            <ChevronUp size={20} />
           </button>
           <div className="mini-player-progress">
             <div className="mini-player-progress-fill" style={{ width: `${progress}%` }} />

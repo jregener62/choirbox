@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -13,6 +14,7 @@ interface SearchResponse {
 }
 
 export function BrowsePage() {
+  const navigate = useNavigate()
   const browsePath = useAppStore((s) => s.browsePath)
   const setBrowsePath = useAppStore((s) => s.setBrowsePath)
   const currentPath = usePlayerStore((s) => s.currentPath)
@@ -94,6 +96,8 @@ export function BrowsePage() {
     if (entry.type === 'folder') {
       closeSearch()
       loadFolder(entry.path)
+    } else if (entry.path === currentPath) {
+      navigate('/player')
     } else {
       usePlayerStore.getState().setTrack(entry.path, entry.name)
       usePlayerStore.getState().setPlaying(true)

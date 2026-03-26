@@ -171,6 +171,17 @@ body {
   align-items: center;
 }
 
+.mini-player-expand {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
 .mini-player-progress {
   position: absolute;
   bottom: 0;
