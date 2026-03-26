@@ -85,8 +85,8 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   const folderName = targetPath.split('/').filter(Boolean).pop() || ''
 
   const filename = useMemo(
-    () => buildFilename(voices, sections, freeText, folderName, fileExtension),
-    [voices, sections, freeText, folderName, fileExtension],
+    () => buildFilename(voices, sections, freeText, folderName, 'mp3'),
+    [voices, sections, freeText, folderName],
   )
 
   const toggleVoice = (key: string) => {
@@ -115,8 +115,10 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     setUploading(true)
     setUploadError(null)
 
+    // Upload with original extension so server knows the source format
+    const uploadFilename = filename.replace(/\.mp3$/, `.${fileExtension}`)
     const formData = new FormData()
-    formData.append('file', blob, filename)
+    formData.append('file', blob, uploadFilename)
     formData.append('target_path', targetPath || '/')
 
     try {

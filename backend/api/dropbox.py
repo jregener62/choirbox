@@ -249,7 +249,11 @@ async def dropbox_upload(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    """Upload a recording to Dropbox."""
+    """Upload a recording to Dropbox, converting to MP3 first."""
+    import asyncio
+    import tempfile
+    import os
+
     from backend.services.dropbox_service import get_dropbox_service
 
     dbx = get_dropbox_service(session)
@@ -258,12 +262,20 @@ async def dropbox_upload(
 
     filename = file.filename or "recording"
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if ext not in ("webm", "m4a", "mp4", "ogg"):
+    if ext not in ("webm", "m4a", "mp4", "ogg", "mp3"):
         raise HTTPException(400, f"Unsupported file format: .{ext}")
 
     content = await file.read()
     if len(content) > 20 * 1024 * 1024:
         raise HTTPException(413, "File too large (max 20 MB)")
+
+    # Convert to MP3 if not already
+    if ext != "mp3":
+        mp3_content = await _convert_to_mp3(content, ext)
+        if mp3_content is None:
+            raise HTTPException(500, "Audio conversion failed")
+        content = mp3_content
+        filename = filename.rsplit(".", 1)[0] + ".mp3"
 
     if target_path and not target_path.startswith("/"):
         target_path = "/" + target_path
@@ -280,6 +292,45 @@ async def dropbox_upload(
         "path": result.get("path_display", dropbox_path),
         "size": result.get("size", len(content)),
     })
+
+
+async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
+    """Convert audio bytes to MP3 using FFmpeg."""
+    import asyncio
+    import tempfile
+    import os
+
+    with tempfile.NamedTemporaryFile(suffix=f".{input_ext}", delete=False) as src:
+        src.write(audio_bytes)
+        src_path = src.name
+
+    dst_path = src_path.rsplit(".", 1)[0] + ".mp3"
+
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ffmpeg", "-y", "-i", src_path,
+            "-codec:a", "libmp3lame", "-b:a", "128k", "-ac", "1",
+            dst_path,
+            stdout=asyncio.subprocess.DEVNULL,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        _, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
+
+        if proc.returncode != 0:
+            import logging
+            logging.getLogger(__name__).error("FFmpeg error: %s", stderr.decode())
+            return None
+
+        with open(dst_path, "rb") as f:
+            return f.read()
+    except asyncio.TimeoutError:
+        return None
+    finally:
+        for p in (src_path, dst_path):
+            try:
+                os.unlink(p)
+            except OSError:
+                pass
 
 
 @router.post("/disconnect")
