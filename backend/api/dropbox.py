@@ -5,7 +5,7 @@ from datetime import datetime
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
 from backend.config import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REDIRECT_URI
@@ -124,7 +124,16 @@ async def dropbox_callback(
     session.add(settings)
     session.commit()
 
-    return HTMLResponse(_callback_html(success=True, message=f"Dropbox connected as {account_email}"))
+    # Redirect back to the app settings page
+    # In dev mode Vite runs on :5174, in production the app is on the same port
+    from backend.config import BASE_DIR
+    react_index = BASE_DIR / "static" / "react" / "index.html"
+    if react_index.exists():
+        # Production: app served from same origin
+        return RedirectResponse("/#/settings?dropbox=connected")
+    else:
+        # Dev mode: redirect to Vite dev server
+        return RedirectResponse("http://localhost:5174/#/settings?dropbox=connected")
 
 
 @router.get("/browse")

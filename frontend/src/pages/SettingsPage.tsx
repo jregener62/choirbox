@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -21,6 +21,7 @@ export function SettingsPage() {
   const logout = useAuthStore((s) => s.logout)
   const { theme, toggleTheme } = useAppStore()
   const navigate = useNavigate()
+  const location = useLocation()
   const isAdmin = user?.role === 'admin'
 
   // Dropbox state
@@ -61,52 +62,27 @@ export function SettingsPage() {
     loadAdminSettings()
   }, [loadDropboxStatus, loadAdminSettings])
 
-  // Dropbox connect via OAuth popup
+  // Show success message after OAuth redirect back
+  useEffect(() => {
+    if (location.search?.includes('dropbox=connected')) {
+      setMessage('Dropbox verbunden!')
+      // Clean up URL
+      navigate('/settings', { replace: true })
+    }
+  }, [location.search, navigate])
+
+  // Dropbox connect — redirect-based (no popup blocking issues)
   const connectDropbox = useCallback(async () => {
     try {
       const data = await api<{ authorize_url: string }>('/dropbox/authorize')
-
-      const w = 600
-      const h = 700
-      const left = window.screenX + (window.outerWidth - w) / 2
-      const top = window.screenY + (window.outerHeight - h) / 2
-      const popup = window.open(
-        data.authorize_url,
-        'dropbox_oauth',
-        `width=${w},height=${h},left=${left},top=${top}`,
-      )
-
-      if (!popup) {
-        setMessage('Popup wurde blockiert. Bitte Popups fuer diese Seite erlauben.')
-        return
-      }
-
-      // Listen for postMessage from OAuth callback
-      const handler = (event: MessageEvent) => {
-        if (event.data?.type === 'dropbox-oauth') {
-          window.removeEventListener('message', handler)
-          if (event.data.success) {
-            setMessage('Dropbox verbunden!')
-            loadDropboxStatus()
-          } else {
-            setMessage('Dropbox-Verbindung fehlgeschlagen.')
-          }
-        }
-      }
-      window.addEventListener('message', handler)
-
-      // Poll for popup close
-      const interval = setInterval(() => {
-        if (popup.closed) {
-          clearInterval(interval)
-          window.removeEventListener('message', handler)
-          loadDropboxStatus()
-        }
-      }, 500)
+      // Redirect the whole page to Dropbox OAuth
+      // After authorization, Dropbox redirects to /api/dropbox/callback
+      // which shows a success page and auto-closes
+      window.location.href = data.authorize_url
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'OAuth-Start fehlgeschlagen')
     }
-  }, [loadDropboxStatus])
+  }, [])
 
   // Dropbox disconnect
   const disconnectDropbox = useCallback(async () => {

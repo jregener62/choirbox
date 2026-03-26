@@ -16,6 +16,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ]
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+  const onPlayerPage = location.pathname === '/player'
 
   return (
     <div className="app-shell">
@@ -23,7 +24,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      {currentName && (
+      {currentName && !onPlayerPage && (
         <div className="mini-player" onClick={() => navigate('/player')}>
           <button
             className="btn-icon"
@@ -50,7 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      <nav className="bottom-nav">
+      {!onPlayerPage && <nav className="bottom-nav">
         {navItems.map((item) => (
           <button
             key={item.path}
@@ -61,7 +62,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             {item.label}
           </button>
         ))}
-      </nav>
+      </nav>}
     </div>
   )
 }
