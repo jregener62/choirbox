@@ -1,9 +1,14 @@
-import { useState, useEffect, useCallback } from 'react'
-import { Folder, Music, ArrowUp, ChevronRight, Search } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { Folder, Music, ArrowUp, ChevronRight, Search, X } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
+
+interface SearchResponse {
+  query: string
+  entries: DropboxEntry[]
+}
 
 export function BrowsePage() {
   const browsePath = useAppStore((s) => s.browsePath)
@@ -13,6 +18,14 @@ export function BrowsePage() {
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Search state
+  const [searchOpen, setSearchOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [searchResults, setSearchResults] = useState<DropboxEntry[]>([])
+  const [searching, setSearching] = useState(false)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const loadFolder = useCallback(async (path: string) => {
     setLoading(true)
@@ -33,8 +46,44 @@ export function BrowsePage() {
     loadFolder(browsePath)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Debounced search
+  useEffect(() => {
+    if (!searchQuery || searchQuery.length < 2) {
+      setSearchResults([])
+      setSearching(false)
+      return
+    }
+
+    setSearching(true)
+    clearTimeout(debounceRef.current)
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await api<SearchResponse>(`/dropbox/search?q=${encodeURIComponent(searchQuery)}`)
+        setSearchResults(data.entries)
+      } catch {
+        setSearchResults([])
+      } finally {
+        setSearching(false)
+      }
+    }, 300)
+
+    return () => clearTimeout(debounceRef.current)
+  }, [searchQuery])
+
+  const openSearch = () => {
+    setSearchOpen(true)
+    setTimeout(() => searchRef.current?.focus(), 100)
+  }
+
+  const closeSearch = () => {
+    setSearchOpen(false)
+    setSearchQuery('')
+    setSearchResults([])
+  }
+
   const handleEntryClick = (entry: DropboxEntry) => {
     if (entry.type === 'folder') {
+      closeSearch()
       loadFolder(entry.path)
     } else {
       usePlayerStore.getState().setTrack(entry.path, entry.name)
@@ -51,16 +100,42 @@ export function BrowsePage() {
 
   const pathParts = browsePath.split('/').filter(Boolean)
 
+  // Which entries to show
+  const isSearching = searchOpen && searchQuery.length >= 2
+  const displayEntries = isSearching ? searchResults : entries
+
   return (
     <div>
-      <div className="topbar">
-        <div className="topbar-title">Dateien</div>
-        <button className="btn-icon" style={{ color: 'var(--text-muted)' }}>
-          <Search size={20} />
-        </button>
-      </div>
+      {/* Topbar: normal or search mode */}
+      {searchOpen ? (
+        <div className="topbar">
+          <div className="search-bar">
+            <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+            <input
+              ref={searchRef}
+              className="search-input"
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Dateien suchen..."
+              autoFocus
+            />
+            <button className="player-header-btn" onClick={closeSearch}>
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="topbar">
+          <div className="topbar-title">Dateien</div>
+          <button className="player-header-btn" onClick={openSearch}>
+            <Search size={20} />
+          </button>
+        </div>
+      )}
 
-      {browsePath && (
+      {/* Breadcrumb (hidden during search) */}
+      {!isSearching && browsePath && (
         <div className="breadcrumb">
           <span className="breadcrumb-item" onClick={() => loadFolder('')}>
             Root
@@ -84,23 +159,36 @@ export function BrowsePage() {
         </div>
       )}
 
-      {loading && (
+      {/* Loading */}
+      {(loading || searching) && (
         <div className="empty-state">Laden...</div>
       )}
 
-      {error && (
+      {/* Error */}
+      {error && !isSearching && (
         <div className="empty-state" style={{ color: 'var(--danger)' }}>{error}</div>
       )}
 
-      {!loading && !error && entries.length === 0 && (
+      {/* Empty states */}
+      {!loading && !searching && !error && displayEntries.length === 0 && (
         <div className="empty-state">
-          <Folder size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
-          <div>Keine Dateien in diesem Ordner</div>
+          {isSearching ? (
+            <>
+              <Search size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+              <div>{searchQuery.length < 2 ? 'Mindestens 2 Zeichen eingeben' : 'Keine Ergebnisse'}</div>
+            </>
+          ) : (
+            <>
+              <Folder size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+              <div>Keine Dateien in diesem Ordner</div>
+            </>
+          )}
         </div>
       )}
 
+      {/* File list */}
       <ul className="file-list">
-        {browsePath && (
+        {!isSearching && browsePath && (
           <li className="file-item" onClick={navigateUp}>
             <div className="file-icon-box file-icon-folder">
               <ArrowUp size={18} />
@@ -110,7 +198,7 @@ export function BrowsePage() {
             </div>
           </li>
         )}
-        {entries.map((entry) => {
+        {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
           return (
             <li
@@ -137,7 +225,10 @@ export function BrowsePage() {
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {entry.name}
                 </div>
-                {entry.type === 'file' && entry.size && (
+                {isSearching && (
+                  <div className="file-meta">{entry.path}</div>
+                )}
+                {!isSearching && entry.type === 'file' && entry.size && (
                   <div className="file-meta">
                     {(entry.size / 1024 / 1024).toFixed(1)} MB
                   </div>
