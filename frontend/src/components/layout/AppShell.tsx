@@ -1,0 +1,60 @@
+import { useLocation, useNavigate } from 'react-router-dom'
+import { usePlayerStore } from '@/stores/playerStore.ts'
+
+export function AppShell({ children }: { children: React.ReactNode }) {
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { currentName, isPlaying, currentTime, duration } = usePlayerStore()
+
+  const navItems = [
+    { path: '/browse', icon: '\uD83D\uDCC2', label: 'Dateien' },
+    { path: '/favorites', icon: '\u2764\uFE0F', label: 'Favoriten' },
+    { path: '/settings', icon: '\u2699\uFE0F', label: 'Einstellungen' },
+  ]
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
+
+  return (
+    <div className="app-shell">
+      <div className="main-content">
+        {children}
+      </div>
+
+      {currentName && (
+        <div className="mini-player">
+          <button
+            className="btn-icon"
+            onClick={(e) => {
+              e.stopPropagation()
+              usePlayerStore.getState().setPlaying(!isPlaying)
+            }}
+          >
+            {isPlaying ? '\u23F8' : '\u25B6'}
+          </button>
+          <div className="mini-player-info">
+            <div className="mini-player-title">{currentName}</div>
+            <div className="mini-player-progress">
+              <div
+                className="mini-player-progress-fill"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <nav className="bottom-nav">
+        {navItems.map((item) => (
+          <button
+            key={item.path}
+            className={`bottom-nav-item ${location.pathname === item.path || (item.path === '/browse' && location.pathname === '/') ? 'active' : ''}`}
+            onClick={() => navigate(item.path)}
+          >
+            <span>{item.icon}</span>
+            {item.label}
+          </button>
+        ))}
+      </nav>
+    </div>
+  )
+}
