@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { Heart, Music } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import type { Favorite } from '@/types/index.ts'
@@ -6,6 +7,8 @@ import type { Favorite } from '@/types/index.ts'
 export function FavoritesPage() {
   const [favorites, setFavorites] = useState<Favorite[]>([])
   const [loading, setLoading] = useState(true)
+  const currentPath = usePlayerStore((s) => s.currentPath)
+  const isPlaying = usePlayerStore((s) => s.isPlaying)
 
   useEffect(() => {
     const load = async () => {
@@ -36,7 +39,7 @@ export function FavoritesPage() {
 
       {!loading && favorites.length === 0 && (
         <div className="empty-state">
-          <div className="empty-state-icon">{'\u2764\uFE0F'}</div>
+          <Heart size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
           <div>Noch keine Favoriten</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
             Markiere Dateien als Favorit beim Abspielen
@@ -45,15 +48,32 @@ export function FavoritesPage() {
       )}
 
       <ul className="file-list">
-        {favorites.map((fav) => (
-          <li key={fav.id} className="file-item" onClick={() => handlePlay(fav)}>
-            <div className="file-icon">{'\uD83C\uDFB5'}</div>
-            <div className="file-info">
-              <div className="file-name">{fav.file_name}</div>
-              <div className="file-meta">{fav.dropbox_path}</div>
-            </div>
-          </li>
-        ))}
+        {favorites.map((fav) => {
+          const isActive = fav.dropbox_path === currentPath
+          return (
+            <li
+              key={fav.id}
+              className={`file-item ${isActive ? 'file-item--active' : ''}`}
+              onClick={() => handlePlay(fav)}
+            >
+              {isActive && isPlaying ? (
+                <div className="file-icon-box file-icon-playing">
+                  <div className="playing-bars"><span /><span /><span /></div>
+                </div>
+              ) : (
+                <div className="file-icon-box file-icon-audio">
+                  <Music size={18} />
+                </div>
+              )}
+              <div className="file-info">
+                <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
+                  {fav.file_name}
+                </div>
+                <div className="file-meta">{fav.dropbox_path}</div>
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

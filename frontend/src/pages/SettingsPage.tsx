@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
+import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LogOut, ChevronRight } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -135,7 +136,7 @@ export function SettingsPage() {
 
         {/* -- Profil -- */}
         <section>
-          <h3 className="settings-heading">Profil</h3>
+          <h3 className="settings-heading"><User size={14} /> Profil</h3>
           <div className="settings-rows">
             <div className="settings-row">
               <span className="settings-label">Name</span>
@@ -158,7 +159,7 @@ export function SettingsPage() {
 
         {/* -- Darstellung -- */}
         <section>
-          <h3 className="settings-heading">Darstellung</h3>
+          <h3 className="settings-heading">{theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />} Darstellung</h3>
           <div className="settings-row">
             <span>Theme</span>
             <button className="btn btn-secondary" onClick={toggleTheme}>
@@ -170,7 +171,7 @@ export function SettingsPage() {
         {/* -- Dropbox (Admin) -- */}
         {isAdmin && (
           <section>
-            <h3 className="settings-heading">Dropbox</h3>
+            <h3 className="settings-heading">{dbxStatus?.connected ? <Cloud size={14} /> : <CloudOff size={14} />} Dropbox</h3>
             {dbxLoading ? (
               <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>Lade Status...</div>
             ) : dbxStatus?.connected ? (
@@ -181,7 +182,7 @@ export function SettingsPage() {
                 </div>
                 <div className="settings-row">
                   <span className="settings-label">Account</span>
-                  <span>{dbxStatus.account_email}</span>
+                  <span style={{ fontSize: 13 }}>{dbxStatus.account_email}</span>
                 </div>
                 <button
                   className="btn btn-secondary"
@@ -193,16 +194,16 @@ export function SettingsPage() {
               </div>
             ) : dbxStatus?.configured ? (
               <div>
-                <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 12 }}>
-                  Dropbox ist nicht verbunden. Verbinde den Dropbox-Account, damit Chormitglieder auf die Dateien zugreifen koennen.
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
+                  Verbinde den Dropbox-Account, damit Chormitglieder auf die Dateien zugreifen koennen.
                 </div>
-                <button className="btn btn-primary" style={{ width: '100%' }} onClick={connectDropbox}>
+                <button className="auth-submit" onClick={connectDropbox}>
                   Mit Dropbox verbinden
                 </button>
               </div>
             ) : (
-              <div style={{ fontSize: 14, color: 'var(--danger)' }}>
-                Dropbox-Credentials nicht konfiguriert. DROPBOX_APP_KEY und DROPBOX_APP_SECRET in .env eintragen.
+              <div style={{ fontSize: 13, color: 'var(--danger)' }}>
+                DROPBOX_APP_KEY und DROPBOX_APP_SECRET in .env eintragen.
               </div>
             )}
           </section>
@@ -211,25 +212,25 @@ export function SettingsPage() {
         {/* -- Registrierungscode (Admin) -- */}
         {isAdmin && (
           <section>
-            <h3 className="settings-heading">Registrierungscode</h3>
-            <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 8 }}>
-              Diesen Code an Chormitglieder weitergeben, damit sie sich registrieren koennen.
+            <h3 className="settings-heading"><Hash size={14} /> Registrierungscode</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+              Diesen Code an Chormitglieder weitergeben.
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input
-                className="input"
+                className="auth-input"
                 type="text"
                 value={regCode}
                 onChange={(e) => setRegCode(e.target.value)}
                 placeholder="z.B. MeinChor2026"
               />
               <button
-                className="btn btn-primary"
+                className="auth-submit"
                 onClick={saveRegCode}
                 disabled={regCodeSaving}
-                style={{ whiteSpace: 'nowrap' }}
+                style={{ width: 'auto', padding: '10px 20px' }}
               >
-                {regCodeSaving ? '...' : 'Speichern'}
+                {regCodeSaving ? '...' : 'OK'}
               </button>
             </div>
           </section>
@@ -239,54 +240,26 @@ export function SettingsPage() {
         {isAdmin && (
           <section>
             <h3 className="settings-heading">Verwaltung</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <button
-                className="btn btn-secondary"
-                style={{ width: '100%' }}
-                onClick={() => navigate('/admin/users')}
-              >
-                Nutzer verwalten
+            <div className="settings-nav-list">
+              <button className="settings-nav-item" onClick={() => navigate('/admin/users')}>
+                <Users size={18} />
+                <span>Nutzer verwalten</span>
+                <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
               </button>
-              <button
-                className="btn btn-secondary"
-                style={{ width: '100%' }}
-                onClick={() => navigate('/admin/labels')}
-              >
-                Labels verwalten
+              <button className="settings-nav-item" onClick={() => navigate('/admin/labels')}>
+                <Tag size={18} />
+                <span>Labels verwalten</span>
+                <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
               </button>
-            </div>
-          </section>
-        )}
-
-        {/* -- UI Mockups (Admin) -- */}
-        {isAdmin && (
-          <section>
-            <h3 className="settings-heading">UI Mockups</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <a href="/mockups/konzept-a-spotify.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
-                Konzept A — Spotify-Style
-              </a>
-              <a href="/mockups/konzept-b-soundcloud.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
-                Konzept B — SoundCloud-Style
-              </a>
-              <a href="/mockups/konzept-c-practice.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
-                Konzept C — Practice-First
-              </a>
-              <a href="/mockups/browser-und-miniplayer.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
-                Browser + Mini-Player
-              </a>
             </div>
           </section>
         )}
 
         {/* -- Abmelden -- */}
         <section>
-          <button
-            className="btn btn-secondary"
-            style={{ width: '100%', color: 'var(--danger)' }}
-            onClick={logout}
-          >
-            Abmelden
+          <button className="settings-nav-item" style={{ color: 'var(--danger)' }} onClick={logout}>
+            <LogOut size={18} />
+            <span>Abmelden</span>
           </button>
         </section>
       </div>

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { ArrowLeft, Crown, UserIcon, Trash2 } from 'lucide-react'
 import { api } from '@/api/client.ts'
 
 interface AdminUser {
@@ -66,58 +67,39 @@ export function UsersPage() {
   return (
     <div>
       <div className="topbar">
-        <button className="btn-icon" onClick={() => navigate('/settings')}>{'\u2190'}</button>
+        <button className="player-header-btn" onClick={() => navigate('/settings')}>
+          <ArrowLeft size={20} />
+        </button>
         <div className="topbar-title">Nutzer verwalten</div>
-        <div style={{ fontSize: 14, color: 'var(--text-muted)' }}>{users.length}</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '0 8px' }}>{users.length}</div>
       </div>
 
       {message && (
-        <div
-          style={{ padding: '10px 16px', background: 'var(--bg-tertiary)', fontSize: 14 }}
-          onClick={() => setMessage('')}
-        >
-          {message}
-        </div>
+        <div style={{ padding: '10px 16px', background: 'var(--bg-tertiary)', fontSize: 13 }}
+          onClick={() => setMessage('')}>{message}</div>
       )}
 
       {loading && <div className="empty-state">Laden...</div>}
 
-      {!loading && users.length === 0 && (
-        <div className="empty-state">Keine Nutzer vorhanden</div>
-      )}
-
       <ul className="file-list">
         {users.map((u) => (
-          <li key={u.id} className="user-item">
+          <li key={u.id} className="file-item" style={{ cursor: 'default' }}>
             <div className="user-avatar">
               {u.display_name.charAt(0).toUpperCase()}
             </div>
-            <div className="user-info">
-              <div className="user-name">{u.display_name}</div>
-              <div className="user-meta">
-                <span>{u.role === 'admin' ? 'Admin' : 'Mitglied'}</span>
-                <span>{u.voice_part}</span>
-                <span>Login: {formatDate(u.last_login_at)}</span>
+            <div className="file-info">
+              <div className="file-name">{u.display_name}</div>
+              <div className="file-meta">
+                {u.role === 'admin' ? 'Admin' : 'Mitglied'} · {u.voice_part} · Login: {formatDate(u.last_login_at)}
               </div>
             </div>
-            <div style={{ display: 'flex', gap: 4 }}>
-              <button
-                className="btn-icon"
-                title="Rolle aendern"
-                onClick={() => toggleRole(u)}
-                style={{ fontSize: 16 }}
-              >
-                {u.role === 'admin' ? '\uD83D\uDC51' : '\uD83D\uDC64'}
-              </button>
-              <button
-                className="btn-icon"
-                title="Loeschen"
-                onClick={() => deleteUser(u)}
-                style={{ fontSize: 16, color: 'var(--danger)' }}
-              >
-                {'\uD83D\uDDD1'}
-              </button>
-            </div>
+            <button className="player-header-btn" title="Rolle aendern" onClick={() => toggleRole(u)}>
+              {u.role === 'admin' ? <Crown size={16} /> : <UserIcon size={16} />}
+            </button>
+            <button className="player-header-btn" title="Loeschen" onClick={() => deleteUser(u)}
+              style={{ color: 'var(--danger)' }}>
+              <Trash2 size={16} />
+            </button>
           </li>
         ))}
       </ul>
