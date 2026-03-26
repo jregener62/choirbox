@@ -10,7 +10,39 @@ from backend.api.favorites import router as favorites_router
 from backend.api.labels import router as labels_router
 from backend.api.admin import router as admin_router
 
+
+class CacheControlMiddleware:
+    """Set Cache-Control headers for static assets.
+    Hashed files (/assets/*) get long cache (1 year).
+    index.html gets no-cache (always fresh)."""
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        path = scope.get("path", "")
+
+        async def send_with_cache(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                if path.startswith("/assets/"):
+                    # Hashed files: cache for 1 year
+                    headers.append((b"cache-control", b"public, max-age=31536000, immutable"))
+                elif path == "/" or path.endswith(".html"):
+                    # HTML: always revalidate
+                    headers.append((b"cache-control", b"no-cache"))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_with_cache)
+
+
 app = FastAPI(title="ChoirBox", version="0.1.0")
+app.add_middleware(CacheControlMiddleware)
 
 # API routes
 app.include_router(auth_router, prefix="/api")
