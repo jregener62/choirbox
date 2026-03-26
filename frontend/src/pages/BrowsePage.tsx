@@ -7,6 +7,8 @@ import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 export function BrowsePage() {
   const browsePath = useAppStore((s) => s.browsePath)
   const setBrowsePath = useAppStore((s) => s.setBrowsePath)
+  const currentPath = usePlayerStore((s) => s.currentPath)
+  const isPlaying = usePlayerStore((s) => s.isPlaying)
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -102,21 +104,28 @@ export function BrowsePage() {
             </div>
           </li>
         )}
-        {entries.map((entry) => (
-          <li key={entry.path} className="file-item" onClick={() => handleEntryClick(entry)}>
-            <div className="file-icon">
-              {entry.type === 'folder' ? '\uD83D\uDCC1' : '\uD83C\uDFB5'}
-            </div>
-            <div className="file-info">
-              <div className="file-name">{entry.name}</div>
-              {entry.type === 'file' && entry.size && (
-                <div className="file-meta">
-                  {(entry.size / 1024 / 1024).toFixed(1)} MB
-                </div>
-              )}
-            </div>
-          </li>
-        ))}
+        {entries.map((entry) => {
+          const isActive = entry.type === 'file' && entry.path === currentPath
+          return (
+            <li
+              key={entry.path}
+              className={`file-item ${isActive ? 'file-item--active' : ''}`}
+              onClick={() => handleEntryClick(entry)}
+            >
+              <div className="file-icon">
+                {isActive && isPlaying ? '\uD83D\uDD0A' : entry.type === 'folder' ? '\uD83D\uDCC1' : '\uD83C\uDFB5'}
+              </div>
+              <div className="file-info">
+                <div className="file-name">{entry.name}</div>
+                {entry.type === 'file' && entry.size && (
+                  <div className="file-meta">
+                    {(entry.size / 1024 / 1024).toFixed(1)} MB
+                  </div>
+                )}
+              </div>
+            </li>
+          )
+        })}
       </ul>
     </div>
   )

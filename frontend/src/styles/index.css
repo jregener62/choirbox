@@ -254,6 +254,15 @@ body {
   background: var(--bg-secondary);
 }
 
+.file-item--active {
+  background: var(--bg-secondary);
+}
+
+.file-item--active .file-name {
+  color: var(--accent);
+  font-weight: 600;
+}
+
 .file-icon {
   font-size: 24px;
   width: 32px;

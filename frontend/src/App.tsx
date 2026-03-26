@@ -9,6 +9,7 @@ import { FavoritesPage } from '@/pages/FavoritesPage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
 import { PlayerPage } from '@/pages/PlayerPage.tsx'
 import { UsersPage } from '@/pages/admin/UsersPage.tsx'
+import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -40,6 +41,7 @@ export function App() {
                   <Route path="/player" element={<PlayerPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/admin/users" element={<UsersPage />} />
+                  <Route path="/admin/labels" element={<LabelsPage />} />
                 </Routes>
               </AppShell>
             </AuthGuard>

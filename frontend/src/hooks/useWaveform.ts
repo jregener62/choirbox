@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { api } from '@/api/client.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 
 interface PreviewLink {
   link: string
@@ -79,6 +80,11 @@ export function useWaveform(dropboxPath: string | null) {
         const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
         await audioCtx.close()
         if (controller.signal.aborted) return
+
+        // Set precise duration from decoded audio (immediate, no waiting for loadedmetadata)
+        if (audioBuffer.duration && isFinite(audioBuffer.duration)) {
+          usePlayerStore.getState().setDuration(audioBuffer.duration)
+        }
 
         // Compute peaks from first channel
         const channelData = audioBuffer.getChannelData(0)

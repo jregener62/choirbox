@@ -235,17 +235,26 @@ export function SettingsPage() {
           </section>
         )}
 
-        {/* -- Nutzerverwaltung (Admin) -- */}
+        {/* -- Verwaltung (Admin) -- */}
         {isAdmin && (
           <section>
             <h3 className="settings-heading">Verwaltung</h3>
-            <button
-              className="btn btn-secondary"
-              style={{ width: '100%' }}
-              onClick={() => navigate('/admin/users')}
-            >
-              Nutzer verwalten
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%' }}
+                onClick={() => navigate('/admin/users')}
+              >
+                Nutzer verwalten
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%' }}
+                onClick={() => navigate('/admin/labels')}
+              >
+                Labels verwalten
+              </button>
+            </div>
           </section>
         )}
 
