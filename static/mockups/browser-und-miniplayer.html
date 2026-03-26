@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Datei-Browser + Mini-Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1;
+    --border: #334155;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text);
+         max-width: 390px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column;
+         -webkit-font-smoothing: antialiased; }
+
+  /* -- Topbar -- */
+  .topbar { display: flex; align-items: center; padding: 10px 16px; background: var(--bg2);
+            border-bottom: 1px solid var(--border); min-height: 48px; gap: 12px; }
+  .topbar-title { flex: 1; font-size: 17px; font-weight: 600; }
+  .topbar-icon { background: none; border: none; color: var(--text3); cursor: pointer; padding: 6px; }
+
+  /* -- Breadcrumb -- */
+  .breadcrumb { display: flex; align-items: center; padding: 8px 16px; background: var(--bg2);
+                font-size: 13px; color: var(--text3); gap: 6px; overflow-x: auto; white-space: nowrap; }
+  .bc-link { color: var(--accent); cursor: pointer; }
+  .bc-sep { color: var(--text3); }
+  .bc-current { color: var(--text); font-weight: 500; }
+
+  /* -- File List -- */
+  .file-list { flex: 1; overflow-y: auto; }
+  .file-item { display: flex; align-items: center; padding: 12px 16px; gap: 14px; cursor: pointer;
+               border-bottom: 1px solid rgba(51,65,85,0.5); }
+  .file-item:active { background: var(--bg2); }
+  .file-item--active { background: rgba(129,140,248,0.08); }
+  .file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+               justify-content: center; flex-shrink: 0; }
+  .file-icon.folder { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .file-icon.audio { background: rgba(168,85,247,0.15); color: #a855f7; }
+  .file-icon.playing { background: rgba(129,140,248,0.2); color: var(--accent); }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-name.active { color: var(--accent); font-weight: 600; }
+  .file-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .file-duration { font-size: 12px; color: var(--text3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .file-chevron { color: var(--text3); flex-shrink: 0; }
+
+  /* -- Playing Animation (3 Bars) -- */
+  .playing-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .playing-bars span { width: 3px; background: var(--accent); border-radius: 1px;
+                       animation: bar-bounce 0.8s ease-in-out infinite; }
+  .playing-bars span:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .playing-bars span:nth-child(2) { height: 10px; animation-delay: 0.2s; }
+  .playing-bars span:nth-child(3) { height: 4px; animation-delay: 0.4s; }
+  @keyframes bar-bounce {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(1); }
+  }
+
+  /* -- Mini Player -- */
+  .mini-player { background: var(--bg2); border-top: 1px solid var(--border); padding: 8px 16px 4px;
+                 cursor: pointer; position: relative; }
+  .mini-content { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
+  .mini-icon { width: 32px; height: 32px; border-radius: 6px; background: rgba(129,140,248,0.15);
+               display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+  .mini-info { flex: 1; min-width: 0; }
+  .mini-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-subtitle { font-size: 11px; color: var(--text3); }
+  .mini-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 8px; }
+  .mini-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--bg3); }
+  .mini-progress-fill { height: 100%; background: var(--accent); width: 45%; }
+
+  /* -- Bottom Nav -- */
+  .bottom-nav { display: flex; justify-content: space-around; padding: 6px 0 10px; background: var(--bg2);
+                border-top: 1px solid var(--border); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 16px;
+              background: none; border: none; cursor: pointer; color: var(--text3); font-family: inherit; }
+  .nav-item.active { color: var(--accent); }
+  .nav-label { font-size: 10px; font-weight: 500; }
+
+  .concept-label { position: fixed; top: 8px; right: 8px; background: var(--accent); color: white;
+                   padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; z-index: 10; }
+</style>
+</head>
+<body>
+
+<div class="concept-label">Browser + Mini-Player</div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-title">Dateien</div>
+  <button class="topbar-icon"><i data-lucide="search" style="width:20px;height:20px"></i></button>
+</div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <span class="bc-link">Root</span>
+  <span class="bc-sep"><i data-lucide="chevron-right" style="width:14px;height:14px"></i></span>
+  <span class="bc-current">Bring Me Little Water</span>
+</div>
+
+<!-- File List -->
+<div class="file-list">
+  <!-- Back -->
+  <div class="file-item">
+    <div class="file-icon folder"><i data-lucide="arrow-up" style="width:18px;height:18px"></i></div>
+    <div class="file-info"><div class="file-name" style="color:var(--text3)">..</div></div>
+  </div>
+
+  <!-- Folder -->
+  <div class="file-item">
+    <div class="file-icon folder"><i data-lucide="folder" style="width:18px;height:18px"></i></div>
+    <div class="file-info"><div class="file-name">Noten</div></div>
+    <div class="file-chevron"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+  </div>
+
+  <!-- Audio files -->
+  <div class="file-item">
+    <div class="file-icon audio"><i data-lucide="music" style="width:18px;height:18px"></i></div>
+    <div class="file-info">
+      <div class="file-name">A - Bring Me Little Water (Brian).mp3</div>
+      <div class="file-meta">3.1 MB</div>
+    </div>
+    <div class="file-duration">1:36</div>
+  </div>
+
+  <!-- Active/Playing Track -->
+  <div class="file-item file-item--active">
+    <div class="file-icon playing">
+      <div class="playing-bars"><span></span><span></span><span></span></div>
+    </div>
+    <div class="file-info">
+      <div class="file-name active">B - Bring Me Little Water (Brian).mp3</div>
+      <div class="file-meta">3.3 MB</div>
+    </div>
+    <div class="file-duration" style="color:var(--accent)">1:42</div>
+  </div>
+
+  <div class="file-item">
+    <div class="file-icon audio"><i data-lucide="music" style="width:18px;height:18px"></i></div>
+    <div class="file-info">
+      <div class="file-name">C - Bring Me Little Water (83 bpm, Brian).mp3</div>
+      <div class="file-meta">3.0 MB</div>
+    </div>
+    <div class="file-duration">1:32</div>
+  </div>
+
+  <div class="file-item">
+    <div class="file-icon audio"><i data-lucide="music" style="width:18px;height:18px"></i></div>
+    <div class="file-info">
+      <div class="file-name">S - Bring Me Little Water (Brian).mp3</div>
+      <div class="file-meta">3.1 MB</div>
+    </div>
+    <div class="file-duration">1:38</div>
+  </div>
+
+  <div class="file-item">
+    <div class="file-icon audio"><i data-lucide="music" style="width:18px;height:18px"></i></div>
+    <div class="file-info">
+      <div class="file-name">T - Bring Me Little Water (Brian).mp3</div>
+      <div class="file-meta">3.0 MB</div>
+    </div>
+    <div class="file-duration">1:35</div>
+  </div>
+</div>
+
+<!-- Mini Player -->
+<div class="mini-player">
+  <div class="mini-content">
+    <div class="mini-icon"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+    <div class="mini-info">
+      <div class="mini-title">B - Bring Me Little Water (Brian).mp3</div>
+    </div>
+    <button class="mini-btn"><i data-lucide="pause" style="width:22px;height:22px"></i></button>
+    <button class="mini-btn"><i data-lucide="skip-forward" style="width:18px;height:18px"></i></button>
+  </div>
+  <div class="mini-progress"><div class="mini-progress-fill"></div></div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <button class="nav-item active">
+    <i data-lucide="folder-open" style="width:20px;height:20px"></i>
+    <span class="nav-label">Dateien</span>
+  </button>
+  <button class="nav-item">
+    <i data-lucide="heart" style="width:20px;height:20px"></i>
+    <span class="nav-label">Favoriten</span>
+  </button>
+  <button class="nav-item">
+    <i data-lucide="settings" style="width:20px;height:20px"></i>
+    <span class="nav-label">Einstellungen</span>
+  </button>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

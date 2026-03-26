@@ -33,6 +33,12 @@ if REACT_ASSETS.exists():
     )
 
 
+# Static mockups/files
+STATIC_DIR = BASE / "static" / "mockups"
+if STATIC_DIR.exists():
+    app.mount("/mockups", StaticFiles(directory=str(STATIC_DIR)), name="mockups")
+
+
 @app.get("/")
 def index():
     """Serve React SPA if built."""
