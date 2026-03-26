@@ -18,10 +18,13 @@ export function BrowsePage() {
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
-  const { loaded: labelsLoaded, load: loadLabels, getLabelsForPath } = useLabelsStore()
+  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, assignments } = useLabelsStore()
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  // Filter state
+  const [activeFilters, setActiveFilters] = useState<number[]>([])
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false)
@@ -108,7 +111,28 @@ export function BrowsePage() {
 
   // Which entries to show
   const isSearching = searchOpen && searchQuery.length >= 2
-  const displayEntries = isSearching ? searchResults : entries
+
+  const toggleFilter = (labelId: number) => {
+    setActiveFilters((prev) =>
+      prev.includes(labelId) ? prev.filter((id) => id !== labelId) : [...prev, labelId]
+    )
+  }
+
+  // Filter entries by active labels (OR logic: show if file has ANY of the active labels)
+  const filteredEntries = activeFilters.length === 0
+    ? entries
+    : entries.filter((e) => {
+        if (e.type === 'folder') return true // always show folders
+        const trackLabels = getLabelsForPath(e.path)
+        return trackLabels.some((l) => activeFilters.includes(l.id))
+      })
+
+  const displayEntries = isSearching ? searchResults : filteredEntries
+
+  // Check if any files in current folder have labels (to show filter bar)
+  const hasLabelsInFolder = assignments.some((a) =>
+    entries.some((e) => e.type === 'file' && e.path === a.dropbox_path)
+  )
 
   return (
     <div>
@@ -162,6 +186,29 @@ export function BrowsePage() {
               </span>
             )
           })}
+        </div>
+      )}
+
+      {/* Label filter bar */}
+      {!isSearching && hasLabelsInFolder && labels.length > 0 && (
+        <div className="filter-bar">
+          <button
+            className={`filter-chip ${activeFilters.length === 0 ? 'active' : ''}`}
+            onClick={() => setActiveFilters([])}
+          >
+            Alle
+          </button>
+          {labels.map((l) => (
+            <button
+              key={l.id}
+              className={`filter-chip ${activeFilters.includes(l.id) ? 'active' : ''}`}
+              style={activeFilters.includes(l.id) ? { background: l.color + '25', color: l.color, borderColor: l.color } : {}}
+              onClick={() => toggleFilter(l.id)}
+            >
+              <span className="filter-chip-dot" style={{ background: l.color }} />
+              {l.name}
+            </button>
+          ))}
         </div>
       )}
 
