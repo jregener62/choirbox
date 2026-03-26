@@ -65,3 +65,30 @@ def remove_favorite(
     session.delete(favorite)
     session.commit()
     return ActionResponse.success()
+
+
+@router.post("/toggle")
+def toggle_favorite(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+    """Toggle favorite: add if not exists, remove if exists. Returns new state."""
+    dropbox_path = data.get("dropbox_path", "").strip()
+    if not dropbox_path:
+        raise HTTPException(400, "dropbox_path is required")
+
+    existing = session.exec(
+        select(Favorite).where(
+            Favorite.user_id == user.id,
+            Favorite.dropbox_path == dropbox_path,
+        )
+    ).first()
+
+    if existing:
+        session.delete(existing)
+        session.commit()
+        return ActionResponse.success(data={"is_favorite": False})
+    else:
+        file_name = os.path.basename(dropbox_path)
+        favorite = Favorite(user_id=user.id, dropbox_path=dropbox_path, file_name=file_name)
+        session.add(favorite)
+        session.commit()
+        session.refresh(favorite)
+        return ActionResponse.success(data={"is_favorite": True, "id": favorite.id})

@@ -1,31 +1,19 @@
-import { useState, useEffect } from 'react'
-import { Heart, Music } from 'lucide-react'
-import { api } from '@/api/client.ts'
+import { useEffect } from 'react'
+import { Heart, Music, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
-import type { Favorite } from '@/types/index.ts'
+import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 
 export function FavoritesPage() {
-  const [favorites, setFavorites] = useState<Favorite[]>([])
-  const [loading, setLoading] = useState(true)
+  const { favorites, loaded, load, toggle } = useFavoritesStore()
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
 
   useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await api<Favorite[]>('/favorites')
-        setFavorites(data)
-      } catch {
-        // ignore
-      } finally {
-        setLoading(false)
-      }
-    }
-    load()
-  }, [])
+    if (!loaded) load()
+  }, [loaded, load])
 
-  const handlePlay = (fav: Favorite) => {
-    usePlayerStore.getState().setTrack(fav.dropbox_path, fav.file_name)
+  const handlePlay = (dropboxPath: string, fileName: string) => {
+    usePlayerStore.getState().setTrack(dropboxPath, fileName)
     usePlayerStore.getState().setPlaying(true)
   }
 
@@ -33,16 +21,19 @@ export function FavoritesPage() {
     <div>
       <div className="topbar">
         <div className="topbar-title">Favoriten</div>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '0 8px' }}>
+          {loaded ? favorites.length : ''}
+        </div>
       </div>
 
-      {loading && <div className="empty-state">Laden...</div>}
+      {!loaded && <div className="empty-state">Laden...</div>}
 
-      {!loading && favorites.length === 0 && (
+      {loaded && favorites.length === 0 && (
         <div className="empty-state">
           <Heart size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
           <div>Noch keine Favoriten</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Markiere Dateien als Favorit beim Abspielen
+            Markiere Dateien mit dem Herz-Symbol
           </div>
         </div>
       )}
@@ -54,7 +45,7 @@ export function FavoritesPage() {
             <li
               key={fav.id}
               className={`file-item ${isActive ? 'file-item--active' : ''}`}
-              onClick={() => handlePlay(fav)}
+              onClick={() => handlePlay(fav.dropbox_path, fav.file_name)}
             >
               {isActive && isPlaying ? (
                 <div className="file-icon-box file-icon-playing">
@@ -71,6 +62,12 @@ export function FavoritesPage() {
                 </div>
                 <div className="file-meta">{fav.dropbox_path}</div>
               </div>
+              <button
+                className="fav-toggle"
+                onClick={(e) => { e.stopPropagation(); toggle(fav.dropbox_path) }}
+              >
+                <Trash2 size={16} color="var(--text-muted)" />
+              </button>
             </li>
           )
         })}

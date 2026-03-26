@@ -360,6 +360,19 @@ body {
   margin-top: 2px;
 }
 
+/* -- Favorite toggle in file list -- */
+
+.fav-toggle {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* -- Search bar -- */
 
 .search-bar {
@@ -917,6 +930,11 @@ body {
 
 .player-action-btn:active {
   background: var(--bg-tertiary);
+}
+
+.player-action-btn--active {
+  color: #f87171;
+  border-color: rgba(248,113,113,0.3);
 }
 
 /* Marker chips */

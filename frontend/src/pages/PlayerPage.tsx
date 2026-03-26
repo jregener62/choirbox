@@ -1,13 +1,16 @@
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Gauge, Heart, X } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
+import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 
 export function PlayerPage() {
   const navigate = useNavigate()
+  const { loaded, load, isFavorite, toggle } = useFavoritesStore()
   const {
     currentName, currentPath,
     isPlaying, currentTime, duration,
@@ -29,6 +32,11 @@ export function PlayerPage() {
   const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
+  const isFav = currentPath ? isFavorite(currentPath) : false
+
+  useEffect(() => {
+    if (!loaded) load()
+  }, [loaded, load])
 
   return (
     <div className="player-page">
@@ -129,8 +137,11 @@ export function PlayerPage() {
         <button className="player-action-btn">
           <Gauge size={14} /> 1.0x
         </button>
-        <button className="player-action-btn">
-          <Heart size={14} /> Favorit
+        <button
+          className={`player-action-btn ${isFav ? 'player-action-btn--active' : ''}`}
+          onClick={() => currentPath && toggle(currentPath)}
+        >
+          <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> {isFav ? 'Favorit' : 'Favorit'}
         </button>
       </div>
     </div>

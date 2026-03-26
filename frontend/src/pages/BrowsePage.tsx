@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Folder, Music, ArrowUp, ChevronRight, Search, X } from 'lucide-react'
+import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
+import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -15,6 +16,7 @@ export function BrowsePage() {
   const setBrowsePath = useAppStore((s) => s.setBrowsePath)
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -44,6 +46,7 @@ export function BrowsePage() {
 
   useEffect(() => {
     loadFolder(browsePath)
+    if (!favsLoaded) loadFavs()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced search
@@ -234,8 +237,19 @@ export function BrowsePage() {
                   </div>
                 )}
               </div>
-              {entry.type === 'folder' && (
+              {entry.type === 'folder' ? (
                 <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              ) : (
+                <button
+                  className="fav-toggle"
+                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path) }}
+                >
+                  <Heart
+                    size={16}
+                    fill={isFavorite(entry.path) ? '#f87171' : 'none'}
+                    color={isFavorite(entry.path) ? '#f87171' : 'var(--text-muted)'}
+                  />
+                </button>
               )}
             </li>
           )
