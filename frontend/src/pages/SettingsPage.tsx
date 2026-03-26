@@ -258,6 +258,27 @@ export function SettingsPage() {
           </section>
         )}
 
+        {/* -- UI Mockups (Admin) -- */}
+        {isAdmin && (
+          <section>
+            <h3 className="settings-heading">UI Mockups</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <a href="/mockups/konzept-a-spotify.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
+                Konzept A — Spotify-Style
+              </a>
+              <a href="/mockups/konzept-b-soundcloud.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
+                Konzept B — SoundCloud-Style
+              </a>
+              <a href="/mockups/konzept-c-practice.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
+                Konzept C — Practice-First
+              </a>
+              <a href="/mockups/browser-und-miniplayer.html" className="btn btn-secondary" style={{ width: '100%', textDecoration: 'none', textAlign: 'center' }}>
+                Browser + Mini-Player
+              </a>
+            </div>
+          </section>
+        )}
+
         {/* -- Abmelden -- */}
         <section>
           <button
