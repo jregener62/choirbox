@@ -1,6 +1,8 @@
 import { useNavigate } from 'react-router-dom'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
+import { useWaveform } from '@/hooks/useWaveform.ts'
+import { Waveform } from '@/components/ui/Waveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 
 export function PlayerPage() {
@@ -12,22 +14,11 @@ export function PlayerPage() {
     markers,
   } = usePlayerStore()
   const { togglePlay, seek, skip } = useAudioPlayer()
+  const { peaks } = useWaveform(currentPath)
 
   if (!currentPath) {
     navigate('/', { replace: true })
     return null
-  }
-
-  const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-
-  // Loop region as percentage
-  const loopStartPct = loopStart !== null && duration > 0 ? (loopStart / duration) * 100 : null
-  const loopEndPct = loopEnd !== null && duration > 0 ? (loopEnd / duration) * 100 : null
-
-  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect()
-    const pct = (e.clientX - rect.left) / rect.width
-    seek(pct * duration)
   }
 
   const setA = () => {
@@ -50,7 +41,6 @@ export function PlayerPage() {
     usePlayerStore.getState().addMarker(currentTime)
   }
 
-  // Extract folder path from full dropbox path
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
 
   return (
@@ -92,37 +82,17 @@ export function PlayerPage() {
         <span>{formatTime(duration)}</span>
       </div>
 
-      {/* Progress bar with loop region */}
-      <div className="player-progress" onClick={handleProgressClick}>
-        {/* Loop region highlight */}
-        {loopStartPct !== null && loopEndPct !== null && (
-          <div
-            className="player-progress-loop"
-            style={{
-              left: `${loopStartPct}%`,
-              width: `${loopEndPct - loopStartPct}%`,
-              opacity: loopEnabled ? 0.4 : 0.2,
-            }}
-          />
-        )}
-        {/* Playhead */}
-        <div className="player-progress-fill" style={{ width: `${progress}%` }} />
-        {/* Marker dots */}
-        {markers.map((m) => (
-          <div
-            key={m.id}
-            className="player-progress-marker"
-            style={{ left: `${duration > 0 ? (m.time / duration) * 100 : 0}%` }}
-          />
-        ))}
-        {/* A/B indicators */}
-        {loopStartPct !== null && (
-          <div className="player-progress-ab" style={{ left: `${loopStartPct}%` }}>A</div>
-        )}
-        {loopEndPct !== null && (
-          <div className="player-progress-ab" style={{ left: `${loopEndPct}%` }}>B</div>
-        )}
-      </div>
+      {/* Waveform with cycle region */}
+      <Waveform
+        peaks={peaks}
+        currentTime={currentTime}
+        duration={duration}
+        loopStart={loopStart}
+        loopEnd={loopEnd}
+        loopEnabled={loopEnabled}
+        markers={markers}
+        onSeek={seek}
+      />
 
       {/* Transport controls */}
       <div className="player-transport">
