@@ -23,12 +23,8 @@
   --bass: #22c55e;
   --satb: #8b5cf6;
   --piano: #a78bfa;
-  /* Section colors (cool/muted) */
-  --sec-intro: #64748b;
-  --sec-strophe: #0d9488;
-  --sec-refrain: #7c3aed;
-  --sec-bridge: #b45309;
-  --sec-outro: #64748b;
+  /* Section color (uniform, cool/muted) */
+  --sec-color: #64748b;
 }
 
 [data-theme="dark"] {

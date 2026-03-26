@@ -15,14 +15,7 @@ const VOICE_LABELS: Record<string, string> = {
   B: 'Bass',
 }
 
-// Sections get their own muted/cool palette, visually distinct from the bright voice colors
-const SECTION_COLORS: Record<string, string> = {
-  intro: 'var(--sec-intro)',
-  strophe: 'var(--sec-strophe)',
-  refrain: 'var(--sec-refrain)',
-  bridge: 'var(--sec-bridge)',
-  outro: 'var(--sec-outro)',
-}
+const SECTION_COLOR = 'var(--sec-color)'
 
 function voiceColor(voiceKey: string): string {
   if (voiceKey.length === 1) return VOICE_COLORS[voiceKey] || 'var(--satb)'
@@ -34,12 +27,6 @@ function voiceDisplay(voiceKey: string): string {
   return voiceKey.split('').map(l => VOICE_LABELS[l] || l).join('+')
 }
 
-function sectionColor(sectionKey: string): string {
-  // Extract the base section name (e.g. "Strophe" from "Strophe1+Refrain2")
-  const first = sectionKey.split('+')[0]
-  const base = first.replace(/\d+$/, '').toLowerCase()
-  return SECTION_COLORS[base] || 'var(--sec-strophe)'
-}
 
 interface TrackBadgesProps {
   filename: string
@@ -57,7 +44,6 @@ export function TrackBadges({ filename, folderName, size = 'sm', inline = false 
   const sectionLabel = parsed.sectionKey !== 'Gesamt'
     ? formatSectionLabel(parsed.sectionKey)
     : null
-  const sColor = sectionLabel ? sectionColor(parsed.sectionKey) : null
 
   const chips = (
     <>
@@ -67,10 +53,10 @@ export function TrackBadges({ filename, folderName, size = 'sm', inline = false 
       >
         {voiceDisplay(parsed.voiceKey)}
       </span>
-      {sectionLabel && sColor && (
+      {sectionLabel && (
         <span
           className={chipClass}
-          style={{ background: sColor + '20', color: sColor, border: `1px solid ${sColor}` }}
+          style={{ background: SECTION_COLOR + '20', color: SECTION_COLOR, border: `1px solid ${SECTION_COLOR}` }}
         >
           {sectionLabel}
         </span>
