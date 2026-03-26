@@ -1,7 +1,8 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { Mic, Square, Play, Pause, Upload, X, RotateCcw, Check } from 'lucide-react'
 import { useRecorder } from '@/hooks/useRecorder'
 import { apiUpload } from '@/api/client'
+import { useAppStore } from '@/stores/appStore'
 import { formatTime } from '@/utils/formatters'
 
 const VOICES = [
@@ -70,6 +71,12 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     state, error, duration, blob, blobUrl,
     fileExtension, startRecording, stopRecording, reset,
   } = useRecorder()
+
+  const setModalOpen = useAppStore((s) => s.setModalOpen)
+  useEffect(() => {
+    setModalOpen(true)
+    return () => setModalOpen(false)
+  }, [setModalOpen])
 
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)

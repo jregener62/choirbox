@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { FolderOpen, Heart, Settings, Play, Pause, Music, ChevronUp } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useAppStore } from '@/stores/appStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { formatTime } from '@/utils/formatters.ts'
 
@@ -8,6 +9,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { currentName, isPlaying, currentTime, duration } = usePlayerStore()
+  const modalOpen = useAppStore((s) => s.modalOpen)
   const { togglePlay } = useAudioPlayer()
 
   const navItems = [
@@ -25,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      {currentName && !onPlayerPage && (
+      {currentName && !onPlayerPage && !modalOpen && (
         <div className="mini-player" onClick={() => navigate('/player')}>
           <div className="mini-player-icon">
             <Music size={16} />

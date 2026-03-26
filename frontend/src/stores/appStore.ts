@@ -6,9 +6,11 @@ interface AppState {
   theme: Theme
   activeRequests: number
   browsePath: string
+  modalOpen: boolean
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
   setBrowsePath: (path: string) => void
+  setModalOpen: (open: boolean) => void
   incrementRequests: () => void
   decrementRequests: () => void
 }
@@ -17,6 +19,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   theme: (localStorage.getItem('choirbox_theme') as Theme) || 'dark',
   activeRequests: 0,
   browsePath: '',
+  modalOpen: false,
 
   setTheme: (theme) => {
     localStorage.setItem('choirbox_theme', theme)
@@ -30,6 +33,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   },
 
   setBrowsePath: (path) => set({ browsePath: path }),
+  setModalOpen: (open) => set({ modalOpen: open }),
   incrementRequests: () => set((s) => ({ activeRequests: s.activeRequests + 1 })),
   decrementRequests: () => set((s) => ({ activeRequests: Math.max(0, s.activeRequests - 1) })),
 }))
