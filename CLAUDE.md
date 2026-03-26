@@ -16,8 +16,8 @@ Der Entwickler ist ein Web-Entwickler mit begrenzter Erfahrung — antworte dire
 
 ## Test-Zugangsdaten (Preview/UI-Tests)
 
-- **Admin Username:** `chorleiter`
-- **Admin Password:** `change-me-in-production`
+- **Admin Username:** `admin`
+- **Admin Password:** `admin`
 - **Registrierungscode:** `MeinChor2026`
 
 Diese Daten werden beim ersten Start automatisch ueber `seed.py` aus `.env` angelegt.

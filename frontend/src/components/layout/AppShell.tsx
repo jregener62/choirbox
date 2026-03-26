@@ -1,10 +1,13 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
+import { formatTime } from '@/utils/formatters.ts'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
   const { currentName, isPlaying, currentTime, duration } = usePlayerStore()
+  const { togglePlay } = useAudioPlayer()
 
   const navItems = [
     { path: '/browse', icon: '\uD83D\uDCC2', label: 'Dateien' },
@@ -21,12 +24,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {currentName && (
-        <div className="mini-player">
+        <div className="mini-player" onClick={() => navigate('/player')}>
           <button
             className="btn-icon"
+            style={{ color: 'var(--player-text)' }}
             onClick={(e) => {
               e.stopPropagation()
-              usePlayerStore.getState().setPlaying(!isPlaying)
+              togglePlay()
             }}
           >
             {isPlaying ? '\u23F8' : '\u25B6'}
@@ -39,6 +43,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 style={{ width: `${progress}%` }}
               />
             </div>
+          </div>
+          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.6)', whiteSpace: 'nowrap' }}>
+            {formatTime(currentTime)}
           </div>
         </div>
       )}

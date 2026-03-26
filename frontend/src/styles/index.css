@@ -481,3 +481,214 @@ body {
   gap: 8px;
   margin-top: 2px;
 }
+
+/* -- Full-Screen Player -- */
+
+.player-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  padding: 16px;
+  background: var(--bg-primary);
+  overflow-y: auto;
+}
+
+.player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  margin-bottom: 24px;
+}
+
+.player-track-info {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.player-track-icon {
+  font-size: 64px;
+  margin-bottom: 16px;
+}
+
+.player-track-name {
+  font-size: 20px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  word-break: break-word;
+}
+
+.player-track-path {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.player-markers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+  justify-content: center;
+}
+
+.player-marker-btn {
+  padding: 4px 12px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 13px;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.player-time {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.player-progress {
+  width: 100%;
+  height: 32px;
+  position: relative;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.player-progress::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+}
+
+.player-progress-fill {
+  position: absolute;
+  left: 0;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.player-progress-loop {
+  position: absolute;
+  height: 4px;
+  background: var(--accent);
+  border-radius: 2px;
+  pointer-events: none;
+}
+
+.player-progress-marker {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warning);
+  transform: translate(-50%, 0);
+  pointer-events: none;
+}
+
+.player-progress-ab {
+  position: absolute;
+  top: -14px;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.player-transport {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.player-transport-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  font-size: 18px;
+  cursor: pointer;
+  min-width: 56px;
+  min-height: 56px;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.player-transport-btn:active {
+  background: var(--bg-tertiary);
+}
+
+.player-transport-play {
+  font-size: 32px;
+  width: 72px;
+  height: 72px;
+  background: var(--accent);
+  color: white;
+  border-radius: 50%;
+}
+
+.player-transport-play:active {
+  background: var(--accent-hover);
+}
+
+.player-cycle {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.player-cycle-btn {
+  padding: 8px 20px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  min-height: 44px;
+  min-width: 52px;
+  transition: all 0.15s;
+}
+
+.player-cycle-btn.active {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: white;
+}
+
+.player-cycle-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.player-marker-add {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  font-size: 15px;
+  cursor: pointer;
+  min-height: 44px;
+}
