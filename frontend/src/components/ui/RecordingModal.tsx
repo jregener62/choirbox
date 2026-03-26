@@ -126,7 +126,17 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
       setUploadDone(true)
       onUploadComplete()
     } catch (err) {
-      setUploadError(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
+      if (err instanceof TypeError) {
+        setUploadError('Keine Internetverbindung')
+      } else if (err instanceof Error && 'status' in err) {
+        const status = (err as { status: number }).status
+        if (status === 413) setUploadError('Datei zu gross (max. 20 MB)')
+        else if (status === 500) setUploadError('Konvertierung fehlgeschlagen — bitte erneut versuchen')
+        else if (status === 502) setUploadError('Dropbox-Upload fehlgeschlagen — bitte erneut versuchen')
+        else setUploadError(err.message || 'Upload fehlgeschlagen')
+      } else {
+        setUploadError('Upload fehlgeschlagen')
+      }
     } finally {
       setUploading(false)
     }

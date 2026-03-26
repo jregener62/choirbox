@@ -323,7 +323,13 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
 
         with open(dst_path, "rb") as f:
             return f.read()
+    except FileNotFoundError:
+        import logging
+        logging.getLogger(__name__).error("FFmpeg not installed — cannot convert audio")
+        return None
     except asyncio.TimeoutError:
+        import logging
+        logging.getLogger(__name__).error("FFmpeg timeout after 30s")
         return None
     finally:
         for p in (src_path, dst_path):

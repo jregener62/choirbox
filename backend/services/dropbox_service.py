@@ -95,10 +95,11 @@ class DropboxService:
 
         raise RuntimeError(f"Dropbox API error ({endpoint}): max retries exceeded")
 
-    async def upload_file(self, file_content: bytes, dropbox_path: str) -> dict:
+    async def upload_file(self, file_content: bytes, dropbox_path: str, max_retries: int = 3) -> dict:
         """Upload a file to Dropbox via the simple upload endpoint (max 150 MB).
 
         Uses content.dropboxapi.com with binary body + Dropbox-API-Arg header.
+        Includes 401 auto-refresh and rate-limit retry with exponential backoff.
         """
         token = await self._get_access_token()
 
@@ -109,23 +110,13 @@ class DropboxService:
             "mute": False,
         })
 
-        headers = {
-            "Authorization": f"Bearer {token}",
-            "Content-Type": "application/octet-stream",
-            "Dropbox-API-Arg": api_arg,
-        }
+        for attempt in range(max_retries + 1):
+            headers = {
+                "Authorization": f"Bearer {token}",
+                "Content-Type": "application/octet-stream",
+                "Dropbox-API-Arg": api_arg,
+            }
 
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            resp = await client.post(
-                "https://content.dropboxapi.com/2/files/upload",
-                headers=headers,
-                content=file_content,
-            )
-
-        if resp.status_code == 401:
-            self._access_token = None
-            token = await self._get_access_token()
-            headers["Authorization"] = f"Bearer {token}"
             async with httpx.AsyncClient(timeout=60.0) as client:
                 resp = await client.post(
                     "https://content.dropboxapi.com/2/files/upload",
@@ -133,10 +124,37 @@ class DropboxService:
                     content=file_content,
                 )
 
-        if resp.status_code != 200:
-            raise RuntimeError(f"Dropbox upload error: {resp.text}")
+            if resp.status_code == 401:
+                self._access_token = None
+                token = await self._get_access_token()
+                headers["Authorization"] = f"Bearer {token}"
+                async with httpx.AsyncClient(timeout=60.0) as client:
+                    resp = await client.post(
+                        "https://content.dropboxapi.com/2/files/upload",
+                        headers=headers,
+                        content=file_content,
+                    )
 
-        return resp.json()
+            if resp.status_code == 200:
+                return resp.json()
+
+            resp_text = resp.text
+            if attempt < max_retries and (
+                "too_many_write_operations" in resp_text
+                or "too_many_requests" in resp_text
+                or resp.status_code == 429
+            ):
+                delay = 2 ** attempt
+                logger.warning(
+                    "Dropbox rate limit on upload (HTTP %d, attempt %d/%d), retrying in %ds",
+                    resp.status_code, attempt + 1, max_retries, delay,
+                )
+                await asyncio.sleep(delay)
+                continue
+
+            raise RuntimeError(f"Dropbox upload error: {resp_text}")
+
+        raise RuntimeError("Dropbox upload error: max retries exceeded")
 
     # -- High-level helpers --
 
