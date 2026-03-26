@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart, Mic } from 'lucide-react'
 import { api } from '@/api/client.ts'
@@ -7,8 +7,7 @@ import { useAppStore } from '@/stores/appStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
-import { BatchGrid } from '@/components/ui/BatchGrid'
-import { buildBatchGrid } from '@/utils/buildBatchGrid'
+import { TrackBadges } from '@/components/ui/TrackBadges'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -146,12 +145,8 @@ export function BrowsePage() {
 
   const displayEntries = isSearching ? searchResults : filteredEntries
 
-  // Build batch grid when browsing a normal folder (not searching/filtering)
-  const gridData = useMemo(() => {
-    if (isSearching || isFiltering) return null
-    const folderName = browsePath.split('/').filter(Boolean).pop() || ''
-    return buildBatchGrid(entries, folderName)
-  }, [entries, browsePath, isSearching, isFiltering])
+  // Folder name for parsing track filenames into badges
+  const folderName = browsePath.split('/').filter(Boolean).pop() || ''
 
   // Show filter bar if user has any label assignments at all
   const hasAnyLabels = assignments.length > 0
@@ -264,93 +259,87 @@ export function BrowsePage() {
         </div>
       )}
 
-      {/* File list — grid view or flat list */}
-      {gridData ? (
-        <BatchGrid
-          gridData={gridData}
-          onFileClick={handleEntryClick}
-          onNavigateUp={navigateUp}
-          browsePath={browsePath}
-        />
-      ) : (
-        <ul className="file-list">
-          {!isSearching && !isFiltering && browsePath && (
-            <li className="file-item" onClick={navigateUp}>
-              <div className="file-icon-box file-icon-folder">
-                <ArrowUp size={18} />
-              </div>
-              <div className="file-info">
-                <div className="file-name" style={{ color: 'var(--text-muted)' }}>..</div>
-              </div>
-            </li>
-          )}
-          {displayEntries.map((entry) => {
-            const isActive = entry.type === 'file' && entry.path === currentPath
-            return (
-              <li
-                key={entry.path}
-                className={`file-item ${isActive ? 'file-item--active' : ''}`}
-                onClick={() => handleEntryClick(entry)}
-              >
-                {entry.type === 'folder' ? (
-                  <div className="file-icon-box file-icon-folder">
-                    <Folder size={18} />
-                  </div>
-                ) : isActive && isPlaying ? (
-                  <div className="file-icon-box file-icon-playing">
-                    <div className="playing-bars">
-                      <span /><span /><span />
-                    </div>
-                  </div>
-                ) : (
-                  <div className="file-icon-box file-icon-audio">
-                    <Music size={18} />
-                  </div>
-                )}
-                <div className="file-info">
-                  <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                    {entry.name}
-                  </div>
-                  {(isSearching || isFiltering) && (
-                    <div className="file-meta">{entry.path}</div>
-                  )}
-                  {!isSearching && entry.type === 'file' && entry.size && (
-                    <div className="file-meta">
-                      {(entry.size / 1024 / 1024).toFixed(1)} MB
-                    </div>
-                  )}
-                  {entry.type === 'file' && (() => {
-                    const trackLabels = getLabelsForPath(entry.path)
-                    return trackLabels.length > 0 ? (
-                      <div className="file-labels">
-                        {trackLabels.map((l) => (
-                          <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
-                            {l.name}
-                          </span>
-                        ))}
-                      </div>
-                    ) : null
-                  })()}
+      {/* File list */}
+      <ul className="file-list">
+        {!isSearching && !isFiltering && browsePath && (
+          <li className="file-item" onClick={navigateUp}>
+            <div className="file-icon-box file-icon-folder">
+              <ArrowUp size={18} />
+            </div>
+            <div className="file-info">
+              <div className="file-name" style={{ color: 'var(--text-muted)' }}>..</div>
+            </div>
+          </li>
+        )}
+        {displayEntries.map((entry) => {
+          const isActive = entry.type === 'file' && entry.path === currentPath
+          return (
+            <li
+              key={entry.path}
+              className={`file-item ${isActive ? 'file-item--active' : ''}`}
+              onClick={() => handleEntryClick(entry)}
+            >
+              {entry.type === 'folder' ? (
+                <div className="file-icon-box file-icon-folder">
+                  <Folder size={18} />
                 </div>
-                {entry.type === 'folder' ? (
-                  <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                ) : (
-                  <button
-                    className="fav-toggle"
-                    onClick={(e) => { e.stopPropagation(); toggleFav(entry.path) }}
-                  >
-                    <Heart
-                      size={16}
-                      fill={isFavorite(entry.path) ? '#f87171' : 'none'}
-                      color={isFavorite(entry.path) ? '#f87171' : 'var(--text-muted)'}
-                    />
-                  </button>
+              ) : isActive && isPlaying ? (
+                <div className="file-icon-box file-icon-playing">
+                  <div className="playing-bars">
+                    <span /><span /><span />
+                  </div>
+                </div>
+              ) : (
+                <div className="file-icon-box file-icon-audio">
+                  <Music size={18} />
+                </div>
+              )}
+              <div className="file-info">
+                <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
+                  {entry.name}
+                </div>
+                {(isSearching || isFiltering) && (
+                  <div className="file-meta">{entry.path}</div>
                 )}
-              </li>
-            )
-          })}
-        </ul>
-      )}
+                {entry.type === 'file' && (
+                  <div className="file-meta">
+                    {!isSearching && entry.size && (
+                      <span>{(entry.size / 1024 / 1024).toFixed(1)} MB</span>
+                    )}
+                    <TrackBadges filename={entry.name} folderName={folderName} inline />
+                  </div>
+                )}
+                {entry.type === 'file' && (() => {
+                  const trackLabels = getLabelsForPath(entry.path)
+                  return trackLabels.length > 0 ? (
+                    <div className="file-labels">
+                      {trackLabels.map((l) => (
+                        <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
+                          {l.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null
+                })()}
+              </div>
+              {entry.type === 'folder' ? (
+                <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              ) : (
+                <button
+                  className="fav-toggle"
+                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path) }}
+                >
+                  <Heart
+                    size={16}
+                    fill={isFavorite(entry.path) ? '#f87171' : 'none'}
+                    color={isFavorite(entry.path) ? '#f87171' : 'var(--text-muted)'}
+                  />
+                </button>
+              )}
+            </li>
+          )
+        })}
+      </ul>
 
       {recordingOpen && (
         <RecordingModal
