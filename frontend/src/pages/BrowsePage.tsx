@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useAppStore } from '@/stores/appStore.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 export function BrowsePage() {
-  const [currentPath, setCurrentPath] = useState('')
+  const browsePath = useAppStore((s) => s.browsePath)
+  const setBrowsePath = useAppStore((s) => s.setBrowsePath)
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -15,18 +17,18 @@ export function BrowsePage() {
     try {
       const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(path)}`)
       setEntries(data.entries)
-      setCurrentPath(data.path)
+      setBrowsePath(data.path)
       if (data.error) setError(data.error)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden')
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [setBrowsePath])
 
   useEffect(() => {
-    loadFolder('')
-  }, [loadFolder])
+    loadFolder(browsePath)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleEntryClick = (entry: DropboxEntry) => {
     if (entry.type === 'folder') {
@@ -38,14 +40,13 @@ export function BrowsePage() {
   }
 
   const navigateUp = () => {
-    const parts = currentPath.split('/').filter(Boolean)
+    const parts = browsePath.split('/').filter(Boolean)
     parts.pop()
     const parent = parts.length > 0 ? '/' + parts.join('/') : ''
     loadFolder(parent)
   }
 
-  // Build breadcrumb parts
-  const pathParts = currentPath.split('/').filter(Boolean)
+  const pathParts = browsePath.split('/').filter(Boolean)
 
   return (
     <div>
@@ -53,7 +54,7 @@ export function BrowsePage() {
         <div className="topbar-title">Dateien</div>
       </div>
 
-      {currentPath && (
+      {browsePath && (
         <div className="breadcrumb">
           <span className="breadcrumb-item" onClick={() => loadFolder('')}>
             Root
@@ -93,7 +94,7 @@ export function BrowsePage() {
       )}
 
       <ul className="file-list">
-        {currentPath && (
+        {browsePath && (
           <li className="file-item" onClick={navigateUp}>
             <div className="file-icon">{'\u2B06\uFE0F'}</div>
             <div className="file-info">
