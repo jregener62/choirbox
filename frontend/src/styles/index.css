@@ -360,6 +360,24 @@ body {
   margin-top: 2px;
 }
 
+/* -- File labels -- */
+
+.file-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 3px;
+}
+
+.label-chip-sm {
+  display: inline-flex;
+  padding: 1px 7px;
+  border-radius: 8px;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
 /* -- Favorite toggle in file list -- */
 
 .fav-toggle {
@@ -935,6 +953,61 @@ body {
 .player-action-btn--active {
   color: #f87171;
   border-color: rgba(248,113,113,0.3);
+}
+
+.player-action-btn--label {
+  color: var(--accent);
+  border-color: rgba(129,140,248,0.3);
+}
+
+/* -- Labels display -- */
+
+.player-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.label-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* -- Label Picker -- */
+
+.label-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 16px 0;
+  justify-content: center;
+}
+
+.label-picker-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 20px;
+  border: 1.5px solid var(--border);
+  background: none;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: all 0.15s;
+}
+
+.label-picker-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 /* Marker chips */

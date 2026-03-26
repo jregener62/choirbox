@@ -1,16 +1,19 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X } from 'lucide-react'
+import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
+import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 
 export function PlayerPage() {
   const navigate = useNavigate()
   const { loaded, load, isFavorite, toggle } = useFavoritesStore()
+  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel } = useLabelsStore()
+  const [showLabelPicker, setShowLabelPicker] = useState(false)
   const {
     currentName, currentPath,
     isPlaying, currentTime, duration,
@@ -36,7 +39,10 @@ export function PlayerPage() {
 
   useEffect(() => {
     if (!loaded) load()
-  }, [loaded, load])
+    if (!labelsLoaded) loadLabels()
+  }, [loaded, load, labelsLoaded, loadLabels])
+
+  const assignedLabels = currentPath ? getLabelsForPath(currentPath) : []
 
   return (
     <div className="player-page">
@@ -53,6 +59,16 @@ export function PlayerPage() {
       <div className="player-track-info">
         <div className="player-track-name">{currentName}</div>
         <div className="player-track-path">{folderPath}</div>
+        {/* Assigned labels */}
+        {assignedLabels.length > 0 && (
+          <div className="player-labels" style={{ marginTop: 8 }}>
+            {assignedLabels.map((l) => (
+              <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
+                {l.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Waveform */}
@@ -135,12 +151,42 @@ export function PlayerPage() {
           <Pin size={14} /> Marker
         </button>
         <button
+          className={`player-action-btn ${assignedLabels.length > 0 ? 'player-action-btn--label' : ''}`}
+          onClick={() => setShowLabelPicker(!showLabelPicker)}
+        >
+          <Tag size={14} /> Labels
+        </button>
+        <button
           className={`player-action-btn ${isFav ? 'player-action-btn--active' : ''}`}
           onClick={() => currentPath && toggle(currentPath)}
         >
-          <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> {isFav ? 'Favorit' : 'Favorit'}
+          <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
         </button>
       </div>
+
+      {/* Label Picker */}
+      {showLabelPicker && currentPath && (
+        <div className="label-picker">
+          {labels.map((l) => {
+            const assigned = isAssigned(currentPath, l.id)
+            return (
+              <button
+                key={l.id}
+                className={`label-picker-item ${assigned ? 'assigned' : ''}`}
+                style={{
+                  borderColor: assigned ? l.color : 'var(--border)',
+                  background: assigned ? l.color + '25' : 'none',
+                  color: assigned ? l.color : 'var(--text-secondary)',
+                }}
+                onClick={() => toggleLabel(currentPath, l.id)}
+              >
+                <span className="label-picker-dot" style={{ background: l.color }} />
+                {l.name}
+              </button>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }

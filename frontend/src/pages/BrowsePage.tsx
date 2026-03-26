@@ -4,6 +4,7 @@ import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
+import { useLabelsStore } from '@/hooks/useLabels.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -17,6 +18,7 @@ export function BrowsePage() {
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
+  const { loaded: labelsLoaded, load: loadLabels, getLabelsForPath } = useLabelsStore()
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -47,6 +49,7 @@ export function BrowsePage() {
   useEffect(() => {
     loadFolder(browsePath)
     if (!favsLoaded) loadFavs()
+    if (!labelsLoaded) loadLabels()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Debounced search
@@ -236,6 +239,18 @@ export function BrowsePage() {
                     {(entry.size / 1024 / 1024).toFixed(1)} MB
                   </div>
                 )}
+                {entry.type === 'file' && (() => {
+                  const trackLabels = getLabelsForPath(entry.path)
+                  return trackLabels.length > 0 ? (
+                    <div className="file-labels">
+                      {trackLabels.map((l) => (
+                        <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
+                          {l.name}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null
+                })()}
               </div>
               {entry.type === 'folder' ? (
                 <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />

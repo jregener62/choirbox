@@ -134,6 +134,36 @@ def assign_label(data: dict, user: User = Depends(require_user), session: Sessio
     return ActionResponse.success(data={"id": assignment.id})
 
 
+@router.post("/my/toggle")
+def toggle_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+    """Toggle label assignment: add if not exists, remove if exists."""
+    dropbox_path = data.get("dropbox_path", "").strip()
+    label_id = data.get("label_id")
+    if not dropbox_path or not label_id:
+        raise HTTPException(400, "dropbox_path and label_id are required")
+
+    existing = session.exec(
+        select(UserLabel).where(
+            UserLabel.user_id == user.id,
+            UserLabel.dropbox_path == dropbox_path,
+            UserLabel.label_id == label_id,
+        )
+    ).first()
+
+    if existing:
+        session.delete(existing)
+        session.commit()
+        return ActionResponse.success(data={"assigned": False})
+    else:
+        label = session.get(Label, label_id)
+        if not label:
+            raise HTTPException(404, "Label not found")
+        assignment = UserLabel(user_id=user.id, dropbox_path=dropbox_path, label_id=label_id)
+        session.add(assignment)
+        session.commit()
+        return ActionResponse.success(data={"assigned": True, "id": assignment.id})
+
+
 @router.delete("/my/{assignment_id}")
 def remove_label_assignment(
     assignment_id: int,
