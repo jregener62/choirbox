@@ -7,6 +7,7 @@ import { useAppStore } from '@/stores/appStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
+import { TrackBadges } from '@/components/ui/TrackBadges'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -143,6 +144,9 @@ export function BrowsePage() {
     : entries
 
   const displayEntries = isSearching ? searchResults : filteredEntries
+
+  // Folder name for parsing track filenames into badges
+  const folderName = browsePath.split('/').filter(Boolean).pop() || ''
 
   // Show filter bar if user has any label assignments at all
   const hasAnyLabels = assignments.length > 0
@@ -297,9 +301,12 @@ export function BrowsePage() {
                 {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>
                 )}
-                {!isSearching && entry.type === 'file' && entry.size && (
+                {entry.type === 'file' && (
                   <div className="file-meta">
-                    {(entry.size / 1024 / 1024).toFixed(1)} MB
+                    {!isSearching && entry.size && (
+                      <span>{(entry.size / 1024 / 1024).toFixed(1)} MB</span>
+                    )}
+                    <TrackBadges filename={entry.name} folderName={folderName} inline />
                   </div>
                 )}
                 {entry.type === 'file' && (() => {

@@ -7,6 +7,7 @@ import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
+import { TrackBadges } from '@/components/ui/TrackBadges'
 import { formatTime } from '@/utils/formatters.ts'
 
 export function PlayerPage() {
@@ -59,7 +60,15 @@ export function PlayerPage() {
       <div className="player-track-info">
         <div className="player-track-name">{currentName}</div>
         <div className="player-track-path">{folderPath}</div>
-        {/* Assigned labels */}
+        {currentName && (
+          <div style={{ marginTop: 6 }}>
+            <TrackBadges
+              filename={currentName}
+              folderName={folderPath.split('/').filter(Boolean).pop() || ''}
+              size="md"
+            />
+          </div>
+        )}
         {assignedLabels.length > 0 && (
           <div className="player-labels" style={{ marginTop: 8 }}>
             {assignedLabels.map((l) => (
