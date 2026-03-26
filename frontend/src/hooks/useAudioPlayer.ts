@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useCallback } from 'react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { api } from '@/api/client.ts'
 
@@ -32,35 +32,55 @@ async function fetchStreamLink(path: string): Promise<string> {
   return res.link
 }
 
+// Module-level singleton — one Audio element for the whole app
+const audio = new Audio()
+audio.preload = 'none'
+let currentLoadedPath: string | null = null
+let listenersAttached = false
+
 /**
- * Global audio player hook. Mount once in AppShell.
- * Manages a single HTMLAudioElement and syncs with playerStore.
+ * Global audio player hook. Can be called from multiple components —
+ * they all share the same Audio element via module-level singleton.
  */
 export function useAudioPlayer() {
-  const audioRef = useRef<HTMLAudioElement | null>(null)
-  const currentPathRef = useRef<string | null>(null)
-
-  // Create audio element once
-  if (!audioRef.current) {
-    audioRef.current = new Audio()
-    audioRef.current.preload = 'none'
-  }
-
-  const audio = audioRef.current
-
-  // Subscribe to store changes
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const loopStart = usePlayerStore((s) => s.loopStart)
-  const loopEnd = usePlayerStore((s) => s.loopEnd)
-  const loopEnabled = usePlayerStore((s) => s.loopEnabled)
+
+  // Attach event listeners once (never removed — singleton lives forever)
+  useEffect(() => {
+    if (listenersAttached) return
+    listenersAttached = true
+
+    audio.addEventListener('timeupdate', () => {
+      const store = usePlayerStore.getState()
+      store.setCurrentTime(audio.currentTime)
+
+      // Cycle play: jump back to loopStart when reaching loopEnd
+      if (store.loopEnabled && store.loopStart !== null && store.loopEnd !== null) {
+        if (audio.currentTime >= store.loopEnd) {
+          audio.currentTime = store.loopStart
+        }
+      }
+    })
+
+    audio.addEventListener('loadedmetadata', () => {
+      if (audio.duration && isFinite(audio.duration)) {
+        usePlayerStore.getState().setDuration(audio.duration)
+      }
+    })
+
+    audio.addEventListener('ended', () => {
+      usePlayerStore.getState().setPlaying(false)
+      usePlayerStore.getState().setCurrentTime(0)
+    })
+  }, [])
 
   // Load new track when path changes
   useEffect(() => {
     if (!currentPath) return
-    if (currentPath === currentPathRef.current) return
+    if (currentPath === currentLoadedPath) return
 
-    currentPathRef.current = currentPath
+    currentLoadedPath = currentPath
     audio.pause()
     audio.removeAttribute('src')
     audio.load()
@@ -68,8 +88,7 @@ export function useAudioPlayer() {
     const loadAndPlay = async () => {
       try {
         const link = await fetchStreamLink(currentPath)
-        // Check if path still matches (user might have clicked another track)
-        if (currentPathRef.current !== currentPath) return
+        if (currentLoadedPath !== currentPath) return
         audio.src = link
         await audio.play()
         usePlayerStore.getState().setPlaying(true)
@@ -80,7 +99,7 @@ export function useAudioPlayer() {
     }
 
     loadAndPlay()
-  }, [currentPath, audio])
+  }, [currentPath])
 
   // Play/pause sync
   useEffect(() => {
@@ -93,61 +112,23 @@ export function useAudioPlayer() {
     } else if (!isPlaying && !audio.paused) {
       audio.pause()
     }
-  }, [isPlaying, audio])
+  }, [isPlaying])
 
-  // Time update -> store
-  useEffect(() => {
-    const onTimeUpdate = () => {
-      const store = usePlayerStore.getState()
-      store.setCurrentTime(audio.currentTime)
-
-      // Cycle play: jump back to loopStart when reaching loopEnd
-      if (store.loopEnabled && store.loopStart !== null && store.loopEnd !== null) {
-        if (audio.currentTime >= store.loopEnd) {
-          audio.currentTime = store.loopStart
-        }
-      }
-    }
-
-    const onLoadedMetadata = () => {
-      if (audio.duration && isFinite(audio.duration)) {
-        usePlayerStore.getState().setDuration(audio.duration)
-      }
-    }
-
-    const onEnded = () => {
-      usePlayerStore.getState().setPlaying(false)
-      usePlayerStore.getState().setCurrentTime(0)
-    }
-
-    audio.addEventListener('timeupdate', onTimeUpdate)
-    audio.addEventListener('loadedmetadata', onLoadedMetadata)
-    audio.addEventListener('ended', onEnded)
-
-    return () => {
-      audio.removeEventListener('timeupdate', onTimeUpdate)
-      audio.removeEventListener('loadedmetadata', onLoadedMetadata)
-      audio.removeEventListener('ended', onEnded)
-    }
-  }, [audio, loopStart, loopEnd, loopEnabled])
-
-  // Seek
   const seek = useCallback((time: number) => {
     audio.currentTime = time
     usePlayerStore.getState().setCurrentTime(time)
-  }, [audio])
+  }, [])
 
-  // Skip forward/backward
   const skip = useCallback((seconds: number) => {
     const newTime = Math.max(0, Math.min(audio.duration || 0, audio.currentTime + seconds))
     audio.currentTime = newTime
     usePlayerStore.getState().setCurrentTime(newTime)
-  }, [audio])
+  }, [])
 
   const togglePlay = useCallback(() => {
     const store = usePlayerStore.getState()
     store.setPlaying(!store.isPlaying)
   }, [])
 
-  return { seek, skip, togglePlay, audioRef }
+  return { seek, skip, togglePlay }
 }
