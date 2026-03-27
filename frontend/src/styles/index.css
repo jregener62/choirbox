@@ -2081,7 +2081,7 @@ body {
 .player-lyrics-divider {
   height: 1px;
   background: var(--border);
-  margin: 20px -20px 0;
+  margin: 20px -20px 16px;
 }
 
 .player-content-area {
