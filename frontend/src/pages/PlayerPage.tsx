@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, Pin, Heart, X, Tag, Trash2, LayoutList } from 'lucide-react'
+import { Repeat, Pin, Heart, X, Tag, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -92,7 +92,7 @@ export function PlayerPage() {
           className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setA}
         >
-          A
+          <ArrowLeftToLine size={16} />
         </button>
         <button
           className={`player-toolbar-btn ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
@@ -105,7 +105,7 @@ export function PlayerPage() {
           className={`player-toolbar-btn ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setB}
         >
-          B
+          <ArrowRightToLine size={16} />
         </button>
         {(loopStart !== null || loopEnd !== null) && (
           <button className="player-toolbar-btn" onClick={clearLoop}>
