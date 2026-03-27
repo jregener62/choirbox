@@ -6,7 +6,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.section import Section
-from backend.api.auth import require_user, require_admin
+from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/sections", tags=["sections"])
@@ -42,7 +42,7 @@ def list_sections(
 @router.post("")
 def create_section(
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
     dropbox_path = data.get("dropbox_path", "").strip()
@@ -80,7 +80,7 @@ def create_section(
 def update_section(
     section_id: int,
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
     section = session.get(Section, section_id)
@@ -109,7 +109,7 @@ def update_section(
 @router.delete("/{section_id}")
 def delete_section(
     section_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
     section = session.get(Section, section_id)

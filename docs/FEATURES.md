@@ -213,14 +213,14 @@ Wichtige Stellen im Track markieren fuer schnelle Navigation.
 
 ### Sektionen & Section-Loop
 
-Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen die Sektionen, nur Admin kann sie anlegen/bearbeiten/loeschen.
+Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen die Sektionen, ab Pro-Mitglied verwaltbar.
 
 - Sektionen als farbige Overlays auf der Waveform (halbtransparenter Hintergrund + Label)
 - Section-Lane unter der Waveform: proportionale farbige Bloecke pro Sektion
 - Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)
 - Nochmal Tap deaktiviert den Loop
 - Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
-- Section Editor (Route `/sections`, nur Admin): Waveform mit Play/Pause, Start/Ende per Playhead setzen, Name (Freitext + Presets), Farbwahl, Sektionsliste mit Bearbeiten/Loeschen
+- Section Editor (Route `/sections`, ab Pro-Mitglied): Waveform mit Play/Pause, Start/Ende per Playhead setzen, Name (Freitext + Presets), Farbwahl, Sektionsliste mit Bearbeiten/Loeschen
 
 | Datei | Rolle |
 |-------|-------|
@@ -229,7 +229,7 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 | `frontend/src/components/ui/Waveform.tsx` | Canvas-Overlays fuer Sektionen |
 | `frontend/src/hooks/useSections.ts` | Zustand Store + API-Logik |
 | `frontend/src/stores/playerStore.ts` | `activeSection`, `setSectionLoop()` |
-| `backend/api/sections.py` | CRUD Endpoints (Admin-only fuer Schreibzugriff) |
+| `backend/api/sections.py` | CRUD Endpoints (Pro-Mitglied+ fuer Schreibzugriff) |
 | `backend/models/section.py` | Section-Modell (dropbox_path, label, color, start/end_time) |
 
 ### Mini-Player
@@ -415,7 +415,7 @@ Drei Tabs auf allen Seiten (ausser Player):
 | `/favorites` | Favoriten | Authentifiziert |
 | `/player` | Audio-Player | Authentifiziert |
 | `/settings` | Einstellungen | Authentifiziert |
-| `/sections` | Section-Editor | Admin |
+| `/sections` | Section-Editor | Pro-Mitglied+ |
 | `/admin/users` | Nutzerverwaltung | Admin |
 | `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |
 
@@ -472,9 +472,9 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | GET | `/?path=<dropbox_path>` | Sektionen eines Tracks auflisten | User |
-| POST | `/` | Sektion erstellen | Admin |
-| PUT | `/{id}` | Sektion bearbeiten | Admin |
-| DELETE | `/{id}` | Sektion loeschen | Admin |
+| POST | `/` | Sektion erstellen | Pro-Mitglied+ |
+| PUT | `/{id}` | Sektion bearbeiten | Pro-Mitglied+ |
+| DELETE | `/{id}` | Sektion loeschen | Pro-Mitglied+ |
 
 ### Admin (`/api/admin`)
 

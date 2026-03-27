@@ -215,7 +215,7 @@ export function PlayerPage() {
         >
           <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
         </button>
-        {hasMinRole(userRole, 'admin') && (
+        {hasMinRole(userRole, 'pro-member') && (
           <button className="player-action-btn" onClick={() => navigate('/sections')}>
             <LayoutList size={14} /> Sektionen
           </button>
