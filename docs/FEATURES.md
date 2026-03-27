@@ -252,7 +252,25 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 | `frontend/src/hooks/useSections.ts` | Zustand Store + API-Logik |
 | `frontend/src/stores/playerStore.ts` | `activeSection`, `setSectionLoop()` |
 | `backend/api/sections.py` | CRUD Endpoints (Pro-Mitglied+ fuer Schreibzugriff) |
-| `backend/models/section.py` | Section-Modell (dropbox_path, label, color, start/end_time) |
+| `backend/models/section.py` | Section-Modell (dropbox_path, label, color, start/end_time, lyrics) |
+
+### Lyrics & Notizen
+
+Pro Section koennen Lyrics und persoenliche Notizen hinterlegt werden. Waehrend der Wiedergabe werden die Lyrics der aktuellen Section automatisch angezeigt (einige Sekunden vorher, Karaoke-Prinzip). Zusaetzlich gibt es Track-weite Notizen.
+
+- **Lyrics pro Section** (shared): Jede Section kann einen Liedtext enthalten. Lyrics werden beim Abspielen automatisch angezeigt, ca. 3 Sekunden bevor die Section beginnt.
+- **Notizen pro Section** (persoenlich): Jeder User kann pro Section und pro Track eigene Notizen hinterlegen.
+- **Karaoke-Ansicht**: Im Player wird die aktuelle Section prominent mit Lyrics angezeigt, darunter eine Vorschau der naechsten Section.
+- **Bearbeiten**: Pro-Mitglied+ koennen Lyrics und Notizen bearbeiten. Gaeste und Members sehen nur die Leseansicht.
+- **Leere Sections**: Sections ohne Lyrics zeigen "Keine Lyrics" an.
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/ui/PlayerLyrics.tsx` | Lyrics/Notizen-Anzeige im Player (Lese-/Bearbeitungsmodus) |
+| `frontend/src/hooks/useSectionsNotes.ts` | Zustand Store fuer Notes + Lyrics-Helpers |
+| `backend/api/notes.py` | CRUD Notizen (GET fuer alle, PUT fuer Pro-Mitglied+) |
+| `backend/api/sections.py` | `PUT /sections/lyrics` Bulk-Lyrics-Update (Pro-Mitglied+) |
+| `backend/models/note.py` | Note-Modell (user_id, dropbox_path, section_id, text) |
 
 ### Mini-Player
 
@@ -494,10 +512,19 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
-| GET | `/?path=<dropbox_path>` | Sektionen eines Tracks auflisten | User |
+| GET | `/?path=<dropbox_path>` | Sektionen eines Tracks auflisten (inkl. Lyrics) | User |
 | POST | `/` | Sektion erstellen | Pro-Mitglied+ |
-| PUT | `/{id}` | Sektion bearbeiten | Pro-Mitglied+ |
-| DELETE | `/{id}` | Sektion loeschen | Pro-Mitglied+ |
+| PUT | `/{id}` | Sektion bearbeiten (inkl. Lyrics) | Pro-Mitglied+ |
+| PUT | `/lyrics` | Lyrics fuer mehrere Sektionen auf einmal speichern | Pro-Mitglied+ |
+| DELETE | `/{id}` | Sektion loeschen (loescht zugehoerige Notizen) | Pro-Mitglied+ |
+
+### Notizen (`/api/notes`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/?path=<dropbox_path>` | Eigene Notizen (Track + Sections) | User |
+| PUT | `/` | Einzelne Notiz speichern/loeschen | Pro-Mitglied+ |
+| PUT | `/bulk` | Mehrere Notizen auf einmal speichern | Pro-Mitglied+ |
 
 ### Admin (`/api/admin`)
 
@@ -567,9 +594,23 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `color` | String (max 7) | Hex-Farbe |
 | `start_time` | Float | Startzeit in Sekunden |
 | `end_time` | Float | Endzeit in Sekunden |
+| `lyrics` | String (optional) | Liedtext fuer diese Sektion |
 | `sort_order` | Integer | Sortierung |
 | `created_by` | UUID (FK) | Ersteller |
 | `created_at` | DateTime | Erstellungszeitpunkt |
+| `updated_at` | DateTime | Letzte Aenderung |
+
+### Note
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer | Primaerschluessel |
+| `user_id` | UUID (FK) | Referenz auf User |
+| `dropbox_path` | String | Dropbox-Dateipfad |
+| `section_id` | Integer (FK, optional) | Referenz auf Section (null = Track-Notiz) |
+| `text` | String | Notiztext |
+| `created_at` | DateTime | Erstellungszeitpunkt |
+| `updated_at` | DateTime | Letzte Aenderung |
 
 ### SessionToken
 
