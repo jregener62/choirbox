@@ -1111,7 +1111,7 @@ body {
   outline: none;
 }
 .unified-sec-block--looping {
-  border: 3px solid var(--amber) !important;
+  border: 3px solid #f59e0b !important;
 }
 .unified-sec-label {
   font-size: 11px;
@@ -1238,7 +1238,7 @@ body {
   outline-offset: -1.5px;
 }
 .section-strip-block--looping {
-  outline: 2px solid var(--amber);
+  outline: 2px solid #f59e0b;
   outline-offset: -2px;
 }
 
