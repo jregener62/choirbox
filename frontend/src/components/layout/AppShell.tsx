@@ -19,7 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ]
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-  const onPlayerPage = location.pathname === '/player'
+  const hidePlayer = location.pathname === '/player' || location.pathname === '/sections'
 
   return (
     <div className="app-shell">
@@ -27,7 +27,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </div>
 
-      {currentName && !onPlayerPage && !modalOpen && (
+      {currentName && !hidePlayer && !modalOpen && (
         <div className="mini-player" onClick={() => navigate('/player')}>
           <div className="mini-player-icon">
             <Music size={16} />
@@ -54,7 +54,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       )}
 
-      {!onPlayerPage && (
+      {!hidePlayer && (
         <nav className="bottom-nav">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path ||
