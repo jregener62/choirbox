@@ -211,7 +211,7 @@ export function BrowsePage() {
 
   return (
     <div>
-      {/* Topbar: normal or search mode */}
+      {/* Topbar: search mode or normal with breadcrumb */}
       {searchOpen ? (
         <div className="topbar">
           <div className="search-bar">
@@ -231,57 +231,50 @@ export function BrowsePage() {
           </div>
         </div>
       ) : (
-        <div className="topbar">
-          <div className="topbar-title">Dateien</div>
-          <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
-            <Mic size={20} />
-          </button>
-          <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-            <Upload size={20} />
-          </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
-            style={{ display: 'none' }}
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) {
-                setImportedFile(file)
-                setRecordingOpen(true)
-              }
-              e.target.value = ''
-            }}
-          />
-          <button className="player-header-btn" onClick={openSearch}>
-            <Search size={20} />
-          </button>
-        </div>
-      )}
-
-      {/* Breadcrumb (hidden during search or active filter) */}
-      {!isSearching && !isFiltering && browsePath && (
-        <div className="breadcrumb">
-          <span className="breadcrumb-item" onClick={() => loadFolder('')}>
-            Root
-          </span>
-          {pathParts.map((part, i) => {
-            const path = '/' + pathParts.slice(0, i + 1).join('/')
-            const isLast = i === pathParts.length - 1
-            return (
-              <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <ChevronRight size={14} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                {isLast ? (
-                  <span className="breadcrumb-current">{part}</span>
-                ) : (
-                  <span className="breadcrumb-item" onClick={() => loadFolder(path)}>
-                    {part}
+        <>
+          <div className="topbar">
+            <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
+              <span className="breadcrumb-item" onClick={() => loadFolder('')}>Root</span>
+              {pathParts.map((part, i) => {
+                const path = '/' + pathParts.slice(0, i + 1).join('/')
+                const isLast = i === pathParts.length - 1
+                return (
+                  <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    {isLast ? (
+                      <span className="breadcrumb-current">{part}</span>
+                    ) : (
+                      <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{part}</span>
+                    )}
                   </span>
-                )}
-              </span>
-            )
-          })}
-        </div>
+                )
+              })}
+            </div>
+            <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
+              <Mic size={18} />
+            </button>
+            <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+              <Upload size={18} />
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
+              style={{ display: 'none' }}
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) {
+                  setImportedFile(file)
+                  setRecordingOpen(true)
+                }
+                e.target.value = ''
+              }}
+            />
+            <button className="player-header-btn" onClick={openSearch}>
+              <Search size={18} />
+            </button>
+          </div>
+        </>
       )}
 
       {/* Label filter bar — always visible if user has any labels */}
