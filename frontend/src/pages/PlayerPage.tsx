@@ -18,7 +18,7 @@ export function PlayerPage() {
     currentName, currentPath,
     isPlaying, currentTime, duration,
     loopStart, loopEnd, loopEnabled,
-    markers,
+    markers, skipInterval,
   } = usePlayerStore()
   const { togglePlay, seek, skip } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
@@ -141,8 +141,12 @@ export function PlayerPage() {
 
       {/* Skip + Loop */}
       <div className="player-controls">
-        <button className="player-ctrl-btn" onClick={() => skip(-15)}>
-          <Rewind size={18} /> 15s
+        <button
+          className="player-ctrl-btn"
+          onClick={() => skip(-skipInterval)}
+          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
+        >
+          <Rewind size={18} /> {skipInterval}s
         </button>
         <button
           className={`player-ctrl-btn ${loopEnabled ? 'player-ctrl-amber' : ''}`}
@@ -156,8 +160,12 @@ export function PlayerPage() {
             <X size={18} />
           </button>
         )}
-        <button className="player-ctrl-btn" onClick={() => skip(15)}>
-          15s <FastForward size={18} />
+        <button
+          className="player-ctrl-btn"
+          onClick={() => skip(skipInterval)}
+          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
+        >
+          {skipInterval}s <FastForward size={18} />
         </button>
       </div>
 
