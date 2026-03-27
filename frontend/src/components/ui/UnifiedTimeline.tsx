@@ -66,18 +66,9 @@ export function UnifiedTimeline({
     scrollTimer.current = setTimeout(() => { didManualScroll.current = false }, 3000)
   }, [])
 
-  // Section lane click — find entry by position
-  const handleSectionLaneClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    const lane = e.currentTarget
-    const rect = lane.getBoundingClientRect()
-    const scrollLeft = scrollRef.current?.scrollLeft || 0
-    const clickX = e.clientX - rect.left + scrollLeft
-    const laneWidth = isScrollable ? detailWidth : rect.width
-    const frac = clickX / laneWidth
-    const time = frac * duration
-    const entry = timeline.find(t => time >= t.start_time && time < t.end_time)
-    if (entry) onSectionClick(entry)
-  }, [timeline, duration, onSectionClick, isScrollable])
+  const handleSectionBlockClick = useCallback((entry: TimelineEntry) => {
+    onSectionClick(entry)
+  }, [onSectionClick])
 
   const playFrac = duration > 0 ? currentTime / duration : 0
 
@@ -115,7 +106,7 @@ export function UnifiedTimeline({
         >
           {/* Section lane (top zone — tap = loop) */}
           {hasSections && (
-            <div className="unified-section-lane" onClick={handleSectionLaneClick}>
+            <div className="unified-section-lane">
               {timeline.map((entry, i) => {
                 const widthPct = ((entry.end_time - entry.start_time) / duration) * 100
                 const isLooping = !entry.isGap && entry.id === activeSectionId
@@ -125,7 +116,7 @@ export function UnifiedTimeline({
                   && Math.abs(loopEnd - entry.end_time) < 0.5
 
                 return (
-                  <div
+                  <button
                     key={entry.isGap ? `gap-${i}` : `sec-${entry.id}`}
                     className={
                       'unified-sec-block'
@@ -136,11 +127,12 @@ export function UnifiedTimeline({
                       width: `${widthPct}%`,
                       background: entry.isGap ? undefined : hexToRgba(entry.color!, 0.35),
                     }}
+                    onClick={() => handleSectionBlockClick(entry)}
                   >
                     {!entry.isGap && (
                       <span className="unified-sec-label">{entry.label}</span>
                     )}
-                  </div>
+                  </button>
                 )
               })}
             </div>
