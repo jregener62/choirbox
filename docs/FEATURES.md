@@ -235,7 +235,7 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 - Unified View: Section-Lane (oben, Tap=Loop) + dimmed Waveform (unten, Tap=Seek) in einer Ansicht
 - Waveform dimmed wenn Sections vorhanden, undimmed wenn keine Sections definiert
 - Playhead-Linie durchlaeuft beide Bereiche (Section-Lane + Waveform)
-- Zwei Zoom-Stufen (Fit: gesamter Track sichtbar, Detail: scrollbar, kleinste Section lesbar)
+- Zwei Zoom-Stufen (Fit: gesamter Track sichtbar, Detail: scrollbar, dynamisch berechnet damit kleinste Section-Label voll lesbar ist)
 - Auto-Scroll im Detail-Modus (pausiert 3s bei manuellem Scroll)
 - Luecken (Gaps) zwischen definierten Sektionen werden automatisch client-seitig berechnet (nicht in DB) und als gestrichelte Bloecke angezeigt. Gaps sind ebenfalls loopbar.
 - Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)

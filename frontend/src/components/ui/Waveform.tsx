@@ -132,7 +132,6 @@ export function Waveform({
       ref={canvasRef}
       className="waveform-canvas"
       onClick={(e) => seekFromEvent(e.clientX)}
-      onTouchStart={(e) => seekFromEvent(e.touches[0].clientX)}
     />
   )
 }

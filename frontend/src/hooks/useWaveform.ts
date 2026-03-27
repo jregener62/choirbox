@@ -36,7 +36,7 @@ async function fetchStreamLink(path: string): Promise<string> {
 // Cache computed peaks per path so we don't re-decode on every render
 const peaksCache = new Map<string, number[]>()
 
-const NUM_BARS = 200
+const NUM_BARS = 100
 
 /**
  * Decode audio and compute waveform peaks for visualization.

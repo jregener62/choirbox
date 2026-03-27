@@ -1,11 +1,15 @@
-import { useRef, useEffect, useState, useCallback } from 'react'
+import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
 import { Minimize2, Maximize2 } from 'lucide-react'
 import { Waveform } from '@/components/ui/Waveform'
 import type { Marker } from '@/stores/playerStore'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 type Zoom = 'fit' | 'detail'
-const DETAIL_WIDTH = 800
+
+/** ~7px per character at 11px bold + 12px padding */
+const MIN_LABEL_WIDTH = 80
+const CHAR_WIDTH = 7
+const LABEL_PADDING = 16
 
 interface UnifiedTimelineProps {
   peaks: number[]
@@ -31,6 +35,20 @@ export function UnifiedTimeline({
   const didManualScroll = useRef(false)
   const scrollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
+  // Calculate detail width so the smallest section label is fully readable
+  const detailWidth = useMemo(() => {
+    if (!hasSections || duration <= 0) return 800
+    const labeled = timeline.filter(e => !e.isGap && e.label)
+    if (labeled.length === 0) return 800
+    // For each labeled section, calculate required strip width so its block fits the label
+    const required = labeled.map(e => {
+      const labelW = Math.max(MIN_LABEL_WIDTH, e.label!.length * CHAR_WIDTH + LABEL_PADDING)
+      const durationFrac = (e.end_time - e.start_time) / duration
+      return labelW / durationFrac
+    })
+    return Math.max(800, Math.ceil(Math.max(...required)))
+  }, [timeline, duration, hasSections])
+
   const isScrollable = zoom === 'detail' && hasSections
 
   // Auto-scroll to playhead in detail mode
@@ -38,9 +56,9 @@ export function UnifiedTimeline({
     if (!isScrollable || didManualScroll.current) return
     const el = scrollRef.current
     if (!el || duration <= 0) return
-    const playX = (currentTime / duration) * DETAIL_WIDTH
+    const playX = (currentTime / duration) * detailWidth
     el.scrollLeft = Math.max(0, playX - el.clientWidth / 2)
-  }, [currentTime, duration, isScrollable])
+  }, [currentTime, duration, isScrollable, detailWidth])
 
   const handleManualScroll = useCallback(() => {
     didManualScroll.current = true
@@ -54,7 +72,7 @@ export function UnifiedTimeline({
     const rect = lane.getBoundingClientRect()
     const scrollLeft = scrollRef.current?.scrollLeft || 0
     const clickX = e.clientX - rect.left + scrollLeft
-    const laneWidth = isScrollable ? DETAIL_WIDTH : rect.width
+    const laneWidth = isScrollable ? detailWidth : rect.width
     const frac = clickX / laneWidth
     const time = frac * duration
     const entry = timeline.find(t => time >= t.start_time && time < t.end_time)
@@ -93,7 +111,7 @@ export function UnifiedTimeline({
       >
         <div
           className="unified-strip"
-          style={isScrollable ? { width: DETAIL_WIDTH } : undefined}
+          style={isScrollable ? { width: detailWidth } : undefined}
         >
           {/* Section lane (top zone — tap = loop) */}
           {hasSections && (
