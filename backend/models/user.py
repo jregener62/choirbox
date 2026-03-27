@@ -9,7 +9,7 @@ class User(SQLModel, table=True):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()), primary_key=True)
     username: str = Field(max_length=100, unique=True)
     display_name: str = Field(max_length=100)
-    role: str = Field(default="guest", max_length=50)  # "admin" or "guest"
+    role: str = Field(default="member", max_length=50)  # guest, member, pro-member, chorleiter, admin
     voice_part: str = Field(max_length=20)  # "Sopran", "Alt", "Tenor", "Bass"
     password_hash: str = Field(max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow)

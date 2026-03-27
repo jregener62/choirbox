@@ -113,12 +113,21 @@ def require_user(request: Request, session: Session = Depends(get_session)) -> U
     return user
 
 
-def require_admin(request: Request, session: Session = Depends(get_session)) -> User:
-    """Require admin user — raises 403 if not admin."""
-    user = require_user(request, session)
-    if user.role != "admin":
-        raise HTTPException(403, "Admin access required")
-    return user
+ROLE_HIERARCHY = {"guest": 0, "member": 1, "pro-member": 2, "chorleiter": 3, "admin": 4}
+VALID_ROLES = set(ROLE_HIERARCHY.keys())
+
+
+def require_role(min_role: str):
+    """Factory: returns a dependency that requires a minimum role level."""
+    def dependency(request: Request, session: Session = Depends(get_session)) -> User:
+        user = require_user(request, session)
+        if ROLE_HIERARCHY.get(user.role, 0) < ROLE_HIERARCHY[min_role]:
+            raise HTTPException(403, "Keine Berechtigung")
+        return user
+    return dependency
+
+
+require_admin = require_role("admin")
 
 
 def _user_response(user: User) -> dict:
@@ -228,7 +237,7 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
     user = User(
         username=username,
         display_name=display_name or username,
-        role="guest",
+        role="member",
         voice_part=voice_part,
         password_hash=_hash_password(password),
     )

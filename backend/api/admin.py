@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.app_settings import AppSettings
-from backend.api.auth import require_admin, _hash_password, VALID_VOICE_PARTS
+from backend.api.auth import require_admin, _hash_password, VALID_VOICE_PARTS, VALID_ROLES
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -45,10 +45,14 @@ def create_user(data: dict, user: User = Depends(require_admin), session: Sessio
     if existing:
         raise HTTPException(409, "Username already exists")
 
+    role = data.get("role", "member")
+    if role not in VALID_ROLES:
+        raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
+
     new_user = User(
         username=username,
         display_name=data.get("display_name", username),
-        role=data.get("role", "guest"),
+        role=role,
         voice_part=voice_part,
         password_hash=_hash_password(password),
     )
@@ -68,6 +72,9 @@ def update_user(
     target = session.get(User, user_id)
     if not target:
         raise HTTPException(404, "User not found")
+
+    if "role" in data and data["role"] not in VALID_ROLES:
+        raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
 
     for field in ["display_name", "role", "voice_part"]:
         if field in data:

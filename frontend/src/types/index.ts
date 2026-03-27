@@ -2,7 +2,7 @@ export interface User {
   id: string
   username: string
   display_name: string
-  role: 'admin' | 'guest'
+  role: 'guest' | 'member' | 'pro-member' | 'chorleiter' | 'admin'
   voice_part: string
 }
 
@@ -43,6 +43,18 @@ export interface UserLabelAssignment {
   id: number
   dropbox_path: string
   label_id: number
+}
+
+export interface Section {
+  id: number
+  dropbox_path: string
+  label: string
+  color: string
+  start_time: number
+  end_time: number
+  sort_order: number
+  created_by: string
+  created_at: string
 }
 
 export interface ActionResponse<T = unknown> {

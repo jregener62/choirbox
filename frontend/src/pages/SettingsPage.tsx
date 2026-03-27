@@ -4,6 +4,7 @@ import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LogOut, ChevronRigh
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
+import { hasMinRole, ROLE_LABELS, type Role } from '@/utils/roles.ts'
 
 interface DropboxStatus {
   connected: boolean
@@ -23,7 +24,8 @@ export function SettingsPage() {
   const { theme, toggleTheme } = useAppStore()
   const navigate = useNavigate()
   const location = useLocation()
-  const isAdmin = user?.role === 'admin'
+  const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
+  const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
 
   // Profile edit state
   const [editingProfile, setEditingProfile] = useState(false)
@@ -230,7 +232,7 @@ export function SettingsPage() {
               </div>
               <div className="settings-row">
                 <span className="settings-label">Rolle</span>
-                <span>{isAdmin ? 'Admin' : 'Mitglied'}</span>
+                <span>{ROLE_LABELS[user?.role as Role] ?? user?.role}</span>
               </div>
               <div className="settings-row">
                 <span className="settings-label">Stimmgruppe</span>
@@ -354,16 +356,18 @@ export function SettingsPage() {
           </section>
         )}
 
-        {/* -- Verwaltung (Admin) -- */}
-        {isAdmin && (
+        {/* -- Verwaltung (Pro-Mitglied+) -- */}
+        {isProMember && (
           <section>
             <h3 className="settings-heading">Verwaltung</h3>
             <div className="settings-nav-list">
-              <button className="settings-nav-item" onClick={() => navigate('/admin/users')}>
-                <Users size={18} />
-                <span>Nutzer verwalten</span>
-                <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
-              </button>
+              {isAdmin && (
+                <button className="settings-nav-item" onClick={() => navigate('/admin/users')}>
+                  <Users size={18} />
+                  <span>Nutzer verwalten</span>
+                  <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+                </button>
+              )}
               <button className="settings-nav-item" onClick={() => navigate('/admin/labels')}>
                 <Tag size={18} />
                 <span>Labels verwalten</span>
