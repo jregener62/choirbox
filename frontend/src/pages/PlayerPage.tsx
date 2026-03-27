@@ -82,8 +82,56 @@ export function PlayerPage() {
 
   return (
     <div className="player-page">
+      {/* Sticky header: player controls + toolbar */}
       <TopPlayerBar variant="full" onBack={() => navigate(-1)} title="Wird abgespielt" />
+      <div className="player-toolbar">
+        <button className="player-toolbar-btn" onClick={addMarker}>
+          <Pin size={15} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
+          onClick={setA}
+        >
+          A
+        </button>
+        <button
+          className={`player-toolbar-btn ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
+          onClick={toggleLoop}
+          disabled={loopStart === null || loopEnd === null}
+        >
+          <Repeat size={15} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
+          onClick={setB}
+        >
+          B
+        </button>
+        {(loopStart !== null || loopEnd !== null) && (
+          <button className="player-toolbar-btn" onClick={clearLoop}>
+            <X size={15} />
+          </button>
+        )}
+        <button
+          className={`player-toolbar-btn ${assignedLabels.length > 0 ? 'player-toolbar-btn--accent' : ''}`}
+          onClick={() => setShowLabelPicker(!showLabelPicker)}
+        >
+          <Tag size={15} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${isFav ? 'player-toolbar-btn--active' : ''}`}
+          onClick={() => currentPath && toggle(currentPath)}
+        >
+          <Heart size={15} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
+        {hasMinRole(userRole, 'pro-member') && (
+          <button className="player-toolbar-btn" onClick={() => navigate('/sections')}>
+            <LayoutList size={15} />
+          </button>
+        )}
+      </div>
 
+      {/* Scrollable content */}
       <div className="player-scroll-content">
         {/* Track Info */}
         <div className="player-track-info">
@@ -96,9 +144,8 @@ export function PlayerPage() {
             )}
             <div className="player-track-name">{currentName}</div>
           </div>
-          <div className="player-track-path">{folderPath}</div>
           {assignedLabels.length > 0 && (
-            <div className="player-labels" style={{ marginTop: 8 }}>
+            <div className="player-labels" style={{ marginTop: 6 }}>
               {assignedLabels.map((l) => (
                 <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
                   {l.name}
@@ -154,48 +201,6 @@ export function PlayerPage() {
             </button>
           </div>
         )}
-
-        <div className="player-divider" />
-
-        {/* A/B + Loop row */}
-        <div className="player-loop-row">
-          <button className={`player-ab-btn ${loopStart !== null ? 'active' : ''}`} onClick={setA}>A</button>
-          <button className={`player-ab-btn ${loopEnd !== null ? 'active' : ''}`} onClick={setB}>B</button>
-          <button
-            className={`player-ctrl-btn ${loopEnabled ? 'player-ctrl-amber' : ''}`}
-            onClick={toggleLoop}
-            disabled={loopStart === null || loopEnd === null}
-          >
-            <Repeat size={18} /> Loop
-          </button>
-          {(loopStart !== null || loopEnd !== null) && (
-            <button className="player-ctrl-btn" onClick={clearLoop}><X size={18} /></button>
-          )}
-        </div>
-
-        {/* Actions */}
-        <div className="player-actions">
-          <button className="player-action-btn" onClick={addMarker}>
-            <Pin size={14} /> Marker
-          </button>
-          <button
-            className={`player-action-btn ${assignedLabels.length > 0 ? 'player-action-btn--label' : ''}`}
-            onClick={() => setShowLabelPicker(!showLabelPicker)}
-          >
-            <Tag size={14} /> Labels
-          </button>
-          <button
-            className={`player-action-btn ${isFav ? 'player-action-btn--active' : ''}`}
-            onClick={() => currentPath && toggle(currentPath)}
-          >
-            <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
-          </button>
-          {hasMinRole(userRole, 'pro-member') && (
-            <button className="player-action-btn" onClick={() => navigate('/sections')}>
-              <LayoutList size={14} /> Sektionen
-            </button>
-          )}
-        </div>
 
         {/* Label Picker */}
         {showLabelPicker && currentPath && (
