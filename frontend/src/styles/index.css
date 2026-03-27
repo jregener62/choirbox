@@ -1107,8 +1107,11 @@ body {
   background: none !important;
   border: 1.5px dashed rgba(148,163,184,0.15);
 }
+.unified-sec-block:focus {
+  outline: none;
+}
 .unified-sec-block--looping {
-  box-shadow: inset 0 0 0 2px var(--amber);
+  box-shadow: inset 0 0 0 2.5px var(--amber) !important;
 }
 .unified-sec-label {
   font-size: 11px;
