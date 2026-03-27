@@ -1111,8 +1111,7 @@ body {
   outline: none;
 }
 .unified-sec-block--looping {
-  box-shadow: 0 0 0 3px var(--amber) !important;
-  z-index: 1;
+  border: 3px solid var(--amber) !important;
 }
 .unified-sec-label {
   font-size: 11px;
