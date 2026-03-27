@@ -20,9 +20,7 @@ const COLOR_PLAYED = '#818cf8'
 const COLOR_UNPLAYED_DIM = 'rgba(148, 163, 184, 0.12)'
 const COLOR_PLAYED_DIM = 'rgba(129, 140, 248, 0.3)'
 const COLOR_LOOP = '#f59e0b'
-const COLOR_LOOP_UNPLAYED = 'rgba(245, 158, 11, 0.35)'
 const COLOR_LOOP_DIM = 'rgba(245, 158, 11, 0.6)'
-const COLOR_LOOP_UNPLAYED_DIM = 'rgba(245, 158, 11, 0.15)'
 const COLOR_MARKER = '#fbbf24'
 
 export function Waveform({
