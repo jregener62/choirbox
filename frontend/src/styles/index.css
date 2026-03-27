@@ -73,6 +73,23 @@ body {
   height: 100%;
 }
 
+.browse-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.browse-header {
+  flex-shrink: 0;
+  z-index: 10;
+}
+
+.browse-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .topbar {
   display: flex;
   align-items: center;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2 } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -44,6 +44,7 @@ export function BrowsePage() {
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
+  const [filterOpen, setFilterOpen] = useState(false)
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false)
@@ -210,28 +211,29 @@ export function BrowsePage() {
   const hasAnyLabels = assignments.length > 0
 
   return (
-    <div>
-      {/* Topbar: search mode or normal with breadcrumb */}
-      {searchOpen ? (
-        <div className="topbar">
-          <div className="search-bar">
-            <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-            <input
-              ref={searchRef}
-              className="search-input"
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Dateien suchen..."
-              autoFocus
-            />
-            <button className="player-header-btn" onClick={closeSearch}>
-              <X size={18} />
-            </button>
+    <div className="browse-page">
+      {/* Sticky header area */}
+      <div className="browse-header">
+        {/* Topbar: search mode or normal with breadcrumb */}
+        {searchOpen ? (
+          <div className="topbar">
+            <div className="search-bar">
+              <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              <input
+                ref={searchRef}
+                className="search-input"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Dateien suchen..."
+                autoFocus
+              />
+              <button className="player-header-btn" onClick={closeSearch}>
+                <X size={18} />
+              </button>
+            </div>
           </div>
-        </div>
-      ) : (
-        <>
+        ) : (
           <div className="topbar">
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
               <span className="breadcrumb-item" onClick={() => loadFolder('')}>Root</span>
@@ -273,32 +275,44 @@ export function BrowsePage() {
             <button className="player-header-btn" onClick={openSearch}>
               <Search size={18} />
             </button>
+            {hasAnyLabels && labels.length > 0 && (
+              <button
+                className="player-header-btn"
+                onClick={() => setFilterOpen(!filterOpen)}
+                style={activeFilters.length > 0 ? { color: 'var(--accent)' } : undefined}
+              >
+                <SlidersHorizontal size={18} />
+              </button>
+            )}
           </div>
-        </>
-      )}
+        )}
 
-      {/* Label filter bar — always visible if user has any labels */}
-      {!isSearching && hasAnyLabels && labels.length > 0 && (
-        <div className="filter-bar">
-          <button
-            className={`filter-chip ${activeFilters.length === 0 ? 'active' : ''}`}
-            onClick={() => setActiveFilters([])}
-          >
-            Alle
-          </button>
-          {labels.map((l) => (
+        {/* Label filter bar — toggleable */}
+        {!isSearching && filterOpen && hasAnyLabels && labels.length > 0 && (
+          <div className="filter-bar">
             <button
-              key={l.id}
-              className={`filter-chip ${activeFilters.includes(l.id) ? 'active' : ''}`}
-              style={activeFilters.includes(l.id) ? { background: l.color + '25', color: l.color, borderColor: l.color } : {}}
-              onClick={() => toggleFilter(l.id)}
+              className={`filter-chip ${activeFilters.length === 0 ? 'active' : ''}`}
+              onClick={() => setActiveFilters([])}
             >
-              <span className="filter-chip-dot" style={{ background: l.color }} />
-              {l.name}
+              Alle
             </button>
-          ))}
-        </div>
-      )}
+            {labels.map((l) => (
+              <button
+                key={l.id}
+                className={`filter-chip ${activeFilters.includes(l.id) ? 'active' : ''}`}
+                style={activeFilters.includes(l.id) ? { background: l.color + '25', color: l.color, borderColor: l.color } : {}}
+                onClick={() => toggleFilter(l.id)}
+              >
+                <span className="filter-chip-dot" style={{ background: l.color }} />
+                {l.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Scrollable content */}
+      <div className="browse-content">
 
       {/* Loading */}
       {(loading || searching) && (
@@ -437,6 +451,8 @@ export function BrowsePage() {
           )
         })}
       </ul>
+
+      </div>{/* end browse-content */}
 
       {confirmEntry && (
         <div className="confirm-overlay" onClick={() => !deleting && setConfirmEntry(null)}>
