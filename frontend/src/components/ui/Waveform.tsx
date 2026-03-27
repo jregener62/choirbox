@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react'
 import type { Marker } from '@/stores/playerStore.ts'
-import type { Section } from '@/types/index.ts'
+import type { TimelineEntry } from '@/utils/buildTimeline'
 
 interface WaveformProps {
   peaks: number[]
@@ -10,17 +10,19 @@ interface WaveformProps {
   loopEnd: number | null
   loopEnabled: boolean
   markers: Marker[]
-  sections?: Section[]
+  timeline?: TimelineEntry[]
   activeSectionId?: number | null
   onSeek: (time: number) => void
+  /** If set, canvas is this wide (px) inside a scrollable container */
+  stripWidth?: number
 }
 
 // Colors
-const COLOR_UNPLAYED = 'rgba(148, 163, 184, 0.3)'   // slate-400 @ 30%
-const COLOR_PLAYED = '#818cf8'                         // indigo-400 (accent)
-const COLOR_LOOP = '#f59e0b'                           // amber-500
-const COLOR_LOOP_UNPLAYED = 'rgba(245, 158, 11, 0.35)' // amber @ 35%
-const COLOR_MARKER = '#fbbf24'                         // amber-400
+const COLOR_UNPLAYED = 'rgba(148, 163, 184, 0.3)'
+const COLOR_PLAYED = '#818cf8'
+const COLOR_LOOP = '#f59e0b'
+const COLOR_LOOP_UNPLAYED = 'rgba(245, 158, 11, 0.35)'
+const COLOR_MARKER = '#fbbf24'
 
 export function Waveform({
   peaks,
@@ -30,11 +32,33 @@ export function Waveform({
   loopEnd,
   loopEnabled,
   markers,
-  sections = [],
+  timeline = [],
   activeSectionId = null,
   onSeek,
+  stripWidth,
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const didManualScroll = useRef(false)
+  const scrollTimer = useRef<ReturnType<typeof setTimeout>>()
+
+  const isScrollable = !!stripWidth
+
+  // Auto-scroll to playhead
+  useEffect(() => {
+    if (!isScrollable || didManualScroll.current) return
+    const el = scrollRef.current
+    if (!el || duration <= 0) return
+    const playX = (currentTime / duration) * stripWidth!
+    const target = Math.max(0, playX - el.clientWidth / 2)
+    el.scrollLeft = target
+  }, [currentTime, duration, stripWidth, isScrollable])
+
+  const handleManualScroll = () => {
+    didManualScroll.current = true
+    clearTimeout(scrollTimer.current)
+    scrollTimer.current = setTimeout(() => { didManualScroll.current = false }, 3000)
+  }
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -54,30 +78,48 @@ export function Waveform({
 
     ctx.clearRect(0, 0, w, h)
 
-    // Draw section overlays (behind bars)
-    if (duration > 0) {
-      for (const s of sections) {
-        const x1 = (s.start_time / duration) * w
-        const x2 = (s.end_time / duration) * w
-        const isActive = s.id === activeSectionId
+    // Draw timeline overlays (sections + gaps)
+    if (duration > 0 && timeline.length > 0) {
+      for (const entry of timeline) {
+        const x1 = (entry.start_time / duration) * w
+        const x2 = (entry.end_time / duration) * w
+        const entryW = x2 - x1
+        const isActive = !entry.isGap && entry.id === activeSectionId
 
-        // Background tint
-        ctx.fillStyle = hexToRgba(s.color, isActive ? 0.18 : 0.08)
-        ctx.fillRect(x1, 0, x2 - x1, h)
+        if (entry.isGap) {
+          // Dashed border for gaps
+          ctx.strokeStyle = 'rgba(148,163,184,0.2)'
+          ctx.lineWidth = 1
+          ctx.setLineDash([4, 3])
+          ctx.strokeRect(x1 + 0.5, 0.5, entryW - 1, h - 1)
+          ctx.setLineDash([])
 
-        // Section boundary lines
-        ctx.strokeStyle = 'rgba(255,255,255,0.12)'
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(x1, 0)
-        ctx.lineTo(x1, h)
-        ctx.stroke()
+          // Gap time label
+          ctx.fillStyle = 'rgba(148,163,184,0.35)'
+          ctx.font = '500 8px system-ui'
+          ctx.textAlign = 'left'
+          if (entryW > 40) {
+            ctx.fillText(fmtTime(entry.start_time), x1 + 3, 10)
+          }
+        } else {
+          // Background tint
+          ctx.fillStyle = hexToRgba(entry.color!, isActive ? 0.18 : 0.08)
+          ctx.fillRect(x1, 0, entryW, h)
 
-        // Label at top
-        ctx.fillStyle = isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'
-        ctx.font = 'bold 9px system-ui'
-        ctx.textAlign = 'left'
-        ctx.fillText(s.label, x1 + 3, 10)
+          // Boundary line
+          ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+          ctx.lineWidth = 1
+          ctx.beginPath()
+          ctx.moveTo(x1, 0)
+          ctx.lineTo(x1, h)
+          ctx.stroke()
+
+          // Label
+          ctx.fillStyle = isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.55)'
+          ctx.font = 'bold 9px system-ui'
+          ctx.textAlign = 'left'
+          ctx.fillText(entry.label!, x1 + 3, 10)
+        }
       }
     }
 
@@ -87,7 +129,6 @@ export function Waveform({
     const effectiveBarWidth = barWidth - gap
     const playProgress = duration > 0 ? currentTime / duration : 0
 
-    // Loop region as fraction 0-1
     const loopStartFrac = loopStart !== null && duration > 0 ? loopStart / duration : null
     const loopEndFrac = loopEnd !== null && duration > 0 ? loopEnd / duration : null
     const hasLoop = loopStartFrac !== null && loopEndFrac !== null
@@ -95,11 +136,10 @@ export function Waveform({
     // Draw bars
     for (let i = 0; i < barCount; i++) {
       const x = i * barWidth
-      const frac = (i + 0.5) / barCount // center of this bar as fraction
+      const frac = (i + 0.5) / barCount
       const peakHeight = Math.max(2, peaks[i] * h * 0.85)
       const y = (h - peakHeight) / 2
 
-      // Determine color
       const isPlayed = frac <= playProgress
       const isInLoop = hasLoop && frac >= loopStartFrac && frac <= loopEndFrac
 
@@ -111,9 +151,15 @@ export function Waveform({
         ctx.fillStyle = isPlayed ? COLOR_PLAYED : COLOR_UNPLAYED
       }
 
-      // Round-capped bars
       const radius = Math.min(effectiveBarWidth / 2, 2)
       roundedRect(ctx, x + gap / 2, y, effectiveBarWidth, peakHeight, radius)
+    }
+
+    // Playhead (only in scrollable mode)
+    if (isScrollable && duration > 0) {
+      const px = playProgress * w
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(px - 1, 0, 2, h)
     }
 
     // Draw markers
@@ -141,9 +187,8 @@ export function Waveform({
       ctx.textAlign = 'center'
       ctx.fillText('B', bx, 10)
     }
-  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers, sections, activeSectionId])
+  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers, timeline, activeSectionId, isScrollable])
 
-  // Redraw on every frame while data exists
   useEffect(() => {
     let raf: number
     const loop = () => {
@@ -154,22 +199,16 @@ export function Waveform({
     return () => cancelAnimationFrame(raf)
   }, [draw])
 
-  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
+  const seekFromEvent = (clientX: number) => {
     const canvas = canvasRef.current
     if (!canvas || duration <= 0) return
     const rect = canvas.getBoundingClientRect()
-    const frac = (e.clientX - rect.left) / rect.width
+    const frac = (clientX - rect.left) / rect.width
     onSeek(Math.max(0, Math.min(duration, frac * duration)))
   }
 
-  const handleTouch = (e: React.TouchEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas || duration <= 0) return
-    const rect = canvas.getBoundingClientRect()
-    const touch = e.touches[0]
-    const frac = (touch.clientX - rect.left) / rect.width
-    onSeek(Math.max(0, Math.min(duration, frac * duration)))
-  }
+  const handleClick = (e: React.MouseEvent<HTMLCanvasElement>) => seekFromEvent(e.clientX)
+  const handleTouch = (e: React.TouchEvent<HTMLCanvasElement>) => seekFromEvent(e.touches[0].clientX)
 
   if (peaks.length === 0) {
     return (
@@ -179,14 +218,25 @@ export function Waveform({
     )
   }
 
-  return (
+  const canvasEl = (
     <canvas
       ref={canvasRef}
       className="waveform-canvas"
+      style={isScrollable ? { width: stripWidth, minWidth: stripWidth } : undefined}
       onClick={handleClick}
       onTouchStart={handleTouch}
     />
   )
+
+  if (isScrollable) {
+    return (
+      <div className="waveform-scroll" ref={scrollRef} onScroll={handleManualScroll}>
+        {canvasEl}
+      </div>
+    )
+  }
+
+  return canvasEl
 }
 
 function roundedRect(
@@ -214,4 +264,8 @@ function hexToRgba(hex: string, alpha: number): string {
   const g = parseInt(hex.slice(3, 5), 16)
   const b = parseInt(hex.slice(5, 7), 16)
   return `rgba(${r},${g},${b},${alpha})`
+}
+
+function fmtTime(s: number): string {
+  return Math.floor(s / 60) + ':' + String(Math.floor(s % 60)).padStart(2, '0')
 }
