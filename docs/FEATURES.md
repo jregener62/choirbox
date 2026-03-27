@@ -251,16 +251,34 @@ Admin-definierte Labels zum Kategorisieren von Dateien.
 
 ---
 
-## Audio-Aufnahme
+## Audio-Aufnahme & Datei-Upload
 
-Detaillierte Spezifikation: **[RECORDING.md](RECORDING.md)**
+Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 
-Kurzfassung:
+### Aufnahme
+
 - Browser-Mikrofon-Aufnahme (MediaRecorder API)
 - Server-seitige Konvertierung zu MP3 (FFmpeg)
 - Strukturierte Dateibenennung: Stimme-Ordner-Abschnitt-Freitext
 - Upload in aktuellen Dropbox-Ordner
 - Alle authentifizierten User koennen aufnehmen
+
+### Datei-Upload
+
+Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, Dateien-App).
+
+- Upload-Button (Upload-Icon) neben dem Aufnahme-Button im Datei-Browser
+- Oeffnet den nativen Datei-Picker des Geraets (`<input type="file" accept="audio/*">`)
+- Nach Dateiauswahl oeffnet sich das gleiche Benennungs-Modal wie bei Aufnahmen (Stimme, Abschnitt, Notiz)
+- Unterstuetzte Formate: MP3, M4A, WebM, OGG, Opus, WAV, MP4
+- Nicht-MP3-Dateien werden server-seitig automatisch zu MP3 konvertiert
+- Maximale Dateigroesse: 20 MB
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/BrowsePage.tsx` | Upload-Button + verstecktes File-Input |
+| `frontend/src/components/ui/RecordingModal.tsx` | Geteiltes Modal (Aufnahme + Import) |
+| `backend/api/dropbox.py` | `POST /dropbox/upload` (Validierung + Konvertierung) |
 
 ---
 
