@@ -128,7 +128,7 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 - Aktuelle Position und Gesamtdauer
 - Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
 - Globaler Audio-Singleton (ein Track gleichzeitig)
-- Vor-/Zurueckspringen: 15 Sekunden
+- Vor-/Zurueckspringen: einstellbar (5s/10s/15s), Doppeltipp auf Skip-Button wechselt das Intervall
 
 | Datei | Rolle |
 |-------|-------|
