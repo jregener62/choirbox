@@ -206,6 +206,154 @@ body {
   transition: width 0.3s linear;
 }
 
+/* -- Top Player Bar (unified) -- */
+
+.top-player-bar {
+  display: flex;
+  align-items: center;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  position: relative;
+  flex-shrink: 0;
+  z-index: 50;
+}
+
+.top-player-bar--full {
+  padding: 6px 16px;
+  background: var(--bg-primary);
+}
+
+.top-player-back {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 44px;
+  flex-shrink: 0;
+}
+
+.top-player-info {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+  padding: 4px 0;
+}
+
+.top-player-info--full {
+  cursor: default;
+}
+
+.top-player-title {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text-primary);
+  line-height: 1.3;
+}
+
+.top-player-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.top-player-controls {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.top-player-skip {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  font-family: inherit;
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+  touch-action: manipulation;
+  border-radius: 8px;
+}
+
+.top-player-skip:active {
+  background: var(--bg-tertiary);
+}
+
+.top-player-play {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: none;
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(129,140,248,0.25);
+  transition: all 0.15s;
+  touch-action: manipulation;
+  flex-shrink: 0;
+}
+
+.top-player-play:active {
+  background: var(--accent-hover);
+  transform: scale(0.95);
+}
+
+.top-player-progress {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--bg-tertiary);
+}
+
+.top-player-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s linear;
+}
+
+/* Player page scroll content */
+.player-scroll-content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 0 20px 20px;
+}
+
+/* A/B + Loop row */
+.player-loop-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
 /* -- Buttons -- */
 
 .btn {
@@ -918,9 +1066,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 0 20px 20px;
   background: var(--bg-primary);
-  overflow-y: auto;
 }
 
 .player-header {

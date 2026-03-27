@@ -1,6 +1,6 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2, LayoutList } from 'lucide-react'
+import { Repeat, Pin, Heart, X, Tag, Trash2, LayoutList } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -9,12 +9,12 @@ import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { UnifiedTimeline } from '@/components/ui/UnifiedTimeline.tsx'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
 import { PlayerLyrics } from '@/components/ui/PlayerLyrics.tsx'
 import { formatTime } from '@/utils/formatters.ts'
-import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 export function PlayerPage() {
@@ -26,16 +26,13 @@ export function PlayerPage() {
   const [showLabelPicker, setShowLabelPicker] = useState(false)
   const {
     currentName, currentPath,
-    isPlaying, currentTime, duration,
+    currentTime, duration,
     loopStart, loopEnd, loopEnabled,
     activeSection,
-    markers, skipInterval,
+    markers,
   } = usePlayerStore()
-  const { togglePlay, seek, skip } = useAudioPlayer()
+  const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
-  const cycleInterval = useCallback(() => usePlayerStore.getState().cycleSkipInterval(), [])
-  const skipBack = useDoubleTap(useCallback(() => skip(-skipInterval), [skip, skipInterval]), cycleInterval)
-  const skipFwd = useDoubleTap(useCallback(() => skip(skipInterval), [skip, skipInterval]), cycleInterval)
 
   if (!currentPath) {
     navigate('/', { replace: true })
@@ -85,162 +82,153 @@ export function PlayerPage() {
 
   return (
     <div className="player-page">
-      <div className="player-header">
-        <button className="player-header-btn" onClick={() => navigate(-1)}>
-          <ChevronDown size={24} />
-        </button>
-        <span className="player-header-title">Wird abgespielt</span>
-        <div style={{ width: 40 }} />
-      </div>
+      <TopPlayerBar variant="full" onBack={() => navigate(-1)} title="Wird abgespielt" />
 
-      <div className="player-track-info">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-          {currentName && (
-            <VoiceIcon
-              filename={currentName}
-              folderName={folderPath.split('/').filter(Boolean).pop() || ''}
-            />
+      <div className="player-scroll-content">
+        {/* Track Info */}
+        <div className="player-track-info">
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+            {currentName && (
+              <VoiceIcon
+                filename={currentName}
+                folderName={folderPath.split('/').filter(Boolean).pop() || ''}
+              />
+            )}
+            <div className="player-track-name">{currentName}</div>
+          </div>
+          <div className="player-track-path">{folderPath}</div>
+          {assignedLabels.length > 0 && (
+            <div className="player-labels" style={{ marginTop: 8 }}>
+              {assignedLabels.map((l) => (
+                <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
+                  {l.name}
+                </span>
+              ))}
+            </div>
           )}
-          <div className="player-track-name">{currentName}</div>
         </div>
-        <div className="player-track-path">{folderPath}</div>
-        {assignedLabels.length > 0 && (
-          <div className="player-labels" style={{ marginTop: 8 }}>
-            {assignedLabels.map((l) => (
-              <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
-                {l.name}
+
+        {/* Waveform + Sections */}
+        <UnifiedTimeline
+          peaks={peaks}
+          currentTime={currentTime}
+          duration={duration}
+          loopStart={loopStart}
+          loopEnd={loopEnd}
+          loopEnabled={loopEnabled}
+          markers={markers}
+          timeline={timeline}
+          activeSectionId={activeSection?.id ?? null}
+          hasSections={hasSections}
+          onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
+          onSectionClick={handleSectionClick}
+        />
+
+        {/* Time */}
+        <div className="player-time">
+          <span>{formatTime(currentTime)}</span>
+          <span>{formatTime(duration)}</span>
+        </div>
+
+        {/* Markers */}
+        {markers.length > 0 && (
+          <div className="player-markers">
+            {markers.map((m) => (
+              <span key={m.id} className="marker-chip">
+                <span className="marker-dot" />
+                <button className="marker-chip-jump" onClick={() => seek(m.time)}>
+                  {formatTime(m.time)}
+                </button>
+                <button className="marker-chip-remove" onClick={() => usePlayerStore.getState().removeMarker(m.id)}>
+                  <X size={12} />
+                </button>
               </span>
             ))}
+            <button
+              className="marker-chip-remove"
+              style={{ padding: '4px 8px' }}
+              onClick={() => usePlayerStore.getState().clearMarkers()}
+              title="Alle Marker loeschen"
+            >
+              <Trash2 size={13} />
+            </button>
           </div>
         )}
-      </div>
 
-      <UnifiedTimeline
-        peaks={peaks}
-        currentTime={currentTime}
-        duration={duration}
-        loopStart={loopStart}
-        loopEnd={loopEnd}
-        loopEnabled={loopEnabled}
-        markers={markers}
-        timeline={timeline}
-        activeSectionId={activeSection?.id ?? null}
-        hasSections={hasSections}
-        onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
-        onSectionClick={handleSectionClick}
-      />
+        <div className="player-divider" />
 
-      <div className="player-time">
-        <span>{formatTime(currentTime)}</span>
-        <span>{formatTime(duration)}</span>
-      </div>
-
-      {markers.length > 0 && (
-        <div className="player-markers">
-          {markers.map((m) => (
-            <span key={m.id} className="marker-chip">
-              <span className="marker-dot" />
-              <button className="marker-chip-jump" onClick={() => seek(m.time)}>
-                {formatTime(m.time)}
-              </button>
-              <button className="marker-chip-remove" onClick={() => usePlayerStore.getState().removeMarker(m.id)}>
-                <X size={12} />
-              </button>
-            </span>
-          ))}
+        {/* A/B + Loop row */}
+        <div className="player-loop-row">
+          <button className={`player-ab-btn ${loopStart !== null ? 'active' : ''}`} onClick={setA}>A</button>
+          <button className={`player-ab-btn ${loopEnd !== null ? 'active' : ''}`} onClick={setB}>B</button>
           <button
-            className="marker-chip-remove"
-            style={{ padding: '4px 8px' }}
-            onClick={() => usePlayerStore.getState().clearMarkers()}
-            title="Alle Marker loeschen"
+            className={`player-ctrl-btn ${loopEnabled ? 'player-ctrl-amber' : ''}`}
+            onClick={toggleLoop}
+            disabled={loopStart === null || loopEnd === null}
           >
-            <Trash2 size={13} />
+            <Repeat size={18} /> Loop
           </button>
+          {(loopStart !== null || loopEnd !== null) && (
+            <button className="player-ctrl-btn" onClick={clearLoop}><X size={18} /></button>
+          )}
         </div>
-      )}
 
-      <div className="player-divider" />
-
-      <div className="player-core">
-        <button className={`player-ab-btn ${loopStart !== null ? 'active' : ''}`} onClick={setA}>A</button>
-        <button className="player-play-btn" onClick={togglePlay}>
-          {isPlaying ? <Pause size={32} /> : <Play size={32} style={{ marginLeft: 3 }} />}
-        </button>
-        <button className={`player-ab-btn ${loopEnd !== null ? 'active' : ''}`} onClick={setB}>B</button>
-      </div>
-
-      <div className="player-controls">
-        <button className="player-ctrl-btn" onClick={skipBack}>
-          <Rewind size={18} /> {skipInterval}s
-        </button>
-        <button
-          className={`player-ctrl-btn ${loopEnabled ? 'player-ctrl-amber' : ''}`}
-          onClick={toggleLoop}
-          disabled={loopStart === null || loopEnd === null}
-        >
-          <Repeat size={18} /> Loop
-        </button>
-        {(loopStart !== null || loopEnd !== null) && (
-          <button className="player-ctrl-btn" onClick={clearLoop}><X size={18} /></button>
-        )}
-        <button className="player-ctrl-btn" onClick={skipFwd}>
-          {skipInterval}s <FastForward size={18} />
-        </button>
-      </div>
-
-      <div className="player-actions">
-        <button className="player-action-btn" onClick={addMarker}>
-          <Pin size={14} /> Marker
-        </button>
-        <button
-          className={`player-action-btn ${assignedLabels.length > 0 ? 'player-action-btn--label' : ''}`}
-          onClick={() => setShowLabelPicker(!showLabelPicker)}
-        >
-          <Tag size={14} /> Labels
-        </button>
-        <button
-          className={`player-action-btn ${isFav ? 'player-action-btn--active' : ''}`}
-          onClick={() => currentPath && toggle(currentPath)}
-        >
-          <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
-        </button>
-        {hasMinRole(userRole, 'pro-member') && (
-          <button className="player-action-btn" onClick={() => navigate('/sections')}>
-            <LayoutList size={14} /> Sektionen
+        {/* Actions */}
+        <div className="player-actions">
+          <button className="player-action-btn" onClick={addMarker}>
+            <Pin size={14} /> Marker
           </button>
-        )}
-      </div>
-
-      {showLabelPicker && currentPath && (
-        <div className="label-picker">
-          {labels.map((l) => {
-            const assigned = isAssigned(currentPath, l.id)
-            return (
-              <button
-                key={l.id}
-                className={`label-picker-item ${assigned ? 'assigned' : ''}`}
-                style={{
-                  borderColor: assigned ? l.color : 'var(--border)',
-                  background: assigned ? l.color + '25' : 'none',
-                  color: assigned ? l.color : 'var(--text-secondary)',
-                }}
-                onClick={() => toggleLabel(currentPath, l.id)}
-              >
-                <span className="label-picker-dot" style={{ background: l.color }} />
-                {l.name}
-              </button>
-            )
-          })}
+          <button
+            className={`player-action-btn ${assignedLabels.length > 0 ? 'player-action-btn--label' : ''}`}
+            onClick={() => setShowLabelPicker(!showLabelPicker)}
+          >
+            <Tag size={14} /> Labels
+          </button>
+          <button
+            className={`player-action-btn ${isFav ? 'player-action-btn--active' : ''}`}
+            onClick={() => currentPath && toggle(currentPath)}
+          >
+            <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
+          </button>
+          {hasMinRole(userRole, 'pro-member') && (
+            <button className="player-action-btn" onClick={() => navigate('/sections')}>
+              <LayoutList size={14} /> Sektionen
+            </button>
+          )}
         </div>
-      )}
 
-      {/* Lyrics & Notes */}
-      <div className="player-lyrics-divider" />
-      <PlayerLyrics
-        dropboxPath={currentPath}
-        currentTime={currentTime}
-        duration={duration}
-      />
+        {/* Label Picker */}
+        {showLabelPicker && currentPath && (
+          <div className="label-picker">
+            {labels.map((l) => {
+              const assigned = isAssigned(currentPath, l.id)
+              return (
+                <button
+                  key={l.id}
+                  className={`label-picker-item ${assigned ? 'assigned' : ''}`}
+                  style={{
+                    borderColor: assigned ? l.color : 'var(--border)',
+                    background: assigned ? l.color + '25' : 'none',
+                    color: assigned ? l.color : 'var(--text-secondary)',
+                  }}
+                  onClick={() => toggleLabel(currentPath, l.id)}
+                >
+                  <span className="label-picker-dot" style={{ background: l.color }} />
+                  {l.name}
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {/* Lyrics & Notes */}
+        <div className="player-lyrics-divider" />
+        <PlayerLyrics
+          dropboxPath={currentPath}
+          currentTime={currentTime}
+          duration={duration}
+        />
+      </div>
     </div>
   )
 }
