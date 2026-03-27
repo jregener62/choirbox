@@ -104,7 +104,7 @@ Der Admin verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle User teile
 |-------|----------|
 | `files.metadata.read` | Ordner durchsuchen, Dateien suchen |
 | `files.content.read` | Streaming-Links fuer Audio-Wiedergabe |
-| `files.content.write` | Aufnahmen hochladen |
+| `files.content.write` | Aufnahmen hochladen, Dateien loeschen |
 
 Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 
@@ -130,6 +130,23 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 | `frontend/src/stores/appStore.ts` | `browsePath` State |
 | `backend/api/dropbox.py` | `GET /dropbox/browse` |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
+
+### Datei loeschen (Swipe-to-Delete)
+
+Chorleiter und Admins koennen Audio-Dateien direkt aus der Dropbox loeschen.
+
+- Swipe-Geste: Auf einer Datei nach links wischen enthuellt einen roten "Loeschen"-Button
+- Bestaetigungsdialog vor dem Loeschen ("Wird unwiderruflich aus der Dropbox geloescht")
+- Nach dem Loeschen wird die Dateiliste automatisch aktualisiert
+- Falls die geloeschte Datei gerade abgespielt wird, wird der Player zurueckgesetzt
+- Nur sichtbar fuer Chorleiter (Level 3) und Admin (Level 4)
+- Tippen auf ein anderes Element schliesst das geoeffnete Swipe-Menue
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Bestaetigungsdialog, Loeschlogik |
+| `backend/api/dropbox.py` | `DELETE /dropbox/file` |
+| `backend/services/dropbox_service.py` | `delete_file()` |
 
 ### Suche
 
@@ -448,6 +465,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | GET | `/search` | Dateien suchen | User |
 | GET | `/stream` | Streaming-Link holen | User |
 | POST | `/upload` | Aufnahme hochladen | User |
+| DELETE | `/file` | Datei loeschen | Chorleiter+ |
 
 ### Favoriten (`/api/favorites`)
 

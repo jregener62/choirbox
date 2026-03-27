@@ -12,7 +12,7 @@ from backend.config import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REDIRECT
 from backend.database import get_session
 from backend.models.app_settings import AppSettings
 from backend.models.user import User
-from backend.api.auth import require_user, require_admin
+from backend.api.auth import require_user, require_admin, require_role
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/dropbox", tags=["dropbox"])
@@ -337,6 +337,36 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
                 os.unlink(p)
             except OSError:
                 pass
+
+
+@router.delete("/file")
+async def dropbox_delete_file(
+    path: str = "",
+    user: User = Depends(require_role("chorleiter")),
+    session: Session = Depends(get_session),
+):
+    """Delete a file from Dropbox. Requires Chorleiter or Admin role."""
+    from backend.services.dropbox_service import get_dropbox_service
+
+    if not path:
+        raise HTTPException(400, "path is required")
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox not connected")
+
+    try:
+        result = await dbx.delete_file(path)
+    except RuntimeError as e:
+        if "path_lookup/not_found" in str(e):
+            raise HTTPException(404, "Datei nicht gefunden")
+        raise HTTPException(502, str(e))
+
+    metadata = result.get("metadata", {})
+    return ActionResponse.success(data={
+        "name": metadata.get("name", ""),
+        "path": metadata.get("path_display", path),
+    })
 
 
 @router.post("/disconnect")

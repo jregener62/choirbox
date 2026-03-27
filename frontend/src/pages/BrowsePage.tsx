@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2 } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -9,6 +9,7 @@ import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { useAuthStore } from '@/stores/authStore.ts'
 import { platform } from '@/utils/platform'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -25,12 +26,21 @@ export function BrowsePage() {
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, assignments } = useLabelsStore()
+  const user = useAuthStore((s) => s.user)
+  const canDelete = !!user && ['chorleiter', 'admin'].includes(user.role)
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [recordingOpen, setRecordingOpen] = useState(false)
   const [importedFile, setImportedFile] = useState<File | undefined>(undefined)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Swipe-to-delete state
+  const [revealedPath, setRevealedPath] = useState<string | null>(null)
+  const [confirmEntry, setConfirmEntry] = useState<DropboxEntry | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const swipeStartRef = useRef<{ x: number; y: number } | null>(null)
+  const didSwipeRef = useRef(false)
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
@@ -44,6 +54,7 @@ export function BrowsePage() {
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const loadFolder = useCallback(async (path: string) => {
+    setRevealedPath(null)
     setLoading(true)
     setError('')
     try {
@@ -99,7 +110,50 @@ export function BrowsePage() {
     setSearchResults([])
   }
 
+  // Swipe-to-delete handlers
+  const handleSwipeStart = (e: React.TouchEvent) => {
+    swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    didSwipeRef.current = false
+  }
+
+  const handleSwipeEnd = (path: string, e: React.TouchEvent) => {
+    const start = swipeStartRef.current
+    swipeStartRef.current = null
+    if (!start) return
+    const dx = start.x - e.changedTouches[0].clientX
+    const dy = Math.abs(start.y - e.changedTouches[0].clientY)
+    if (dy > 30) return
+    if (dx > 50) {
+      didSwipeRef.current = true
+      setRevealedPath(path)
+    } else if (dx < -30) {
+      didSwipeRef.current = true
+      setRevealedPath(null)
+    }
+  }
+
+  const handleDelete = async () => {
+    if (!confirmEntry || deleting) return
+    setDeleting(true)
+    try {
+      await api(`/dropbox/file?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })
+      if (confirmEntry.path === currentPath) {
+        usePlayerStore.setState({ currentPath: null, currentName: null, isPlaying: false })
+      }
+      setConfirmEntry(null)
+      setRevealedPath(null)
+      await loadFolder(browsePath)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Löschen')
+      setConfirmEntry(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const handleEntryClick = (entry: DropboxEntry) => {
+    if (didSwipeRef.current) { didSwipeRef.current = false; return }
+    if (revealedPath) { setRevealedPath(null); return }
     if (entry.type === 'folder') {
       closeSearch()
       loadFolder(entry.path)
@@ -294,12 +348,11 @@ export function BrowsePage() {
         )}
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
-          return (
-            <li
-              key={entry.path}
-              className={`file-item ${isActive ? 'file-item--active' : ''}`}
-              onClick={() => handleEntryClick(entry)}
-            >
+          const swipeable = canDelete && entry.type === 'file'
+          const isRevealed = swipeable && revealedPath === entry.path
+
+          const itemContent = (
+            <>
               {entry.type === 'folder' ? (
                 <div className="file-icon-box file-icon-folder">
                   <Folder size={18} />
@@ -355,10 +408,60 @@ export function BrowsePage() {
                   />
                 </button>
               )}
+            </>
+          )
+
+          if (swipeable) {
+            return (
+              <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
+                <div
+                  className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}`}
+                  onClick={() => handleEntryClick(entry)}
+                  onTouchStart={handleSwipeStart}
+                  onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}
+                >
+                  {itemContent}
+                </div>
+                <button
+                  className="swipe-delete-btn"
+                  onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
+                >
+                  <Trash2 size={18} />
+                  <span>Löschen</span>
+                </button>
+              </li>
+            )
+          }
+
+          return (
+            <li
+              key={entry.path}
+              className={`file-item ${isActive ? 'file-item--active' : ''}`}
+              onClick={() => handleEntryClick(entry)}
+            >
+              {itemContent}
             </li>
           )
         })}
       </ul>
+
+      {confirmEntry && (
+        <div className="confirm-overlay" onClick={() => !deleting && setConfirmEntry(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">Datei löschen?</p>
+            <p className="confirm-filename">{confirmEntry.name}</p>
+            <p className="confirm-hint">Wird unwiderruflich aus der Dropbox gelöscht.</p>
+            <div className="confirm-actions">
+              <button className="btn btn-secondary" onClick={() => setConfirmEntry(null)} disabled={deleting}>
+                Abbrechen
+              </button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Löschen...' : 'Löschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {recordingOpen && (
         <RecordingModal

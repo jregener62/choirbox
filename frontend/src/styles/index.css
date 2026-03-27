@@ -237,6 +237,11 @@ body {
   color: var(--text-primary);
 }
 
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
 .btn-icon {
   padding: 8px;
   background: none;
@@ -451,6 +456,105 @@ body {
   align-items: center;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* -- Swipe-to-delete -- */
+
+.swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.swipe-wrapper .file-item {
+  border-bottom: none;
+}
+
+.swipe-content {
+  transform: translateX(0);
+  transition: transform 0.25s ease;
+  background: var(--bg-primary);
+  position: relative;
+  z-index: 1;
+}
+
+.swipe-revealed .swipe-content {
+  transform: translateX(-72px);
+}
+
+.swipe-delete-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.swipe-delete-btn:active {
+  background: #dc2626;
+}
+
+/* -- Confirm dialog -- */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirm-dialog {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.confirm-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.confirm-filename {
+  font-size: 14px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 4px;
+}
+
+.confirm-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-actions .btn {
+  flex: 1;
 }
 
 /* -- Search bar -- */
