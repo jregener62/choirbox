@@ -199,6 +199,10 @@ class DropboxService:
         })
         return result["link"]
 
+    async def delete_file(self, dropbox_path: str) -> dict:
+        """Delete a file or folder from Dropbox."""
+        return await self.api_call("files/delete_v2", {"path": dropbox_path})
+
     async def get_account_info(self) -> dict:
         """Get current account info (for connection test)."""
         token = await self._get_access_token()

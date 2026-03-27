@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Crown, UserIcon, Trash2 } from 'lucide-react'
+import { ArrowLeft, Trash2 } from 'lucide-react'
 import { api } from '@/api/client.ts'
+import { ALL_ROLES, ROLE_LABELS, type Role } from '@/utils/roles.ts'
 
 interface AdminUser {
   id: string
@@ -34,10 +35,10 @@ export function UsersPage() {
     loadUsers()
   }, [loadUsers])
 
-  const toggleRole = async (user: AdminUser) => {
-    const newRole = user.role === 'admin' ? 'guest' : 'admin'
-    const label = newRole === 'admin' ? 'Admin' : 'Mitglied'
-    if (!confirm(`${user.display_name} zu ${label} machen?`)) return
+  const changeRole = async (user: AdminUser, newRole: string) => {
+    if (newRole === user.role) return
+    const label = ROLE_LABELS[newRole as Role] ?? newRole
+    if (!confirm(`${user.display_name} zu "${label}" aendern?`)) return
     try {
       await api(`/admin/users/${user.id}`, { method: 'PUT', body: { role: newRole } })
       setMessage(`${user.display_name} ist jetzt ${label}`)
@@ -90,12 +91,26 @@ export function UsersPage() {
             <div className="file-info">
               <div className="file-name">{u.display_name}</div>
               <div className="file-meta">
-                {u.role === 'admin' ? 'Admin' : 'Mitglied'} · {u.voice_part} · Login: {formatDate(u.last_login_at)}
+                {u.voice_part} · Login: {formatDate(u.last_login_at)}
               </div>
             </div>
-            <button className="player-header-btn" title="Rolle aendern" onClick={() => toggleRole(u)}>
-              {u.role === 'admin' ? <Crown size={16} /> : <UserIcon size={16} />}
-            </button>
+            <select
+              value={u.role}
+              onChange={(e) => changeRole(u, e.target.value)}
+              style={{
+                padding: '4px 6px',
+                borderRadius: 6,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-secondary)',
+                color: 'var(--text-primary)',
+                fontSize: 12,
+                minWidth: 0,
+              }}
+            >
+              {ALL_ROLES.map((r) => (
+                <option key={r} value={r}>{ROLE_LABELS[r]}</option>
+              ))}
+            </select>
             <button className="player-header-btn" title="Loeschen" onClick={() => deleteUser(u)}
               style={{ color: 'var(--danger)' }}>
               <Trash2 size={16} />

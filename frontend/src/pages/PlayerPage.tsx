@@ -1,24 +1,36 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2 } from 'lucide-react'
+import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2, LayoutList, AudioLines } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
+import { useSectionsStore } from '@/hooks/useSections.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
+import { SectionStrip } from '@/components/ui/SectionStrip.tsx'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { useAuthStore } from '@/stores/authStore.ts'
+import { hasMinRole } from '@/utils/roles.ts'
+import { buildTimeline } from '@/utils/buildTimeline'
 import { formatTime } from '@/utils/formatters.ts'
+import type { TimelineEntry } from '@/utils/buildTimeline'
+
+const STRIP_WIDTH = 700
 
 export function PlayerPage() {
   const navigate = useNavigate()
+  const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const { loaded, load, isFavorite, toggle } = useFavoritesStore()
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel } = useLabelsStore()
+  const { sections, loadedPath: sectionsLoadedPath, load: loadSections } = useSectionsStore()
   const [showLabelPicker, setShowLabelPicker] = useState(false)
+  const [playerView, setPlayerView] = useState<'waveform' | 'sections'>('waveform')
   const {
     currentName, currentPath,
     isPlaying, currentTime, duration,
     loopStart, loopEnd, loopEnabled,
+    activeSection,
     markers,
   } = usePlayerStore()
   const { togglePlay, seek, skip } = useAudioPlayer()
@@ -43,7 +55,36 @@ export function PlayerPage() {
     if (!labelsLoaded) loadLabels()
   }, [loaded, load, labelsLoaded, loadLabels])
 
+  useEffect(() => {
+    if (currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
+  }, [currentPath, sectionsLoadedPath, loadSections])
+
   const assignedLabels = currentPath ? getLabelsForPath(currentPath) : []
+
+  const timeline = buildTimeline(sections, duration)
+  const hasSections = sections.length > 0
+
+  const handleTimelineClick = (entry: TimelineEntry) => {
+    const store = usePlayerStore.getState()
+    // If clicking the already-looping section, turn off
+    if (store.activeSection && !entry.isGap && store.activeSection.id === entry.id) {
+      store.setSectionLoop(null)
+    } else if (!entry.isGap) {
+      // Loop a defined section
+      const section = sections.find((s) => s.id === entry.id)
+      if (section) {
+        store.setSectionLoop(section)
+        seek(section.start_time)
+      }
+    } else {
+      // Loop a gap (use manual A-B)
+      store.clearLoop()
+      store.setLoopStart(entry.start_time)
+      store.setLoopEnd(entry.end_time)
+      store.toggleLoop()
+      seek(entry.start_time)
+    }
+  }
 
   return (
     <div className="player-page">
@@ -79,17 +120,52 @@ export function PlayerPage() {
         )}
       </div>
 
-      {/* Waveform */}
-      <Waveform
-        peaks={peaks}
-        currentTime={currentTime}
-        duration={duration}
-        loopStart={loopStart}
-        loopEnd={loopEnd}
-        loopEnabled={loopEnabled}
-        markers={markers}
-        onSeek={seek}
-      />
+      {/* View Toggle (only if sections exist) */}
+      {hasSections && (
+        <div className="player-view-toggle">
+          <button
+            className={`player-view-toggle-btn ${playerView === 'sections' ? 'active' : ''}`}
+            onClick={() => setPlayerView('sections')}
+          >
+            <LayoutList size={14} /> Sektionen
+          </button>
+          <button
+            className={`player-view-toggle-btn ${playerView === 'waveform' ? 'active' : ''}`}
+            onClick={() => setPlayerView('waveform')}
+          >
+            <AudioLines size={14} /> Waveform
+          </button>
+        </div>
+      )}
+
+      {/* Waveform View */}
+      {(!hasSections || playerView === 'waveform') && (
+        <Waveform
+          peaks={peaks}
+          currentTime={currentTime}
+          duration={duration}
+          loopStart={loopStart}
+          loopEnd={loopEnd}
+          loopEnabled={loopEnabled}
+          markers={markers}
+          timeline={timeline}
+          activeSectionId={activeSection?.id ?? null}
+          onSeek={seek}
+          stripWidth={hasSections ? STRIP_WIDTH : undefined}
+        />
+      )}
+
+      {/* Section Strip View */}
+      {hasSections && playerView === 'sections' && (
+        <SectionStrip
+          timeline={timeline}
+          duration={duration}
+          currentTime={currentTime}
+          activeSectionId={activeSection?.id ?? null}
+          onEntryClick={handleTimelineClick}
+          stripWidth={STRIP_WIDTH}
+        />
+      )}
 
       {/* Timestamps */}
       <div className="player-time">
@@ -169,7 +245,7 @@ export function PlayerPage() {
         </button>
       </div>
 
-      {/* Marker + Tempo + Favorit */}
+      {/* Marker + Labels + Favorit + Sektionen */}
       <div className="player-actions">
         <button className="player-action-btn" onClick={addMarker}>
           <Pin size={14} /> Marker
@@ -186,6 +262,11 @@ export function PlayerPage() {
         >
           <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
         </button>
+        {hasMinRole(userRole, 'pro-member') && (
+          <button className="player-action-btn" onClick={() => navigate('/sections')}>
+            <LayoutList size={14} /> Sektionen
+          </button>
+        )}
       </div>
 
       {/* Label Picker */}

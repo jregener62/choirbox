@@ -237,6 +237,11 @@ body {
   color: var(--text-primary);
 }
 
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
 .btn-icon {
   padding: 8px;
   background: none;
@@ -451,6 +456,105 @@ body {
   align-items: center;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* -- Swipe-to-delete -- */
+
+.swipe-wrapper {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+
+.swipe-wrapper .file-item {
+  border-bottom: none;
+}
+
+.swipe-content {
+  transform: translateX(0);
+  transition: transform 0.25s ease;
+  background: var(--bg-primary);
+  position: relative;
+  z-index: 1;
+}
+
+.swipe-revealed .swipe-content {
+  transform: translateX(-72px);
+}
+
+.swipe-delete-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  width: 72px;
+  background: var(--danger);
+  color: white;
+  border: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.swipe-delete-btn:active {
+  background: #dc2626;
+}
+
+/* -- Confirm dialog -- */
+
+.confirm-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.confirm-dialog {
+  background: var(--bg-primary);
+  border-radius: 16px;
+  padding: 24px;
+  width: 100%;
+  max-width: 320px;
+  text-align: center;
+}
+
+.confirm-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.confirm-filename {
+  font-size: 14px;
+  color: var(--text-secondary);
+  word-break: break-all;
+  margin-bottom: 4px;
+}
+
+.confirm-hint {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.confirm-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.confirm-actions .btn {
+  flex: 1;
 }
 
 /* -- Search bar -- */
@@ -856,6 +960,41 @@ body {
   color: var(--text-muted);
 }
 
+/* Section Lane */
+.section-lane {
+  position: relative;
+  width: 100%;
+  height: 26px;
+  margin-bottom: 6px;
+}
+
+.section-block {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  border: 1px solid;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background 0.15s;
+  padding: 0 2px;
+}
+
+.section-block--active {
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.4);
+}
+
+.section-block-label {
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .player-time {
   display: flex;
   justify-content: space-between;
@@ -901,6 +1040,169 @@ body {
 .waveform-loading {
   font-size: 13px;
   color: var(--text-muted);
+}
+
+/* Scrollable waveform */
+.waveform-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+.waveform-scroll::-webkit-scrollbar { display: none; }
+.waveform-scroll .waveform-canvas {
+  height: 80px;
+  cursor: pointer;
+  touch-action: none;
+  margin-bottom: 0;
+  display: block;
+}
+
+/* View toggle (segmented control) */
+.player-view-toggle {
+  display: flex;
+  background: var(--bg-secondary);
+  border-radius: 8px;
+  padding: 3px;
+  margin-bottom: 8px;
+  gap: 2px;
+}
+.player-view-toggle-btn {
+  flex: 1;
+  padding: 6px 0;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-family: inherit;
+}
+.player-view-toggle-btn.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* Section strip (horizontal scroll) */
+.section-strip-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+.section-strip-scroll::-webkit-scrollbar { display: none; }
+
+.section-strip-inner {
+  display: flex;
+  gap: 3px;
+  height: 80px;
+}
+
+.section-strip-block {
+  flex-shrink: 0;
+  height: 100%;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  padding: 4px 6px;
+  border: none;
+  font-family: inherit;
+}
+.section-strip-block--gap {
+  background: none !important;
+  border: 1.5px dashed rgba(148,163,184,0.2);
+}
+.section-strip-block--gap .section-strip-label {
+  color: rgba(148,163,184,0.4);
+  font-weight: 500;
+  font-size: 10px;
+}
+.section-strip-block--gap .section-strip-time {
+  color: rgba(148,163,184,0.3);
+}
+.section-strip-block--current {
+  outline: 1.5px solid rgba(255,255,255,0.3);
+  outline-offset: -1.5px;
+}
+.section-strip-block--looping {
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+}
+
+.section-strip-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #fff;
+  z-index: 1;
+  white-space: nowrap;
+}
+.section-strip-time {
+  font-size: 10px;
+  color: rgba(255,255,255,0.6);
+  font-variant-numeric: tabular-nums;
+  z-index: 1;
+  margin-top: 2px;
+}
+.section-strip-progress {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  background: rgba(255,255,255,0.12);
+  border-radius: 8px 0 0 8px;
+  pointer-events: none;
+}
+.section-strip-playing {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 12px;
+  z-index: 1;
+  margin-bottom: 2px;
+}
+.section-strip-playing span {
+  width: 3px;
+  background: #fff;
+  border-radius: 1px;
+  animation: section-play-bar 0.8s ease-in-out infinite alternate;
+}
+.section-strip-playing span:nth-child(1) { height: 40%; animation-delay: 0s; }
+.section-strip-playing span:nth-child(2) { height: 70%; animation-delay: 0.15s; }
+.section-strip-playing span:nth-child(3) { height: 50%; animation-delay: 0.3s; }
+@keyframes section-play-bar {
+  0% { transform: scaleY(0.4); }
+  100% { transform: scaleY(1); }
+}
+
+/* Scroll indicator bar */
+.scroll-indicator {
+  height: 3px;
+  margin: 4px 0 0;
+  background: var(--bg-tertiary);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+.scroll-indicator-thumb {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  background: var(--accent);
+  border-radius: 2px;
+  min-width: 20px;
+  transition: left 0.1s, width 0.1s;
 }
 
 /* KERN: A + Play + B */

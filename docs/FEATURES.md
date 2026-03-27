@@ -51,6 +51,28 @@ Chormitglieder registrieren sich selbst mit einem Registrierungscode, den der Ad
 | `frontend/src/pages/SettingsPage.tsx` | Profil-Sektion |
 | `backend/api/auth.py` | `PUT /auth/me`, `PUT /auth/me/password` |
 
+### Rollen-Hierarchie
+
+5-stufiges Rollensystem mit aufsteigenden Berechtigungen. Jede hoehere Rolle erbt alle Rechte der niedrigeren.
+
+| Rolle | Level | Beschreibung |
+|-------|-------|-------------|
+| `guest` | 0 | Registriert, eingeschraenkt |
+| `member` | 1 | Standard-Chormitglied (Browsen, Streamen, Upload, Favoriten) |
+| `pro-member` | 2 | Kann Labels und Sections verwalten |
+| `chorleiter` | 3 | Erweiterte Verwaltungsrechte |
+| `admin` | 4 | Voller Zugriff (Nutzer, Dropbox, Settings) |
+
+- Neue Registrierungen erhalten automatisch die Rolle `member`
+- Admin kann Rollen ueber die Nutzerverwaltung aendern (Dropdown mit allen Rollen)
+- Backend: `require_role("pro-member")` als Dependency fuer rollenbasierte Endpunkte
+- Frontend: `hasMinRole(userRole, "pro-member")` fuer UI-Sichtbarkeit
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/api/auth.py` | `ROLE_HIERARCHY`, `require_role()`, `require_admin` |
+| `frontend/src/utils/roles.ts` | `hasMinRole()`, `ROLE_LABELS`, `ALL_ROLES` |
+
 ### Logout
 
 - Token wird im Backend invalidiert
@@ -82,7 +104,7 @@ Der Admin verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle User teile
 |-------|----------|
 | `files.metadata.read` | Ordner durchsuchen, Dateien suchen |
 | `files.content.read` | Streaming-Links fuer Audio-Wiedergabe |
-| `files.content.write` | Aufnahmen hochladen |
+| `files.content.write` | Aufnahmen hochladen, Dateien loeschen |
 
 Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 
@@ -108,6 +130,23 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 | `frontend/src/stores/appStore.ts` | `browsePath` State |
 | `backend/api/dropbox.py` | `GET /dropbox/browse` |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
+
+### Datei loeschen (Swipe-to-Delete)
+
+Chorleiter und Admins koennen Audio-Dateien direkt aus der Dropbox loeschen.
+
+- Swipe-Geste: Auf einer Datei nach links wischen enthuellt einen roten "Loeschen"-Button
+- Bestaetigungsdialog vor dem Loeschen ("Wird unwiderruflich aus der Dropbox geloescht")
+- Nach dem Loeschen wird die Dateiliste automatisch aktualisiert
+- Falls die geloeschte Datei gerade abgespielt wird, wird der Player zurueckgesetzt
+- Nur sichtbar fuer Chorleiter (Level 3) und Admin (Level 4)
+- Tippen auf ein anderes Element schliesst das geoeffnete Swipe-Menue
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Bestaetigungsdialog, Loeschlogik |
+| `backend/api/dropbox.py` | `DELETE /dropbox/file` |
+| `backend/services/dropbox_service.py` | `delete_file()` |
 
 ### Suche
 
@@ -189,6 +228,31 @@ Wichtige Stellen im Track markieren fuer schnelle Navigation.
 | `frontend/src/pages/PlayerPage.tsx` | Marker-UI |
 | `frontend/src/stores/playerStore.ts` | `markers[]`, `addMarker()`, `removeMarker()`, `clearMarkers()` |
 
+### Sektionen & Section-Loop
+
+Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen die Sektionen, ab Pro-Mitglied verwaltbar.
+
+- Zwei Ansichten umschaltbar per Segmented Control (nur sichtbar wenn Sektionen vorhanden):
+  - **Waveform**: Horizontal scrollbar (~120 Bars), Sektionen als farbige Overlays + inline Labels, Gaps als gestrichelte Bereiche. Playhead + Auto-Scroll.
+  - **Sektionen**: Horizontale farbige Bloecke, proportional zur Dauer, mit Fortschrittsbalken + Playing-Animation in aktiver Sektion.
+- Luecken (Gaps) zwischen definierten Sektionen werden automatisch client-seitig berechnet (nicht in DB) und als gestrichelte Bloecke angezeigt. Gaps sind ebenfalls loopbar.
+- Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)
+- Nochmal Tap deaktiviert den Loop
+- Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
+- Beide Ansichten scrollen automatisch mit der Playback-Position (Auto-Scroll, pausiert bei manuellem Scroll fuer 3s)
+- Section Editor (Route `/sections`, ab Pro-Mitglied): Waveform mit Play/Pause, Start/Ende per Playhead setzen, Name (Freitext + Presets), Farbwahl, Sektionsliste mit Bearbeiten/Loeschen
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/SectionEditorPage.tsx` | Section-Editor-UI |
+| `frontend/src/components/ui/SectionStrip.tsx` | Horizontale Section-Bloecke mit Gaps |
+| `frontend/src/components/ui/Waveform.tsx` | Canvas mit Section-Overlays, scrollbar |
+| `frontend/src/utils/buildTimeline.ts` | Gap-Berechnung (lueckenlose Timeline aus Sections + Dauer) |
+| `frontend/src/hooks/useSections.ts` | Zustand Store + API-Logik |
+| `frontend/src/stores/playerStore.ts` | `activeSection`, `setSectionLoop()` |
+| `backend/api/sections.py` | CRUD Endpoints (Pro-Mitglied+ fuer Schreibzugriff) |
+| `backend/models/section.py` | Section-Modell (dropbox_path, label, color, start/end_time) |
+
 ### Mini-Player
 
 Kompakte Wiedergabe-Steuerung auf allen Seiten sichtbar.
@@ -231,9 +295,9 @@ Persoenliche Sammlung von Lieblings-Dateien pro User.
 
 ### Label-System
 
-Admin-definierte Labels zum Kategorisieren von Dateien.
+Labels zum Kategorisieren von Dateien, verwaltbar ab Rolle `pro-member`.
 
-- Admin erstellt Labels mit Name, Farbe (Hex) und optionaler Kategorie
+- Pro-Mitglieder+ erstellen Labels mit Name, Farbe (Hex) und optionaler Kategorie
 - Default-Labels beim Seeding: Sopran, Alt, Tenor, Bass (Kategorie "Stimme"), Schwierig, Geubt (Kategorie "Status")
 - User weisen Labels per Datei zu (Mehrfachzuweisung moeglich)
 - Labels als farbige Chips auf Dateien sichtbar
@@ -297,7 +361,7 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 ### Nutzerverwaltung
 
 - Alle User auflisten (Benutzername, Anzeigename, Rolle, Stimme, letzter Login)
-- Rolle umschalten (Admin/Mitglied)
+- Rolle aendern per Dropdown (Gast, Mitglied, Pro-Mitglied, Chorleiter, Admin)
 - User loeschen (eigenen Account nicht loeschbar)
 - Neue User manuell anlegen
 
@@ -347,7 +411,8 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Theme-Toggle
 - Dropbox-Status (nur Admin)
 - Registrierungscode (nur Admin)
-- Navigation zu Admin-Seiten (nur Admin)
+- Labels verwalten (ab Pro-Mitglied)
+- Nutzer verwalten (nur Admin)
 - Logout
 
 ---
@@ -371,8 +436,9 @@ Drei Tabs auf allen Seiten (ausser Player):
 | `/favorites` | Favoriten | Authentifiziert |
 | `/player` | Audio-Player | Authentifiziert |
 | `/settings` | Einstellungen | Authentifiziert |
+| `/sections` | Section-Editor | Pro-Mitglied+ |
 | `/admin/users` | Nutzerverwaltung | Admin |
-| `/admin/labels` | Label-Verwaltung | Admin |
+| `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |
 
 HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
@@ -403,6 +469,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | GET | `/search` | Dateien suchen | User |
 | GET | `/stream` | Streaming-Link holen | User |
 | POST | `/upload` | Aufnahme hochladen | User |
+| DELETE | `/file` | Datei loeschen | Chorleiter+ |
 
 ### Favoriten (`/api/favorites`)
 
@@ -416,11 +483,20 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | GET | `/` | Labels auflisten | User |
-| POST | `/` | Label erstellen | Admin |
-| PUT | `/{id}` | Label bearbeiten | Admin |
-| DELETE | `/{id}` | Label loeschen | Admin |
+| POST | `/` | Label erstellen | Pro-Mitglied+ |
+| PUT | `/{id}` | Label bearbeiten | Pro-Mitglied+ |
+| DELETE | `/{id}` | Label loeschen | Pro-Mitglied+ |
 | GET | `/my` | Eigene Zuweisungen | User |
 | POST | `/my/toggle` | Zuweisung umschalten | User |
+
+### Sections (`/api/sections`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/?path=<dropbox_path>` | Sektionen eines Tracks auflisten | User |
+| POST | `/` | Sektion erstellen | Pro-Mitglied+ |
+| PUT | `/{id}` | Sektion bearbeiten | Pro-Mitglied+ |
+| DELETE | `/{id}` | Sektion loeschen | Pro-Mitglied+ |
 
 ### Admin (`/api/admin`)
 
@@ -444,7 +520,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `id` | UUID | Primaerschluessel |
 | `username` | String (max 100) | Eindeutig |
 | `display_name` | String (max 100) | Anzeigename |
-| `role` | String | `"admin"` oder `"guest"` |
+| `role` | String | `guest`, `member`, `pro-member`, `chorleiter`, `admin` |
 | `voice_part` | String | Sopran, Alt, Tenor oder Bass |
 | `password_hash` | String | PBKDF2-Hash |
 | `created_at` | DateTime | Erstellungszeitpunkt |
@@ -479,6 +555,20 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `user_id` | UUID (FK) | Referenz auf User |
 | `dropbox_path` | String | Dropbox-Dateipfad |
 | `label_id` | Integer (FK) | Referenz auf Label |
+
+### Section
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer | Primaerschluessel |
+| `dropbox_path` | String | Dropbox-Dateipfad |
+| `label` | String (max 50) | Sektionsname (z.B. "Refrain") |
+| `color` | String (max 7) | Hex-Farbe |
+| `start_time` | Float | Startzeit in Sekunden |
+| `end_time` | Float | Endzeit in Sekunden |
+| `sort_order` | Integer | Sortierung |
+| `created_by` | UUID (FK) | Ersteller |
+| `created_at` | DateTime | Erstellungszeitpunkt |
 
 ### SessionToken
 

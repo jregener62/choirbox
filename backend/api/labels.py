@@ -7,7 +7,7 @@ from backend.database import get_session
 from backend.models.user import User
 from backend.models.label import Label
 from backend.models.user_label import UserLabel
-from backend.api.auth import require_user, require_admin
+from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/labels", tags=["labels"])
@@ -28,7 +28,7 @@ def list_labels(user: User = Depends(require_user), session: Session = Depends(g
 
 
 @router.post("")
-def create_label(data: dict, user: User = Depends(require_admin), session: Session = Depends(get_session)):
+def create_label(data: dict, user: User = Depends(require_role("pro-member")), session: Session = Depends(get_session)):
     name = data.get("name", "").strip()
     if not name:
         raise HTTPException(400, "name is required")
@@ -49,7 +49,7 @@ def create_label(data: dict, user: User = Depends(require_admin), session: Sessi
 def update_label(
     label_id: int,
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
     label = session.get(Label, label_id)
@@ -68,7 +68,7 @@ def update_label(
 @router.delete("/{label_id}")
 def delete_label(
     label_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
     label = session.get(Label, label_id)
