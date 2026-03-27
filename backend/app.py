@@ -9,6 +9,7 @@ from backend.api.dropbox import router as dropbox_router
 from backend.api.favorites import router as favorites_router
 from backend.api.labels import router as labels_router
 from backend.api.admin import router as admin_router
+from backend.api.sections import router as sections_router
 
 
 class CacheControlMiddleware:
@@ -50,6 +51,7 @@ app.include_router(dropbox_router, prefix="/api")
 app.include_router(favorites_router, prefix="/api")
 app.include_router(labels_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
+app.include_router(sections_router, prefix="/api")
 
 # Static files
 BASE = Path(__file__).resolve().parent.parent
@@ -66,9 +68,9 @@ if REACT_ASSETS.exists():
 
 
 # Static mockups/files
-STATIC_DIR = BASE / "static" / "mockups"
-if STATIC_DIR.exists():
-    app.mount("/mockups", StaticFiles(directory=str(STATIC_DIR)), name="mockups")
+MOCKUPS_DIR = BASE / "docs" / "mockups"
+if MOCKUPS_DIR.exists():
+    app.mount("/mockups", StaticFiles(directory=str(MOCKUPS_DIR), html=True), name="mockups")
 
 
 @app.get("/")

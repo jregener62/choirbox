@@ -7,6 +7,7 @@ import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { FavoritesPage } from '@/pages/FavoritesPage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
 import { PlayerPage } from '@/pages/PlayerPage.tsx'
+import { SectionEditorPage } from '@/pages/SectionEditorPage.tsx'
 import { UsersPage } from '@/pages/admin/UsersPage.tsx'
 import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 
@@ -32,6 +33,7 @@ export function App() {
                   <Route path="/browse" element={<BrowsePage />} />
                   <Route path="/favorites" element={<FavoritesPage />} />
                   <Route path="/player" element={<PlayerPage />} />
+                  <Route path="/sections" element={<SectionEditorPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/admin/users" element={<UsersPage />} />
                   <Route path="/admin/labels" element={<LabelsPage />} />

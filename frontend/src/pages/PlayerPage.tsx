@@ -1,24 +1,31 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2 } from 'lucide-react'
+import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2, LayoutList } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
+import { useSectionsStore } from '@/hooks/useSections.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
+import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { useAuthStore } from '@/stores/authStore.ts'
+import { hasMinRole } from '@/utils/roles.ts'
 import { formatTime } from '@/utils/formatters.ts'
 
 export function PlayerPage() {
   const navigate = useNavigate()
+  const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const { loaded, load, isFavorite, toggle } = useFavoritesStore()
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel } = useLabelsStore()
+  const { sections, loadedPath: sectionsLoadedPath, load: loadSections } = useSectionsStore()
   const [showLabelPicker, setShowLabelPicker] = useState(false)
   const {
     currentName, currentPath,
     isPlaying, currentTime, duration,
     loopStart, loopEnd, loopEnabled,
+    activeSection,
     markers,
   } = usePlayerStore()
   const { togglePlay, seek, skip } = useAudioPlayer()
@@ -42,6 +49,10 @@ export function PlayerPage() {
     if (!loaded) load()
     if (!labelsLoaded) loadLabels()
   }, [loaded, load, labelsLoaded, loadLabels])
+
+  useEffect(() => {
+    if (currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
+  }, [currentPath, sectionsLoadedPath, loadSections])
 
   const assignedLabels = currentPath ? getLabelsForPath(currentPath) : []
 
@@ -88,7 +99,25 @@ export function PlayerPage() {
         loopEnd={loopEnd}
         loopEnabled={loopEnabled}
         markers={markers}
+        sections={sections}
+        activeSectionId={activeSection?.id ?? null}
         onSeek={seek}
+      />
+
+      {/* Section Lane */}
+      <SectionLane
+        sections={sections}
+        duration={duration}
+        activeSectionId={activeSection?.id ?? null}
+        onSectionClick={(s) => {
+          const store = usePlayerStore.getState()
+          if (store.activeSection?.id === s.id) {
+            store.setSectionLoop(null)
+          } else {
+            store.setSectionLoop(s)
+            seek(s.start_time)
+          }
+        }}
       />
 
       {/* Timestamps */}
@@ -186,6 +215,11 @@ export function PlayerPage() {
         >
           <Heart size={14} fill={isFav ? 'currentColor' : 'none'} /> Favorit
         </button>
+        {hasMinRole(userRole, 'admin') && (
+          <button className="player-action-btn" onClick={() => navigate('/sections')}>
+            <LayoutList size={14} /> Sektionen
+          </button>
+        )}
       </div>
 
       {/* Label Picker */}

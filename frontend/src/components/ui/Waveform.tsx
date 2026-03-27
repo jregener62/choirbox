@@ -1,5 +1,6 @@
 import { useRef, useEffect, useCallback } from 'react'
 import type { Marker } from '@/stores/playerStore.ts'
+import type { Section } from '@/types/index.ts'
 
 interface WaveformProps {
   peaks: number[]
@@ -9,6 +10,8 @@ interface WaveformProps {
   loopEnd: number | null
   loopEnabled: boolean
   markers: Marker[]
+  sections?: Section[]
+  activeSectionId?: number | null
   onSeek: (time: number) => void
 }
 
@@ -27,6 +30,8 @@ export function Waveform({
   loopEnd,
   loopEnabled,
   markers,
+  sections = [],
+  activeSectionId = null,
   onSeek,
 }: WaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -48,6 +53,33 @@ export function Waveform({
     ctx.scale(dpr, dpr)
 
     ctx.clearRect(0, 0, w, h)
+
+    // Draw section overlays (behind bars)
+    if (duration > 0) {
+      for (const s of sections) {
+        const x1 = (s.start_time / duration) * w
+        const x2 = (s.end_time / duration) * w
+        const isActive = s.id === activeSectionId
+
+        // Background tint
+        ctx.fillStyle = hexToRgba(s.color, isActive ? 0.18 : 0.08)
+        ctx.fillRect(x1, 0, x2 - x1, h)
+
+        // Section boundary lines
+        ctx.strokeStyle = 'rgba(255,255,255,0.12)'
+        ctx.lineWidth = 1
+        ctx.beginPath()
+        ctx.moveTo(x1, 0)
+        ctx.lineTo(x1, h)
+        ctx.stroke()
+
+        // Label at top
+        ctx.fillStyle = isActive ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.5)'
+        ctx.font = 'bold 9px system-ui'
+        ctx.textAlign = 'left'
+        ctx.fillText(s.label, x1 + 3, 10)
+      }
+    }
 
     const barCount = peaks.length
     const barWidth = w / barCount
@@ -109,7 +141,7 @@ export function Waveform({
       ctx.textAlign = 'center'
       ctx.fillText('B', bx, 10)
     }
-  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers])
+  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers, sections, activeSectionId])
 
   // Redraw on every frame while data exists
   useEffect(() => {
@@ -175,4 +207,11 @@ function roundedRect(
   ctx.quadraticCurveTo(x, y, x + r, y)
   ctx.closePath()
   ctx.fill()
+}
+
+function hexToRgba(hex: string, alpha: number): string {
+  const r = parseInt(hex.slice(1, 3), 16)
+  const g = parseInt(hex.slice(3, 5), 16)
+  const b = parseInt(hex.slice(5, 7), 16)
+  return `rgba(${r},${g},${b},${alpha})`
 }

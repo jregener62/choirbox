@@ -211,6 +211,27 @@ Wichtige Stellen im Track markieren fuer schnelle Navigation.
 | `frontend/src/pages/PlayerPage.tsx` | Marker-UI |
 | `frontend/src/stores/playerStore.ts` | `markers[]`, `addMarker()`, `removeMarker()`, `clearMarkers()` |
 
+### Sektionen & Section-Loop
+
+Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen die Sektionen, nur Admin kann sie anlegen/bearbeiten/loeschen.
+
+- Sektionen als farbige Overlays auf der Waveform (halbtransparenter Hintergrund + Label)
+- Section-Lane unter der Waveform: proportionale farbige Bloecke pro Sektion
+- Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)
+- Nochmal Tap deaktiviert den Loop
+- Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
+- Section Editor (Route `/sections`, nur Admin): Waveform mit Play/Pause, Start/Ende per Playhead setzen, Name (Freitext + Presets), Farbwahl, Sektionsliste mit Bearbeiten/Loeschen
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/SectionEditorPage.tsx` | Section-Editor-UI |
+| `frontend/src/components/ui/SectionLane.tsx` | Klickbare Section-Bloecke unter Waveform |
+| `frontend/src/components/ui/Waveform.tsx` | Canvas-Overlays fuer Sektionen |
+| `frontend/src/hooks/useSections.ts` | Zustand Store + API-Logik |
+| `frontend/src/stores/playerStore.ts` | `activeSection`, `setSectionLoop()` |
+| `backend/api/sections.py` | CRUD Endpoints (Admin-only fuer Schreibzugriff) |
+| `backend/models/section.py` | Section-Modell (dropbox_path, label, color, start/end_time) |
+
 ### Mini-Player
 
 Kompakte Wiedergabe-Steuerung auf allen Seiten sichtbar.
@@ -394,6 +415,7 @@ Drei Tabs auf allen Seiten (ausser Player):
 | `/favorites` | Favoriten | Authentifiziert |
 | `/player` | Audio-Player | Authentifiziert |
 | `/settings` | Einstellungen | Authentifiziert |
+| `/sections` | Section-Editor | Admin |
 | `/admin/users` | Nutzerverwaltung | Admin |
 | `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |
 
@@ -444,6 +466,15 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | DELETE | `/{id}` | Label loeschen | Pro-Mitglied+ |
 | GET | `/my` | Eigene Zuweisungen | User |
 | POST | `/my/toggle` | Zuweisung umschalten | User |
+
+### Sections (`/api/sections`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/?path=<dropbox_path>` | Sektionen eines Tracks auflisten | User |
+| POST | `/` | Sektion erstellen | Admin |
+| PUT | `/{id}` | Sektion bearbeiten | Admin |
+| DELETE | `/{id}` | Sektion loeschen | Admin |
 
 ### Admin (`/api/admin`)
 
@@ -502,6 +533,20 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `user_id` | UUID (FK) | Referenz auf User |
 | `dropbox_path` | String | Dropbox-Dateipfad |
 | `label_id` | Integer (FK) | Referenz auf Label |
+
+### Section
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer | Primaerschluessel |
+| `dropbox_path` | String | Dropbox-Dateipfad |
+| `label` | String (max 50) | Sektionsname (z.B. "Refrain") |
+| `color` | String (max 7) | Hex-Farbe |
+| `start_time` | Float | Startzeit in Sekunden |
+| `end_time` | Float | Endzeit in Sekunden |
+| `sort_order` | Integer | Sortierung |
+| `created_by` | UUID (FK) | Ersteller |
+| `created_at` | DateTime | Erstellungszeitpunkt |
 
 ### SessionToken
 

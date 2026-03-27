@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import type { Section } from '@/types/index.ts'
 
 export interface Marker {
   id: string
@@ -19,6 +20,9 @@ interface PlayerState {
   loopEnd: number | null
   loopEnabled: boolean
 
+  // Section loop
+  activeSection: Section | null
+
   // Session markers
   markers: Marker[]
 
@@ -31,6 +35,7 @@ interface PlayerState {
   setLoopEnd: (time: number | null) => void
   toggleLoop: () => void
   clearLoop: () => void
+  setSectionLoop: (section: Section | null) => void
   addMarker: (time: number) => void
   removeMarker: (id: string) => void
   clearMarkers: () => void
@@ -47,6 +52,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loopStart: null,
   loopEnd: null,
   loopEnabled: false,
+  activeSection: null,
   markers: [],
 
   setTrack: (path, name) => set({
@@ -58,6 +64,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     loopStart: null,
     loopEnd: null,
     loopEnabled: false,
+    activeSection: null,
     markers: [],
   }),
 
@@ -65,15 +72,33 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   setDuration: (duration) => set({ duration }),
   setCurrentTime: (time) => set({ currentTime: time }),
 
-  setLoopStart: (time) => set({ loopStart: time }),
-  setLoopEnd: (time) => set({ loopEnd: time }),
+  setLoopStart: (time) => set({ loopStart: time, activeSection: null }),
+  setLoopEnd: (time) => set({ loopEnd: time, activeSection: null }),
   toggleLoop: () => {
     const { loopStart, loopEnd, loopEnabled } = get()
     if (loopStart !== null && loopEnd !== null) {
       set({ loopEnabled: !loopEnabled })
     }
   },
-  clearLoop: () => set({ loopStart: null, loopEnd: null, loopEnabled: false }),
+  clearLoop: () => set({ loopStart: null, loopEnd: null, loopEnabled: false, activeSection: null }),
+
+  setSectionLoop: (section) => {
+    if (section) {
+      set({
+        activeSection: section,
+        loopStart: section.start_time,
+        loopEnd: section.end_time,
+        loopEnabled: true,
+      })
+    } else {
+      set({
+        activeSection: null,
+        loopStart: null,
+        loopEnd: null,
+        loopEnabled: false,
+      })
+    }
+  },
 
   addMarker: (time) => {
     markerCounter++
