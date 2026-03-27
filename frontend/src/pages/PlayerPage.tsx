@@ -12,6 +12,7 @@ import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
+import { PlayerLyrics } from '@/components/ui/PlayerLyrics.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
@@ -228,6 +229,14 @@ export function PlayerPage() {
           })}
         </div>
       )}
+
+      {/* Lyrics & Notes */}
+      <div className="player-lyrics-divider" />
+      <PlayerLyrics
+        dropboxPath={currentPath}
+        currentTime={currentTime}
+        duration={duration}
+      />
     </div>
   )
 }

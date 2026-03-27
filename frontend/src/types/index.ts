@@ -52,9 +52,17 @@ export interface Section {
   color: string
   start_time: number
   end_time: number
+  lyrics: string | null
   sort_order: number
   created_by: string
   created_at: string
+}
+
+export interface Note {
+  id: number
+  dropbox_path: string
+  section_id: number | null
+  text: string
 }
 
 export interface ActionResponse<T = unknown> {

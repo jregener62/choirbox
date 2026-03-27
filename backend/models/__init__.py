@@ -7,3 +7,4 @@ from backend.models.favorite import Favorite  # noqa: F401
 from backend.models.user_label import UserLabel  # noqa: F401
 from backend.models.session_token import SessionToken  # noqa: F401
 from backend.models.section import Section  # noqa: F401
+from backend.models.note import Note  # noqa: F401

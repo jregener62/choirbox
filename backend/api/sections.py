@@ -1,11 +1,13 @@
-"""Sections API — named time ranges for tracks (admin-only for write ops)."""
+"""Sections API — named time ranges for tracks with optional lyrics."""
 
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.section import Section
+from backend.models.note import Note
 from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
 
@@ -31,6 +33,7 @@ def list_sections(
             "color": s.color,
             "start_time": s.start_time,
             "end_time": s.end_time,
+            "lyrics": s.lyrics,
             "sort_order": s.sort_order,
             "created_by": s.created_by,
             "created_at": s.created_at.isoformat(),
@@ -97,11 +100,41 @@ def update_section(
         section.end_time = float(data["end_time"])
     if "sort_order" in data:
         section.sort_order = int(data["sort_order"])
+    if "lyrics" in data:
+        section.lyrics = (data["lyrics"] or "").strip() or None
 
     if section.end_time <= section.start_time:
         raise HTTPException(400, "end_time must be greater than start_time")
 
+    section.updated_at = datetime.utcnow()
     session.add(section)
+    session.commit()
+    return ActionResponse.success()
+
+
+@router.put("/lyrics")
+def save_lyrics_bulk(
+    data: dict,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    """Bulk save lyrics for multiple sections at once."""
+    entries = data.get("sections", [])
+    if not isinstance(entries, list):
+        raise HTTPException(400, "sections must be a list")
+
+    now = datetime.utcnow()
+    for entry in entries:
+        section_id = entry.get("id")
+        if not section_id:
+            continue
+        section = session.get(Section, section_id)
+        if not section:
+            continue
+        section.lyrics = (entry.get("lyrics") or "").strip() or None
+        section.updated_at = now
+        session.add(section)
+
     session.commit()
     return ActionResponse.success()
 
@@ -115,6 +148,12 @@ def delete_section(
     section = session.get(Section, section_id)
     if not section:
         raise HTTPException(404, "Section not found")
+    # Delete associated notes
+    orphan_notes = session.exec(
+        select(Note).where(Note.section_id == section_id)
+    ).all()
+    for note in orphan_notes:
+        session.delete(note)
     session.delete(section)
     session.commit()
     return ActionResponse.success()

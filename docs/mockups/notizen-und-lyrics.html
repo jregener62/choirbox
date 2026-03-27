@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Mockup: Notizen & Lyrics</title>
+
+<script src="/mockups/lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.25);
+    --border: #334155;
+    --green: #22c55e; --green-dim: rgba(34,197,94,0.15);
+    --cyan: #06b6d4; --cyan-dim: rgba(6,182,212,0.15);
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text);
+         max-width: 390px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column;
+         -webkit-font-smoothing: antialiased; }
+
+  .topbar { display: flex; align-items: center; padding: 12px 16px; gap: 12px; }
+  .topbar-back { background: none; border: none; color: var(--text2); cursor: pointer; padding: 8px; }
+  .topbar-title { flex: 1; text-align: center; font-size: 13px; color: var(--text2); font-weight: 500; }
+
+  .player { flex: 1; display: flex; flex-direction: column; padding: 0 20px; overflow-y: auto;
+            -webkit-overflow-scrolling: touch; }
+
+  /* -- Track Info -- */
+  .track-info { margin-bottom: 16px; }
+  .track-name { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .track-path { font-size: 13px; color: var(--text3); }
+  .track-labels { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .label-chip { padding: 2px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+
+  /* -- Waveform -- */
+  .waveform-wrap { margin-bottom: 4px; position: relative; }
+  .waveform { display: flex; align-items: center; height: 80px; gap: 1.5px; }
+  .waveform-bar { flex: 1; border-radius: 2px; min-width: 2px; }
+  .waveform-bar.played { background: var(--accent); }
+  .waveform-bar.unplayed { background: var(--bg3); }
+  .waveform-bar.loop-played { background: var(--amber); }
+  .waveform-bar.loop-unplayed { background: var(--amber-dim); }
+
+  /* Section-Markierungen auf der Waveform */
+  .waveform-sections { position: absolute; top: 0; left: 0; right: 0; height: 100%; pointer-events: none; }
+  .waveform-section-line { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--cyan); opacity: 0.5; }
+  .waveform-section-label { position: absolute; top: 2px; font-size: 8px; font-weight: 600; color: var(--cyan);
+                            background: rgba(6,182,212,0.2); padding: 1px 4px; border-radius: 3px;
+                            transform: translateX(2px); white-space: nowrap; }
+
+  .loop-labels { position: relative; height: 14px; margin-top: -2px; }
+  .loop-label { position: absolute; font-size: 10px; font-weight: 700; color: var(--amber); }
+  .timestamps { display: flex; justify-content: space-between; font-size: 12px; color: var(--text3);
+                 font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+
+  /* -- Markers -- */
+  .markers { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 20px; }
+  .marker-chip { padding: 4px 10px; border-radius: 14px; background: var(--bg2); border: 1px solid var(--border);
+                 font-size: 11px; color: var(--text2); cursor: pointer; display: flex; align-items: center; gap: 4px; }
+  .marker-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--amber); }
+
+  /* -- Divider -- */
+  .divider { height: 1px; background: var(--border); margin: 0 -20px 20px; }
+
+  /* -- KERN: A + Play + B -- */
+  .core-row { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 20px; }
+  .ab-core-btn { width: 56px; height: 56px; border-radius: 12px; border: 2px solid var(--border);
+                 background: none; color: var(--text); font-size: 18px; font-weight: 700; cursor: pointer;
+                 display: flex; align-items: center; justify-content: center; font-family: inherit; }
+  .ab-core-btn.active { border-color: var(--amber); background: var(--amber-dim); color: var(--amber); }
+  .play-btn { width: 72px; height: 72px; border-radius: 50%; background: var(--accent); border: none;
+              color: white; cursor: pointer; display: flex; align-items: center; justify-content: center;
+              box-shadow: 0 4px 20px rgba(129,140,248,0.3); }
+
+  /* -- Controls -- */
+  .control-row { display: flex; align-items: center; justify-content: center; gap: 24px; margin-bottom: 20px; }
+  .ctrl-btn { background: none; border: none; color: var(--text2); cursor: pointer; padding: 10px;
+              display: flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 500; font-family: inherit; }
+  .ctrl-btn.amber { color: var(--amber); }
+
+  /* -- Actions -- */
+  .action-row { display: flex; justify-content: center; gap: 12px; margin-bottom: 20px; }
+  .action-btn { padding: 8px 18px; border-radius: 8px; border: 1px solid var(--border); background: none;
+                color: var(--text2); font-size: 13px; cursor: pointer; display: flex; align-items: center;
+                gap: 6px; font-family: inherit; }
+  .action-btn.fav-active { color: #f87171; border-color: #f87171; }
+
+  /* ============================================= */
+  /* ===== Sections + Notizen + Lyrics =========== */
+  /* ============================================= */
+
+  /* -- Content Area -- */
+  .content-panels { padding-top: 16px; padding-bottom: 24px; }
+
+  /* -- Notizen -- */
+  .panel-section { margin-bottom: 20px; }
+  .panel-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .panel-icon { color: var(--green); display: flex; align-items: center; }
+  .panel-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .panel-badge { font-size: 10px; color: var(--text3); margin-left: auto; }
+
+  .notes-area { width: 100%; min-height: 80px; padding: 12px; border-radius: 10px;
+                background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+                font-size: 14px; line-height: 1.6; font-family: inherit; resize: vertical; }
+  .notes-area::placeholder { color: var(--text3); }
+  .notes-area:focus { outline: none; border-color: var(--green); }
+
+  .notes-display { padding: 12px; border-radius: 10px; background: var(--bg2);
+                   border: 1px solid var(--border); font-size: 14px; line-height: 1.6;
+                   color: var(--text2); white-space: pre-wrap; }
+
+  /* -- Aktuelle Section Lyrics (gross, prominent) -- */
+  .current-section-card { border-radius: 12px; background: var(--cyan-dim); border: 1px solid rgba(6,182,212,0.3);
+                          padding: 16px; transition: opacity 0.4s ease; }
+  .current-section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .current-section-name { font-size: 13px; font-weight: 600; color: var(--cyan); }
+  .current-section-time { font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums; }
+  .current-section-lyrics { font-size: 17px; line-height: 2; color: var(--text); white-space: pre-wrap; }
+  .current-section-note { margin-top: 12px; padding: 8px 10px; border-radius: 6px; background: var(--green-dim);
+                          border-left: 3px solid var(--green); font-size: 12px; line-height: 1.5; color: var(--text2); }
+
+  /* -- Naechste Section (Vorschau, kleiner) -- */
+  .next-section-card { border-radius: 10px; background: var(--bg2); border: 1px solid var(--border);
+                       padding: 12px 14px; opacity: 0.5; margin-top: 12px; }
+  .next-section-label { font-size: 10px; font-weight: 600; color: var(--text3); text-transform: uppercase;
+                        letter-spacing: 0.5px; margin-bottom: 6px; }
+  .next-section-lyrics { font-size: 13px; line-height: 1.7; color: var(--text3); white-space: pre-wrap; }
+
+  /* -- Lyrics bearbeiten -- */
+  .lyrics-area { width: 100%; min-height: 100px; padding: 12px; border-radius: 10px;
+                 background: var(--bg2); border: 1px solid var(--border); color: var(--text);
+                 font-size: 14px; line-height: 1.8; font-family: inherit; resize: vertical; }
+  .lyrics-area::placeholder { color: var(--text3); }
+  .lyrics-area:focus { outline: none; border-color: var(--cyan); }
+
+  /* -- Section Edit Card -- */
+  .section-edit-card { border-radius: 10px; background: var(--bg2); border: 1px solid var(--border);
+                       padding: 14px; margin-bottom: 12px; }
+  .section-edit-header { font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 8px;
+                         display: flex; align-items: center; gap: 6px; }
+  .section-edit-header .section-time { font-size: 10px; color: var(--text3); font-weight: 400; }
+
+  /* -- Empty State -- */
+  .empty-hint { display: flex; align-items: center; justify-content: center; gap: 8px;
+                padding: 20px; border-radius: 10px; background: var(--bg2); border: 1px dashed var(--border);
+                color: var(--text3); font-size: 13px; cursor: pointer; }
+  .empty-hint:active { background: var(--bg3); }
+
+  /* -- Edit / Save Toolbar -- */
+  .edit-toolbar { display: flex; gap: 8px; margin-top: 10px; justify-content: flex-end; }
+  .edit-toolbar button { padding: 6px 14px; border-radius: 6px; font-size: 12px; font-weight: 500;
+                         cursor: pointer; font-family: inherit; }
+  .btn-cancel { background: none; border: 1px solid var(--border); color: var(--text2); }
+  .btn-save { background: var(--accent); border: none; color: white; }
+
+  /* -- Eq bars -- */
+  .eq-bars { display: inline-flex; align-items: flex-end; gap: 2px; height: 12px; margin-right: 4px; }
+  .eq-bar { width: 3px; border-radius: 1px; background: var(--cyan); animation: eq 0.8s ease-in-out infinite; }
+  .eq-bar:nth-child(1) { height: 40%; animation-delay: 0s; }
+  .eq-bar:nth-child(2) { height: 80%; animation-delay: 0.2s; }
+  .eq-bar:nth-child(3) { height: 55%; animation-delay: 0.4s; }
+  @keyframes eq { 0%, 100% { height: 40%; } 50% { height: 100%; } }
+
+  /* -- Mockup controls -- */
+  .concept-label { position: fixed; top: 8px; right: 8px; background: var(--cyan); color: white;
+                   padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; z-index: 10; }
+  .variant-switcher { position: fixed; bottom: 20px; right: 12px; display: flex; flex-direction: column; gap: 6px; z-index: 100; }
+  .variant-btn { padding: 8px 14px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg2);
+                 color: var(--text2); font-size: 11px; font-weight: 500; cursor: pointer; font-family: inherit;
+                 text-align: left; }
+  .variant-btn.active { border-color: var(--cyan); color: var(--cyan); background: var(--cyan-dim); }
+
+  /* -- Simulierte Playback-Zeile -- */
+  .sim-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg2); border-top: 1px solid var(--border);
+             padding: 8px 16px; display: flex; align-items: center; gap: 10px; max-width: 390px; margin: 0 auto;
+             z-index: 50; }
+  .sim-bar label { font-size: 11px; color: var(--text3); white-space: nowrap; }
+  .sim-slider { flex: 1; accent-color: var(--cyan); }
+  .sim-time { font-size: 11px; color: var(--cyan); font-variant-numeric: tabular-nums; min-width: 32px; }
+</style>
+</head>
+<body>
+
+<div class="concept-label">Notizen & Lyrics</div>
+
+<!-- Variant Switcher -->
+<div class="variant-switcher">
+  <button class="variant-btn active" onclick="showVariant('playing')">Abspielen</button>
+  <button class="variant-btn" onclick="showVariant('edit')">Bearbeiten</button>
+  <button class="variant-btn" onclick="showVariant('empty')">Leer</button>
+</div>
+
+<div class="topbar">
+  <button class="topbar-back"><i data-lucide="chevron-down" style="width:24px;height:24px"></i></button>
+  <div class="topbar-title">Wird abgespielt</div>
+  <div style="width:40px"></div>
+</div>
+
+<div class="player">
+  <!-- Track Info -->
+  <div class="track-info">
+    <div class="track-name">A - Bring Me Little Water (Brian).mp3</div>
+    <div class="track-path">/Bring Me Little Water</div>
+    <div class="track-labels">
+      <span class="label-chip" style="background: rgba(129,140,248,0.15); color: #818cf8;">Tenor</span>
+      <span class="label-chip" style="background: rgba(245,158,11,0.15); color: #f59e0b;">Schwierig</span>
+    </div>
+  </div>
+
+  <!-- Waveform mit Section-Markierungen -->
+  <div class="waveform-wrap">
+    <div class="waveform" id="waveform"></div>
+    <div class="waveform-sections" id="waveform-sections"></div>
+  </div>
+  <div class="timestamps">
+    <span id="timeDisplay">0:14</span>
+    <span>1:36</span>
+  </div>
+
+  <!-- Markers -->
+  <div class="markers">
+    <div class="marker-chip"><span class="marker-dot"></span> 0:12</div>
+    <div class="marker-chip"><span class="marker-dot"></span> 0:45</div>
+  </div>
+
+  <!-- Divider -->
+  <div class="divider"></div>
+
+  <!-- KERN: A + Play + B -->
+  <div class="core-row">
+    <button class="ab-core-btn">A</button>
+    <button class="play-btn"><i data-lucide="pause" style="width:32px;height:32px"></i></button>
+    <button class="ab-core-btn">B</button>
+  </div>
+
+  <!-- Skip + Loop -->
+  <div class="control-row">
+    <button class="ctrl-btn"><i data-lucide="rewind" style="width:18px;height:18px"></i> 15s</button>
+    <button class="ctrl-btn"><i data-lucide="repeat" style="width:18px;height:18px"></i> Loop</button>
+    <button class="ctrl-btn">15s <i data-lucide="fast-forward" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Marker + Labels + Favorit -->
+  <div class="action-row">
+    <button class="action-btn"><i data-lucide="pin" style="width:14px;height:14px"></i> Marker</button>
+    <button class="action-btn"><i data-lucide="tag" style="width:14px;height:14px"></i> Labels</button>
+    <button class="action-btn fav-active"><i data-lucide="heart" style="width:14px;height:14px"></i> Favorit</button>
+  </div>
+
+  <div class="divider" style="margin-bottom: 0;"></div>
+
+  <!-- ============================================ -->
+  <!-- ===== VARIANTE 1: Abspielen ================ -->
+  <!-- Zeigt automatisch die Lyrics der aktuellen  -->
+  <!-- Section an. Wechselt mit der Playposition.  -->
+  <!-- ============================================ -->
+  <div class="content-panels" id="variant-playing">
+
+    <!-- Track-Notizen -->
+    <div class="panel-section">
+      <div class="panel-header">
+        <span class="panel-icon"><i data-lucide="notebook-pen" style="width:16px;height:16px"></i></span>
+        <span class="panel-title">Notizen</span>
+        <span class="panel-badge">Gesamter Track</span>
+      </div>
+      <div class="notes-display">Achtung: Nach der Bridge wieder p!
+Tenore: beim Einsatz nicht zu frueh kommen.</div>
+    </div>
+
+    <!-- Aktuelle Section: Lyrics -->
+    <div class="panel-section" id="currentLyricsPanel">
+      <div class="panel-header">
+        <span class="panel-icon" style="color: var(--cyan);"><i data-lucide="mic-vocal" style="width:16px;height:16px"></i></span>
+        <span class="panel-title">Lyrics</span>
+        <span class="panel-badge" id="currentSectionBadge">
+          <span class="eq-bars"><span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span></span>
+          Intro
+        </span>
+      </div>
+
+      <!-- Die aktuelle Section — gross und prominent -->
+      <div class="current-section-card" id="currentCard">
+        <div class="current-section-header">
+          <span class="current-section-name" id="currentName">Intro</span>
+          <span class="current-section-time" id="currentTime">0:00 – 0:18</span>
+        </div>
+        <div class="current-section-lyrics" id="currentLyrics">Hmm hmm hmm hmm...
+Hmm hmm hmm hmm...</div>
+        <div class="current-section-note" id="currentNote">Leise summen, crescendo ab Takt 4</div>
+      </div>
+
+      <!-- Vorschau: naechste Section -->
+      <div class="next-section-card" id="nextCard">
+        <div class="next-section-label">Naechste: <span id="nextName">Strophe 1</span></div>
+        <div class="next-section-lyrics" id="nextLyrics">Bring me little water, Sylvie,
+Bring me little water now.
+Bring me little water, Sylvie,
+Every little once in a while.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ===== VARIANTE 2: Bearbeiten =============== -->
+  <!-- ============================================ -->
+  <div class="content-panels" id="variant-edit" style="display:none;">
+
+    <div class="panel-section">
+      <div class="panel-header">
+        <span class="panel-icon"><i data-lucide="notebook-pen" style="width:16px;height:16px"></i></span>
+        <span class="panel-title">Track-Notizen</span>
+        <span class="panel-badge">Gesamter Track</span>
+      </div>
+      <textarea class="notes-area" placeholder="Allgemeine Notizen zum Track...">Achtung: Nach der Bridge wieder p!
+Tenore: beim Einsatz nicht zu frueh kommen.</textarea>
+    </div>
+
+    <!-- Pro Section: Lyrics + Notiz -->
+    <div class="section-edit-card">
+      <div class="section-edit-header">
+        <i data-lucide="grip-vertical" style="width:12px;height:12px;color:var(--text3)"></i>
+        Intro <span class="section-time">0:00 – 0:18</span>
+      </div>
+      <textarea class="lyrics-area" rows="2" placeholder="Lyrics..." style="min-height:50px; margin-bottom:8px;">Hmm hmm hmm hmm...
+Hmm hmm hmm hmm...</textarea>
+      <textarea class="notes-area" rows="1" placeholder="Notiz..." style="min-height:36px; font-size:12px;">Leise summen, crescendo ab Takt 4</textarea>
+    </div>
+
+    <div class="section-edit-card">
+      <div class="section-edit-header">
+        <i data-lucide="grip-vertical" style="width:12px;height:12px;color:var(--text3)"></i>
+        Strophe 1 <span class="section-time">0:18 – 0:52</span>
+      </div>
+      <textarea class="lyrics-area" rows="3" placeholder="Lyrics..." style="min-height:70px; margin-bottom:8px;">Bring me little water, Sylvie,
+Bring me little water now.
+Bring me little water, Sylvie,
+Every little once in a while.</textarea>
+      <textarea class="notes-area" rows="1" placeholder="Notiz..." style="min-height:36px; font-size:12px;">Ab Takt 24 die Synkope richtig betonen.</textarea>
+    </div>
+
+    <div class="section-edit-card">
+      <div class="section-edit-header">
+        <i data-lucide="grip-vertical" style="width:12px;height:12px;color:var(--text3)"></i>
+        Refrain <span class="section-time">0:52 – 1:08</span>
+      </div>
+      <textarea class="lyrics-area" rows="2" placeholder="Lyrics..." style="min-height:50px; margin-bottom:8px;">Oh Sylvie, won't you bring me water,
+Bring me water now!</textarea>
+      <textarea class="notes-area" rows="1" placeholder="Notiz..." style="min-height:36px; font-size:12px;">Forte, alle zusammen</textarea>
+    </div>
+
+    <div class="section-edit-card">
+      <div class="section-edit-header">
+        <i data-lucide="grip-vertical" style="width:12px;height:12px;color:var(--text3)"></i>
+        Strophe 2 <span class="section-time">1:08 – 1:36</span>
+      </div>
+      <textarea class="lyrics-area" rows="3" placeholder="Lyrics..." style="min-height:70px; margin-bottom:8px;">Don't you see me comin',
+Don't you see me now?
+Don't you see me comin',
+Every little once in a while.</textarea>
+      <textarea class="notes-area" rows="1" placeholder="Notiz..." style="min-height:36px; font-size:12px;"></textarea>
+    </div>
+
+    <div class="edit-toolbar">
+      <button class="btn-cancel" onclick="showVariant('playing')">Abbrechen</button>
+      <button class="btn-save" onclick="showVariant('playing')">Speichern</button>
+    </div>
+  </div>
+
+  <!-- ============================================ -->
+  <!-- ===== VARIANTE 3: Leer ===================== -->
+  <!-- ============================================ -->
+  <div class="content-panels" id="variant-empty" style="display:none;">
+
+    <div class="panel-section">
+      <div class="panel-header">
+        <span class="panel-icon"><i data-lucide="notebook-pen" style="width:16px;height:16px"></i></span>
+        <span class="panel-title">Notizen</span>
+      </div>
+      <div class="empty-hint" onclick="showVariant('edit')">
+        <i data-lucide="plus" style="width:16px;height:16px"></i>
+        Notiz hinzufuegen
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="panel-header">
+        <span class="panel-icon" style="color: var(--cyan);"><i data-lucide="mic-vocal" style="width:16px;height:16px"></i></span>
+        <span class="panel-title">Lyrics</span>
+      </div>
+      <div class="empty-hint" onclick="showVariant('edit')">
+        <i data-lucide="mic-vocal" style="width:20px;height:20px; opacity:0.5;"></i>
+        Noch keine Sections & Lyrics — tippe zum Anlegen
+      </div>
+    </div>
+  </div>
+
+  <!-- Platzhalter damit der Content nicht hinter der Sim-Bar verschwindet -->
+  <div style="height:50px;"></div>
+</div>
+
+<!-- Simulierter Playback-Slider (Mockup-only, simuliert Zeitverlauf) -->
+<div class="sim-bar" id="simBar">
+  <label>Sim:</label>
+  <input type="range" class="sim-slider" id="simSlider" min="0" max="96" value="14" step="1">
+  <span class="sim-time" id="simTime">0:14</span>
+</div>
+
+<script>
+  // --- Section-Daten ---
+  const sectionData = [
+    { name: 'Intro',     start: 0,  end: 18,
+      lyrics: 'Hmm hmm hmm hmm...\nHmm hmm hmm hmm...',
+      note: 'Leise summen, crescendo ab Takt 4' },
+    { name: 'Strophe 1', start: 18, end: 52,
+      lyrics: 'Bring me little water, Sylvie,\nBring me little water now.\nBring me little water, Sylvie,\nEvery little once in a while.',
+      note: 'Ab Takt 24 die Synkope richtig betonen.' },
+    { name: 'Refrain',   start: 52, end: 68,
+      lyrics: 'Oh Sylvie, won\'t you bring me water,\nBring me water now!',
+      note: 'Forte, alle zusammen' },
+    { name: 'Strophe 2', start: 68, end: 96,
+      lyrics: 'Don\'t you see me comin\',\nDon\'t you see me now?\nDon\'t you see me comin\',\nEvery little once in a while.',
+      note: '' },
+  ];
+  const totalDuration = 96;
+  const LEAD_SECONDS = 3; // Lyrics X Sekunden VOR der Section anzeigen
+
+  // --- Waveform ---
+  const wf = document.getElementById('waveform');
+  const bars = 80;
+  for (let i = 0; i < bars; i++) {
+    const frac = i / bars;
+    const h = 15 + Math.random() * 65;
+    const bar = document.createElement('div');
+    bar.className = 'waveform-bar';
+    bar.style.height = h + '%';
+    bar.classList.add(frac <= 14/96 ? 'played' : 'unplayed');
+    wf.appendChild(bar);
+  }
+
+  // Section-Markierungen auf Waveform
+  const wfSections = document.getElementById('waveform-sections');
+  const sectionLabels = ['I', 'S1', 'R', 'S2'];
+  sectionData.forEach((s, i) => {
+    if (s.start === 0) return;
+    const pct = (s.start / totalDuration * 100);
+    const line = document.createElement('div');
+    line.className = 'waveform-section-line';
+    line.style.left = pct + '%';
+    wfSections.appendChild(line);
+    const label = document.createElement('div');
+    label.className = 'waveform-section-label';
+    label.style.left = pct + '%';
+    label.textContent = sectionLabels[i];
+    wfSections.appendChild(label);
+  });
+
+  // --- Formatierung ---
+  function fmt(s) {
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + String(sec).padStart(2, '0');
+  }
+
+  // --- Section fuer Zeitpunkt finden (mit Lead-Time) ---
+  function findSection(time) {
+    // Pruefe ob wir im Lead-Bereich der naechsten Section sind
+    for (let i = 0; i < sectionData.length; i++) {
+      const s = sectionData[i];
+      const showFrom = Math.max(0, s.start - LEAD_SECONDS);
+      if (time >= showFrom && time < s.end) return i;
+    }
+    return sectionData.length - 1;
+  }
+
+  // --- UI Updates ---
+  const slider = document.getElementById('simSlider');
+  const simTime = document.getElementById('simTime');
+  const timeDisplay = document.getElementById('timeDisplay');
+  let lastSectionIdx = -1;
+
+  function updateDisplay(time) {
+    simTime.textContent = fmt(time);
+    timeDisplay.textContent = fmt(time);
+
+    // Waveform progress
+    document.querySelectorAll('.waveform-bar').forEach((bar, i) => {
+      const frac = i / bars;
+      bar.className = 'waveform-bar ' + (frac <= time/totalDuration ? 'played' : 'unplayed');
+    });
+
+    const idx = findSection(time);
+    if (idx === lastSectionIdx) return;
+    lastSectionIdx = idx;
+
+    const current = sectionData[idx];
+    const next = idx < sectionData.length - 1 ? sectionData[idx + 1] : null;
+
+    // Badge
+    document.getElementById('currentSectionBadge').innerHTML =
+      '<span class="eq-bars"><span class="eq-bar"></span><span class="eq-bar"></span><span class="eq-bar"></span></span> ' +
+      current.name;
+
+    // Aktuelle Section Card
+    document.getElementById('currentName').textContent = current.name;
+    document.getElementById('currentTime').textContent = fmt(current.start) + ' – ' + fmt(current.end);
+    document.getElementById('currentLyrics').textContent = current.lyrics;
+
+    const noteEl = document.getElementById('currentNote');
+    if (current.note) {
+      noteEl.textContent = current.note;
+      noteEl.style.display = 'block';
+    } else {
+      noteEl.style.display = 'none';
+    }
+
+    // Naechste Section
+    const nextCard = document.getElementById('nextCard');
+    if (next) {
+      nextCard.style.display = 'block';
+      document.getElementById('nextName').textContent = next.name;
+      document.getElementById('nextLyrics').textContent = next.lyrics;
+    } else {
+      nextCard.style.display = 'none';
+    }
+  }
+
+  slider.addEventListener('input', () => updateDisplay(parseInt(slider.value)));
+  updateDisplay(14);
+
+  // --- Variant Switcher ---
+  function showVariant(name) {
+    ['playing', 'edit', 'empty'].forEach(v => {
+      const el = document.getElementById('variant-' + v);
+      if (el) el.style.display = v === name ? 'block' : 'none';
+    });
+    document.querySelectorAll('.variant-btn').forEach(b => {
+      const label = b.textContent.trim().toLowerCase();
+      const match = (name === 'playing' && label.startsWith('absp'))
+                 || (name === 'edit' && label.startsWith('bearb'))
+                 || (name === 'empty' && label.startsWith('leer'));
+      b.classList.toggle('active', match);
+    });
+    // Sim-Bar nur in playing-Ansicht zeigen
+    document.getElementById('simBar').style.display = name === 'playing' ? 'flex' : 'none';
+  }
+
+  lucide.createIcons();
+</script>
+</body>
+</html>
