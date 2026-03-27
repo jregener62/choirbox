@@ -211,18 +211,20 @@ body {
 .top-player-bar {
   display: flex;
   align-items: center;
+  justify-content: center;
   padding: 6px 12px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  gap: 8px;
   position: relative;
   flex-shrink: 0;
   z-index: 50;
+  cursor: pointer;
 }
 
 .top-player-bar--full {
   padding: 6px 16px;
   background: var(--bg-primary);
+  cursor: default;
 }
 
 .top-player-back {
@@ -237,44 +239,14 @@ body {
   min-width: 40px;
   min-height: 44px;
   flex-shrink: 0;
-}
-
-.top-player-info {
-  flex: 1;
-  min-width: 0;
-  cursor: pointer;
-  padding: 4px 0;
-}
-
-.top-player-info--full {
-  cursor: default;
-}
-
-.top-player-title {
-  font-size: 13px;
-  font-weight: 600;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  color: var(--text-primary);
-  line-height: 1.3;
-}
-
-.top-player-subtitle {
-  font-size: 11px;
-  color: var(--text-muted);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  line-height: 1.3;
+  position: absolute;
+  left: 8px;
 }
 
 .top-player-controls {
   display: flex;
   align-items: center;
-  gap: 2px;
-  flex-shrink: 0;
+  gap: 4px;
 }
 
 .top-player-skip {

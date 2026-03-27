@@ -4,7 +4,6 @@ import { ChevronDown, Rewind, FastForward, Play, Pause } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
-import { formatTime } from '@/utils/formatters.ts'
 
 interface TopPlayerBarProps {
   variant: 'mini' | 'full'
@@ -12,10 +11,10 @@ interface TopPlayerBarProps {
   title?: string
 }
 
-export function TopPlayerBar({ variant, onBack, title }: TopPlayerBarProps) {
+export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
   const navigate = useNavigate()
   const {
-    currentName, currentPath,
+    currentName,
     isPlaying, currentTime, duration,
     skipInterval,
   } = usePlayerStore()
@@ -34,45 +33,29 @@ export function TopPlayerBar({ variant, onBack, title }: TopPlayerBarProps) {
   if (!currentName) return null
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
-  const folderPath = currentPath?.split('/').slice(0, -1).join('/') || ''
   const isFull = variant === 'full'
 
   return (
-    <div className={`top-player-bar ${isFull ? 'top-player-bar--full' : ''}`}>
-      {/* Left: back button or clickable track info */}
+    <div
+      className={`top-player-bar ${isFull ? 'top-player-bar--full' : ''}`}
+      onClick={!isFull ? () => navigate('/player') : undefined}
+    >
       {isFull && onBack ? (
         <button className="top-player-back" onClick={onBack}>
           <ChevronDown size={22} />
         </button>
       ) : null}
 
-      <div
-        className={`top-player-info ${isFull ? 'top-player-info--full' : ''}`}
-        onClick={!isFull ? () => navigate('/player') : undefined}
-      >
-        {isFull && title ? (
-          <>
-            <div className="top-player-title">{currentName}</div>
-            <div className="top-player-subtitle">{folderPath} &middot; {formatTime(currentTime)} / {formatTime(duration)}</div>
-          </>
-        ) : (
-          <>
-            <div className="top-player-title">{currentName}</div>
-            <div className="top-player-subtitle">{formatTime(currentTime)} / {formatTime(duration)}</div>
-          </>
-        )}
-      </div>
-
-      {/* Right: controls */}
+      {/* Centered controls */}
       <div className="top-player-controls">
-        <button className="top-player-skip" onClick={skipBack}>
+        <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skipBack() }}>
           <Rewind size={16} />
           <span>{skipInterval}s</span>
         </button>
-        <button className="top-player-play" onClick={togglePlay}>
+        <button className="top-player-play" onClick={(e) => { e.stopPropagation(); togglePlay() }}>
           {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: 2 }} />}
         </button>
-        <button className="top-player-skip" onClick={skipFwd}>
+        <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skipFwd() }}>
           <span>{skipInterval}s</span>
           <FastForward size={16} />
         </button>
