@@ -1247,29 +1247,9 @@ body {
 }
 
 /* === Unified Timeline === */
-.unified-timeline { margin-bottom: 8px; }
-
-.unified-zoom-row {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-bottom: 6px;
-}
-.unified-zoom-btn {
-  width: 30px; height: 24px;
-  border-radius: 5px;
-  border: 1px solid var(--border);
-  background: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.unified-zoom-btn.active {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
-  border-color: var(--text-muted);
+.unified-timeline {
+  margin-bottom: 8px;
+  touch-action: pan-y;
 }
 
 .unified-scroll { position: relative; }

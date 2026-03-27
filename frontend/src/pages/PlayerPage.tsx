@@ -144,15 +144,6 @@ export function PlayerPage() {
             )}
             <div className="player-track-name">{formatDisplayName(currentName!)}</div>
           </div>
-          {assignedLabels.length > 0 && (
-            <div className="player-labels" style={{ marginTop: 6 }}>
-              {assignedLabels.map((l) => (
-                <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
-                  {l.name}
-                </span>
-              ))}
-            </div>
-          )}
         </div>
 
         {/* Waveform + Sections */}
@@ -202,6 +193,20 @@ export function PlayerPage() {
           </div>
         )}
 
+        {/* Lyrics & Notes */}
+        <div className="player-lyrics-divider" />
+
+        {/* Assigned Labels */}
+        {assignedLabels.length > 0 && (
+          <div className="player-labels" style={{ marginBottom: 8 }}>
+            {assignedLabels.map((l) => (
+              <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
+                {l.name}
+              </span>
+            ))}
+          </div>
+        )}
+
         {/* Label Picker */}
         {showLabelPicker && currentPath && (
           <div className="label-picker">
@@ -226,8 +231,6 @@ export function PlayerPage() {
           </div>
         )}
 
-        {/* Lyrics & Notes */}
-        <div className="player-lyrics-divider" />
         <PlayerLyrics
           dropboxPath={currentPath}
           currentTime={currentTime}

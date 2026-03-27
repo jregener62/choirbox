@@ -1,10 +1,7 @@
 import { useRef, useEffect, useState, useCallback, useMemo } from 'react'
-import { Minimize2, Maximize2 } from 'lucide-react'
 import { Waveform } from '@/components/ui/Waveform'
 import type { Marker } from '@/stores/playerStore'
 import type { TimelineEntry } from '@/utils/buildTimeline'
-
-type Zoom = 'fit' | 'detail'
 
 /** ~7px per character at 11px bold + 12px padding */
 const MIN_LABEL_WIDTH = 80
@@ -30,17 +27,16 @@ export function UnifiedTimeline({
   peaks, currentTime, duration, loopStart, loopEnd, loopEnabled,
   markers, timeline, activeSectionId, hasSections, onSeek, onSectionClick,
 }: UnifiedTimelineProps) {
-  const [zoom, setZoom] = useState<Zoom>('fit')
   const scrollRef = useRef<HTMLDivElement>(null)
   const didManualScroll = useRef(false)
   const scrollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  // Calculate detail width so the smallest section label is fully readable
-  const detailWidth = useMemo(() => {
+  // Pinch zoom: stripWidth as continuous value, 100% = fit
+  const fitWidth = scrollRef.current?.clientWidth || 390
+  const maxDetailWidth = useMemo(() => {
     if (!hasSections || duration <= 0) return 800
     const labeled = timeline.filter(e => !e.isGap && e.label)
     if (labeled.length === 0) return 800
-    // For each labeled section, calculate required strip width so its block fits the label
     const required = labeled.map(e => {
       const labelW = Math.max(MIN_LABEL_WIDTH, e.label!.length * CHAR_WIDTH + LABEL_PADDING)
       const durationFrac = (e.end_time - e.start_time) / duration
@@ -49,16 +45,44 @@ export function UnifiedTimeline({
     return Math.max(800, Math.ceil(Math.max(...required)))
   }, [timeline, duration, hasSections])
 
-  const isScrollable = zoom === 'detail' && hasSections
+  const [stripWidth, setStripWidth] = useState<number | null>(null)
+  const currentWidth = stripWidth ?? fitWidth
+  const isScrollable = currentWidth > fitWidth + 10
 
-  // Auto-scroll to playhead in detail mode
+  // Pinch gesture handling
+  const pinchRef = useRef<{ startDist: number; startWidth: number } | null>(null)
+
+  const handleTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2) {
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dist = Math.abs(dx)
+      pinchRef.current = { startDist: dist, startWidth: stripWidth ?? fitWidth }
+    }
+  }, [stripWidth, fitWidth])
+
+  const handleTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length === 2 && pinchRef.current) {
+      e.preventDefault()
+      const dx = e.touches[0].clientX - e.touches[1].clientX
+      const dist = Math.abs(dx)
+      const scale = dist / pinchRef.current.startDist
+      const newWidth = Math.round(Math.min(maxDetailWidth, Math.max(fitWidth, pinchRef.current.startWidth * scale)))
+      setStripWidth(newWidth <= fitWidth + 10 ? null : newWidth)
+    }
+  }, [fitWidth, maxDetailWidth])
+
+  const handleTouchEnd = useCallback(() => {
+    pinchRef.current = null
+  }, [])
+
+  // Auto-scroll to playhead when zoomed in
   useEffect(() => {
     if (!isScrollable || didManualScroll.current) return
     const el = scrollRef.current
     if (!el || duration <= 0) return
-    const playX = (currentTime / duration) * detailWidth
+    const playX = (currentTime / duration) * currentWidth
     el.scrollLeft = Math.max(0, playX - el.clientWidth / 2)
-  }, [currentTime, duration, isScrollable, detailWidth])
+  }, [currentTime, duration, isScrollable, currentWidth])
 
   const handleManualScroll = useCallback(() => {
     didManualScroll.current = true
@@ -70,7 +94,9 @@ export function UnifiedTimeline({
   const touchStartRef = useRef<{ x: number; y: number } | null>(null)
 
   const handleSectionTouchStart = useCallback((e: React.TouchEvent) => {
-    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    if (e.touches.length === 1) {
+      touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    }
   }, [])
 
   const handleSectionTap = useCallback((entry: TimelineEntry, e: React.TouchEvent) => {
@@ -79,7 +105,6 @@ export function UnifiedTimeline({
     if (!start) return
     const dx = Math.abs(e.changedTouches[0].clientX - start.x)
     const dy = Math.abs(e.changedTouches[0].clientY - start.y)
-    // Only treat as tap if finger didn't move much
     if (dx < 10 && dy < 10) {
       e.preventDefault()
       onSectionClick(entry)
@@ -89,27 +114,12 @@ export function UnifiedTimeline({
   const playFrac = duration > 0 ? currentTime / duration : 0
 
   return (
-    <div className="unified-timeline">
-      {/* Zoom toggle */}
-      {hasSections && (
-        <div className="unified-zoom-row">
-          <button
-            className={`unified-zoom-btn ${zoom === 'fit' ? 'active' : ''}`}
-            onClick={() => setZoom('fit')}
-            title="Ganze Datei"
-          >
-            <Minimize2 size={14} />
-          </button>
-          <button
-            className={`unified-zoom-btn ${zoom === 'detail' ? 'active' : ''}`}
-            onClick={() => setZoom('detail')}
-            title="Detail"
-          >
-            <Maximize2 size={14} />
-          </button>
-        </div>
-      )}
-
+    <div
+      className="unified-timeline"
+      onTouchStart={handleTouchStart}
+      onTouchMove={handleTouchMove}
+      onTouchEnd={handleTouchEnd}
+    >
       {/* Scrollable container */}
       <div
         className={`unified-scroll ${isScrollable ? 'unified-scroll--scrollable' : ''}`}
@@ -118,7 +128,7 @@ export function UnifiedTimeline({
       >
         <div
           className="unified-strip"
-          style={isScrollable ? { width: detailWidth } : undefined}
+          style={isScrollable ? { width: currentWidth } : undefined}
         >
           {/* Section lane (top zone — tap = loop) */}
           {hasSections && (
