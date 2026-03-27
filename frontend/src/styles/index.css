@@ -333,11 +333,11 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 8px 16px;
-  background: var(--bg-primary);
+  padding: 10px 16px;
+  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
-  min-height: 52px;
+  min-height: 56px;
 }
 
 .player-toolbar-btn {
