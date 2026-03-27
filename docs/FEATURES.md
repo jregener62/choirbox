@@ -51,6 +51,28 @@ Chormitglieder registrieren sich selbst mit einem Registrierungscode, den der Ad
 | `frontend/src/pages/SettingsPage.tsx` | Profil-Sektion |
 | `backend/api/auth.py` | `PUT /auth/me`, `PUT /auth/me/password` |
 
+### Rollen-Hierarchie
+
+5-stufiges Rollensystem mit aufsteigenden Berechtigungen. Jede hoehere Rolle erbt alle Rechte der niedrigeren.
+
+| Rolle | Level | Beschreibung |
+|-------|-------|-------------|
+| `guest` | 0 | Registriert, eingeschraenkt |
+| `member` | 1 | Standard-Chormitglied (Browsen, Streamen, Upload, Favoriten) |
+| `pro-member` | 2 | Kann Labels und Sections verwalten |
+| `chorleiter` | 3 | Erweiterte Verwaltungsrechte |
+| `admin` | 4 | Voller Zugriff (Nutzer, Dropbox, Settings) |
+
+- Neue Registrierungen erhalten automatisch die Rolle `member`
+- Admin kann Rollen ueber die Nutzerverwaltung aendern (Dropdown mit allen Rollen)
+- Backend: `require_role("pro-member")` als Dependency fuer rollenbasierte Endpunkte
+- Frontend: `hasMinRole(userRole, "pro-member")` fuer UI-Sichtbarkeit
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/api/auth.py` | `ROLE_HIERARCHY`, `require_role()`, `require_admin` |
+| `frontend/src/utils/roles.ts` | `hasMinRole()`, `ROLE_LABELS`, `ALL_ROLES` |
+
 ### Logout
 
 - Token wird im Backend invalidiert
@@ -231,9 +253,9 @@ Persoenliche Sammlung von Lieblings-Dateien pro User.
 
 ### Label-System
 
-Admin-definierte Labels zum Kategorisieren von Dateien.
+Labels zum Kategorisieren von Dateien, verwaltbar ab Rolle `pro-member`.
 
-- Admin erstellt Labels mit Name, Farbe (Hex) und optionaler Kategorie
+- Pro-Mitglieder+ erstellen Labels mit Name, Farbe (Hex) und optionaler Kategorie
 - Default-Labels beim Seeding: Sopran, Alt, Tenor, Bass (Kategorie "Stimme"), Schwierig, Geubt (Kategorie "Status")
 - User weisen Labels per Datei zu (Mehrfachzuweisung moeglich)
 - Labels als farbige Chips auf Dateien sichtbar
@@ -297,7 +319,7 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 ### Nutzerverwaltung
 
 - Alle User auflisten (Benutzername, Anzeigename, Rolle, Stimme, letzter Login)
-- Rolle umschalten (Admin/Mitglied)
+- Rolle aendern per Dropdown (Gast, Mitglied, Pro-Mitglied, Chorleiter, Admin)
 - User loeschen (eigenen Account nicht loeschbar)
 - Neue User manuell anlegen
 
@@ -347,7 +369,8 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Theme-Toggle
 - Dropbox-Status (nur Admin)
 - Registrierungscode (nur Admin)
-- Navigation zu Admin-Seiten (nur Admin)
+- Labels verwalten (ab Pro-Mitglied)
+- Nutzer verwalten (nur Admin)
 - Logout
 
 ---
@@ -372,7 +395,7 @@ Drei Tabs auf allen Seiten (ausser Player):
 | `/player` | Audio-Player | Authentifiziert |
 | `/settings` | Einstellungen | Authentifiziert |
 | `/admin/users` | Nutzerverwaltung | Admin |
-| `/admin/labels` | Label-Verwaltung | Admin |
+| `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |
 
 HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
@@ -416,9 +439,9 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | GET | `/` | Labels auflisten | User |
-| POST | `/` | Label erstellen | Admin |
-| PUT | `/{id}` | Label bearbeiten | Admin |
-| DELETE | `/{id}` | Label loeschen | Admin |
+| POST | `/` | Label erstellen | Pro-Mitglied+ |
+| PUT | `/{id}` | Label bearbeiten | Pro-Mitglied+ |
+| DELETE | `/{id}` | Label loeschen | Pro-Mitglied+ |
 | GET | `/my` | Eigene Zuweisungen | User |
 | POST | `/my/toggle` | Zuweisung umschalten | User |
 
@@ -444,7 +467,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `id` | UUID | Primaerschluessel |
 | `username` | String (max 100) | Eindeutig |
 | `display_name` | String (max 100) | Anzeigename |
-| `role` | String | `"admin"` oder `"guest"` |
+| `role` | String | `guest`, `member`, `pro-member`, `chorleiter`, `admin` |
 | `voice_part` | String | Sopran, Alt, Tenor oder Bass |
 | `password_hash` | String | PBKDF2-Hash |
 | `created_at` | DateTime | Erstellungszeitpunkt |
