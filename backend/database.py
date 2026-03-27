@@ -21,3 +21,22 @@ def get_session():
 
 def create_db_and_tables():
     SQLModel.metadata.create_all(engine)
+    _migrate(engine)
+
+
+def _migrate(eng):
+    """Add columns that create_all won't add to existing tables."""
+    from sqlalchemy import inspect, text
+    insp = inspect(eng)
+    migrations = [
+        ("sections", "lyrics", "TEXT"),
+        ("sections", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+    ]
+    with eng.begin() as conn:
+        for table, column, col_type in migrations:
+            if table not in insp.get_table_names():
+                continue
+            existing = [c["name"] for c in insp.get_columns(table)]
+            if column not in existing:
+                conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+

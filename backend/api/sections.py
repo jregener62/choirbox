@@ -79,6 +79,33 @@ def create_section(
     return ActionResponse.success(data={"id": section.id})
 
 
+@router.put("/lyrics")
+def save_lyrics_bulk(
+    data: dict,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    """Bulk save lyrics for multiple sections at once."""
+    entries = data.get("sections", [])
+    if not isinstance(entries, list):
+        raise HTTPException(400, "sections must be a list")
+
+    now = datetime.utcnow()
+    for entry in entries:
+        section_id = entry.get("id")
+        if not section_id:
+            continue
+        section = session.get(Section, section_id)
+        if not section:
+            continue
+        section.lyrics = (entry.get("lyrics") or "").strip() or None
+        section.updated_at = now
+        session.add(section)
+
+    session.commit()
+    return ActionResponse.success()
+
+
 @router.put("/{section_id}")
 def update_section(
     section_id: int,
@@ -108,33 +135,6 @@ def update_section(
 
     section.updated_at = datetime.utcnow()
     session.add(section)
-    session.commit()
-    return ActionResponse.success()
-
-
-@router.put("/lyrics")
-def save_lyrics_bulk(
-    data: dict,
-    user: User = Depends(require_role("pro-member")),
-    session: Session = Depends(get_session),
-):
-    """Bulk save lyrics for multiple sections at once."""
-    entries = data.get("sections", [])
-    if not isinstance(entries, list):
-        raise HTTPException(400, "sections must be a list")
-
-    now = datetime.utcnow()
-    for entry in entries:
-        section_id = entry.get("id")
-        if not section_id:
-            continue
-        section = session.get(Section, section_id)
-        if not section:
-            continue
-        section.lyrics = (entry.get("lyrics") or "").strip() or None
-        section.updated_at = now
-        session.add(section)
-
     session.commit()
     return ActionResponse.success()
 
