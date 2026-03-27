@@ -11,6 +11,7 @@ import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { platform } from '@/utils/platform'
+import { formatDisplayName } from '@/utils/formatters.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -375,7 +376,7 @@ export function BrowsePage() {
               )}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {entry.name}
+                  {entry.type === 'file' ? formatDisplayName(entry.name) : entry.name}
                 </div>
                 {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>

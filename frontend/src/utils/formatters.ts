@@ -7,3 +7,18 @@ export function formatTime(seconds: number): string {
   const s = Math.floor(seconds % 60)
   return `${m}:${s.toString().padStart(2, '0')}`
 }
+
+const AUDIO_EXT = /\.(mp3|m4a|wav|ogg|flac|aac|webm|mp4)$/i
+const VOICE_PREFIX = /^[SATB]+-/
+
+/**
+ * Format a filename for display: strip extension, voice prefix, replace hyphens with spaces.
+ * "S-Believer-Refrain.mp3" → "Believer Refrain"
+ * "SATB-Africa.mp3" → "Africa"
+ * "Piano-Intro.mp3" → "Piano Intro"
+ */
+export function formatDisplayName(filename: string): string {
+  let name = filename.replace(AUDIO_EXT, '')
+  name = name.replace(VOICE_PREFIX, '')
+  return name.replace(/-/g, ' ')
+}

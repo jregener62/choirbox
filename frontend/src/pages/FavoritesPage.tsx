@@ -4,6 +4,7 @@ import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
+import { formatDisplayName } from '@/utils/formatters.ts'
 
 export function FavoritesPage() {
   const { favorites, loaded, load, toggle } = useFavoritesStore()
@@ -113,7 +114,7 @@ export function FavoritesPage() {
               )}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {fav.file_name}
+                  {formatDisplayName(fav.file_name)}
                 </div>
                 {trackLabels.length > 0 && (
                   <div className="file-labels">
