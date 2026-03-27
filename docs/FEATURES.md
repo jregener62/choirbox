@@ -173,7 +173,7 @@ Chorleiter und Admins koennen Audio-Dateien direkt aus der Dropbox loeschen.
 - Aktuelle Position und Gesamtdauer
 - Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
 - Globaler Audio-Singleton (ein Track gleichzeitig)
-- Vor-/Zurueckspringen: 15 Sekunden
+- Vor-/Zurueckspringen: einstellbar (5s/10s/15s), Doppeltipp auf Skip-Button wechselt das Intervall
 - Track-Header: Farbiges Voice-Icon neben dem Dateinamen (gleiche Darstellung wie in der Dateiliste)
 
 | Datei | Rolle |
