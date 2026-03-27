@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Heart, Music, Trash2 } from 'lucide-react'
+import { Heart, Trash2 } from 'lucide-react'
+import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
@@ -105,9 +106,10 @@ export function FavoritesPage() {
                   <div className="playing-bars"><span /><span /><span /></div>
                 </div>
               ) : (
-                <div className="file-icon-box file-icon-audio">
-                  <Music size={18} />
-                </div>
+                <VoiceIcon
+                  filename={fav.file_name}
+                  folderName={fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''}
+                />
               )}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>

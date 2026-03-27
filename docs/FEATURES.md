@@ -98,10 +98,13 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Ordner zuerst, dann Dateien, jeweils alphabetisch
 - Dateidetails: Groesse, Labels
+- Voice-Icons: Farbiges Stimmkuerzel (S, A, T, B, SA, SAT, SATB...) als Datei-Icon statt generischem Noten-Symbol. Einzelstimmen in Stimmfarbe, Mehrfachstimmen in lila. Dateien ohne Stimminfo zeigen Noten-Icon.
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/BrowsePage.tsx` | Browser-UI |
+| `frontend/src/components/ui/VoiceIcon.tsx` | Farbiges Stimmkuerzel-Icon |
+| `frontend/src/utils/voiceColors.ts` | Shared Stimmfarben-Utilities |
 | `frontend/src/stores/appStore.ts` | `browsePath` State |
 | `backend/api/dropbox.py` | `GET /dropbox/browse` |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
@@ -132,6 +135,7 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 - Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
 - Globaler Audio-Singleton (ein Track gleichzeitig)
 - Vor-/Zurueckspringen: 15 Sekunden
+- Track-Header: Farbiges Voice-Icon neben dem Dateinamen (gleiche Darstellung wie in der Dateiliste)
 
 | Datei | Rolle |
 |-------|-------|

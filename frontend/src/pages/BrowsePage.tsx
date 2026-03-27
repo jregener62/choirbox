@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -8,6 +8,7 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
+import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { platform } from '@/utils/platform'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -310,9 +311,7 @@ export function BrowsePage() {
                   </div>
                 </div>
               ) : (
-                <div className="file-icon-box file-icon-audio">
-                  <Music size={18} />
-                </div>
+                <VoiceIcon filename={entry.name} folderName={folderName} />
               )}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>

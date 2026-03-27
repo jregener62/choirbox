@@ -7,7 +7,7 @@ import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
-import { TrackBadges } from '@/components/ui/TrackBadges'
+import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { formatTime } from '@/utils/formatters.ts'
 
 export function PlayerPage() {
@@ -58,17 +58,16 @@ export function PlayerPage() {
 
       {/* Track Info */}
       <div className="player-track-info">
-        <div className="player-track-name">{currentName}</div>
-        <div className="player-track-path">{folderPath}</div>
-        {currentName && (
-          <div style={{ marginTop: 6 }}>
-            <TrackBadges
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+          {currentName && (
+            <VoiceIcon
               filename={currentName}
               folderName={folderPath.split('/').filter(Boolean).pop() || ''}
-              size="md"
             />
-          </div>
-        )}
+          )}
+          <div className="player-track-name">{currentName}</div>
+        </div>
+        <div className="player-track-path">{folderPath}</div>
         {assignedLabels.length > 0 && (
           <div className="player-labels" style={{ marginTop: 8 }}>
             {assignedLabels.map((l) => (
