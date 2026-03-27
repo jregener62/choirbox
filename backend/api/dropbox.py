@@ -262,7 +262,7 @@ async def dropbox_upload(
 
     filename = file.filename or "recording"
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if ext not in ("webm", "m4a", "mp4", "ogg", "mp3"):
+    if ext not in ("webm", "m4a", "mp4", "ogg", "opus", "wav", "mp3"):
         raise HTTPException(400, f"Unsupported file format: .{ext}")
 
     content = await file.read()

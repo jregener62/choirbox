@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart, Mic } from 'lucide-react'
+import { Folder, Music, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -27,6 +27,8 @@ export function BrowsePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [recordingOpen, setRecordingOpen] = useState(false)
+  const [importedFile, setImportedFile] = useState<File | undefined>(undefined)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
@@ -178,6 +180,23 @@ export function BrowsePage() {
           <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
             <Mic size={20} />
           </button>
+          <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+            <Upload size={20} />
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav"
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                setImportedFile(file)
+                setRecordingOpen(true)
+              }
+              e.target.value = ''
+            }}
+          />
           <button className="player-header-btn" onClick={openSearch}>
             <Search size={20} />
           </button>
@@ -344,8 +363,9 @@ export function BrowsePage() {
       {recordingOpen && (
         <RecordingModal
           targetPath={browsePath}
-          onClose={() => setRecordingOpen(false)}
+          onClose={() => { setRecordingOpen(false); setImportedFile(undefined) }}
           onUploadComplete={() => loadFolder(browsePath)}
+          importedFile={importedFile}
         />
       )}
     </div>

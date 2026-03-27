@@ -65,13 +65,28 @@ interface RecordingModalProps {
   targetPath: string
   onClose: () => void
   onUploadComplete: () => void
+  importedFile?: File
 }
 
-export function RecordingModal({ targetPath, onClose, onUploadComplete }: RecordingModalProps) {
+export function RecordingModal({ targetPath, onClose, onUploadComplete, importedFile }: RecordingModalProps) {
   const {
-    state, error, duration, blob, blobUrl,
+    state: recorderState, error, duration, blob: recorderBlob, blobUrl: recorderBlobUrl,
     fileExtension, startRecording, stopRecording, reset,
   } = useRecorder()
+
+  // When an imported file is provided, use it directly instead of recorder
+  const isImport = !!importedFile
+  const importBlobUrl = useMemo(
+    () => importedFile ? URL.createObjectURL(importedFile) : null,
+    [importedFile],
+  )
+  useEffect(() => {
+    return () => { if (importBlobUrl) URL.revokeObjectURL(importBlobUrl) }
+  }, [importBlobUrl])
+
+  const state = isImport ? 'stopped' as const : recorderState
+  const blob = isImport ? importedFile : recorderBlob
+  const blobUrl = isImport ? importBlobUrl : recorderBlobUrl
 
   const setModalOpen = useAppStore((s) => s.setModalOpen)
   useEffect(() => {
@@ -125,7 +140,10 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     setUploadError(null)
 
     // Upload with original extension so server knows the source format
-    const uploadFilename = filename.replace(/\.mp3$/, `.${fileExtension}`)
+    const ext = isImport
+      ? (importedFile.name.split('.').pop() || 'm4a')
+      : fileExtension
+    const uploadFilename = filename.replace(/\.mp3$/, `.${ext}`)
     const formData = new FormData()
     formData.append('file', blob, uploadFilename)
     formData.append('target_path', targetPath || '/')
@@ -187,7 +205,7 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     <div className="recording-overlay" onClick={handleClose}>
       <div className="recording-modal" onClick={(e) => e.stopPropagation()}>
         <div className="recording-header">
-          <span className="recording-title">Aufnahme</span>
+          <span className="recording-title">{isImport ? 'Datei hochladen' : 'Aufnahme'}</span>
           <button className="player-header-btn" onClick={handleClose}>
             <X size={20} />
           </button>
@@ -223,7 +241,7 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
           {state === 'stopped' && !uploadDone && (
             <>
               <div className="recording-preview-info">
-                Aufnahme: {formatTime(duration)}
+                {isImport ? importedFile.name : `Aufnahme: ${formatTime(duration)}`}
               </div>
 
               {/* Voice selection */}
@@ -298,10 +316,12 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
                   {previewPlaying ? <Pause size={18} /> : <Play size={18} />}
                   <span>{previewPlaying ? 'Pause' : 'Anhören'}</span>
                 </button>
-                <button className="btn btn-secondary recording-action-btn" onClick={handleReRecord}>
-                  <RotateCcw size={18} />
-                  <span>Neu</span>
-                </button>
+                {!isImport && (
+                  <button className="btn btn-secondary recording-action-btn" onClick={handleReRecord}>
+                    <RotateCcw size={18} />
+                    <span>Neu</span>
+                  </button>
+                )}
                 <button
                   className="btn btn-primary recording-action-btn"
                   onClick={handleUpload}
@@ -322,7 +342,7 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
               <div className="recording-success">
                 <Check size={48} />
               </div>
-              <div className="recording-hint">Aufnahme hochgeladen!</div>
+              <div className="recording-hint">{isImport ? 'Datei hochgeladen!' : 'Aufnahme hochgeladen!'}</div>
               <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={handleClose}>
                 Schliessen
               </button>
