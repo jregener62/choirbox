@@ -40,7 +40,7 @@ export function Waveform({
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const didManualScroll = useRef(false)
-  const scrollTimer = useRef<ReturnType<typeof setTimeout>>()
+  const scrollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   const isScrollable = !!stripWidth
 

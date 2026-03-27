@@ -9,6 +9,13 @@ set -euo pipefail
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
+# Nicht aus Worktrees deployen — nur aus dem Haupt-Checkout
+if git rev-parse --is-inside-work-tree &>/dev/null && [ "$(cd "$(git rev-parse --git-dir)" && pwd)" != "$(cd "$(git rev-parse --git-common-dir)" && pwd)" ]; then
+  echo -e "\033[0;31mFehler: Deploy aus einem Git-Worktree ist nicht erlaubt.\033[0m"
+  echo -e "Wechsle zum Haupt-Checkout und deploye von dort."
+  exit 1
+fi
+
 # --- Server-Konfigurationen ---
 TEST_SERVER="joerg@192.168.178.50"
 TEST_DIR="/home/joerg/choirbox"

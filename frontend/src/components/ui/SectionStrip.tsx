@@ -16,7 +16,7 @@ export function SectionStrip({
 }: SectionStripProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const didManualScroll = useRef(false)
-  const scrollTimer = useRef<ReturnType<typeof setTimeout>>()
+  const scrollTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
 
   // Auto-scroll to current playback position
   useEffect(() => {
