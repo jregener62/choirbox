@@ -7,7 +7,6 @@ import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
-import { buildTimeline } from '@/utils/buildTimeline'
 import { formatTime } from '@/utils/formatters.ts'
 
 const PRESET_LABELS = ['Intro', 'Strophe', 'Refrain', 'Bridge', 'Solo', 'Outro']
@@ -99,7 +98,6 @@ export function SectionEditorPage() {
         loopEnd={loopEnd}
         loopEnabled={loopEnabled}
         markers={markers}
-        timeline={buildTimeline(sections, duration)}
         activeSectionId={activeSection?.id ?? null}
         onSeek={seek}
       />

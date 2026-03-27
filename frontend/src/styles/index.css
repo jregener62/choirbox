@@ -1042,7 +1042,96 @@ body {
   color: var(--text-muted);
 }
 
-/* Scrollable waveform */
+/* === Unified Timeline === */
+.unified-timeline { margin-bottom: 8px; }
+
+.unified-zoom-row {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+.unified-zoom-btn {
+  width: 30px; height: 24px;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.unified-zoom-btn.active {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+  border-color: var(--text-muted);
+}
+
+.unified-scroll { position: relative; }
+.unified-scroll--scrollable {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  margin: 0 -16px;
+  padding: 0 16px;
+}
+.unified-scroll--scrollable::-webkit-scrollbar { display: none; }
+.unified-strip { position: relative; }
+
+.unified-section-lane {
+  display: flex;
+  gap: 2px;
+  height: 32px;
+  margin-bottom: 2px;
+  cursor: pointer;
+}
+.unified-sec-block {
+  height: 100%;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  overflow: hidden;
+}
+.unified-sec-block--gap {
+  border: 1.5px dashed rgba(148,163,184,0.15);
+}
+.unified-sec-block--looping {
+  outline: 2px solid var(--amber);
+  outline-offset: -2px;
+}
+.unified-sec-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.unified-playhead {
+  position: absolute;
+  top: 0; bottom: 0;
+  width: 2px;
+  background: #fff;
+  border-radius: 1px;
+  pointer-events: none;
+  z-index: 3;
+  box-shadow: 0 0 4px rgba(0,0,0,0.5);
+}
+.unified-playhead::before {
+  content: '';
+  position: absolute;
+  top: -3px; left: -3px;
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  background: #fff;
+}
+
+/* Scrollable waveform (legacy, for SectionEditor) */
 .waveform-scroll {
   overflow-x: auto;
   overflow-y: hidden;

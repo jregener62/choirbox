@@ -232,21 +232,22 @@ Wichtige Stellen im Track markieren fuer schnelle Navigation.
 
 Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen die Sektionen, ab Pro-Mitglied verwaltbar.
 
-- Zwei Ansichten umschaltbar per Segmented Control (nur sichtbar wenn Sektionen vorhanden):
-  - **Waveform**: Horizontal scrollbar (~120 Bars), Sektionen als farbige Overlays + inline Labels, Gaps als gestrichelte Bereiche. Playhead + Auto-Scroll.
-  - **Sektionen**: Horizontale farbige Bloecke, proportional zur Dauer, mit Fortschrittsbalken + Playing-Animation in aktiver Sektion.
+- Unified View: Section-Lane (oben, Tap=Loop) + dimmed Waveform (unten, Tap=Seek) in einer Ansicht
+- Waveform dimmed wenn Sections vorhanden, undimmed wenn keine Sections definiert
+- Playhead-Linie durchlaeuft beide Bereiche (Section-Lane + Waveform)
+- Zwei Zoom-Stufen (Fit: gesamter Track sichtbar, Detail: scrollbar, kleinste Section lesbar)
+- Auto-Scroll im Detail-Modus (pausiert 3s bei manuellem Scroll)
 - Luecken (Gaps) zwischen definierten Sektionen werden automatisch client-seitig berechnet (nicht in DB) und als gestrichelte Bloecke angezeigt. Gaps sind ebenfalls loopbar.
 - Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)
 - Nochmal Tap deaktiviert den Loop
 - Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
-- Beide Ansichten scrollen automatisch mit der Playback-Position (Auto-Scroll, pausiert bei manuellem Scroll fuer 3s)
 - Section Editor (Route `/sections`, ab Pro-Mitglied): Waveform mit Play/Pause, Start/Ende per Playhead setzen, Name (Freitext + Presets), Farbwahl, Sektionsliste mit Bearbeiten/Loeschen
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/SectionEditorPage.tsx` | Section-Editor-UI |
-| `frontend/src/components/ui/SectionStrip.tsx` | Horizontale Section-Bloecke mit Gaps |
-| `frontend/src/components/ui/Waveform.tsx` | Canvas mit Section-Overlays, scrollbar |
+| `frontend/src/components/ui/UnifiedTimeline.tsx` | Unified View: Section-Lane + Waveform + Playhead + Zoom |
+| `frontend/src/components/ui/Waveform.tsx` | Canvas-Waveform (dimmed/undimmed) |
 | `frontend/src/utils/buildTimeline.ts` | Gap-Berechnung (lueckenlose Timeline aus Sections + Dauer) |
 | `frontend/src/hooks/useSections.ts` | Zustand Store + API-Logik |
 | `frontend/src/stores/playerStore.ts` | `activeSection`, `setSectionLoop()` |
