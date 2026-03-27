@@ -1,4 +1,3 @@
-import { useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { LoginPage } from '@/pages/LoginPage.tsx'
@@ -18,12 +17,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 }
 
 export function App() {
-  const restoreSession = useAuthStore((s) => s.restoreSession)
-
-  useEffect(() => {
-    restoreSession()
-  }, [restoreSession])
-
   return (
     <HashRouter>
       <Routes>

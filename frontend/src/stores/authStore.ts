@@ -3,6 +3,22 @@ import type { User, LoginResponse } from '@/types/index'
 
 const STORAGE_PREFIX = 'choirbox_'
 
+function loadStoredSession(): { token: string | null; user: User | null } {
+  try {
+    const token = localStorage.getItem(`${STORAGE_PREFIX}token`)
+    const userJson = localStorage.getItem(`${STORAGE_PREFIX}user`)
+    if (token && userJson) {
+      return { token, user: JSON.parse(userJson) as User }
+    }
+  } catch {
+    localStorage.removeItem(`${STORAGE_PREFIX}token`)
+    localStorage.removeItem(`${STORAGE_PREFIX}user`)
+  }
+  return { token: null, user: null }
+}
+
+const stored = loadStoredSession()
+
 interface AuthState {
   token: string | null
   user: User | null
@@ -19,8 +35,8 @@ interface AuthState {
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
-  token: null,
-  user: null,
+  token: stored.token,
+  user: stored.user,
 
   login: async (username, password) => {
     const response = await fetch('/api/auth/login', {
