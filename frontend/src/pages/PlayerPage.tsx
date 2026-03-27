@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, Pause, Play, Rewind, FastForward, Repeat, Pin, Heart, X, Tag, Trash2, LayoutList } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -14,6 +14,7 @@ import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
 import { PlayerLyrics } from '@/components/ui/PlayerLyrics.tsx'
 import { formatTime } from '@/utils/formatters.ts'
+import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 export function PlayerPage() {
@@ -32,6 +33,9 @@ export function PlayerPage() {
   } = usePlayerStore()
   const { togglePlay, seek, skip } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
+  const cycleInterval = useCallback(() => usePlayerStore.getState().cycleSkipInterval(), [])
+  const skipBack = useDoubleTap(useCallback(() => skip(-skipInterval), [skip, skipInterval]), cycleInterval)
+  const skipFwd = useDoubleTap(useCallback(() => skip(skipInterval), [skip, skipInterval]), cycleInterval)
 
   if (!currentPath) {
     navigate('/', { replace: true })
@@ -166,11 +170,7 @@ export function PlayerPage() {
       </div>
 
       <div className="player-controls">
-        <button
-          className="player-ctrl-btn"
-          onClick={() => skip(-skipInterval)}
-          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
-        >
+        <button className="player-ctrl-btn" onClick={skipBack}>
           <Rewind size={18} /> {skipInterval}s
         </button>
         <button
@@ -183,11 +183,7 @@ export function PlayerPage() {
         {(loopStart !== null || loopEnd !== null) && (
           <button className="player-ctrl-btn" onClick={clearLoop}><X size={18} /></button>
         )}
-        <button
-          className="player-ctrl-btn"
-          onClick={() => skip(skipInterval)}
-          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
-        >
+        <button className="player-ctrl-btn" onClick={skipFwd}>
           {skipInterval}s <FastForward size={18} />
         </button>
       </div>

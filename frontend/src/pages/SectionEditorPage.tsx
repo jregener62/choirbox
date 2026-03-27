@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronDown, Trash2, Play, Pause, Rewind, FastForward } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -8,6 +8,7 @@ import { useSectionsStore } from '@/hooks/useSections.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { formatTime } from '@/utils/formatters.ts'
+import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
 
 const PRESET_LABELS = ['Intro', 'Strophe', 'Refrain', 'Bridge', 'Solo', 'Outro']
 
@@ -20,6 +21,9 @@ export function SectionEditorPage() {
   const navigate = useNavigate()
   const { currentPath, currentName, currentTime, duration, isPlaying, markers, loopStart, loopEnd, loopEnabled, activeSection, skipInterval } = usePlayerStore()
   const { togglePlay, seek, skip } = useAudioPlayer()
+  const cycleInterval = useCallback(() => usePlayerStore.getState().cycleSkipInterval(), [])
+  const skipBack = useDoubleTap(useCallback(() => skip(-skipInterval), [skip, skipInterval]), cycleInterval)
+  const skipFwd = useDoubleTap(useCallback(() => skip(skipInterval), [skip, skipInterval]), cycleInterval)
   const { peaks } = useWaveform(currentPath)
   const { sections, load, create, update, remove } = useSectionsStore()
 
@@ -118,21 +122,13 @@ export function SectionEditorPage() {
 
       {/* Play + Skip + Timestamps */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '8px 0' }}>
-        <button
-          className="player-ctrl-btn"
-          onClick={() => skip(-skipInterval)}
-          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
-        >
+        <button className="player-ctrl-btn" onClick={skipBack}>
           <Rewind size={18} /> {skipInterval}s
         </button>
         <button className="player-ctrl-btn" onClick={togglePlay}>
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
         </button>
-        <button
-          className="player-ctrl-btn"
-          onClick={() => skip(skipInterval)}
-          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
-        >
+        <button className="player-ctrl-btn" onClick={skipFwd}>
           {skipInterval}s <FastForward size={18} />
         </button>
         <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
