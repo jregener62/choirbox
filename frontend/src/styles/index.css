@@ -347,6 +347,9 @@ body {
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
   min-height: 56px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
 }
 
 .player-toolbar-btn {
@@ -390,6 +393,42 @@ body {
 .player-toolbar-btn--active {
   border-color: var(--danger);
   color: var(--danger);
+}
+
+.player-toolbar-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  flex-shrink: 0;
+}
+
+.player-toolbar-marker {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 16px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.player-toolbar-marker:active {
+  background: var(--bg-tertiary);
+}
+
+.player-toolbar-marker-x {
+  display: flex;
+  align-items: center;
+  color: var(--text-muted);
+  margin-left: 2px;
 }
 
 /* Player page scroll content */

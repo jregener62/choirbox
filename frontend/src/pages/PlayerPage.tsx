@@ -129,6 +129,24 @@ export function PlayerPage() {
             <LayoutList size={16} />
           </button>
         )}
+        {/* Marker chips */}
+        {markers.length > 0 && (
+          <>
+            <span className="player-toolbar-sep" />
+            {markers.map((m) => (
+              <button key={m.id} className="player-toolbar-marker" onClick={() => seek(m.time)}>
+                <span className="marker-dot" />
+                {formatTime(m.time)}
+                <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
+                  <X size={10} />
+                </span>
+              </button>
+            ))}
+            <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
+              <Trash2 size={14} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Scrollable content */}
@@ -162,30 +180,7 @@ export function PlayerPage() {
           onSectionClick={handleSectionClick}
         />
 
-        {/* Markers */}
-        {markers.length > 0 && (
-          <div className="player-markers">
-            {markers.map((m) => (
-              <span key={m.id} className="marker-chip">
-                <span className="marker-dot" />
-                <button className="marker-chip-jump" onClick={() => seek(m.time)}>
-                  {formatTime(m.time)}
-                </button>
-                <button className="marker-chip-remove" onClick={() => usePlayerStore.getState().removeMarker(m.id)}>
-                  <X size={12} />
-                </button>
-              </span>
-            ))}
-            <button
-              className="marker-chip-remove"
-              style={{ padding: '4px 8px' }}
-              onClick={() => usePlayerStore.getState().clearMarkers()}
-              title="Alle Marker loeschen"
-            >
-              <Trash2 size={13} />
-            </button>
-          </div>
-        )}
+
 
         {/* Lyrics & Notes */}
         <div className="player-lyrics-divider" />
