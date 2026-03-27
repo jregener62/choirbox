@@ -26,6 +26,9 @@ interface PlayerState {
   // Session markers
   markers: Marker[]
 
+  // Skip interval (seconds)
+  skipInterval: number
+
   // Actions
   setTrack: (path: string, name: string) => void
   setPlaying: (playing: boolean) => void
@@ -39,6 +42,7 @@ interface PlayerState {
   addMarker: (time: number) => void
   removeMarker: (id: string) => void
   clearMarkers: () => void
+  cycleSkipInterval: () => void
 }
 
 let markerCounter = 0
@@ -54,6 +58,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loopEnabled: false,
   activeSection: null,
   markers: [],
+  skipInterval: 15,
 
   setTrack: (path, name) => set({
     currentPath: path,
@@ -111,4 +116,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   removeMarker: (id) => set((s) => ({ markers: s.markers.filter((m) => m.id !== id) })),
   clearMarkers: () => set({ markers: [] }),
+  cycleSkipInterval: () => {
+    const next: Record<number, number> = { 5: 10, 10: 15, 15: 5 }
+    set((s) => ({ skipInterval: next[s.skipInterval] ?? 15 }))
+  },
 }))
