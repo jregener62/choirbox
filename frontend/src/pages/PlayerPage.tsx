@@ -142,7 +142,7 @@ export function PlayerPage() {
                 folderName={folderPath.split('/').filter(Boolean).pop() || ''}
               />
             )}
-            <div className="player-track-name">{formatDisplayName(currentName)}</div>
+            <div className="player-track-name">{formatDisplayName(currentName!)}</div>
           </div>
           {assignedLabels.length > 0 && (
             <div className="player-labels" style={{ marginTop: 6 }}>

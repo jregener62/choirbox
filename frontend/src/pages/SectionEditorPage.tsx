@@ -81,7 +81,7 @@ export function SectionEditorPage() {
       <div className="player-scroll-content">
         {/* Track name */}
         <div className="player-track-info">
-          <div className="player-track-name" style={{ fontSize: 14 }}>{formatDisplayName(currentName)}</div>
+          <div className="player-track-name" style={{ fontSize: 14 }}>{formatDisplayName(currentName!)}</div>
         </div>
 
         {/* Waveform + Section Lane */}
