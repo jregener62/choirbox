@@ -8,7 +8,7 @@ import { useSectionsStore } from '@/hooks/useSections.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
-import { formatTime } from '@/utils/formatters.ts'
+import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
 
 const PRESET_LABELS = ['Intro', 'Strophe', 'Refrain', 'Bridge', 'Solo', 'Outro']
 
@@ -81,7 +81,7 @@ export function SectionEditorPage() {
       <div className="player-scroll-content">
         {/* Track name */}
         <div className="player-track-info">
-          <div className="player-track-name" style={{ fontSize: 14 }}>{currentName}</div>
+          <div className="player-track-name" style={{ fontSize: 14 }}>{formatDisplayName(currentName)}</div>
         </div>
 
         {/* Waveform + Section Lane */}

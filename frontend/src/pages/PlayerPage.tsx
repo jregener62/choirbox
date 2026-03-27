@@ -14,7 +14,7 @@ import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
 import { PlayerLyrics } from '@/components/ui/PlayerLyrics.tsx'
-import { formatTime } from '@/utils/formatters.ts'
+import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 export function PlayerPage() {
@@ -142,7 +142,7 @@ export function PlayerPage() {
                 folderName={folderPath.split('/').filter(Boolean).pop() || ''}
               />
             )}
-            <div className="player-track-name">{currentName}</div>
+            <div className="player-track-name">{formatDisplayName(currentName)}</div>
           </div>
           {assignedLabels.length > 0 && (
             <div className="player-labels" style={{ marginTop: 6 }}>
