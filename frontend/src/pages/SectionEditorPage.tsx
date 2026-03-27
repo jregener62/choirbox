@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Trash2, Play, Pause } from 'lucide-react'
+import { ChevronDown, Trash2, Play, Pause, Rewind, FastForward } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -18,8 +18,8 @@ const PRESET_COLORS = [
 
 export function SectionEditorPage() {
   const navigate = useNavigate()
-  const { currentPath, currentName, currentTime, duration, isPlaying, markers, loopStart, loopEnd, loopEnabled, activeSection } = usePlayerStore()
-  const { togglePlay, seek } = useAudioPlayer()
+  const { currentPath, currentName, currentTime, duration, isPlaying, markers, loopStart, loopEnd, loopEnabled, activeSection, skipInterval } = usePlayerStore()
+  const { togglePlay, seek, skip } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
   const { sections, load, create, update, remove } = useSectionsStore()
 
@@ -116,10 +116,24 @@ export function SectionEditorPage() {
         }}
       />
 
-      {/* Play + Timestamps */}
+      {/* Play + Skip + Timestamps */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, margin: '8px 0' }}>
+        <button
+          className="player-ctrl-btn"
+          onClick={() => skip(-skipInterval)}
+          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
+        >
+          <Rewind size={18} /> {skipInterval}s
+        </button>
         <button className="player-ctrl-btn" onClick={togglePlay}>
           {isPlaying ? <Pause size={18} /> : <Play size={18} />}
+        </button>
+        <button
+          className="player-ctrl-btn"
+          onClick={() => skip(skipInterval)}
+          onDoubleClick={() => usePlayerStore.getState().cycleSkipInterval()}
+        >
+          {skipInterval}s <FastForward size={18} />
         </button>
         <span style={{ fontSize: 13, color: 'var(--text-secondary)', fontVariantNumeric: 'tabular-nums' }}>
           {formatTime(currentTime)} / {formatTime(duration)}
