@@ -5,7 +5,7 @@ import hmac
 import logging
 import secrets
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,14 +15,13 @@ from backend.config import REGISTRATION_CODE
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.app_settings import AppSettings
+from backend.models.session_token import SessionToken
 from backend.schemas import ActionResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-# Token store: token -> (user_id, created_at_timestamp)
-_tokens: dict[str, tuple[str, float]] = {}
 TOKEN_MAX_AGE = 7 * 24 * 3600  # 7 days in seconds
 
 # Rate limiting for login: ip -> list of attempt timestamps
@@ -50,18 +49,23 @@ def _verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def _create_token(user_id: str) -> str:
-    token = secrets.token_urlsafe(32)
-    _tokens[token] = (user_id, time.time())
-    return token
+def _create_token(user_id: str, session: Session) -> str:
+    """Create a new session token and persist it in the database."""
+    st = SessionToken(user_id=user_id)
+    session.add(st)
+    session.commit()
+    session.refresh(st)
+    return st.token
 
 
-def _cleanup_expired_tokens():
-    """Remove expired tokens (called periodically)."""
-    now = time.time()
-    expired = [t for t, (_, created) in _tokens.items() if now - created > TOKEN_MAX_AGE]
-    for t in expired:
-        del _tokens[t]
+def _cleanup_expired_tokens(session: Session):
+    """Remove expired tokens from the database."""
+    cutoff = datetime.utcnow() - timedelta(seconds=TOKEN_MAX_AGE)
+    expired = session.exec(select(SessionToken).where(SessionToken.created_at < cutoff)).all()
+    for st in expired:
+        session.delete(st)
+    if expired:
+        session.commit()
 
 
 def _check_rate_limit(ip: str):
@@ -90,14 +94,15 @@ def get_current_user(request: Request, session: Session = Depends(get_session)) 
 
     if not token:
         return None
-    entry = _tokens.get(token)
-    if not entry:
+    st = session.get(SessionToken, token)
+    if not st:
         return None
-    user_id, created_at = entry
-    if time.time() - created_at > TOKEN_MAX_AGE:
-        del _tokens[token]
+    cutoff = datetime.utcnow() - timedelta(seconds=TOKEN_MAX_AGE)
+    if st.created_at < cutoff:
+        session.delete(st)
+        session.commit()
         return None
-    return session.get(User, user_id)
+    return session.get(User, st.user_id)
 
 
 def require_user(request: Request, session: Session = Depends(get_session)) -> User:
@@ -142,14 +147,14 @@ def login(data: dict, request: Request, session: Session = Depends(get_session))
         _record_login_attempt(ip)
         raise HTTPException(401, "Invalid credentials")
 
-    _cleanup_expired_tokens()
+    _cleanup_expired_tokens(session)
 
     user.last_login_at = datetime.utcnow()
     session.add(user)
     session.commit()
     session.refresh(user)
 
-    token = _create_token(user.id)
+    token = _create_token(user.id, session)
     return {"token": token, "user": _user_response(user)}
 
 
@@ -231,14 +236,17 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
     session.commit()
     session.refresh(user)
 
-    token = _create_token(user.id)
+    token = _create_token(user.id, session)
     return {"token": token, "user": _user_response(user)}
 
 
 @router.post("/logout")
-def logout(request: Request):
+def logout(request: Request, session: Session = Depends(get_session)):
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
         token = auth[7:]
-        _tokens.pop(token, None)
+        st = session.get(SessionToken, token)
+        if st:
+            session.delete(st)
+            session.commit()
     return {"ok": True}

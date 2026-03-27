@@ -26,16 +26,19 @@ Chormitglieder registrieren sich selbst mit einem Registrierungscode, den der Ad
 ### Login
 
 - Benutzername + Passwort
-- Token-basierte Session (7 Tage gueltig)
+- Token-basierte Session (7 Tage gueltig), persistiert in SQLite
+- Sessions ueberleben Server-Neustarts (DB-backed statt In-Memory)
 - Rate-Limiting: max. 5 fehlgeschlagene Versuche pro Minute pro IP
 - Letzter Login-Zeitpunkt wird gespeichert
 - Token in `localStorage` persistiert
+- Abgelaufene Tokens werden beim Login automatisch bereinigt
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/LoginPage.tsx` | Login-UI |
 | `frontend/src/stores/authStore.ts` | Token- und User-State |
 | `backend/api/auth.py` | `POST /auth/login` |
+| `backend/models/session_token.py` | SessionToken-Modell |
 
 ### Profil bearbeiten
 
@@ -469,6 +472,14 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `user_id` | UUID (FK) | Referenz auf User |
 | `dropbox_path` | String | Dropbox-Dateipfad |
 | `label_id` | Integer (FK) | Referenz auf Label |
+
+### SessionToken
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `token` | String (max 64) | Primaerschluessel, zufaellig generiert |
+| `user_id` | UUID (FK) | Referenz auf User |
+| `created_at` | DateTime | Erstellungszeitpunkt (Ablauf nach 7 Tagen) |
 
 ### AppSettings (Singleton)
 
