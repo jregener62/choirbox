@@ -271,7 +271,9 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, Dateien-App).
 
 - Upload-Button (Upload-Icon) neben dem Aufnahme-Button im Datei-Browser
-- Oeffnet den nativen Datei-Picker des Geraets (`<input type="file" accept="audio/*">`)
+- Oeffnet den nativen Datei-Picker des Geraets
+- iOS: nur Dateiendungen im `accept`-Attribut, damit direkt die Dateien-App oeffnet (statt Kamera/Fotomediathek)
+- Android/Desktop: `audio/*` MIME-Type fuer nativen Audio-Filter im Picker
 - Nach Dateiauswahl oeffnet sich das gleiche Benennungs-Modal wie bei Aufnahmen (Stimme, Abschnitt, Notiz)
 - Unterstuetzte Formate: MP3, M4A, WebM, OGG, Opus, WAV, MP4
 - Nicht-MP3-Dateien werden server-seitig automatisch zu MP3 konvertiert
@@ -281,6 +283,7 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 |-------|-------|
 | `frontend/src/pages/BrowsePage.tsx` | Upload-Button + verstecktes File-Input |
 | `frontend/src/components/ui/RecordingModal.tsx` | Geteiltes Modal (Aufnahme + Import) |
+| `frontend/src/utils/platform.ts` | OS-Erkennung (isIOS, isAndroid, isMobile) |
 | `backend/api/dropbox.py` | `POST /dropbox/upload` (Validierung + Konvertierung) |
 
 ---

@@ -8,6 +8,7 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
+import { platform } from '@/utils/platform'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -186,7 +187,7 @@ export function BrowsePage() {
           <input
             ref={fileInputRef}
             type="file"
-            accept="audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav"
+            accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
             style={{ display: 'none' }}
             onChange={(e) => {
               const file = e.target.files?.[0]
