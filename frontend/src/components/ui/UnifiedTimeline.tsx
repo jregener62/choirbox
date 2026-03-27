@@ -66,8 +66,24 @@ export function UnifiedTimeline({
     scrollTimer.current = setTimeout(() => { didManualScroll.current = false }, 3000)
   }, [])
 
-  const handleSectionBlockClick = useCallback((entry: TimelineEntry) => {
-    onSectionClick(entry)
+  // Track touch start position to distinguish tap from scroll
+  const touchStartRef = useRef<{ x: number; y: number } | null>(null)
+
+  const handleSectionTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }, [])
+
+  const handleSectionTap = useCallback((entry: TimelineEntry, e: React.TouchEvent) => {
+    const start = touchStartRef.current
+    touchStartRef.current = null
+    if (!start) return
+    const dx = Math.abs(e.changedTouches[0].clientX - start.x)
+    const dy = Math.abs(e.changedTouches[0].clientY - start.y)
+    // Only treat as tap if finger didn't move much
+    if (dx < 10 && dy < 10) {
+      e.preventDefault()
+      onSectionClick(entry)
+    }
   }, [onSectionClick])
 
   const playFrac = duration > 0 ? currentTime / duration : 0
@@ -127,7 +143,9 @@ export function UnifiedTimeline({
                       width: `${widthPct}%`,
                       background: entry.isGap ? undefined : hexToRgba(entry.color!, 0.35),
                     }}
-                    onClick={() => handleSectionBlockClick(entry)}
+                    onClick={() => onSectionClick(entry)}
+                    onTouchStart={handleSectionTouchStart}
+                    onTouchEnd={(e) => handleSectionTap(entry, e)}
                   >
                     {!entry.isGap && (
                       <span className="unified-sec-label">{entry.label}</span>

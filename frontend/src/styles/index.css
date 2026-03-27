@@ -1097,12 +1097,14 @@ body {
   padding: 0 6px;
   overflow: hidden;
   border: none;
+  background: none;
   font-family: inherit;
   cursor: pointer;
   -webkit-tap-highlight-color: rgba(255,255,255,0.1);
   touch-action: manipulation;
 }
 .unified-sec-block--gap {
+  background: none !important;
   border: 1.5px dashed rgba(148,163,184,0.15);
 }
 .unified-sec-block--looping {
