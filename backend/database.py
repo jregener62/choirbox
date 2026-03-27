@@ -30,7 +30,7 @@ def _migrate(eng):
     insp = inspect(eng)
     migrations = [
         ("sections", "lyrics", "TEXT"),
-        ("sections", "updated_at", "DATETIME DEFAULT CURRENT_TIMESTAMP"),
+        ("sections", "updated_at", "DATETIME"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in migrations:
