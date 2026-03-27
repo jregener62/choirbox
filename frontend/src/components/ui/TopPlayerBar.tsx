@@ -4,6 +4,7 @@ import { ChevronDown, Rewind, FastForward, Play, Pause } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
+import { formatTime } from '@/utils/formatters.ts'
 
 interface TopPlayerBarProps {
   variant: 'mini' | 'full'
@@ -46,7 +47,8 @@ export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
         </button>
       ) : null}
 
-      {/* Centered controls */}
+      {/* Time + Controls */}
+      <span className="top-player-time">{formatTime(currentTime)}</span>
       <div className="top-player-controls">
         <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skipBack() }}>
           <Rewind size={18} />
@@ -60,6 +62,7 @@ export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
           <FastForward size={18} />
         </button>
       </div>
+      <span className="top-player-time">{formatTime(duration)}</span>
 
       {/* Progress bar */}
       <div className="top-player-progress">

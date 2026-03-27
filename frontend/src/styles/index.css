@@ -261,6 +261,15 @@ body {
   left: 8px;
 }
 
+.top-player-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+  min-width: 36px;
+  text-align: center;
+}
+
 .top-player-controls {
   display: flex;
   align-items: center;

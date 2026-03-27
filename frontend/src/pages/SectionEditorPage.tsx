@@ -111,12 +111,6 @@ export function SectionEditorPage() {
           }}
         />
 
-        {/* Time */}
-        <div className="player-time">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-
         <div className="player-divider" />
 
         {/* Start/End buttons */}

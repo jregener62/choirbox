@@ -162,12 +162,6 @@ export function PlayerPage() {
           onSectionClick={handleSectionClick}
         />
 
-        {/* Time */}
-        <div className="player-time">
-          <span>{formatTime(currentTime)}</span>
-          <span>{formatTime(duration)}</span>
-        </div>
-
         {/* Markers */}
         {markers.length > 0 && (
           <div className="player-markers">
