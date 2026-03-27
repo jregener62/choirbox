@@ -49,15 +49,15 @@ export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
       {/* Centered controls */}
       <div className="top-player-controls">
         <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skipBack() }}>
-          <Rewind size={16} />
+          <Rewind size={18} />
           <span>{skipInterval}s</span>
         </button>
         <button className="top-player-play" onClick={(e) => { e.stopPropagation(); togglePlay() }}>
-          {isPlaying ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: 2 }} />}
+          {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: 2 }} />}
         </button>
         <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skipFwd() }}>
           <span>{skipInterval}s</span>
-          <FastForward size={16} />
+          <FastForward size={18} />
         </button>
       </div>
 

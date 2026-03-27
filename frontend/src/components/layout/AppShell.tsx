@@ -40,7 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 className={`bottom-nav-item ${isActive ? 'active' : ''}`}
                 onClick={() => navigate(item.path)}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
+                <Icon size={22} strokeWidth={isActive ? 2.2 : 1.8} />
                 <span className="bottom-nav-label">{item.label}</span>
               </button>
             )

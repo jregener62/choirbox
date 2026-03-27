@@ -86,7 +86,7 @@ export function PlayerPage() {
       <TopPlayerBar variant="full" onBack={() => navigate(-1)} title="Wird abgespielt" />
       <div className="player-toolbar">
         <button className="player-toolbar-btn" onClick={addMarker}>
-          <Pin size={15} />
+          <Pin size={16} />
         </button>
         <button
           className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
@@ -99,7 +99,7 @@ export function PlayerPage() {
           onClick={toggleLoop}
           disabled={loopStart === null || loopEnd === null}
         >
-          <Repeat size={15} />
+          <Repeat size={16} />
         </button>
         <button
           className={`player-toolbar-btn ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
@@ -109,24 +109,24 @@ export function PlayerPage() {
         </button>
         {(loopStart !== null || loopEnd !== null) && (
           <button className="player-toolbar-btn" onClick={clearLoop}>
-            <X size={15} />
+            <X size={16} />
           </button>
         )}
         <button
           className={`player-toolbar-btn ${assignedLabels.length > 0 ? 'player-toolbar-btn--accent' : ''}`}
           onClick={() => setShowLabelPicker(!showLabelPicker)}
         >
-          <Tag size={15} />
+          <Tag size={16} />
         </button>
         <button
           className={`player-toolbar-btn ${isFav ? 'player-toolbar-btn--active' : ''}`}
           onClick={() => currentPath && toggle(currentPath)}
         >
-          <Heart size={15} fill={isFav ? 'currentColor' : 'none'} />
+          <Heart size={16} fill={isFav ? 'currentColor' : 'none'} />
         </button>
         {hasMinRole(userRole, 'pro-member') && (
           <button className="player-toolbar-btn" onClick={() => navigate('/sections')}>
-            <LayoutList size={15} />
+            <LayoutList size={16} />
           </button>
         )}
       </div>

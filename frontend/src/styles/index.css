@@ -34,7 +34,7 @@
   --text-primary: #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
-  --border: #334155;
+  --border: rgba(148,163,184,0.12);
   --accent: #818cf8;
   --accent-hover: #6366f1;
   --danger: #f87171;
@@ -93,11 +93,11 @@ body {
 .topbar {
   display: flex;
   align-items: center;
-  padding: 4px 16px;
+  padding: 6px 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  min-height: 40px;
-  gap: 8px;
+  min-height: 48px;
+  gap: 10px;
 }
 
 .topbar-title {
@@ -116,17 +116,18 @@ body {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding: 6px 0 10px;
+  padding: 8px 0 14px;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
+  min-height: 60px;
 }
 
 .bottom-nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
-  padding: 4px 16px;
+  gap: 4px;
+  padding: 4px 20px;
   color: var(--text-muted);
   cursor: pointer;
   border: none;
@@ -139,7 +140,7 @@ body {
 }
 
 .bottom-nav-label {
-  font-size: 10px;
+  font-size: 12px;
   font-weight: 500;
 }
 
@@ -229,17 +230,17 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 12px;
+  padding: 6px 16px;
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   position: relative;
   flex-shrink: 0;
   z-index: 50;
   cursor: pointer;
+  min-height: 64px;
 }
 
 .top-player-bar--full {
-  padding: 6px 16px;
   background: var(--bg-primary);
   cursor: default;
 }
@@ -249,12 +250,12 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  min-height: 44px;
+  min-width: 48px;
+  min-height: 48px;
   flex-shrink: 0;
   position: absolute;
   left: 8px;
@@ -263,7 +264,7 @@ body {
 .top-player-controls {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 8px;
 }
 
 .top-player-skip {
@@ -271,18 +272,18 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 6px;
+  padding: 8px 10px;
   display: flex;
   align-items: center;
-  gap: 2px;
-  font-size: 11px;
-  font-weight: 500;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 600;
   font-family: inherit;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 48px;
+  min-height: 48px;
   justify-content: center;
   touch-action: manipulation;
-  border-radius: 8px;
+  border-radius: 12px;
 }
 
 .top-player-skip:active {
@@ -290,8 +291,8 @@ body {
 }
 
 .top-player-play {
-  width: 44px;
-  height: 44px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--accent);
   border: none;
@@ -300,7 +301,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 12px rgba(129,140,248,0.25);
+  box-shadow: 0 4px 16px rgba(129,140,248,0.35);
   transition: all 0.15s;
   touch-action: manipulation;
   flex-shrink: 0;
@@ -316,7 +317,7 @@ body {
   bottom: 0;
   left: 0;
   right: 0;
-  height: 2px;
+  height: 3px;
   background: var(--bg-tertiary);
 }
 
@@ -331,25 +332,26 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 6px 16px;
+  gap: 8px;
+  padding: 8px 16px;
   background: var(--bg-primary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  min-height: 52px;
 }
 
 .player-toolbar-btn {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 40px;
-  min-height: 36px;
-  padding: 6px 12px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  min-width: 44px;
+  min-height: 40px;
+  padding: 8px 14px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
   background: none;
   color: var(--text-secondary);
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 700;
   font-family: inherit;
   cursor: pointer;
@@ -487,9 +489,9 @@ body {
 .file-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 14px 16px;
   border-bottom: 1px solid var(--border);
-  gap: 12px;
+  gap: 14px;
   cursor: pointer;
   transition: background 0.1s;
 }
@@ -503,9 +505,9 @@ body {
 }
 
 .file-icon-box {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -569,12 +571,12 @@ body {
 }
 
 .file-meta {
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-muted);
   display: flex;
   gap: 8px;
   align-items: center;
-  margin-top: 2px;
+  margin-top: 3px;
 }
 
 /* -- Filter bar -- */
@@ -592,13 +594,13 @@ body {
 .filter-chip {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 5px 12px;
-  border-radius: 16px;
+  gap: 5px;
+  padding: 7px 14px;
+  border-radius: 18px;
   border: 1.5px solid var(--border);
   background: none;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
@@ -784,7 +786,7 @@ body {
   display: flex;
   align-items: center;
   padding: 4px 16px 6px;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   background: var(--bg-secondary);
   overflow-x: auto;
@@ -1032,7 +1034,7 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: 36px;
+  min-height: 44px;
   font-size: 15px;
 }
 
@@ -1050,8 +1052,8 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-radius: 8px;
+  padding: 14px;
+  border-radius: 10px;
   border: none;
   background: var(--bg-secondary);
   color: var(--text-primary);
@@ -1126,7 +1128,17 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+}
+
+.player-header-btn:active {
+  background: var(--bg-tertiary);
 }
 
 .player-header-title {
@@ -1190,7 +1202,7 @@ body {
   display: flex;
   justify-content: space-between;
   width: 100%;
-  font-size: 12px;
+  font-size: 13px;
   color: var(--text-secondary);
   margin-bottom: 12px;
   font-variant-numeric: tabular-nums;
