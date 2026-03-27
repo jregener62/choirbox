@@ -1095,6 +1095,7 @@ body {
   align-items: center;
   justify-content: center;
   padding: 0 6px;
+  overflow: hidden;
 }
 .unified-sec-block--gap {
   border: 1.5px dashed rgba(148,163,184,0.15);
@@ -1108,6 +1109,8 @@ body {
   font-weight: 700;
   color: #fff;
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .unified-playhead {

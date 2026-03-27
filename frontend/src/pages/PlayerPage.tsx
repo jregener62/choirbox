@@ -121,7 +121,7 @@ export function PlayerPage() {
         timeline={timeline}
         activeSectionId={activeSection?.id ?? null}
         hasSections={hasSections}
-        onSeek={seek}
+        onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
         onSectionClick={handleSectionClick}
       />
 
