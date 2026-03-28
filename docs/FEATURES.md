@@ -241,7 +241,10 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 - Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)
 - Nochmal Tap deaktiviert den Loop
 - Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
-- Section Editor (Route `/sections`, ab Pro-Mitglied): Waveform mit Play/Pause, Start/Ende per Playhead setzen, Name (Freitext + Presets), Farbwahl, Sektionsliste mit Bearbeiten/Loeschen
+- Section Editor (Route `/sections`, ab Pro-Mitglied): Marker-basierter 3-Schritte-Workflow:
+  1. Track durchhoeren und Marker setzen (Pin-Button) an jeder Sektionsgrenze
+  2. Sektionen generieren (LayoutList-Button in Toolbar, aktiv ab 2+ Markern) — erstellt automatisch Sektionen aus Marker-Paaren (M1→M2 = Sektion 1, M2→M3 = Sektion 2, ...) mit Default-Namen und zyklischen Farben, loescht Marker danach
+  3. Einzelne Sektionen bearbeiten: Name (Freitext + Presets), Farbwahl, Start/Ende per Playhead anpassen, Loeschen
 
 | Datei | Rolle |
 |-------|-------|
@@ -513,7 +516,8 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | GET | `/?path=<dropbox_path>` | Sektionen eines Tracks auflisten (inkl. Lyrics) | User |
-| POST | `/` | Sektion erstellen | Pro-Mitglied+ |
+| POST | `/` | Einzelne Sektion erstellen | Pro-Mitglied+ |
+| POST | `/bulk` | Mehrere Sektionen auf einmal erstellen (aus Markern) | Pro-Mitglied+ |
 | PUT | `/{id}` | Sektion bearbeiten (inkl. Lyrics) | Pro-Mitglied+ |
 | PUT | `/lyrics` | Lyrics fuer mehrere Sektionen auf einmal speichern | Pro-Mitglied+ |
 | DELETE | `/{id}` | Sektion loeschen (loescht zugehoerige Notizen) | Pro-Mitglied+ |
