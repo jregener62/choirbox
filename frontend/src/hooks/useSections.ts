@@ -16,6 +16,10 @@ interface SectionsState {
     end_time: number
     sort_order: number
   }) => Promise<void>
+  bulkCreate: (data: {
+    dropbox_path: string
+    sections: Array<{ label: string; color: string; start_time: number; end_time: number; sort_order: number }>
+  }) => Promise<void>
   update: (id: number, data: Partial<Section>) => Promise<void>
   remove: (id: number) => Promise<void>
   clear: () => void
@@ -38,6 +42,12 @@ export const useSectionsStore = create<SectionsState>((set, get) => ({
 
   create: async (data) => {
     await api('/sections', { method: 'POST', body: data })
+    const path = get().loadedPath
+    if (path) await get().load(path)
+  },
+
+  bulkCreate: async (data) => {
+    await api('/sections/bulk', { method: 'POST', body: data })
     const path = get().loadedPath
     if (path) await get().load(path)
   },

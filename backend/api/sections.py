@@ -42,6 +42,52 @@ def list_sections(
     ]
 
 
+@router.post("/bulk")
+def create_sections_bulk(
+    data: dict,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    dropbox_path = data.get("dropbox_path", "").strip()
+    entries = data.get("sections", [])
+
+    if not dropbox_path:
+        raise HTTPException(400, "dropbox_path is required")
+    if not isinstance(entries, list) or len(entries) < 1:
+        raise HTTPException(400, "sections must be a non-empty list")
+
+    ids = []
+    for entry in entries:
+        label = (entry.get("label") or "").strip()
+        color = (entry.get("color") or "#8b5cf6").strip()
+        start_time = entry.get("start_time")
+        end_time = entry.get("end_time")
+        sort_order = entry.get("sort_order", 0)
+
+        if not label:
+            raise HTTPException(400, "label is required for each section")
+        if start_time is None or end_time is None:
+            raise HTTPException(400, "start_time and end_time are required")
+        if end_time <= start_time:
+            raise HTTPException(400, "end_time must be greater than start_time")
+
+        section = Section(
+            dropbox_path=dropbox_path,
+            label=label,
+            color=color,
+            start_time=float(start_time),
+            end_time=float(end_time),
+            sort_order=int(sort_order),
+            created_by=user.id,
+        )
+        session.add(section)
+        session.flush()
+        ids.append(section.id)
+
+    session.commit()
+    return ActionResponse.success(data={"ids": ids})
+
+
 @router.post("")
 def create_section(
     data: dict,
