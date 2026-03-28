@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -251,6 +251,12 @@ export function BrowsePage() {
                   <SlidersHorizontal size={18} />
                 </button>
               )}
+              <button className="player-header-btn" onClick={() => navigate('/favorites')}>
+                <Heart size={18} />
+              </button>
+              <button className="player-header-btn" onClick={() => navigate('/settings')}>
+                <Settings size={18} />
+              </button>
             </>
           )}
           {searchOpen && (
