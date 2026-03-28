@@ -129,25 +129,23 @@ export function PlayerPage() {
             <LayoutList size={16} />
           </button>
         )}
-        {/* Marker chips */}
-        {markers.length > 0 && (
-          <>
-            <span className="player-toolbar-sep" />
-            {markers.map((m) => (
-              <button key={m.id} className="player-toolbar-marker" onClick={() => seek(m.time)}>
-                <span className="marker-dot" />
-                {formatTime(m.time)}
-                <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
-                  <X size={10} />
-                </span>
-              </button>
-            ))}
-            <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
-              <Trash2 size={14} />
-            </button>
-          </>
-        )}
       </div>
+      {markers.length > 0 && (
+        <div className="player-marker-row">
+          {markers.map((m) => (
+            <button key={m.id} className="player-toolbar-marker" onClick={() => seek(m.time)}>
+              <span className="marker-dot" />
+              {formatTime(m.time)}
+              <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
+                <X size={10} />
+              </span>
+            </button>
+          ))}
+          <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Scrollable content */}
       <div className="player-scroll-content">
