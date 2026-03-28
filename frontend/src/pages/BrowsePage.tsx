@@ -219,28 +219,8 @@ export function BrowsePage() {
           <span className="topbar-title">Dateien</span>
           {!searchOpen && (
             <>
-              <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
-                <Mic size={18} />
-              </button>
-              <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-                <Upload size={18} />
-              </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
-                style={{ display: 'none' }}
-                onChange={(e) => {
-                  const file = e.target.files?.[0]
-                  if (file) {
-                    setImportedFile(file)
-                    setRecordingOpen(true)
-                  }
-                  e.target.value = ''
-                }}
-              />
-              <button className="player-header-btn" onClick={openSearch}>
-                <Search size={18} />
+              <button className="player-header-btn" onClick={() => navigate('/favorites')}>
+                <Heart size={18} />
               </button>
               {hasAnyLabels && labels.length > 0 && (
                 <button
@@ -251,8 +231,8 @@ export function BrowsePage() {
                   <SlidersHorizontal size={18} />
                 </button>
               )}
-              <button className="player-header-btn" onClick={() => navigate('/favorites')}>
-                <Heart size={18} />
+              <button className="player-header-btn" onClick={openSearch}>
+                <Search size={18} />
               </button>
               <button className="player-header-btn" onClick={() => navigate('/settings')}>
                 <Settings size={18} />
@@ -483,6 +463,32 @@ export function BrowsePage() {
           </div>
         </div>
       )}
+
+      {/* Footer: Aufnahme + Upload */}
+      <div className="browse-footer">
+        <button className="browse-footer-btn" onClick={() => setRecordingOpen(true)}>
+          <Mic size={20} />
+          <span>Aufnahme</span>
+        </button>
+        <button className="browse-footer-btn" onClick={() => fileInputRef.current?.click()}>
+          <Upload size={20} />
+          <span>Upload</span>
+        </button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
+          style={{ display: 'none' }}
+          onChange={(e) => {
+            const file = e.target.files?.[0]
+            if (file) {
+              setImportedFile(file)
+              setRecordingOpen(true)
+            }
+            e.target.value = ''
+          }}
+        />
+      </div>
 
       {recordingOpen && (
         <RecordingModal
