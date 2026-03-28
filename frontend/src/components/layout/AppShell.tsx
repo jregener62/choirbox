@@ -1,14 +1,9 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { FolderOpen, Heart, Settings } from 'lucide-react'
-import { usePlayerStore } from '@/stores/playerStore.ts'
-import { useAppStore } from '@/stores/appStore.ts'
-import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const location = useLocation()
   const navigate = useNavigate()
-  const currentName = usePlayerStore((s) => s.currentName)
-  const modalOpen = useAppStore((s) => s.modalOpen)
 
   const navItems = [
     { path: '/browse', icon: FolderOpen, label: 'Dateien' },
