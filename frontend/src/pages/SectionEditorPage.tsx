@@ -82,12 +82,20 @@ export function SectionEditorPage() {
     resetForm()
   }
 
-  const handleEdit = (s: typeof sections[0]) => {
-    setEditingId(s.id)
-    setLabel(s.label)
-    setColor(s.color)
-    setStartTime(s.start_time)
-    setEndTime(s.end_time)
+  const handleSelect = (s: typeof sections[0]) => {
+    const store = usePlayerStore.getState()
+    if (store.activeSection?.id === s.id) {
+      store.setSectionLoop(null)
+      resetForm()
+    } else {
+      store.setSectionLoop(s)
+      seek(s.start_time)
+      setEditingId(s.id)
+      setLabel(s.label)
+      setColor(s.color)
+      setStartTime(s.start_time)
+      setEndTime(s.end_time)
+    }
   }
 
   const resetForm = () => {
@@ -96,6 +104,7 @@ export function SectionEditorPage() {
     setColor(PRESET_COLORS[0])
     setStartTime(null)
     setEndTime(null)
+    usePlayerStore.getState().setSectionLoop(null)
   }
 
   return (
@@ -195,15 +204,7 @@ export function SectionEditorPage() {
           sections={sections}
           duration={duration}
           activeSectionId={activeSection?.id ?? null}
-          onSectionClick={(s) => {
-            const store = usePlayerStore.getState()
-            if (store.activeSection?.id === s.id) {
-              store.setSectionLoop(null)
-            } else {
-              store.setSectionLoop(s)
-              seek(s.start_time)
-            }
-          }}
+          onSectionClick={handleSelect}
         />
 
         {/* Label Picker */}
@@ -323,53 +324,56 @@ export function SectionEditorPage() {
               <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
                 Sektionen ({sections.length})
               </div>
-              {sections.map((s) => (
-                <div
-                  key={s.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 0',
-                    borderBottom: '1px solid var(--border)',
-                  }}
-                >
-                  <span
+              {sections.map((s) => {
+                const isSelected = activeSection?.id === s.id
+                return (
+                  <div
+                    key={s.id}
                     style={{
-                      width: 12,
-                      height: 12,
-                      borderRadius: '50%',
-                      background: s.color,
-                      flexShrink: 0,
-                    }}
-                  />
-                  <button
-                    style={{
-                      flex: 1,
-                      textAlign: 'left',
-                      background: 'none',
-                      border: 'none',
-                      color: 'var(--text)',
-                      fontSize: 13,
-                      fontWeight: 500,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 8,
+                      padding: '8px 6px',
+                      borderBottom: '1px solid var(--border)',
+                      borderRadius: 6,
+                      background: isSelected ? s.color + '20' : 'transparent',
+                      borderLeft: isSelected ? `3px solid ${s.color}` : '3px solid transparent',
                       cursor: 'pointer',
-                      padding: 0,
                     }}
-                    onClick={() => handleEdit(s)}
+                    onClick={() => handleSelect(s)}
                   >
-                    {s.label}
-                  </button>
-                  <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                    {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                  </span>
-                  <button
-                    className="marker-chip-remove"
-                    onClick={() => remove(s.id)}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
+                    <span
+                      style={{
+                        width: 12,
+                        height: 12,
+                        borderRadius: '50%',
+                        background: s.color,
+                        flexShrink: 0,
+                      }}
+                    />
+                    <span
+                      style={{
+                        flex: 1,
+                        textAlign: 'left',
+                        color: isSelected ? s.color : 'var(--text)',
+                        fontSize: 13,
+                        fontWeight: isSelected ? 600 : 500,
+                      }}
+                    >
+                      {s.label}
+                    </span>
+                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                      {formatTime(s.start_time)} – {formatTime(s.end_time)}
+                    </span>
+                    <button
+                      className="marker-chip-remove"
+                      onClick={(e) => { e.stopPropagation(); remove(s.id) }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                )
+              })}
             </div>
           </>
         )}
