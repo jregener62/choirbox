@@ -215,9 +215,46 @@ export function BrowsePage() {
       {/* Sticky header area */}
       <div className="browse-header">
         {/* Topbar: search mode or normal with breadcrumb */}
-        {searchOpen ? (
-          <div className="topbar">
-            <div className="search-bar">
+        <div className="topbar">
+          <span className="topbar-title">Dateien</span>
+          {!searchOpen && (
+            <>
+              <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
+                <Mic size={18} />
+              </button>
+              <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+                <Upload size={18} />
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
+                style={{ display: 'none' }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0]
+                  if (file) {
+                    setImportedFile(file)
+                    setRecordingOpen(true)
+                  }
+                  e.target.value = ''
+                }}
+              />
+              <button className="player-header-btn" onClick={openSearch}>
+                <Search size={18} />
+              </button>
+              {hasAnyLabels && labels.length > 0 && (
+                <button
+                  className="player-header-btn"
+                  onClick={() => setFilterOpen(!filterOpen)}
+                  style={activeFilters.length > 0 ? { color: 'var(--accent)' } : undefined}
+                >
+                  <SlidersHorizontal size={18} />
+                </button>
+              )}
+            </>
+          )}
+          {searchOpen && (
+            <div className="search-bar" style={{ flex: 1 }}>
               <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
               <input
                 ref={searchRef}
@@ -232,9 +269,10 @@ export function BrowsePage() {
                 <X size={18} />
               </button>
             </div>
-          </div>
-        ) : (
-          <div className="topbar">
+          )}
+        </div>
+        {!searchOpen && (
+          <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
               <span className="breadcrumb-item" onClick={() => loadFolder('')}>Root</span>
               {pathParts.map((part, i) => {
@@ -252,38 +290,6 @@ export function BrowsePage() {
                 )
               })}
             </div>
-            <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
-              <Mic size={18} />
-            </button>
-            <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-              <Upload size={18} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
-              style={{ display: 'none' }}
-              onChange={(e) => {
-                const file = e.target.files?.[0]
-                if (file) {
-                  setImportedFile(file)
-                  setRecordingOpen(true)
-                }
-                e.target.value = ''
-              }}
-            />
-            <button className="player-header-btn" onClick={openSearch}>
-              <Search size={18} />
-            </button>
-            {hasAnyLabels && labels.length > 0 && (
-              <button
-                className="player-header-btn"
-                onClick={() => setFilterOpen(!filterOpen)}
-                style={activeFilters.length > 0 ? { color: 'var(--accent)' } : undefined}
-              >
-                <SlidersHorizontal size={18} />
-              </button>
-            )}
           </div>
         )}
 

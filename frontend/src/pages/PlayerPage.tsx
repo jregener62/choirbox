@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, Pin, Heart, X, Tag, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine } from 'lucide-react'
+import { Repeat, Pin, Heart, X, Tag, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine, ChevronDown } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -82,8 +82,14 @@ export function PlayerPage() {
 
   return (
     <div className="player-page">
-      {/* Sticky header: player controls + toolbar */}
-      <TopPlayerBar variant="full" onBack={() => navigate(-1)} title="Wird abgespielt" />
+      {/* Page header */}
+      <div className="topbar">
+        <button className="top-player-back" onClick={() => navigate(-1)}>
+          <ChevronDown size={22} />
+        </button>
+        <span className="topbar-title">Player</span>
+      </div>
+      <TopPlayerBar variant="full" />
       <div className="player-toolbar">
         <button className="player-toolbar-btn" onClick={addMarker}>
           <Pin size={16} />
