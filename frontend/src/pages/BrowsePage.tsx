@@ -163,7 +163,6 @@ export function BrowsePage() {
       navigate('/player')
     } else {
       usePlayerStore.getState().setTrack(entry.path, entry.name)
-      usePlayerStore.getState().setPlaying(true)
     }
   }
 

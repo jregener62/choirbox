@@ -20,10 +20,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app-shell">
-      {currentName && !hidePlayer && !modalOpen && (
-        <TopPlayerBar variant="mini" />
-      )}
-
       <div className="main-content">
         {children}
       </div>
