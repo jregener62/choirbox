@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2 } from 'lucide-react'
+import { Trash2, Pin, ArrowLeftToLine, ArrowRightToLine, Repeat, X, Heart, Tag } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
+import { useFavoritesStore } from '@/hooks/useFavorites.ts'
+import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
@@ -23,6 +25,9 @@ export function SectionEditorPage() {
   const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
   const { sections, load, create, update, remove } = useSectionsStore()
+  const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
+  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel } = useLabelsStore()
+  const [showLabelPicker, setShowLabelPicker] = useState(false)
 
   const [label, setLabel] = useState('')
   const [color, setColor] = useState(PRESET_COLORS[0])
@@ -34,10 +39,23 @@ export function SectionEditorPage() {
     if (currentPath) load(currentPath)
   }, [currentPath, load])
 
+  useEffect(() => {
+    if (!favsLoaded) loadFavs()
+    if (!labelsLoaded) loadLabels()
+  }, [favsLoaded, loadFavs, labelsLoaded, loadLabels])
+
   if (!currentPath) {
     navigate('/', { replace: true })
     return null
   }
+
+  const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
+  const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
+  const toggleLoop = () => usePlayerStore.getState().toggleLoop()
+  const clearLoop = () => usePlayerStore.getState().clearLoop()
+  const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
+  const isFav = isFavorite(currentPath)
+  const assignedLabels = getLabelsForPath(currentPath)
 
   const canSave = label.trim() && startTime !== null && endTime !== null && endTime > startTime
 
@@ -77,6 +95,63 @@ export function SectionEditorPage() {
   return (
     <div className="player-page">
       <TopPlayerBar variant="full" onBack={() => navigate(-1)} title="Sektionen bearbeiten" />
+      <div className="player-toolbar">
+        <button className="player-toolbar-btn" onClick={addMarker}>
+          <Pin size={16} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
+          onClick={setA}
+        >
+          <ArrowLeftToLine size={16} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
+          onClick={toggleLoop}
+          disabled={loopStart === null || loopEnd === null}
+        >
+          <Repeat size={16} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
+          onClick={setB}
+        >
+          <ArrowRightToLine size={16} />
+        </button>
+        {(loopStart !== null || loopEnd !== null) && (
+          <button className="player-toolbar-btn" onClick={clearLoop}>
+            <X size={16} />
+          </button>
+        )}
+        <button
+          className={`player-toolbar-btn ${assignedLabels.length > 0 ? 'player-toolbar-btn--accent' : ''}`}
+          onClick={() => setShowLabelPicker(!showLabelPicker)}
+        >
+          <Tag size={16} />
+        </button>
+        <button
+          className={`player-toolbar-btn ${isFav ? 'player-toolbar-btn--active' : ''}`}
+          onClick={() => toggleFav(currentPath)}
+        >
+          <Heart size={16} fill={isFav ? 'currentColor' : 'none'} />
+        </button>
+      </div>
+      {markers.length > 0 && (
+        <div className="player-marker-row">
+          {markers.map((m) => (
+            <button key={m.id} className="player-toolbar-marker" onClick={() => seek(m.time)}>
+              <span className="marker-dot" />
+              {formatTime(m.time)}
+              <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
+                <X size={10} />
+              </span>
+            </button>
+          ))}
+          <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
+            <Trash2 size={14} />
+          </button>
+        </div>
+      )}
 
       <div className="player-scroll-content">
         {/* Track name */}
@@ -110,6 +185,30 @@ export function SectionEditorPage() {
             }
           }}
         />
+
+        {/* Label Picker */}
+        {showLabelPicker && (
+          <div className="label-picker">
+            {labels.map((l) => {
+              const assigned = isAssigned(currentPath!, l.id)
+              return (
+                <button
+                  key={l.id}
+                  className={`label-picker-item ${assigned ? 'assigned' : ''}`}
+                  style={{
+                    borderColor: assigned ? l.color : 'var(--border)',
+                    background: assigned ? l.color + '25' : 'none',
+                    color: assigned ? l.color : 'var(--text-secondary)',
+                  }}
+                  onClick={() => toggleLabel(currentPath!, l.id)}
+                >
+                  <span className="label-picker-dot" style={{ background: l.color }} />
+                  {l.name}
+                </button>
+              )
+            })}
+          </div>
+        )}
 
         <div className="player-divider" />
 
