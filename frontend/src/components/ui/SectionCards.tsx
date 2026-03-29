@@ -40,7 +40,8 @@ export function SectionCards({
       {timeline.map((entry, i) => {
         const isCurrent = i === currentIndex
         const isSelected = !entry.isGap && entry.id === activeSectionId
-        const isLooping = (isCurrent || isSelected) && loopEnabled
+        const isActive = isSelected || (selectedIndex === -1 && isCurrent)
+        const isLooping = isActive && loopEnabled
           && loopStart !== null && loopEnd !== null
           && (isSelected
             || (entry.isGap
@@ -48,13 +49,13 @@ export function SectionCards({
               && Math.abs(loopEnd - entry.end_time) < 0.5))
 
         let cls = 'section-card'
-        if (isCurrent || isSelected) cls += ' section-card--active'
+        if (isActive) cls += ' section-card--active'
         if (entry.isGap) cls += ' section-card--gap'
 
         return (
           <button
             key={entry.isGap ? `gap-${i}` : `sec-${entry.id}`}
-            ref={(isCurrent || isSelected) ? activeRef : undefined}
+            ref={isActive ? activeRef : undefined}
             className={cls}
             style={!entry.isGap ? { background: hexAlpha(entry.color!, 0.12) } : undefined}
             onClick={() => onSectionClick(entry)}
