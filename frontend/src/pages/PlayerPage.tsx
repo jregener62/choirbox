@@ -85,7 +85,7 @@ export function PlayerPage() {
     <div className="player-page">
       {/* Page header */}
       <div className="topbar">
-        <button className="topbar-back" onClick={() => navigate(-1)}>
+        <button className="topbar-back" onClick={() => navigate('/')}>
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Player</span>

@@ -47,7 +47,7 @@ export function FavoritesPage() {
   return (
     <div>
       <div className="topbar">
-        <button className="topbar-back" onClick={() => navigate(-1)}>
+        <button className="topbar-back" onClick={() => navigate('/')}>
           <ChevronLeft size={22} />
         </button>
         <div className="topbar-title">Favoriten</div>
