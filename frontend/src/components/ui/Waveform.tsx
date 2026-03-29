@@ -3,7 +3,6 @@ import type { Marker } from '@/stores/playerStore.ts'
 
 interface WaveformProps {
   peaks: number[]
-  currentTime: number
   duration: number
   loopStart: number | null
   loopEnd: number | null
@@ -22,7 +21,7 @@ const COLOR_LOOP_DIM = 'rgba(245, 158, 11, 0.6)'
 const COLOR_MARKER = '#fbbf24'
 
 export function Waveform({
-  peaks, currentTime, duration,
+  peaks, duration,
   loopStart, loopEnd, loopEnabled,
   markers, activeSectionId = null,
   onSeek, dimmed = false,
