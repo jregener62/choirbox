@@ -8,9 +8,12 @@ import { useSectionsStore } from '@/hooks/useSections.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
+import { SectionCards } from '@/components/ui/SectionCards.tsx'
+import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { buildTimeline } from '@/utils/buildTimeline'
 import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
+import type { TimelineEntry } from '@/utils/buildTimeline'
 
 const FALLBACK_COLORS = [
   '#f59e0b', '#ef4444', '#3b82f6', '#22c55e',
@@ -40,7 +43,6 @@ export function SectionEditorPage() {
     if (!presetsLoaded) loadPresets()
   }, [presetsLoaded, loadPresets])
 
-
   if (!currentPath) {
     navigate('/', { replace: true })
     return null
@@ -65,6 +67,9 @@ export function SectionEditorPage() {
     loopLastTap.current = now
   }, [])
 
+  const folderPath = currentPath.split('/').slice(0, -1).join('/')
+  const timeline = buildTimeline(sections, duration)
+  const hasSections = sections.length > 0
   const canGenerateSections = markers.length >= 2
 
   const generateSections = async () => {
@@ -92,22 +97,6 @@ export function SectionEditorPage() {
     resetForm()
   }
 
-  const handleSelect = (s: typeof sections[0]) => {
-    const store = usePlayerStore.getState()
-    if (store.activeSection?.id === s.id) {
-      store.setSectionLoop(null)
-      resetForm()
-    } else {
-      store.setSectionLoop(s)
-      seek(s.start_time)
-      setEditingId(s.id)
-      setLabel(s.label)
-      setColor(s.color)
-      setStartTime(s.start_time)
-      setEndTime(s.end_time)
-    }
-  }
-
   const resetForm = () => {
     setEditingId(null)
     setLabel('')
@@ -117,8 +106,43 @@ export function SectionEditorPage() {
     usePlayerStore.getState().setSectionLoop(null)
   }
 
+  const handleSectionClick = (entry: TimelineEntry) => {
+    if (entry.isGap) return
+    const section = sections.find((s) => s.id === entry.id)
+    if (!section) return
+
+    const store = usePlayerStore.getState()
+    if (editingId === section.id) {
+      resetForm()
+    } else {
+      store.setSectionLoop(section)
+      seek(section.start_time)
+      setEditingId(section.id)
+      setLabel(section.label)
+      setColor(section.color)
+      setStartTime(section.start_time)
+      setEndTime(section.end_time)
+    }
+  }
+
+  const handleLaneClick = (section: typeof sections[0]) => {
+    const store = usePlayerStore.getState()
+    if (editingId === section.id) {
+      resetForm()
+    } else {
+      store.setSectionLoop(section)
+      seek(section.start_time)
+      setEditingId(section.id)
+      setLabel(section.label)
+      setColor(section.color)
+      setStartTime(section.start_time)
+      setEndTime(section.end_time)
+    }
+  }
+
   return (
     <div className="player-page">
+      {/* Page header — same as PlayerPage */}
       <div className="topbar">
         <button className="topbar-back" onClick={() => navigate('/player')}>
           <ChevronLeft size={22} />
@@ -128,10 +152,14 @@ export function SectionEditorPage() {
       <TopPlayerBar
         variant="full"
         peaks={peaks}
-        timeline={buildTimeline(sections, duration)}
-        onSeek={seek}
+        timeline={timeline}
+        onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
       />
+      {/* Toolbar — same as PlayerPage */}
       <div className="player-toolbar">
+        <button className="player-toolbar-btn" onClick={addMarker}>
+          <Pin size={16} />
+        </button>
         <button
           className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setA}
@@ -152,6 +180,7 @@ export function SectionEditorPage() {
           <ArrowRightToLine size={16} />
         </button>
       </div>
+      {/* Marker row — same as PlayerPage */}
       {markers.length > 0 && (
         <div className="player-marker-row">
           {markers.map((m) => (
@@ -169,13 +198,22 @@ export function SectionEditorPage() {
         </div>
       )}
 
+      {/* Scrollable content */}
       <div className="player-scroll-content">
-        {/* Track name */}
+        {/* Track Info — same as PlayerPage */}
         <div className="player-track-info">
-          <div className="player-track-name" style={{ fontSize: 14 }}>{formatDisplayName(currentName!)}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+            {currentName && (
+              <VoiceIcon
+                filename={currentName}
+                folderName={folderPath.split('/').filter(Boolean).pop() || ''}
+              />
+            )}
+            <div className="player-track-name">{formatDisplayName(currentName!)}</div>
+          </div>
         </div>
 
-        {/* Waveform + Section Lane */}
+        {/* Waveform + SectionLane for editing */}
         <Waveform
           peaks={peaks}
           currentTime={currentTime}
@@ -190,12 +228,35 @@ export function SectionEditorPage() {
         <SectionLane
           sections={sections}
           duration={duration}
-          activeSectionId={activeSection?.id ?? null}
-          onSectionClick={handleSelect}
+          activeSectionId={editingId}
+          onSectionClick={handleLaneClick}
         />
 
-        {/* Sektionen / Marker buttons */}
-        <div style={{ display: 'flex', gap: 10, margin: '12px 0' }}>
+        {/* Section Cards — click selects for editing */}
+        {hasSections && (
+          <SectionCards
+            timeline={timeline}
+            currentTime={currentTime}
+            activeSectionId={editingId}
+            loopEnabled={loopEnabled}
+            loopStart={loopStart}
+            loopEnd={loopEnd}
+            onSectionClick={handleSectionClick}
+          />
+        )}
+
+        {/* Hint when no sections exist yet */}
+        {!hasSections && (
+          <div style={{ padding: '24px 0', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
+            Setze Marker und erstelle daraus Sektionen
+          </div>
+        )}
+      </div>
+
+      {/* Fixed footer — editing controls */}
+      <div className="section-editor-footer">
+        {/* Set Marker + Generate Sections */}
+        <div style={{ display: 'flex', gap: 10 }}>
           <button
             className="player-ab-btn"
             style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
@@ -215,19 +276,12 @@ export function SectionEditorPage() {
           </button>
         </div>
 
-        {/* Hint when sections exist but none selected */}
-        {editingId === null && sections.length > 0 && (
-          <div style={{ padding: '16px 0', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
-            Waehle eine Sektion, um sie zu editieren
-          </div>
-        )}
-
-        {/* Edit form — only when editing an existing section */}
+        {/* Edit form when section selected */}
         {editingId !== null && (
           <>
-            <div className="player-divider" />
+            <div className="player-divider" style={{ margin: '12px 0' }} />
 
-            {/* Preset bricks for renaming */}
+            {/* Preset bricks */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
               {presets.map((p) => {
                 const isActive = label === p.name && color === p.color
@@ -260,14 +314,14 @@ export function SectionEditorPage() {
                 style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
                 onClick={() => setStartTime(currentTime)}
               >
-                Start: {startTime !== null ? formatTime(startTime) : '—'}
+                Start: {startTime !== null ? formatTime(startTime) : '\u2014'}
               </button>
               <button
                 className={`player-ab-btn ${endTime !== null ? 'active' : ''}`}
                 style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
                 onClick={() => setEndTime(currentTime)}
               >
-                Ende: {endTime !== null ? formatTime(endTime) : '—'}
+                Ende: {endTime !== null ? formatTime(endTime) : '\u2014'}
               </button>
               <button
                 className="player-ab-btn"
@@ -278,7 +332,7 @@ export function SectionEditorPage() {
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', gap: 10 }}>
               <button
                 className="btn btn-primary"
                 style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
@@ -297,7 +351,6 @@ export function SectionEditorPage() {
             </div>
           </>
         )}
-
       </div>
     </div>
   )

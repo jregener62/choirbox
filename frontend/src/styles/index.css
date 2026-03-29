@@ -1533,6 +1533,18 @@ body {
   color: var(--text-muted);
 }
 
+/* Section Editor Footer */
+.section-editor-footer {
+  flex-shrink: 0;
+  padding: 12px 20px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+  max-height: 50vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 /* Section Lane */
 .section-lane {
   position: relative;
