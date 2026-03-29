@@ -160,10 +160,11 @@ export function BrowsePage() {
     if (entry.type === 'folder') {
       closeSearch()
       loadFolder(entry.path)
-    } else if (entry.path === currentPath) {
-      navigate('/player')
     } else {
-      usePlayerStore.getState().setTrack(entry.path, entry.name)
+      if (entry.path !== currentPath) {
+        usePlayerStore.getState().setTrack(entry.path, entry.name)
+      }
+      navigate('/player')
     }
   }
 
