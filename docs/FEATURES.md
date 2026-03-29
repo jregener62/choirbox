@@ -131,20 +131,19 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 | `backend/api/dropbox.py` | `GET /dropbox/browse` |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
 
-### Datei loeschen (Swipe-to-Delete)
+### Datei-Aktionen (Swipe & Drei-Punkte-Menue)
 
-Chorleiter und Admins koennen Audio-Dateien direkt aus der Dropbox loeschen.
+Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap darauf oder Swipe nach links enthuellt die Aktions-Buttons:
 
-- Swipe-Geste: Auf einer Datei nach links wischen enthuellt einen roten "Loeschen"-Button
-- Bestaetigungsdialog vor dem Loeschen ("Wird unwiderruflich aus der Dropbox geloescht")
-- Nach dem Loeschen wird die Dateiliste automatisch aktualisiert
-- Falls die geloeschte Datei gerade abgespielt wird, wird der Player zurueckgesetzt
-- Nur sichtbar fuer Chorleiter (Level 3) und Admin (Level 4)
-- Tippen auf ein anderes Element schliesst das geoeffnete Swipe-Menue
+- **Favorit** (Herz): Datei als Favorit markieren/entfernen
+- **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen
+- **Loeschen** (Papierkorb): Nur fuer Chorleiter (Level 3) und Admin (Level 4) sichtbar. Bestaetigungsdialog vor dem Loeschen.
+- Tippen auf ein anderes Element oder erneutes Tippen auf die drei Punkte schliesst das Menue
+- Einfach-Tap auf eine Datei oeffnet direkt den Player (kein Doppelklick noetig)
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Bestaetigungsdialog, Loeschlogik |
+| `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Drei-Punkte-Button, Label-Picker-Overlay, Loeschlogik |
 | `backend/api/dropbox.py` | `DELETE /dropbox/file` |
 | `backend/services/dropbox_service.py` | `delete_file()` |
 
@@ -168,7 +167,7 @@ Chorleiter und Admins koennen Audio-Dateien direkt aus der Dropbox loeschen.
 
 ### Wiedergabe
 
-- Play/Pause
+- Play/Pause (kein Autoplay beim Oeffnen des Players)
 - Seek per Waveform-Klick oder Zeitanzeige
 - Aktuelle Position und Gesamtdauer
 - Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
@@ -202,8 +201,8 @@ Einen Abschnitt des Tracks in Endlosschleife wiederholen.
 
 - A-Punkt setzen (Loop-Start) an aktueller Position
 - B-Punkt setzen (Loop-End) an aktueller Position
-- Loop ein/ausschalten (nur moeglich wenn A und B gesetzt)
-- Loop loeschen
+- Loop ein/ausschalten per Einfach-Tap auf Loop-Button (nur moeglich wenn A und B gesetzt)
+- Loop-Punkte zuruecksetzen per Doppel-Tap auf Loop-Button
 - Loop-Region in der Waveform visuell hervorgehoben
 
 | Datei | Rolle |
@@ -281,21 +280,19 @@ Pro Section koennen Lyrics und persoenliche Notizen hinterlegt werden. Waehrend 
 | `backend/api/sections.py` | `PUT /sections/lyrics` Bulk-Lyrics-Update (Pro-Mitglied+) |
 | `backend/models/note.py` | Note-Modell (user_id, dropbox_path, section_id, text) |
 
-### Mini-Player
+### Top-Player-Bar
 
-Kompakte Wiedergabe-Steuerung auf allen Seiten sichtbar.
+Kompakte Wiedergabe-Steuerung unterhalb des Seiten-Headers auf Browse-Seiten.
 
-- Zeigt aktuellen Track-Namen und Zeit
-- Play/Pause-Button
+- Zeigt aktuelle Position und Gesamtdauer
+- Play/Pause und Skip-Buttons
 - Fortschrittsbalken
-- Antippen oeffnet den vollen Player
-- Ausgeblendet auf der Player-Seite
-- Ausgeblendet wenn Aufnahme-Modal offen
+- Mini-Variante: Antippen oeffnet den vollen Player
+- Full-Variante: Auf Player- und Sektionen-Seite
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/components/layout/AppShell.tsx` | Mini-Player-UI |
-| `frontend/src/stores/appStore.ts` | `modalOpen` Flag |
+| `frontend/src/components/ui/TopPlayerBar.tsx` | Player-Bar-UI (mini/full) |
 
 ---
 
@@ -303,8 +300,7 @@ Kompakte Wiedergabe-Steuerung auf allen Seiten sichtbar.
 
 Persoenliche Sammlung von Lieblings-Dateien pro User.
 
-- Datei als Favorit markieren/entfernen (Herz-Icon)
-- Im Browser und im Player moeglich
+- Datei als Favorit markieren/entfernen (Herz-Icon) ueber Drei-Punkte-Menue im Browser
 - Eigene Favoriten-Seite mit Liste aller markierten Dateien
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
 - Label-Filter auch auf Favoriten-Seite verfuegbar
@@ -312,7 +308,7 @@ Persoenliche Sammlung von Lieblings-Dateien pro User.
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/FavoritesPage.tsx` | Favoriten-Seite |
-| `frontend/src/pages/BrowsePage.tsx` | Herz-Icon im Browser |
+| `frontend/src/pages/BrowsePage.tsx` | Favorit-Toggle im Drei-Punkte-Menue |
 | `frontend/src/hooks/useFavorites.ts` | Zustand Store + API-Logik |
 | `backend/api/favorites.py` | `GET /favorites`, `POST /favorites/toggle` |
 | `backend/models/favorite.py` | Favoriten-Modell (user_id + dropbox_path) |
@@ -366,7 +362,7 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 
 Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, Dateien-App).
 
-- Upload-Button (Upload-Icon) neben dem Aufnahme-Button im Datei-Browser
+- Upload-Button im Footer des Datei-Browsers (neben Aufnahme-Button)
 - Oeffnet den nativen Datei-Picker des Geraets
 - iOS: nur Dateiendungen im `accept`-Attribut, damit direkt die Dateien-App oeffnet (statt Kamera/Fotomediathek)
 - Android/Desktop: `audio/*` MIME-Type fuer nativen Audio-Filter im Picker
@@ -448,12 +444,14 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 
 ## Navigation
 
-### Bottom-Navigation
+### Seitenstruktur
 
-Drei Tabs auf allen Seiten (ausser Player):
-- **Dateien** — Datei-Browser
-- **Favoriten** — Favoriten-Liste
-- **Einstellungen** — Profil und Admin
+Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Hauptseite (Dateien) haben links einen Zurueck-Button (`<`).
+
+- **Dateien** (Hauptseite): Header mit Titel + Aktions-Icons (Favoriten, Filter, Suche, Einstellungen). Footer mit Aufnahme- und Upload-Buttons.
+- **Player, Sektionen**: Header mit Zurueck-Button + Titel, darunter Player-Controls und Toolbar.
+- **Favoriten, Einstellungen**: Header mit Zurueck-Button + Titel.
+- **Admin-Seiten**: Header mit Zurueck-Button + Titel + optionale Aktions-Buttons.
 
 ### Routing
 
