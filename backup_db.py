@@ -26,7 +26,7 @@ load_dotenv(BASE_DIR / ".env")
 DB_PATH = BASE_DIR / "choirbox.db"
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY", "")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET", "")
-BACKUP_FOLDER = "/backups"
+BACKUP_FOLDER = "/Apps/choirbox/backups"
 KEEP_BACKUPS = 7
 
 logging.basicConfig(

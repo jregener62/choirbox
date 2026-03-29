@@ -35,6 +35,9 @@ Thumbs.db
 *.log
 .logs/
 
+# SoundFonts (large binary files)
+*.sf2
+
 # Scripts & tools
 analyze_filenames.py
 rename_files.py

@@ -371,8 +371,9 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 - iOS: nur Dateiendungen im `accept`-Attribut, damit direkt die Dateien-App oeffnet (statt Kamera/Fotomediathek)
 - Android/Desktop: `audio/*` MIME-Type fuer nativen Audio-Filter im Picker
 - Nach Dateiauswahl oeffnet sich das gleiche Benennungs-Modal wie bei Aufnahmen (Stimme, Abschnitt, Notiz)
-- Unterstuetzte Formate: MP3, M4A, WebM, OGG, Opus, WAV, MP4
+- Unterstuetzte Formate: MP3, M4A, WebM, OGG, Opus, WAV, MP4, MIDI (.mid/.midi)
 - Nicht-MP3-Dateien werden server-seitig automatisch zu MP3 konvertiert
+- MIDI-Dateien werden ueber FluidSynth (SoundFont FluidR3_GM) zu WAV gerendert, dann via FFmpeg zu MP3 konvertiert
 - Maximale Dateigroesse: 20 MB
 
 | Datei | Rolle |

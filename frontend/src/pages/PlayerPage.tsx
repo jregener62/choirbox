@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, Pin, X, Trash2, LayoutList, ChevronLeft } from 'lucide-react'
+import { Repeat, X, Trash2, LayoutList, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -36,7 +36,7 @@ export function PlayerPage() {
 
   const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
   const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
-  const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
+
 
   const loopTapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
   const loopLastTap = useRef(0)
@@ -155,8 +155,7 @@ export function PlayerPage() {
 
       {/* Scrollable content */}
       <div className="player-scroll-content">
-        {/* Section Cards */}
-        {hasSections && (
+        {hasSections ? (
           <SectionCards
             timeline={timeline}
             currentTime={currentTime}
@@ -166,33 +165,44 @@ export function PlayerPage() {
             loopEnd={loopEnd}
             onSectionClick={handleSectionClick}
           />
+        ) : (
+          <div className="player-empty-sections">
+            <svg className="player-empty-waveform" viewBox="0 0 120 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="4" y="18" width="3" height="12" rx="1.5" fill="currentColor" />
+              <rect x="11" y="12" width="3" height="24" rx="1.5" fill="currentColor" />
+              <rect x="18" y="8" width="3" height="32" rx="1.5" fill="currentColor" />
+              <rect x="25" y="14" width="3" height="20" rx="1.5" fill="currentColor" />
+              <rect x="32" y="4" width="3" height="40" rx="1.5" fill="currentColor" />
+              <rect x="39" y="10" width="3" height="28" rx="1.5" fill="currentColor" />
+              <rect x="46" y="16" width="3" height="16" rx="1.5" fill="currentColor" />
+              <rect x="53" y="6" width="3" height="36" rx="1.5" fill="currentColor" />
+              <rect x="60" y="2" width="3" height="44" rx="1.5" fill="currentColor" />
+              <rect x="67" y="10" width="3" height="28" rx="1.5" fill="currentColor" />
+              <rect x="74" y="16" width="3" height="16" rx="1.5" fill="currentColor" />
+              <rect x="81" y="8" width="3" height="32" rx="1.5" fill="currentColor" />
+              <rect x="88" y="14" width="3" height="20" rx="1.5" fill="currentColor" />
+              <rect x="95" y="6" width="3" height="36" rx="1.5" fill="currentColor" />
+              <rect x="102" y="12" width="3" height="24" rx="1.5" fill="currentColor" />
+              <rect x="109" y="18" width="3" height="12" rx="1.5" fill="currentColor" />
+            </svg>
+            <span>Noch keine Sektionen festgelegt</span>
+          </div>
         )}
-
       </div>
 
       {/* Tools footer */}
-      <div className="section-editor-footer">
-        <div style={{ display: 'flex', gap: 10 }}>
+      {hasMinRole(userRole, 'pro-member') && (
+        <div className="section-editor-footer">
           <button
             className="player-ab-btn"
-            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-            onClick={addMarker}
+            style={{ width: '100%', padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+            onClick={() => navigate('/sections')}
           >
-            <Pin size={18} />
-            Setze Marker
+            <LayoutList size={18} />
+            Sektionen editieren
           </button>
-          {hasMinRole(userRole, 'pro-member') && (
-            <button
-              className="player-ab-btn"
-              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-              onClick={() => navigate('/sections')}
-            >
-              <LayoutList size={18} />
-              Sektionen editieren
-            </button>
-          )}
         </div>
-      </div>
+      )}
     </div>
   )
 }

@@ -223,7 +223,7 @@ export function BrowsePage() {
           <span className="topbar-title">Dateien</span>
           {!searchOpen && (
             <>
-              <button className="player-header-btn" onClick={() => navigate('/favorites')}>
+              <button className="player-header-btn" style={{ marginLeft: 'auto' }} onClick={() => navigate('/favorites')}>
                 <Heart size={18} />
               </button>
               {hasAnyLabels && labels.length > 0 && (
@@ -530,7 +530,7 @@ export function BrowsePage() {
         <input
           ref={fileInputRef}
           type="file"
-          accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav'}
+          accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi'}
           style={{ display: 'none' }}
           onChange={(e) => {
             const file = e.target.files?.[0]

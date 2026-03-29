@@ -294,7 +294,7 @@ async def dropbox_upload(
 
     filename = file.filename or "recording"
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if ext not in ("webm", "m4a", "mp4", "ogg", "opus", "wav", "mp3"):
+    if ext not in ("webm", "m4a", "mp4", "ogg", "opus", "wav", "mp3", "mid", "midi"):
         raise HTTPException(400, f"Unsupported file format: .{ext}")
 
     content = await file.read()
@@ -330,7 +330,7 @@ async def dropbox_upload(
 
 
 async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
-    """Convert audio bytes to MP3 using FFmpeg."""
+    """Convert audio bytes to MP3 using FFmpeg (or FluidSynth for MIDI)."""
     import asyncio
     import tempfile
     import os
@@ -340,10 +340,39 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
         src_path = src.name
 
     dst_path = src_path.rsplit(".", 1)[0] + ".mp3"
+    wav_path = None
 
     try:
+        # MIDI needs FluidSynth to render to WAV first
+        if input_ext in ("mid", "midi"):
+            soundfont = os.path.join(
+                os.path.dirname(os.path.dirname(__file__)), "soundfonts", "FluidR3_GM.sf2"
+            )
+            if not os.path.exists(soundfont):
+                import logging
+                logging.getLogger(__name__).error("SoundFont not found: %s", soundfont)
+                return None
+
+            wav_path = src_path.rsplit(".", 1)[0] + ".wav"
+            proc = await asyncio.create_subprocess_exec(
+                "fluidsynth", "-ni", soundfont, src_path, "-F", wav_path, "-r", "44100",
+                stdout=asyncio.subprocess.DEVNULL,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
+
+            if proc.returncode != 0:
+                import logging
+                logging.getLogger(__name__).error("FluidSynth error: %s", stderr.decode())
+                return None
+
+            # Now convert the WAV to MP3 via FFmpeg
+            src_path_for_ffmpeg = wav_path
+        else:
+            src_path_for_ffmpeg = src_path
+
         proc = await asyncio.create_subprocess_exec(
-            "ffmpeg", "-y", "-i", src_path,
+            "ffmpeg", "-y", "-i", src_path_for_ffmpeg,
             "-codec:a", "libmp3lame", "-b:a", "128k", "-ac", "1",
             dst_path,
             stdout=asyncio.subprocess.DEVNULL,
@@ -358,16 +387,18 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
 
         with open(dst_path, "rb") as f:
             return f.read()
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         import logging
-        logging.getLogger(__name__).error("FFmpeg not installed — cannot convert audio")
+        logging.getLogger(__name__).error("External tool not found (%s) — cannot convert", e)
         return None
     except asyncio.TimeoutError:
         import logging
-        logging.getLogger(__name__).error("FFmpeg timeout after 30s")
+        logging.getLogger(__name__).error("Conversion timeout")
         return None
     finally:
-        for p in (src_path, dst_path):
+        for p in (src_path, dst_path, wav_path):
+            if p is None:
+                continue
             try:
                 os.unlink(p)
             except OSError:
