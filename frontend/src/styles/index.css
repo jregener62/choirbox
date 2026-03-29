@@ -46,8 +46,8 @@
   --warning: #fbbf24;
   --marker: #a3e635;
   --marker-dim: rgba(163,230,53,0.2);
-  --confirm: #60a5fa;
-  --confirm-hover: #3b82f6;
+  --confirm: #3b82f6;
+  --confirm-hover: #2563eb;
   --player-bg: #1e293b;
   --player-text: #f1f5f9;
 }
@@ -1696,12 +1696,12 @@ body {
 }
 
 .section-shift-btn {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--text-primary);
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
   font-size: 18px;
   font-weight: 700;
   display: flex;
@@ -1712,7 +1712,7 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .section-shift-btn:active {
-  background: var(--bg-tertiary);
+  color: var(--text-primary);
 }
 .section-shift-btn:disabled {
   opacity: 0.3;
@@ -1721,8 +1721,8 @@ body {
 
 .section-boundary-row {
   display: flex;
-  gap: 6px;
-  align-items: stretch;
+  gap: 4px;
+  align-items: center;
   margin-bottom: 24px;
 }
 
