@@ -9,6 +9,7 @@ import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
+import { buildTimeline } from '@/utils/buildTimeline'
 import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
 
 const FALLBACK_COLORS = [
@@ -124,7 +125,12 @@ export function SectionEditorPage() {
         </button>
         <span className="topbar-title">Sektionen</span>
       </div>
-      <TopPlayerBar variant="full" />
+      <TopPlayerBar
+        variant="full"
+        peaks={peaks}
+        timeline={buildTimeline(sections, duration)}
+        onSeek={seek}
+      />
       <div className="player-toolbar">
         <button
           className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}

@@ -5,7 +5,7 @@ import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
-import { UnifiedTimeline } from '@/components/ui/UnifiedTimeline.tsx'
+import { SectionCards } from '@/components/ui/SectionCards.tsx'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
@@ -90,7 +90,12 @@ export function PlayerPage() {
         </button>
         <span className="topbar-title">Player</span>
       </div>
-      <TopPlayerBar variant="full" />
+      <TopPlayerBar
+        variant="full"
+        peaks={peaks}
+        timeline={timeline}
+        onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
+      />
       <div className="player-toolbar">
         <button className="player-toolbar-btn" onClick={addMarker}>
           <Pin size={16} />
@@ -152,23 +157,18 @@ export function PlayerPage() {
           </div>
         </div>
 
-        {/* Waveform + Sections */}
-        <UnifiedTimeline
-          peaks={peaks}
-          currentTime={currentTime}
-          duration={duration}
-          loopStart={loopStart}
-          loopEnd={loopEnd}
-          loopEnabled={loopEnabled}
-          markers={markers}
-          timeline={timeline}
-          activeSectionId={activeSection?.id ?? null}
-          hasSections={hasSections}
-          onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
-          onSectionClick={handleSectionClick}
-        />
-
-
+        {/* Section Cards */}
+        {hasSections && (
+          <SectionCards
+            timeline={timeline}
+            currentTime={currentTime}
+            activeSectionId={activeSection?.id ?? null}
+            loopEnabled={loopEnabled}
+            loopStart={loopStart}
+            loopEnd={loopEnd}
+            onSectionClick={handleSectionClick}
+          />
+        )}
 
         {/* Lyrics & Notes */}
         <div className="player-lyrics-divider" />

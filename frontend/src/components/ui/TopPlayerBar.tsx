@@ -1,18 +1,21 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronDown, Rewind, FastForward, Play, Pause } from 'lucide-react'
+import { Rewind, FastForward, Play, Pause } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
+import { MiniWaveform } from '@/components/ui/MiniWaveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
+import type { TimelineEntry } from '@/utils/buildTimeline'
 
 interface TopPlayerBarProps {
   variant: 'mini' | 'full'
-  onBack?: () => void
-  title?: string
+  peaks?: number[]
+  timeline?: TimelineEntry[]
+  onSeek?: (time: number) => void
 }
 
-export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
+export function TopPlayerBar({ variant, peaks, timeline, onSeek }: TopPlayerBarProps) {
   const navigate = useNavigate()
   const {
     currentName,
@@ -35,18 +38,13 @@ export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
   const isFull = variant === 'full'
+  const hasWaveform = peaks && peaks.length > 0 && onSeek
 
   return (
     <div
       className={`top-player-bar ${isFull ? 'top-player-bar--full' : ''}`}
       onClick={!isFull ? () => navigate('/player') : undefined}
     >
-      {isFull && onBack ? (
-        <button className="top-player-back" onClick={onBack}>
-          <ChevronDown size={22} />
-        </button>
-      ) : null}
-
       {/* Time + Controls */}
       <span className="top-player-time">{formatTime(currentTime)}</span>
       <div className="top-player-controls">
@@ -64,10 +62,20 @@ export function TopPlayerBar({ variant, onBack }: TopPlayerBarProps) {
       </div>
       <span className="top-player-time">{formatTime(duration)}</span>
 
-      {/* Progress bar */}
-      <div className="top-player-progress">
-        <div className="top-player-progress-fill" style={{ width: `${progress}%` }} />
-      </div>
+      {/* Waveform progress or simple progress bar */}
+      {hasWaveform ? (
+        <MiniWaveform
+          peaks={peaks}
+          currentTime={currentTime}
+          duration={duration}
+          timeline={timeline}
+          onSeek={onSeek}
+        />
+      ) : (
+        <div className="top-player-progress">
+          <div className="top-player-progress-fill" style={{ width: `${progress}%` }} />
+        </div>
+      )}
     </div>
   )
 }
