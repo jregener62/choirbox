@@ -1,18 +1,20 @@
 import { useRef, useEffect, useCallback } from 'react'
 import type { TimelineEntry } from '@/utils/buildTimeline'
+import type { Marker } from '@/stores/playerStore'
 
 interface MiniWaveformProps {
   peaks: number[]
   currentTime: number
   duration: number
   timeline?: TimelineEntry[]
+  markers?: Marker[]
   onSeek: (time: number) => void
 }
 
 const COLOR_PLAYED = 'rgba(129, 140, 248, 0.9)'
 const COLOR_UNPLAYED = 'rgba(51, 65, 85, 0.8)'
 
-export function MiniWaveform({ peaks, currentTime, duration, timeline, onSeek }: MiniWaveformProps) {
+export function MiniWaveform({ peaks, currentTime, duration, timeline, markers, onSeek }: MiniWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stripRef = useRef<HTMLCanvasElement>(null)
 
@@ -107,6 +109,17 @@ export function MiniWaveform({ peaks, currentTime, duration, timeline, onSeek }:
       />
       {timeline && timeline.length > 0 && (
         <canvas ref={stripRef} className="mini-waveform-strip" />
+      )}
+      {markers && markers.length > 0 && duration > 0 && (
+        <div className="mini-waveform-markers">
+          {markers.map((m) => (
+            <span
+              key={m.id}
+              className="mini-waveform-marker-dot"
+              style={{ left: `${(m.time / duration) * 100}%` }}
+            />
+          ))}
+        </div>
       )}
     </div>
   )

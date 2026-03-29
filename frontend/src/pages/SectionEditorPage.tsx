@@ -136,6 +136,7 @@ export function SectionEditorPage() {
         variant="full"
         peaks={peaks}
         timeline={timeline}
+        markers={markers}
         onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
       />
       {/* Toolbar — same as PlayerPage */}

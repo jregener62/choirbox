@@ -94,6 +94,7 @@ export function PlayerPage() {
         variant="full"
         peaks={peaks}
         timeline={timeline}
+        markers={markers}
         onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
       />
       <div className="player-toolbar">

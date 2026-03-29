@@ -7,15 +7,17 @@ import { useDoubleTap } from '@/hooks/useDoubleTap.ts'
 import { MiniWaveform } from '@/components/ui/MiniWaveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
+import type { Marker } from '@/stores/playerStore'
 
 interface TopPlayerBarProps {
   variant: 'mini' | 'full'
   peaks?: number[]
   timeline?: TimelineEntry[]
+  markers?: Marker[]
   onSeek?: (time: number) => void
 }
 
-export function TopPlayerBar({ variant, peaks, timeline, onSeek }: TopPlayerBarProps) {
+export function TopPlayerBar({ variant, peaks, timeline, markers, onSeek }: TopPlayerBarProps) {
   const navigate = useNavigate()
   const {
     currentName,
@@ -69,6 +71,7 @@ export function TopPlayerBar({ variant, peaks, timeline, onSeek }: TopPlayerBarP
           currentTime={currentTime}
           duration={duration}
           timeline={timeline}
+          markers={markers}
           onSeek={onSeek}
         />
       ) : (
