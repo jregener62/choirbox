@@ -11,7 +11,6 @@ import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
-import { PlayerLyrics } from '@/components/ui/PlayerLyrics.tsx'
 import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
@@ -163,14 +162,6 @@ export function PlayerPage() {
           />
         )}
 
-        {/* Lyrics & Notes */}
-        <div className="player-lyrics-divider" />
-
-        <PlayerLyrics
-          dropboxPath={currentPath}
-          currentTime={currentTime}
-          duration={duration}
-        />
       </div>
 
       {/* Tools footer */}
