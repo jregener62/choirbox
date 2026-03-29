@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Trash2, Pin, ArrowLeftToLine, ArrowRightToLine, Repeat, X, ChevronDown, LayoutList } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -43,9 +43,22 @@ export function SectionEditorPage() {
 
   const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
   const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
-  const toggleLoop = () => usePlayerStore.getState().toggleLoop()
-  const clearLoop = () => usePlayerStore.getState().clearLoop()
   const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
+
+  const loopTapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+  const loopLastTap = useRef(0)
+  const handleLoopTap = useCallback(() => {
+    const now = Date.now()
+    if (now - loopLastTap.current < 300) {
+      clearTimeout(loopTapTimer.current)
+      usePlayerStore.getState().clearLoop()
+    } else {
+      loopTapTimer.current = setTimeout(() => {
+        usePlayerStore.getState().toggleLoop()
+      }, 300)
+    }
+    loopLastTap.current = now
+  }, [])
 
   const canGenerateSections = markers.length >= 2
 
@@ -125,7 +138,7 @@ export function SectionEditorPage() {
         </button>
         <button
           className={`player-toolbar-btn ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
-          onClick={toggleLoop}
+          onClick={handleLoopTap}
           disabled={loopStart === null || loopEnd === null}
         >
           <Repeat size={16} />
@@ -136,11 +149,6 @@ export function SectionEditorPage() {
         >
           <ArrowRightToLine size={16} />
         </button>
-        {(loopStart !== null || loopEnd !== null) && (
-          <button className="player-toolbar-btn" onClick={clearLoop}>
-            <X size={16} />
-          </button>
-        )}
       </div>
       {markers.length > 0 && (
         <div className="player-marker-row">
