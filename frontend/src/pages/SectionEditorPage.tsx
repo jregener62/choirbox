@@ -338,7 +338,7 @@ export function SectionEditorPage() {
               </button>
               <button
                 className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
-                style={{ flex: 1, padding: '10px 8px', fontSize: 13 }}
+                style={{ padding: '8px 12px', fontSize: 13 }}
                 onClick={() => setStartTime(currentTime)}
               >
                 Start: {startTime !== null ? formatTime(startTime) : '\u2014'}
@@ -370,7 +370,7 @@ export function SectionEditorPage() {
               </button>
               <button
                 className={`player-ab-btn ${endTime !== null ? 'active' : ''}`}
-                style={{ flex: 1, padding: '10px 8px', fontSize: 13 }}
+                style={{ padding: '8px 12px', fontSize: 13 }}
                 onClick={() => setEndTime(currentTime)}
               >
                 Ende: {endTime !== null ? formatTime(endTime) : '\u2014'}
