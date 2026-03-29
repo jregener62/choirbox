@@ -1,12 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Pin, ArrowLeftToLine, ArrowRightToLine, Repeat, X, Heart, Tag, ChevronDown, LayoutList } from 'lucide-react'
+import { Trash2, Pin, ArrowLeftToLine, ArrowRightToLine, Repeat, X, ChevronDown, LayoutList } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
-import { useFavoritesStore } from '@/hooks/useFavorites.ts'
-import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
@@ -25,9 +23,6 @@ export function SectionEditorPage() {
   const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
   const { sections, load, bulkCreate, update, remove } = useSectionsStore()
-  const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
-  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel } = useLabelsStore()
-  const [showLabelPicker, setShowLabelPicker] = useState(false)
 
   // Edit form state
   const [editingId, setEditingId] = useState<number | null>(null)
@@ -40,10 +35,6 @@ export function SectionEditorPage() {
     if (currentPath) load(currentPath)
   }, [currentPath, load])
 
-  useEffect(() => {
-    if (!favsLoaded) loadFavs()
-    if (!labelsLoaded) loadLabels()
-  }, [favsLoaded, loadFavs, labelsLoaded, loadLabels])
 
   if (!currentPath) {
     navigate('/', { replace: true })
@@ -55,8 +46,6 @@ export function SectionEditorPage() {
   const toggleLoop = () => usePlayerStore.getState().toggleLoop()
   const clearLoop = () => usePlayerStore.getState().clearLoop()
   const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
-  const isFav = isFavorite(currentPath)
-  const assignedLabels = getLabelsForPath(currentPath)
 
   const canGenerateSections = markers.length >= 2
 
@@ -152,18 +141,6 @@ export function SectionEditorPage() {
             <X size={16} />
           </button>
         )}
-        <button
-          className={`player-toolbar-btn ${assignedLabels.length > 0 ? 'player-toolbar-btn--accent' : ''}`}
-          onClick={() => setShowLabelPicker(!showLabelPicker)}
-        >
-          <Tag size={16} />
-        </button>
-        <button
-          className={`player-toolbar-btn ${isFav ? 'player-toolbar-btn--active' : ''}`}
-          onClick={() => toggleFav(currentPath)}
-        >
-          <Heart size={16} fill={isFav ? 'currentColor' : 'none'} />
-        </button>
       </div>
       {markers.length > 0 && (
         <div className="player-marker-row">
@@ -206,30 +183,6 @@ export function SectionEditorPage() {
           activeSectionId={activeSection?.id ?? null}
           onSectionClick={handleSelect}
         />
-
-        {/* Label Picker */}
-        {showLabelPicker && (
-          <div className="label-picker">
-            {labels.map((l) => {
-              const assigned = isAssigned(currentPath!, l.id)
-              return (
-                <button
-                  key={l.id}
-                  className={`label-picker-item ${assigned ? 'assigned' : ''}`}
-                  style={{
-                    borderColor: assigned ? l.color : 'var(--border)',
-                    background: assigned ? l.color + '25' : 'none',
-                    color: assigned ? l.color : 'var(--text-secondary)',
-                  }}
-                  onClick={() => toggleLabel(currentPath!, l.id)}
-                >
-                  <span className="label-picker-dot" style={{ background: l.color }} />
-                  {l.name}
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         {/* Edit form — only when editing an existing section */}
         {editingId !== null && (
