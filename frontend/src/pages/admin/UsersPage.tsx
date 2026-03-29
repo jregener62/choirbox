@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, Trash2 } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { ALL_ROLES, ROLE_LABELS, type Role } from '@/utils/roles.ts'
 
@@ -68,8 +68,8 @@ export function UsersPage() {
   return (
     <div>
       <div className="topbar">
-        <button className="player-header-btn" onClick={() => navigate('/settings')}>
-          <ArrowLeft size={20} />
+        <button className="topbar-back" onClick={() => navigate('/settings')}>
+          <ChevronLeft size={22} />
         </button>
         <div className="topbar-title">Nutzer verwalten</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '0 8px' }}>{users.length}</div>

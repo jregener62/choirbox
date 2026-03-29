@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ArrowLeft, Pencil, Trash2, Plus } from 'lucide-react'
+import { ChevronLeft, Pencil, Trash2, Plus } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import type { Label } from '@/types/index.ts'
 
@@ -63,8 +63,8 @@ export function LabelsPage() {
   return (
     <div>
       <div className="topbar">
-        <button className="player-header-btn" onClick={() => navigate('/settings')}>
-          <ArrowLeft size={20} />
+        <button className="topbar-back" onClick={() => navigate('/settings')}>
+          <ChevronLeft size={22} />
         </button>
         <div className="topbar-title">Labels verwalten</div>
         <button className="player-header-btn" onClick={() => setShowForm(true)}>

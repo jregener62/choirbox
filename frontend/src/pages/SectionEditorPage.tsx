@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Pin, ArrowLeftToLine, ArrowRightToLine, Repeat, X, ChevronDown, LayoutList } from 'lucide-react'
+import { Trash2, Pin, ArrowLeftToLine, ArrowRightToLine, Repeat, X, ChevronLeft, LayoutList } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -119,8 +119,8 @@ export function SectionEditorPage() {
   return (
     <div className="player-page">
       <div className="topbar">
-        <button className="top-player-back" onClick={() => navigate(-1)}>
-          <ChevronDown size={22} />
+        <button className="topbar-back" onClick={() => navigate(-1)}>
+          <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Sektionen</span>
       </div>
@@ -246,6 +246,13 @@ export function SectionEditorPage() {
               >
                 Ende: {endTime !== null ? formatTime(endTime) : '—'}
               </button>
+              <button
+                className="player-ab-btn"
+                style={{ width: 44, height: 44, padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => { remove(editingId!); resetForm() }}
+              >
+                <Trash2 size={16} />
+              </button>
             </div>
 
             <button
@@ -266,67 +273,6 @@ export function SectionEditorPage() {
           </>
         )}
 
-        {/* Existing sections list */}
-        {sections.length > 0 && (
-          <>
-            <div className="player-divider" />
-            <div style={{ marginTop: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 8, color: 'var(--text-secondary)' }}>
-                Sektionen ({sections.length})
-              </div>
-              {sections.map((s) => {
-                const isSelected = activeSection?.id === s.id
-                return (
-                  <div
-                    key={s.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 8,
-                      padding: '8px 6px',
-                      borderBottom: '1px solid var(--border)',
-                      borderRadius: 6,
-                      background: isSelected ? s.color + '20' : 'transparent',
-                      borderLeft: isSelected ? `3px solid ${s.color}` : '3px solid transparent',
-                      cursor: 'pointer',
-                    }}
-                    onClick={() => handleSelect(s)}
-                  >
-                    <span
-                      style={{
-                        width: 12,
-                        height: 12,
-                        borderRadius: '50%',
-                        background: s.color,
-                        flexShrink: 0,
-                      }}
-                    />
-                    <span
-                      style={{
-                        flex: 1,
-                        textAlign: 'left',
-                        color: isSelected ? s.color : 'var(--text)',
-                        fontSize: 13,
-                        fontWeight: isSelected ? 600 : 500,
-                      }}
-                    >
-                      {s.label}
-                    </span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', fontVariantNumeric: 'tabular-nums' }}>
-                      {formatTime(s.start_time)} – {formatTime(s.end_time)}
-                    </span>
-                    <button
-                      className="marker-chip-remove"
-                      onClick={(e) => { e.stopPropagation(); remove(s.id) }}
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
-                )
-              })}
-            </div>
-          </>
-        )}
       </div>
     </div>
   )

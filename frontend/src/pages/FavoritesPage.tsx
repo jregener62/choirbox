@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { Heart, Trash2 } from 'lucide-react'
+import { Heart, Trash2, ChevronLeft } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
@@ -7,6 +8,7 @@ import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { formatDisplayName } from '@/utils/formatters.ts'
 
 export function FavoritesPage() {
+  const navigate = useNavigate()
   const { favorites, loaded, load, toggle } = useFavoritesStore()
   const { labels, assignments, loaded: labelsLoaded, load: loadLabels, getLabelsForPath } = useLabelsStore()
   const currentPath = usePlayerStore((s) => s.currentPath)
@@ -45,6 +47,9 @@ export function FavoritesPage() {
   return (
     <div>
       <div className="topbar">
+        <button className="topbar-back" onClick={() => navigate(-1)}>
+          <ChevronLeft size={22} />
+        </button>
         <div className="topbar-title">Favoriten</div>
         <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '0 8px' }}>
           {loaded ? filteredFavs.length : ''}

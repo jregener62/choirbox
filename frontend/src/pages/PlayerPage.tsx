@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, Pin, X, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine, ChevronDown } from 'lucide-react'
+import { Repeat, Pin, X, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -85,8 +85,8 @@ export function PlayerPage() {
     <div className="player-page">
       {/* Page header */}
       <div className="topbar">
-        <button className="top-player-back" onClick={() => navigate(-1)}>
-          <ChevronDown size={22} />
+        <button className="topbar-back" onClick={() => navigate(-1)}>
+          <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Player</span>
       </div>

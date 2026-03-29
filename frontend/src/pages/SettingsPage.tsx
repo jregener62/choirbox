@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LayoutList, LogOut, ChevronRight, Pencil, Lock, Check, X } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -164,6 +164,9 @@ export function SettingsPage() {
   return (
     <div>
       <div className="topbar">
+        <button className="topbar-back" onClick={() => navigate(-1)}>
+          <ChevronLeft size={22} />
+        </button>
         <div className="topbar-title">Einstellungen</div>
       </div>
 
