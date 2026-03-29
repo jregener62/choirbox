@@ -742,6 +742,18 @@ body {
 
 /* -- Favorite toggle in file list -- */
 
+.file-actions-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
 .fav-toggle {
   background: none;
   border: none;

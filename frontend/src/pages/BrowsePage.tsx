@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -395,8 +395,18 @@ export function BrowsePage() {
                   ) : null
                 })()}
               </div>
-              {entry.type === 'folder' && (
+              {entry.type === 'folder' ? (
                 <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+              ) : (
+                <button
+                  className="file-actions-btn"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRevealedPath(revealedPath === entry.path ? null : entry.path)
+                  }}
+                >
+                  <EllipsisVertical size={18} />
+                </button>
               )}
             </>
           )
