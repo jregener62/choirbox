@@ -353,7 +353,7 @@ body {
 
 .top-player-skip {
   background: none;
-  border: 2px solid #f59e0b;
+  border: none;
   color: #f59e0b;
   cursor: pointer;
   padding: 8px 12px;
