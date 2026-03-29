@@ -243,8 +243,10 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 - Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
 - Section Editor (Route `/sections`, ab Pro-Mitglied): Marker-basierter 3-Schritte-Workflow:
   1. Track durchhoeren und Marker setzen (Pin-Button) an jeder Sektionsgrenze
-  2. Sektionen generieren (LayoutList-Button in Toolbar, aktiv ab 2+ Markern) — erstellt automatisch Sektionen aus Marker-Paaren (M1→M2 = Sektion 1, M2→M3 = Sektion 2, ...) mit Default-Namen und zyklischen Farben, loescht Marker danach
-  3. Einzelne Sektionen bearbeiten: Name (Freitext + Presets), Farbwahl, Start/Ende per Playhead anpassen, Loeschen
+  2. Sektionen generieren (LayoutList-Button in Toolbar, aktiv ab 2+ Markern) — erstellt automatisch Sektionen aus Marker-Paaren (M1→M2 = Sektion 1, M2→M3 = Sektion 2, ...), nutzt dabei zyklisch die Sektionsvorlagen (Name + Farbe), loescht Marker danach
+  3. Einzelne Sektionen bearbeiten: Tap auf Section-Brick oder Listeneintrag selektiert bidirektional (beide werden hervorgehoben). Im Edit-Modus stehen grosse farbige Preset-Bricks zur Auswahl (kein Freitext, keine Farbpalette). Start/Ende per Playhead anpassbar. Loeschen moeglich.
+- **Sektionsvorlagen** (Route `/admin/section-presets`, ab Pro-Mitglied): Wiederverwendbare Name/Farbe-Kombinationen (z.B. Intro, Strophe, Refrain), die im Section-Editor als Auswahl-Bricks erscheinen. Verwaltung unter Einstellungen > Sektionsvorlagen.
+- Default-Vorlagen beim Seeding: Intro, Strophe, Refrain, Bridge, Solo, Outro
 
 | Datei | Rolle |
 |-------|-------|
@@ -253,9 +255,13 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 | `frontend/src/components/ui/Waveform.tsx` | Canvas-Waveform (dimmed/undimmed) |
 | `frontend/src/utils/buildTimeline.ts` | Gap-Berechnung (lueckenlose Timeline aus Sections + Dauer) |
 | `frontend/src/hooks/useSections.ts` | Zustand Store + API-Logik |
+| `frontend/src/hooks/useSectionPresets.ts` | Zustand Store fuer Sektionsvorlagen |
+| `frontend/src/pages/admin/SectionPresetsPage.tsx` | Verwaltung der Sektionsvorlagen |
 | `frontend/src/stores/playerStore.ts` | `activeSection`, `setSectionLoop()` |
 | `backend/api/sections.py` | CRUD Endpoints (Pro-Mitglied+ fuer Schreibzugriff) |
+| `backend/api/section_presets.py` | CRUD Sektionsvorlagen (Pro-Mitglied+) |
 | `backend/models/section.py` | Section-Modell (dropbox_path, label, color, start/end_time, lyrics) |
+| `backend/models/section_preset.py` | SectionPreset-Modell (name, color, sort_order) |
 
 ### Lyrics & Notizen
 
@@ -434,6 +440,7 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Dropbox-Status (nur Admin)
 - Registrierungscode (nur Admin)
 - Labels verwalten (ab Pro-Mitglied)
+- Sektionsvorlagen verwalten (ab Pro-Mitglied)
 - Nutzer verwalten (nur Admin)
 - Logout
 
@@ -461,6 +468,7 @@ Drei Tabs auf allen Seiten (ausser Player):
 | `/sections` | Section-Editor | Pro-Mitglied+ |
 | `/admin/users` | Nutzerverwaltung | Admin |
 | `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |
+| `/admin/section-presets` | Sektionsvorlagen | Pro-Mitglied+ |
 
 HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
@@ -521,6 +529,15 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | PUT | `/{id}` | Sektion bearbeiten (inkl. Lyrics) | Pro-Mitglied+ |
 | PUT | `/lyrics` | Lyrics fuer mehrere Sektionen auf einmal speichern | Pro-Mitglied+ |
 | DELETE | `/{id}` | Sektion loeschen (loescht zugehoerige Notizen) | Pro-Mitglied+ |
+
+### Sektionsvorlagen (`/api/section-presets`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/` | Alle Sektionsvorlagen auflisten | User |
+| POST | `/` | Vorlage erstellen | Pro-Mitglied+ |
+| PUT | `/{id}` | Vorlage bearbeiten | Pro-Mitglied+ |
+| DELETE | `/{id}` | Vorlage loeschen | Pro-Mitglied+ |
 
 ### Notizen (`/api/notes`)
 
@@ -587,6 +604,15 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `user_id` | UUID (FK) | Referenz auf User |
 | `dropbox_path` | String | Dropbox-Dateipfad |
 | `label_id` | Integer (FK) | Referenz auf Label |
+
+### SectionPreset
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer | Primaerschluessel |
+| `name` | String (max 50) | Vorlagenname (z.B. "Intro", "Refrain") |
+| `color` | String (max 7) | Hex-Farbe |
+| `sort_order` | Integer | Sortierung |
 
 ### Section
 
