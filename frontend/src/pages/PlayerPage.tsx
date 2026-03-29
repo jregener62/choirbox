@@ -1,18 +1,19 @@
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, Pin, X, Trash2, LayoutList, ChevronLeft } from 'lucide-react'
+import { Pin, LayoutList, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
+import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
-import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
+import { PlayerControlsBar } from '@/components/ui/PlayerControlsBar.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
 import { parseTrackFilename } from '@/utils/parseTrackFilename'
 import { voiceColor, voiceBg, voiceFullName } from '@/utils/voiceColors'
-import { formatTime, formatDisplayName, middleTruncate } from '@/utils/formatters.ts'
+import { formatDisplayName, middleTruncate } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 export function PlayerPage() {
@@ -22,37 +23,18 @@ export function PlayerPage() {
   const {
     currentName, currentPath,
     currentTime, duration,
-    loopStart, loopEnd, loopEnabled,
+    loopEnabled, loopStart, loopEnd,
     activeSection,
     markers,
   } = usePlayerStore()
   const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
+  const { addMarker } = useLoopControls()
 
   if (!currentPath) {
     navigate('/', { replace: true })
     return null
   }
-
-  const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
-  const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
-  const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
-
-
-  const loopTapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
-  const loopLastTap = useRef(0)
-  const handleLoopTap = useCallback(() => {
-    const now = Date.now()
-    if (now - loopLastTap.current < 300) {
-      clearTimeout(loopTapTimer.current)
-      usePlayerStore.getState().clearLoop()
-    } else {
-      loopTapTimer.current = setTimeout(() => {
-        usePlayerStore.getState().toggleLoop()
-      }, 300)
-    }
-    loopLastTap.current = now
-  }, [])
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
   const folderName = folderPath.split('/').filter(Boolean).pop() || ''
@@ -104,55 +86,7 @@ export function PlayerPage() {
           )}
         </div>
       </div>
-      <TopPlayerBar
-        variant="full"
-        peaks={peaks}
-        loopStart={loopStart}
-        loopEnd={loopEnd}
-        loopEnabled={loopEnabled}
-        timeline={timeline}
-        markers={markers}
-        onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
-      />
-      <div className="player-toolbar">
-        <button
-          className={`player-toolbar-btn player-toolbar-btn--wide ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
-          onClick={setA}
-        >
-          <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>[</span>
-          {loopStart !== null && <span className="player-toolbar-btn-time">{formatTime(loopStart)}</span>}
-        </button>
-        <button
-          className={`player-toolbar-btn player-toolbar-btn--narrow ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
-          onClick={handleLoopTap}
-          disabled={loopStart === null || loopEnd === null}
-        >
-          <Repeat size={16} />
-        </button>
-        <button
-          className={`player-toolbar-btn player-toolbar-btn--wide ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
-          onClick={setB}
-        >
-          {loopEnd !== null && <span className="player-toolbar-btn-time">{formatTime(loopEnd)}</span>}
-          <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>]</span>
-        </button>
-      </div>
-      {markers.length > 0 && (
-        <div className="player-marker-row">
-          {markers.map((m) => (
-            <button key={m.id} className="player-toolbar-marker" onClick={() => seek(m.time)}>
-              <span className="marker-dot" />
-              {formatTime(m.time)}
-              <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
-                <X size={10} />
-              </span>
-            </button>
-          ))}
-          <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
-            <Trash2 size={14} />
-          </button>
-        </div>
-      )}
+      <PlayerControlsBar peaks={peaks} timeline={timeline} markers={markers} />
 
       {/* Scrollable content */}
       <div className="player-scroll-content">
