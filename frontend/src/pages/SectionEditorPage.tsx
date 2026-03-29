@@ -301,7 +301,7 @@ export function SectionEditorPage() {
         ) : (
           <>
             {/* 1. Preset bricks — horizontal scrollable */}
-            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', overflowX: 'auto', marginBottom: 12, flexWrap: 'nowrap' }}>
+            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', overflowX: 'auto', marginBottom: 12, flexWrap: 'nowrap' }}>
               {presets.map((p) => {
                 const isActive = label === p.name && color === p.color
                 return (
@@ -309,15 +309,14 @@ export function SectionEditorPage() {
                     key={p.id}
                     onClick={() => { setLabel(p.name); setColor(p.color) }}
                     style={{
-                      padding: '10px 18px',
-                      borderRadius: 10,
-                      fontSize: 14,
+                      padding: '6px 14px',
+                      borderRadius: 8,
+                      fontSize: 13,
                       fontWeight: 600,
                       background: isActive ? p.color : p.color + '25',
                       color: isActive ? '#fff' : p.color,
                       border: isActive ? `2px solid ${p.color}` : '2px solid transparent',
                       cursor: 'pointer',
-                      minWidth: 80,
                       textAlign: 'center',
                       flexShrink: 0,
                     }}
