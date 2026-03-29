@@ -19,18 +19,16 @@ export function SectionCards({
   return (
     <div className="section-cards">
       {timeline.map((entry, i) => {
-        const isActive = !entry.isGap && entry.id === activeSectionId
-        const isGapLooping = entry.isGap && loopEnabled
-          && loopStart !== null && loopEnd !== null
-          && Math.abs(loopStart - entry.start_time) < 0.5
-          && Math.abs(loopEnd - entry.end_time) < 0.5
         const isCurrent = currentTime >= entry.start_time && currentTime < entry.end_time
-        const isPast = entry.end_time <= currentTime && !isActive && !isGapLooping
+        const isLooping = isCurrent && loopEnabled
+          && loopStart !== null && loopEnd !== null
+          && ((! entry.isGap && entry.id === activeSectionId)
+            || (entry.isGap
+              && Math.abs(loopStart - entry.start_time) < 0.5
+              && Math.abs(loopEnd - entry.end_time) < 0.5))
 
         let cls = 'section-card'
-        if (isActive || isGapLooping) cls += ' section-card--active'
-        else if (isCurrent) cls += ' section-card--current'
-        else if (isPast) cls += ' section-card--past'
+        if (isCurrent) cls += ' section-card--active'
         if (entry.isGap) cls += ' section-card--gap'
 
         return (
@@ -50,7 +48,7 @@ export function SectionCards({
             <span className="section-card-time">
               {formatTime(entry.start_time)} – {formatTime(entry.end_time)}
             </span>
-            {(isActive || isGapLooping) && (
+            {isLooping && (
               <Repeat size={14} style={{ color: '#fbbf24', flexShrink: 0 }} />
             )}
           </button>

@@ -428,14 +428,6 @@ body {
   border-color: #fbbf24;
 }
 
-.section-card--current {
-  background: var(--bg-tertiary);
-}
-
-.section-card--past {
-  opacity: 0.5;
-}
-
 .section-card--gap {
   border: 1.5px dashed var(--border);
   opacity: 0.6;
