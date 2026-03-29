@@ -10,7 +10,7 @@ import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
 
-function SkipIcon({ seconds, direction, size = 28 }: { seconds: number; direction: 'back' | 'fwd'; size?: number }) {
+function SkipIcon({ seconds, direction, size = 36 }: { seconds: number; direction: 'back' | 'fwd'; size?: number }) {
   const flip = direction === 'back'
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
