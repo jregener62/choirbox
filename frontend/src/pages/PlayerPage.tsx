@@ -166,17 +166,17 @@ export function PlayerPage() {
       </div>
 
       {/* Tools footer */}
-      {hasMinRole(userRole, 'pro-member') && (
-        <div className="section-editor-footer">
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="player-ab-btn"
-              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-              onClick={addMarker}
-            >
-              <Pin size={18} />
-              Setze Marker
-            </button>
+      <div className="section-editor-footer">
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            className="player-ab-btn"
+            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+            onClick={addMarker}
+          >
+            <Pin size={18} />
+            Setze Marker
+          </button>
+          {hasMinRole(userRole, 'pro-member') && (
             <button
               className="player-ab-btn"
               style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
@@ -185,9 +185,9 @@ export function PlayerPage() {
               <LayoutList size={18} />
               Sektionen editieren
             </button>
-          </div>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
