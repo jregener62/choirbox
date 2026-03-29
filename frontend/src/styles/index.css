@@ -1715,10 +1715,10 @@ body {
 
 .waveform-canvas {
   width: 100%;
-  height: 48px;
+  height: 60px;
   cursor: pointer;
   touch-action: pan-x;
-  margin-bottom: 24px;
+  margin-bottom: 32px;
 }
 
 .waveform-placeholder {
@@ -1825,7 +1825,7 @@ body {
 }
 .waveform-scroll::-webkit-scrollbar { display: none; }
 .waveform-scroll .waveform-canvas {
-  height: 48px;
+  height: 60px;
   cursor: pointer;
   touch-action: pan-x;
   margin-bottom: 0;

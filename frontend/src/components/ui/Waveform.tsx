@@ -16,9 +16,7 @@ interface WaveformProps {
 }
 
 const COLOR_UNPLAYED = 'rgba(148, 163, 184, 0.3)'
-const COLOR_PLAYED = '#818cf8'
 const COLOR_UNPLAYED_DIM = 'rgba(148, 163, 184, 0.12)'
-const COLOR_PLAYED_DIM = 'rgba(129, 140, 248, 0.3)'
 const COLOR_LOOP = '#f59e0b'
 const COLOR_LOOP_DIM = 'rgba(245, 158, 11, 0.6)'
 const COLOR_MARKER = '#fbbf24'
@@ -50,8 +48,6 @@ export function Waveform({
     const barWidth = w / barCount
     const gap = Math.max(1, barWidth * 0.2)
     const effectiveBarWidth = barWidth - gap
-    const playProgress = duration > 0 ? currentTime / duration : 0
-
     const loopStartFrac = loopStart !== null && duration > 0 ? loopStart / duration : null
     const loopEndFrac = loopEnd !== null && duration > 0 ? loopEnd / duration : null
     const hasLoop = loopStartFrac !== null && loopEndFrac !== null
@@ -61,15 +57,10 @@ export function Waveform({
       const frac = (i + 0.5) / barCount
       const peakHeight = Math.max(2, peaks[i] * h * 0.85)
       const y = (h - peakHeight) / 2
-      const isPlayed = frac <= playProgress
-      const isInLoop = hasLoop && frac >= loopStartFrac && frac <= loopEndFrac
+      const isInLoop = hasLoop && loopEnabled && frac >= loopStartFrac && frac <= loopEndFrac
 
-      if (isInLoop && loopEnabled) {
+      if (isInLoop) {
         ctx.fillStyle = dimmed ? COLOR_LOOP_DIM : COLOR_LOOP
-      } else if (isInLoop) {
-        ctx.fillStyle = dimmed ? COLOR_PLAYED_DIM : COLOR_PLAYED
-      } else if (isPlayed) {
-        ctx.fillStyle = dimmed ? COLOR_PLAYED_DIM : COLOR_PLAYED
       } else {
         ctx.fillStyle = dimmed ? COLOR_UNPLAYED_DIM : COLOR_UNPLAYED
       }
@@ -102,13 +93,10 @@ export function Waveform({
         ctx.fillText('B', loopEndFrac * w, 10)
       }
     }
-  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers, dimmed, activeSectionId])
+  }, [peaks, duration, loopStart, loopEnd, loopEnabled, markers, dimmed, activeSectionId])
 
   useEffect(() => {
-    let raf: number
-    const loop = () => { draw(); raf = requestAnimationFrame(loop) }
-    raf = requestAnimationFrame(loop)
-    return () => cancelAnimationFrame(raf)
+    draw()
   }, [draw])
 
   const seekFromEvent = (clientX: number) => {
