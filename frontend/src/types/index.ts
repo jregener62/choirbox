@@ -45,6 +45,13 @@ export interface UserLabelAssignment {
   label_id: number
 }
 
+export interface SectionPreset {
+  id: number
+  name: string
+  color: string
+  sort_order: number
+}
+
 export interface Section {
   id: number
   dropbox_path: string

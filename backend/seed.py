@@ -8,6 +8,7 @@ from backend.database import engine, create_db_and_tables
 from backend.models.user import User
 from backend.models.app_settings import AppSettings
 from backend.models.label import Label
+from backend.models.section_preset import SectionPreset
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ def seed():
         _seed_admin(session)
         _seed_app_settings(session)
         _seed_default_labels(session)
+        _seed_default_section_presets(session)
 
 
 def _seed_admin(session: Session):
@@ -74,3 +76,23 @@ def _seed_default_labels(session: Session):
         session.add(label)
     session.commit()
     logger.info("Default labels created")
+
+
+def _seed_default_section_presets(session: Session):
+    """Create default section presets for song structure."""
+    existing = session.exec(select(SectionPreset)).first()
+    if existing:
+        return
+
+    defaults = [
+        SectionPreset(name="Intro", color="#f59e0b", sort_order=1),
+        SectionPreset(name="Strophe", color="#3b82f6", sort_order=2),
+        SectionPreset(name="Refrain", color="#ef4444", sort_order=3),
+        SectionPreset(name="Bridge", color="#8b5cf6", sort_order=4),
+        SectionPreset(name="Solo", color="#06b6d4", sort_order=5),
+        SectionPreset(name="Outro", color="#22c55e", sort_order=6),
+    ]
+    for preset in defaults:
+        session.add(preset)
+    session.commit()
+    logger.info("Default section presets created")

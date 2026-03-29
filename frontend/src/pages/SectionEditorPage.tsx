@@ -5,14 +5,13 @@ import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
+import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { Waveform } from '@/components/ui/Waveform.tsx'
 import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
 
-const PRESET_LABELS = ['Intro', 'Strophe', 'Refrain', 'Bridge', 'Solo', 'Outro']
-
-const PRESET_COLORS = [
+const FALLBACK_COLORS = [
   '#f59e0b', '#ef4444', '#3b82f6', '#22c55e',
   '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
 ]
@@ -23,17 +22,22 @@ export function SectionEditorPage() {
   const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
   const { sections, load, bulkCreate, update, remove } = useSectionsStore()
+  const { presets, loaded: presetsLoaded, load: loadPresets } = useSectionPresetsStore()
 
   // Edit form state
   const [editingId, setEditingId] = useState<number | null>(null)
   const [label, setLabel] = useState('')
-  const [color, setColor] = useState(PRESET_COLORS[0])
+  const [color, setColor] = useState(FALLBACK_COLORS[0])
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
 
   useEffect(() => {
     if (currentPath) load(currentPath)
   }, [currentPath, load])
+
+  useEffect(() => {
+    if (!presetsLoaded) loadPresets()
+  }, [presetsLoaded, loadPresets])
 
 
   if (!currentPath) {
@@ -65,13 +69,16 @@ export function SectionEditorPage() {
   const generateSections = async () => {
     if (!canGenerateSections) return
     const sorted = [...markers].sort((a, b) => a.time - b.time)
-    const newSections = sorted.slice(0, -1).map((m, i) => ({
-      label: `Sektion ${i + 1}`,
-      color: PRESET_COLORS[i % PRESET_COLORS.length],
-      start_time: m.time,
-      end_time: sorted[i + 1].time,
-      sort_order: i,
-    }))
+    const newSections = sorted.slice(0, -1).map((m, i) => {
+      const preset = presets[i % presets.length]
+      return {
+        label: preset ? preset.name : `Sektion ${i + 1}`,
+        color: preset ? preset.color : FALLBACK_COLORS[i % FALLBACK_COLORS.length],
+        start_time: m.time,
+        end_time: sorted[i + 1].time,
+        sort_order: i,
+      }
+    })
     await bulkCreate({ dropbox_path: currentPath!, sections: newSections })
     usePlayerStore.getState().clearMarkers()
   }
@@ -103,7 +110,7 @@ export function SectionEditorPage() {
   const resetForm = () => {
     setEditingId(null)
     setLabel('')
-    setColor(PRESET_COLORS[0])
+    setColor(FALLBACK_COLORS[0])
     setStartTime(null)
     setEndTime(null)
     usePlayerStore.getState().setSectionLoop(null)
@@ -197,6 +204,33 @@ export function SectionEditorPage() {
           <>
             <div className="player-divider" />
 
+            {/* Preset bricks for renaming */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+              {presets.map((p) => {
+                const isActive = label === p.name && color === p.color
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => { setLabel(p.name); setColor(p.color) }}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      background: isActive ? p.color : p.color + '25',
+                      color: isActive ? '#fff' : p.color,
+                      border: isActive ? `2px solid ${p.color}` : '2px solid transparent',
+                      cursor: 'pointer',
+                      minWidth: 80,
+                      textAlign: 'center',
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                )
+              })}
+            </div>
+
             <div style={{ display: 'flex', gap: 10, margin: '0 0 12px' }}>
               <button
                 className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
@@ -212,51 +246,6 @@ export function SectionEditorPage() {
               >
                 Ende: {endTime !== null ? formatTime(endTime) : '—'}
               </button>
-            </div>
-
-            <input
-              className="auth-input"
-              type="text"
-              placeholder="Sektionsname..."
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
-              style={{ marginBottom: 8 }}
-            />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-              {PRESET_LABELS.map((p) => (
-                <button
-                  key={p}
-                  className="label-chip-sm"
-                  style={{
-                    background: label === p ? 'var(--accent)' : 'var(--surface)',
-                    color: label === p ? '#fff' : 'var(--text-secondary)',
-                    border: '1px solid var(--border)',
-                    cursor: 'pointer',
-                  }}
-                  onClick={() => setLabel(p)}
-                >
-                  {p}
-                </button>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              {PRESET_COLORS.map((c) => (
-                <button
-                  key={c}
-                  onClick={() => setColor(c)}
-                  style={{
-                    width: 28,
-                    height: 28,
-                    borderRadius: '50%',
-                    background: c,
-                    border: color === c ? '2px solid #fff' : '2px solid transparent',
-                    boxShadow: color === c ? `0 0 0 2px ${c}` : 'none',
-                    cursor: 'pointer',
-                    flexShrink: 0,
-                  }}
-                />
-              ))}
             </div>
 
             <button

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LogOut, ChevronRight, Pencil, Lock, Check, X } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LayoutList, LogOut, ChevronRight, Pencil, Lock, Check, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -371,6 +371,11 @@ export function SettingsPage() {
               <button className="settings-nav-item" onClick={() => navigate('/admin/labels')}>
                 <Tag size={18} />
                 <span>Labels verwalten</span>
+                <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+              </button>
+              <button className="settings-nav-item" onClick={() => navigate('/admin/section-presets')}>
+                <LayoutList size={18} />
+                <span>Sektionsvorlagen</span>
                 <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
               </button>
             </div>

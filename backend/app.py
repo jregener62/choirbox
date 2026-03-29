@@ -11,6 +11,7 @@ from backend.api.labels import router as labels_router
 from backend.api.admin import router as admin_router
 from backend.api.sections import router as sections_router
 from backend.api.notes import router as notes_router
+from backend.api.section_presets import router as section_presets_router
 
 
 class CacheControlMiddleware:
@@ -54,6 +55,7 @@ app.include_router(labels_router, prefix="/api")
 app.include_router(admin_router, prefix="/api")
 app.include_router(sections_router, prefix="/api")
 app.include_router(notes_router, prefix="/api")
+app.include_router(section_presets_router, prefix="/api")
 
 # Static files
 BASE = Path(__file__).resolve().parent.parent
