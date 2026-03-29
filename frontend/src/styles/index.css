@@ -353,10 +353,11 @@ body {
 
 .top-player-skip {
   background: none;
-  border: none;
-  color: var(--text-secondary);
+  border: 2px solid #f59e0b;
+  color: #f59e0b;
   cursor: pointer;
   padding: 8px 12px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   gap: 4px;
@@ -371,28 +372,28 @@ body {
 }
 
 .top-player-skip:active {
-  background: var(--bg-tertiary);
+  background: rgba(245,158,11,0.15);
 }
 
 .top-player-play {
   width: 55px;
   height: 55px;
   border-radius: 50%;
-  background: var(--accent);
+  background: #f59e0b;
   border: none;
-  color: white;
+  color: #1a1a1a;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 4px 16px rgba(129,140,248,0.35);
+  box-shadow: 0 4px 16px rgba(245,158,11,0.35);
   transition: all 0.15s;
   touch-action: manipulation;
   flex-shrink: 0;
 }
 
 .top-player-play:active {
-  background: var(--accent-hover);
+  background: #d97706;
   transform: scale(0.95);
 }
 
