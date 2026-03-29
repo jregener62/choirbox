@@ -246,9 +246,50 @@ export function SectionEditorPage() {
           </div>
         ) : (
           <>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
+                disabled={!canSaveEdit}
+                onClick={handleSaveEdit}
+              >
+                Sektion aktualisieren
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={resetForm}
+              >
+                Abbrechen
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <button
+                className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
+                style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
+                onClick={() => setStartTime(currentTime)}
+              >
+                Start: {startTime !== null ? formatTime(startTime) : '\u2014'}
+              </button>
+              <button
+                className="player-ab-btn"
+                style={{ width: 'auto', aspectRatio: '1', alignSelf: 'stretch', padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                onClick={() => { remove(editingId!); resetForm() }}
+              >
+                <Trash2 size={16} />
+              </button>
+              <button
+                className={`player-ab-btn ${endTime !== null ? 'active' : ''}`}
+                style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
+                onClick={() => setEndTime(currentTime)}
+              >
+                Ende: {endTime !== null ? formatTime(endTime) : '\u2014'}
+              </button>
+            </div>
 
             {/* Preset bricks */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
               {presets.map((p) => {
                 const isActive = label === p.name && color === p.color
                 return (
@@ -272,48 +313,6 @@ export function SectionEditorPage() {
                   </button>
                 )
               })}
-            </div>
-
-            <div style={{ display: 'flex', gap: 10, margin: '0 0 12px' }}>
-              <button
-                className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
-                style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
-                onClick={() => setStartTime(currentTime)}
-              >
-                Start: {startTime !== null ? formatTime(startTime) : '\u2014'}
-              </button>
-              <button
-                className={`player-ab-btn ${endTime !== null ? 'active' : ''}`}
-                style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
-                onClick={() => setEndTime(currentTime)}
-              >
-                Ende: {endTime !== null ? formatTime(endTime) : '\u2014'}
-              </button>
-              <button
-                className="player-ab-btn"
-                style={{ width: 'auto', aspectRatio: '1', alignSelf: 'stretch', padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                onClick={() => { remove(editingId!); resetForm() }}
-              >
-                <Trash2 size={16} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                className="btn btn-primary"
-                style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
-                disabled={!canSaveEdit}
-                onClick={handleSaveEdit}
-              >
-                Sektion aktualisieren
-              </button>
-              <button
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-                onClick={resetForm}
-              >
-                Abbrechen
-              </button>
             </div>
           </>
         )}

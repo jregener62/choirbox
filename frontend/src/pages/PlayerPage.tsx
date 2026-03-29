@@ -1,6 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, X, Trash2, LayoutList, ChevronLeft } from 'lucide-react'
+import { Repeat, Pin, X, Trash2, LayoutList, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -36,6 +36,7 @@ export function PlayerPage() {
 
   const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
   const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
+  const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
 
 
   const loopTapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -191,18 +192,28 @@ export function PlayerPage() {
       </div>
 
       {/* Tools footer */}
-      {hasMinRole(userRole, 'pro-member') && (
-        <div className="section-editor-footer">
+      <div className="section-editor-footer">
+        <div style={{ display: 'flex', gap: 10 }}>
           <button
             className="player-ab-btn"
-            style={{ width: '100%', padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-            onClick={() => navigate('/sections')}
+            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+            onClick={addMarker}
           >
-            <LayoutList size={18} />
-            Sektionen editieren
+            <Pin size={18} />
+            Setze Marker
           </button>
+          {hasMinRole(userRole, 'pro-member') && (
+            <button
+              className="player-ab-btn"
+              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+              onClick={() => navigate('/sections')}
+            >
+              <LayoutList size={18} />
+              Sektionen editieren
+            </button>
+          )}
         </div>
-      )}
+      </div>
     </div>
   )
 }
