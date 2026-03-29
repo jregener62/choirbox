@@ -41,6 +41,7 @@ deploy_server() {
   local APP_URL="$3"
   local LABEL="$4"
   local RESTART_CMD="$5"
+  local VERIFY_CMD="${6:-}"
 
   echo -e "${BOLD}=== Deploy → ${LABEL} ===${NC}"
   echo ""
@@ -74,7 +75,11 @@ deploy_server() {
   sleep 2
 
   # 5. Verify
-  HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$APP_URL/" 2>/dev/null || echo "000")
+  if [ -n "$VERIFY_CMD" ]; then
+    HTTP_STATUS=$(eval "$VERIFY_CMD" 2>/dev/null || echo "000")
+  else
+    HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" --connect-timeout 5 "$APP_URL/" 2>/dev/null || echo "000")
+  fi
 
   if [ "$HTTP_STATUS" = "200" ]; then
     echo -e "  ${GREEN}ok${NC} Server laeuft"
@@ -97,7 +102,8 @@ deploy_server "$TEST_SERVER" "$TEST_DIR" "$TEST_URL" "Testserver" \
 # Bei "prod" zusaetzlich Produktion deployen
 if [ "$TARGET" = "prod" ]; then
   deploy_server "$PROD_SERVER" "$PROD_DIR" "$PROD_URL" "Produktion" \
-    "ssh $PROD_ROOT_SERVER 'systemctl restart choirbox'"
+    "ssh $PROD_ROOT_SERVER 'systemctl restart choirbox'" \
+    "ssh $PROD_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8001/'"
   echo -e "${GREEN}${BOLD}Deploy auf beide Server abgeschlossen.${NC}"
 else
   echo -e "${YELLOW}  → Nach Tests: ${NC}${BOLD}./deploy.sh prod${NC}"
