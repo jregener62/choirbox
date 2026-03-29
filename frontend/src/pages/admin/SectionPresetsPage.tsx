@@ -5,9 +5,10 @@ import { api } from '@/api/client.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import type { SectionPreset } from '@/types/index.ts'
 
+// Reservierte Farben ausgeschlossen: Orange #f59e0b (Playback), Lime #84cc16 (Marker), Blau #3b82f6 (Confirm)
 const DEFAULT_COLORS = [
-  '#f59e0b', '#ef4444', '#3b82f6', '#22c55e',
-  '#8b5cf6', '#ec4899', '#06b6d4', '#f97316',
+  '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
+  '#e879f9', '#f97316', '#06b6d4', '#a855f7',
 ]
 
 export function SectionPresetsPage() {

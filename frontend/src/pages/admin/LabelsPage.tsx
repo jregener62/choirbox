@@ -4,9 +4,10 @@ import { ChevronLeft, Pencil, Trash2, Plus } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import type { Label } from '@/types/index.ts'
 
+// Reservierte Farben ausgeschlossen: Orange #f59e0b (Playback), Lime #84cc16 (Marker), Blau #3b82f6 (Confirm)
 const DEFAULT_COLORS = [
-  '#ec4899', '#f97316', '#3b82f6', '#22c55e',
-  '#ef4444', '#10b981', '#8b5cf6', '#f59e0b',
+  '#ec4899', '#f97316', '#14b8a6', '#8b5cf6',
+  '#ef4444', '#e879f9', '#06b6d4', '#a855f7',
 ]
 
 export function LabelsPage() {

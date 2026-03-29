@@ -196,7 +196,7 @@ export function PlayerPage() {
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             className="player-ab-btn"
-            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
             onClick={addMarker}
           >
             <Pin size={18} />

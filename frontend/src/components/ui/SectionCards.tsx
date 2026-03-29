@@ -7,14 +7,15 @@ interface SectionCardsProps {
   timeline: TimelineEntry[]
   currentTime: number
   activeSectionId: number | null
+  activeGapIndex: number | null
   loopEnabled: boolean
   loopStart: number | null
   loopEnd: number | null
-  onSectionClick: (entry: TimelineEntry) => void
+  onSectionClick: (entry: TimelineEntry, index: number) => void
 }
 
 export function SectionCards({
-  timeline, currentTime, activeSectionId,
+  timeline, currentTime, activeSectionId, activeGapIndex,
   loopEnabled, loopStart, loopEnd, onSectionClick,
 }: SectionCardsProps) {
   const activeRef = useRef<HTMLButtonElement>(null)
@@ -25,7 +26,7 @@ export function SectionCards({
   )
   const selectedIndex = activeSectionId !== null
     ? timeline.findIndex((e) => !e.isGap && e.id === activeSectionId)
-    : -1
+    : activeGapIndex !== null ? activeGapIndex : -1
   const highlightIndex = selectedIndex !== -1 ? selectedIndex : currentIndex
 
   useEffect(() => {
@@ -39,7 +40,9 @@ export function SectionCards({
     <div className="section-cards">
       {timeline.map((entry, i) => {
         const isCurrent = i === currentIndex
-        const isSelected = !entry.isGap && entry.id === activeSectionId
+        const isSelected = entry.isGap
+          ? activeGapIndex === i
+          : entry.id === activeSectionId
         const isActive = isSelected || (selectedIndex === -1 && isCurrent)
         const isLooping = isActive && loopEnabled
           && loopStart !== null && loopEnd !== null
@@ -58,7 +61,7 @@ export function SectionCards({
             ref={isActive ? activeRef : undefined}
             className={cls}
             style={!entry.isGap ? { background: hexAlpha(entry.color!, 0.12) } : undefined}
-            onClick={() => onSectionClick(entry)}
+            onClick={() => onSectionClick(entry, i)}
           >
             <span
               className={`section-card-dot ${entry.isGap ? 'section-card-dot--gap' : ''}`}
@@ -71,7 +74,7 @@ export function SectionCards({
               {formatTime(entry.start_time)} – {formatTime(entry.end_time)}
             </span>
             {isLooping && (
-              <Repeat size={14} style={{ color: '#fbbf24', flexShrink: 0 }} />
+              <Repeat size={14} style={{ color: '#f59e0b', flexShrink: 0 }} />
             )}
           </button>
         )

@@ -85,12 +85,12 @@ def _seed_default_section_presets(session: Session):
         return
 
     defaults = [
-        SectionPreset(name="Intro", color="#f59e0b", sort_order=1),
-        SectionPreset(name="Strophe", color="#3b82f6", sort_order=2),
-        SectionPreset(name="Refrain", color="#ef4444", sort_order=3),
-        SectionPreset(name="Bridge", color="#8b5cf6", sort_order=4),
+        SectionPreset(name="Intro", color="#14b8a6", sort_order=1),
+        SectionPreset(name="Strophe", color="#ef4444", sort_order=2),
+        SectionPreset(name="Refrain", color="#8b5cf6", sort_order=3),
+        SectionPreset(name="Bridge", color="#ec4899", sort_order=4),
         SectionPreset(name="Solo", color="#06b6d4", sort_order=5),
-        SectionPreset(name="Outro", color="#22c55e", sort_order=6),
+        SectionPreset(name="Outro", color="#a855f7", sort_order=6),
     ]
     for preset in defaults:
         session.add(preset)
