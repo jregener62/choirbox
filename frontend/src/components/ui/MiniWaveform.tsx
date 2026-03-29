@@ -6,6 +6,9 @@ interface MiniWaveformProps {
   peaks: number[]
   currentTime: number
   duration: number
+  loopStart?: number | null
+  loopEnd?: number | null
+  loopEnabled?: boolean
   timeline?: TimelineEntry[]
   markers?: Marker[]
   onSeek: (time: number) => void
@@ -13,8 +16,9 @@ interface MiniWaveformProps {
 
 const COLOR_PLAYED = 'rgba(129, 140, 248, 0.9)'
 const COLOR_UNPLAYED = 'rgba(51, 65, 85, 0.8)'
+const COLOR_LOOP = '#f59e0b'
 
-export function MiniWaveform({ peaks, currentTime, duration, timeline, markers, onSeek }: MiniWaveformProps) {
+export function MiniWaveform({ peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, timeline, markers, onSeek }: MiniWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const stripRef = useRef<HTMLCanvasElement>(null)
 
@@ -38,11 +42,22 @@ export function MiniWaveform({ peaks, currentTime, duration, timeline, markers, 
     const gap = Math.max(0.5, barWidth * 0.2)
     const effectiveBarWidth = barWidth - gap
     const playX = duration > 0 ? (currentTime / duration) * w : 0
+    const loopStartFrac = loopStart != null && duration > 0 ? loopStart / duration : null
+    const loopEndFrac = loopEnd != null && duration > 0 ? loopEnd / duration : null
+    const hasActiveLoop = loopEnabled && loopStartFrac != null && loopEndFrac != null
 
     for (let i = 0; i < barCount; i++) {
       const x = i * barWidth
       const barH = Math.max(1, peaks[i] * h * 0.9)
-      ctx.fillStyle = (x + effectiveBarWidth < playX) ? COLOR_PLAYED : COLOR_UNPLAYED
+      const frac = (i + 0.5) / barCount
+
+      if (hasActiveLoop) {
+        const isInLoop = frac >= loopStartFrac && frac <= loopEndFrac
+        ctx.fillStyle = isInLoop ? COLOR_LOOP : COLOR_UNPLAYED
+      } else {
+        ctx.fillStyle = (x + effectiveBarWidth < playX) ? COLOR_PLAYED : COLOR_UNPLAYED
+      }
+
       ctx.fillRect(x, h - barH, effectiveBarWidth, barH)
     }
 
@@ -51,7 +66,7 @@ export function MiniWaveform({ peaks, currentTime, duration, timeline, markers, 
       ctx.fillStyle = '#f1f5f9'
       ctx.fillRect(playX - 1, 0, 2, h)
     }
-  }, [peaks, currentTime, duration])
+  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled])
 
   // Draw section color strip
   const drawStrip = useCallback(() => {

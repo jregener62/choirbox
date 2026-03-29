@@ -28,12 +28,15 @@ function SkipIcon({ seconds, direction, size = 36 }: { seconds: number; directio
 interface TopPlayerBarProps {
   variant: 'mini' | 'full'
   peaks?: number[]
+  loopStart?: number | null
+  loopEnd?: number | null
+  loopEnabled?: boolean
   timeline?: TimelineEntry[]
   markers?: Marker[]
   onSeek?: (time: number) => void
 }
 
-export function TopPlayerBar({ variant, peaks, timeline, markers, onSeek }: TopPlayerBarProps) {
+export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, timeline, markers, onSeek }: TopPlayerBarProps) {
   const navigate = useNavigate()
   const {
     currentName,
@@ -116,6 +119,9 @@ export function TopPlayerBar({ variant, peaks, timeline, markers, onSeek }: TopP
           peaks={peaks}
           currentTime={currentTime}
           duration={duration}
+          loopStart={loopStart}
+          loopEnd={loopEnd}
+          loopEnabled={loopEnabled}
           timeline={timeline}
           markers={markers}
           onSeek={onSeek}

@@ -1,17 +1,7 @@
-const CACHE_NAME = 'choirbox-shell-v1'
+const CACHE_NAME = 'choirbox-v2'
 
-// App-Shell: nur die statischen Assets cachen
-const SHELL_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-]
-
-// Install: App-Shell vorladen
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(SHELL_ASSETS))
-  )
+// Install: sofort aktivieren, nichts vorladen
+self.addEventListener('install', () => {
   self.skipWaiting()
 })
 
@@ -25,32 +15,29 @@ self.addEventListener('activate', (event) => {
   self.clients.claim()
 })
 
-// Fetch: Network-first für alles, Fallback auf Cache für App-Shell
+// Fetch: Network-first, Cache nur als Offline-Fallback
 self.addEventListener('fetch', (event) => {
   const { request } = event
 
   // API-Calls und Audio-Streams nie cachen
   if (request.url.includes('/api/')) return
 
-  // Für Navigation (HTML): Network-first mit Cache-Fallback
-  if (request.mode === 'navigate') {
-    event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
-    )
-    return
-  }
-
-  // Für statische Assets: Stale-while-revalidate
   event.respondWith(
-    caches.match(request).then((cached) => {
-      const fetchPromise = fetch(request).then((response) => {
-        if (response.ok) {
+    fetch(request)
+      .then((response) => {
+        // Erfolgreiche GET-Responses für Offline cachen
+        if (response.ok && request.method === 'GET') {
           const clone = response.clone()
           caches.open(CACHE_NAME).then((cache) => cache.put(request, clone))
         }
         return response
       })
-      return cached || fetchPromise
-    })
+      .catch(() => {
+        // Offline: aus Cache liefern, für Navigation index.html
+        if (request.mode === 'navigate') {
+          return caches.match('/index.html')
+        }
+        return caches.match(request)
+      })
   )
 })

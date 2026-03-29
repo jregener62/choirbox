@@ -106,6 +106,9 @@ export function PlayerPage() {
       <TopPlayerBar
         variant="full"
         peaks={peaks}
+        loopStart={loopStart}
+        loopEnd={loopEnd}
+        loopEnabled={loopEnabled}
         timeline={timeline}
         markers={markers}
         onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}

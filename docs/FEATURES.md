@@ -187,13 +187,16 @@ Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap da
 - Visuelle Darstellung des Audio-Signals (200 Balken)
 - Peaks werden per Web Audio API berechnet und gecached
 - Klickbar fuer Seek
-- Zeigt Loop-Region (A-B) farblich hervorgehoben
+- Zeigt Loop-Region (A-B) orange hervorgehoben, Rest grau
+- Ohne aktiven Loop: Fortschrittsanzeige (gespielt = indigo, ungespielt = grau)
 - Zeigt Session-Marker als Punkte
+- Zwei Varianten: `Waveform` (UnifiedTimeline, dimmed-Modus) und `MiniWaveform` (TopPlayerBar) — beide mit Loop-Visualisierung
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/hooks/useWaveform.ts` | Peak-Berechnung und Cache |
-| `frontend/src/components/ui/Waveform.tsx` | Canvas-Rendering |
+| `frontend/src/components/ui/Waveform.tsx` | Canvas-Rendering (UnifiedTimeline) |
+| `frontend/src/components/ui/MiniWaveform.tsx` | Canvas-Rendering (TopPlayerBar) |
 
 ### Cycle Play (A-B Loop)
 
@@ -462,13 +465,13 @@ Nach dem Login wird ein Install-Guide als Overlay angezeigt mit Schritt-fuer-Sch
 
 ### Service Worker
 
-Minimaler Service Worker fuer App-Shell-Caching:
+Network-first Service Worker — frische Inhalte haben Prioritaet, Cache dient nur als Offline-Fallback:
 
-- Cached statische Assets (HTML, CSS, JS) mit Stale-while-revalidate
-- Navigation-Requests: Network-first mit Fallback auf gecachte `index.html`
+- Alle Requests: Network-first, bei Erfolg wird der Cache aktualisiert
+- Offline-Fallback: gecachte Version ausliefern, fuer Navigation `index.html`
 - API-Calls (`/api/*`) werden nie gecacht
 - Nur in Production aktiv (`import.meta.env.PROD`)
-- Alte Caches werden bei Aktivierung automatisch bereinigt
+- Alte Caches werden bei Aktivierung automatisch bereinigt (versionierter Cache-Name)
 
 ### PWA-Assets
 
