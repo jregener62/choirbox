@@ -248,7 +248,7 @@ export function SectionEditorPage() {
               </button>
               <button
                 className="player-ab-btn"
-                style={{ width: 44, height: 44, padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ width: 'auto', aspectRatio: '1', alignSelf: 'stretch', padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 onClick={() => { remove(editingId!); resetForm() }}
               >
                 <Trash2 size={16} />
