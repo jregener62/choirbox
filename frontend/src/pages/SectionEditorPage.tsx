@@ -246,25 +246,36 @@ export function SectionEditorPage() {
           </div>
         ) : (
           <>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
-              <button
-                className="btn btn-primary"
-                style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
-                disabled={!canSaveEdit}
-                onClick={handleSaveEdit}
-              >
-                Sektion aktualisieren
-              </button>
-              <button
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-                onClick={resetForm}
-              >
-                Abbrechen
-              </button>
+            {/* 1. Preset bricks — horizontal scrollable */}
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center', overflowX: 'auto', marginBottom: 12, flexWrap: 'nowrap' }}>
+              {presets.map((p) => {
+                const isActive = label === p.name && color === p.color
+                return (
+                  <button
+                    key={p.id}
+                    onClick={() => { setLabel(p.name); setColor(p.color) }}
+                    style={{
+                      padding: '10px 18px',
+                      borderRadius: 10,
+                      fontSize: 14,
+                      fontWeight: 600,
+                      background: isActive ? p.color : p.color + '25',
+                      color: isActive ? '#fff' : p.color,
+                      border: isActive ? `2px solid ${p.color}` : '2px solid transparent',
+                      cursor: 'pointer',
+                      minWidth: 80,
+                      textAlign: 'center',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {p.name}
+                  </button>
+                )
+              })}
             </div>
 
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            {/* 2. Start / Delete / Ende */}
+            <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
               <button
                 className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
                 style={{ flex: 1, padding: '10px 0', fontSize: 13 }}
@@ -288,31 +299,23 @@ export function SectionEditorPage() {
               </button>
             </div>
 
-            {/* Preset bricks */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
-              {presets.map((p) => {
-                const isActive = label === p.name && color === p.color
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => { setLabel(p.name); setColor(p.color) }}
-                    style={{
-                      padding: '10px 18px',
-                      borderRadius: 10,
-                      fontSize: 14,
-                      fontWeight: 600,
-                      background: isActive ? p.color : p.color + '25',
-                      color: isActive ? '#fff' : p.color,
-                      border: isActive ? `2px solid ${p.color}` : '2px solid transparent',
-                      cursor: 'pointer',
-                      minWidth: 80,
-                      textAlign: 'center',
-                    }}
-                  >
-                    {p.name}
-                  </button>
-                )
-              })}
+            {/* 4. Aktualisieren / Abbrechen */}
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
+                disabled={!canSaveEdit}
+                onClick={handleSaveEdit}
+              >
+                Sektion aktualisieren
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 1 }}
+                onClick={resetForm}
+              >
+                Abbrechen
+              </button>
             </div>
           </>
         )}
