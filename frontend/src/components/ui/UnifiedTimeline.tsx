@@ -169,6 +169,7 @@ export function UnifiedTimeline({
           {/* Waveform (bottom zone — tap = seek) */}
           <Waveform
             peaks={peaks}
+            currentTime={currentTime}
             duration={duration}
             loopStart={loopStart}
             loopEnd={loopEnd}

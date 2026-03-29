@@ -3,6 +3,7 @@ import type { Marker } from '@/stores/playerStore.ts'
 
 interface WaveformProps {
   peaks: number[]
+  currentTime: number
   duration: number
   loopStart: number | null
   loopEnd: number | null
@@ -15,13 +16,15 @@ interface WaveformProps {
 }
 
 const COLOR_UNPLAYED = 'rgba(148, 163, 184, 0.3)'
+const COLOR_PLAYED = '#818cf8'
 const COLOR_UNPLAYED_DIM = 'rgba(148, 163, 184, 0.12)'
+const COLOR_PLAYED_DIM = 'rgba(129, 140, 248, 0.3)'
 const COLOR_LOOP = '#f59e0b'
 const COLOR_LOOP_DIM = 'rgba(245, 158, 11, 0.6)'
 const COLOR_MARKER = '#fbbf24'
 
 export function Waveform({
-  peaks, duration,
+  peaks, currentTime, duration,
   loopStart, loopEnd, loopEnabled,
   markers, activeSectionId = null,
   onSeek, dimmed = false,
@@ -49,19 +52,27 @@ export function Waveform({
     const effectiveBarWidth = barWidth - gap
     const loopStartFrac = loopStart !== null && duration > 0 ? loopStart / duration : null
     const loopEndFrac = loopEnd !== null && duration > 0 ? loopEnd / duration : null
-    const hasLoop = loopStartFrac !== null && loopEndFrac !== null
+    const hasActiveLoop = loopEnabled && loopStartFrac !== null && loopEndFrac !== null
+    const playProgress = duration > 0 ? currentTime / duration : 0
 
     for (let i = 0; i < barCount; i++) {
       const x = i * barWidth
       const frac = (i + 0.5) / barCount
       const peakHeight = Math.max(2, peaks[i] * h * 0.85)
       const y = (h - peakHeight) / 2
-      const isInLoop = hasLoop && loopEnabled && frac >= loopStartFrac && frac <= loopEndFrac
 
-      if (isInLoop) {
-        ctx.fillStyle = dimmed ? COLOR_LOOP_DIM : COLOR_LOOP
+      if (hasActiveLoop) {
+        // Loop active: orange inside loop, gray outside
+        const isInLoop = frac >= loopStartFrac && frac <= loopEndFrac
+        ctx.fillStyle = isInLoop
+          ? (dimmed ? COLOR_LOOP_DIM : COLOR_LOOP)
+          : (dimmed ? COLOR_UNPLAYED_DIM : COLOR_UNPLAYED)
       } else {
-        ctx.fillStyle = dimmed ? COLOR_UNPLAYED_DIM : COLOR_UNPLAYED
+        // No loop: show progress
+        const isPlayed = frac <= playProgress
+        ctx.fillStyle = isPlayed
+          ? (dimmed ? COLOR_PLAYED_DIM : COLOR_PLAYED)
+          : (dimmed ? COLOR_UNPLAYED_DIM : COLOR_UNPLAYED)
       }
 
       const radius = Math.min(effectiveBarWidth / 2, 2)
@@ -92,10 +103,13 @@ export function Waveform({
         ctx.fillText('B', loopEndFrac * w, 10)
       }
     }
-  }, [peaks, duration, loopStart, loopEnd, loopEnabled, markers, dimmed, activeSectionId])
+  }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers, dimmed, activeSectionId])
 
   useEffect(() => {
-    draw()
+    let raf: number
+    const loop = () => { draw(); raf = requestAnimationFrame(loop) }
+    raf = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(raf)
   }, [draw])
 
   const seekFromEvent = (clientX: number) => {
