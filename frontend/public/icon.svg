@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#6366f1"/>
+      <stop offset="100%" style="stop-color:#4f46e5"/>
+    </linearGradient>
+  </defs>
+  <!-- Rounded square background -->
+  <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
+  <!-- Two music notes representing choir/duo singing -->
+  <!-- Left note -->
+  <ellipse cx="168" cy="340" rx="48" ry="36" fill="white" transform="rotate(-15, 168, 340)"/>
+  <rect x="212" y="140" width="12" height="205" rx="6" fill="white"/>
+  <path d="M224 140 C224 140 300 110 300 170 C300 200 224 180 224 180" fill="white"/>
+  <!-- Right note -->
+  <ellipse cx="312" cy="360" rx="48" ry="36" fill="white" opacity="0.9" transform="rotate(-15, 312, 360)"/>
+  <rect x="356" y="160" width="12" height="205" rx="6" fill="white" opacity="0.9"/>
+  <path d="M368 160 C368 160 440 130 440 190 C440 220 368 200 368 200" fill="white" opacity="0.9"/>
+  <!-- Sound waves -->
+  <path d="M80 200 Q60 256 80 312" stroke="white" stroke-width="8" fill="none" opacity="0.4" stroke-linecap="round"/>
+  <path d="M56 180 Q28 256 56 332" stroke="white" stroke-width="8" fill="none" opacity="0.25" stroke-linecap="round"/>
+</svg>

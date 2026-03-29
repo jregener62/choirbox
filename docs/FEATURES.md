@@ -443,6 +443,56 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 
 ---
 
+## Progressive Web App (PWA)
+
+### Installation
+
+ChoirBox ist als PWA installierbar — ohne App Store, direkt aus dem Browser.
+
+- `display: standalone` — nach Installation verschwindet die Browser-UI komplett
+- App-Icon auf dem Homescreen, erscheint im App-Switcher wie eine native App
+- Orientierung auf Portrait fixiert
+
+Nach dem Login wird ein Install-Guide als Overlay angezeigt mit Schritt-fuer-Schritt-Anleitungen fuer iOS (Safari) und Android (Chrome).
+
+- Plattform-Erkennung: zeigt nur die relevante Anleitung (iOS, Android, oder beide auf Desktop)
+- "Verstanden" schliesst den Guide fuer die aktuelle Session
+- "Nicht mehr anzeigen" speichert die Wahl permanent in `localStorage` (`choirbox_pwa_dismissed`)
+- Guide erscheint nicht, wenn die App bereits als PWA laeuft (`display-mode: standalone`)
+
+### Service Worker
+
+Minimaler Service Worker fuer App-Shell-Caching:
+
+- Cached statische Assets (HTML, CSS, JS) mit Stale-while-revalidate
+- Navigation-Requests: Network-first mit Fallback auf gecachte `index.html`
+- API-Calls (`/api/*`) werden nie gecacht
+- Nur in Production aktiv (`import.meta.env.PROD`)
+- Alte Caches werden bei Aktivierung automatisch bereinigt
+
+### PWA-Assets
+
+- Manifest: `public/manifest.json`
+- Icons: `public/icons/` (72px bis 512px, generiert aus `public/icon.svg`)
+- Apple-Touch-Icon: 152x152px
+- Theme-Color: `#1a1a2e`
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/public/manifest.json` | PWA-Manifest |
+| `frontend/public/sw.js` | Service Worker |
+| `frontend/public/icon.svg` | Quell-Icon (SVG) |
+| `frontend/public/icons/` | Generierte PNG-Icons |
+| `frontend/src/components/PwaInstallGuide.tsx` | Install-Anleitung |
+| `frontend/index.html` | Meta-Tags, Manifest-Link |
+| `frontend/src/main.tsx` | Service Worker Registrierung |
+
+### Geplant (nicht implementiert)
+
+Audio-Caching und Offline-Modus sind als Future Feature dokumentiert. Siehe `docs/future/pwa-audio-caching.md`.
+
+---
+
 ## Navigation
 
 ### Seitenstruktur
