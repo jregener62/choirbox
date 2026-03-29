@@ -403,6 +403,74 @@ body {
   transition: width 0.3s linear;
 }
 
+/* Skip interval menu */
+.top-player-menu {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(calc(-50% - 12px));
+  z-index: 60;
+}
+
+.top-player-menu-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 50%;
+  touch-action: manipulation;
+}
+
+.top-player-menu-btn:active {
+  background: var(--bg-tertiary);
+}
+
+.top-player-menu-popup {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  min-width: 56px;
+}
+
+.top-player-menu-item {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: 8px;
+  text-align: center;
+  touch-action: manipulation;
+  white-space: nowrap;
+}
+
+.top-player-menu-item:active {
+  background: var(--bg-tertiary);
+}
+
+.top-player-menu-item.active {
+  background: var(--accent);
+  color: white;
+  font-weight: 600;
+}
+
 /* Mini waveform in TopPlayerBar */
 .mini-waveform {
   position: absolute;
