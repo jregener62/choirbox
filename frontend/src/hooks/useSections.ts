@@ -21,6 +21,7 @@ interface SectionsState {
     sections: Array<{ label: string; color: string; start_time: number; end_time: number; sort_order: number }>
   }) => Promise<void>
   update: (id: number, data: Partial<Section>) => Promise<void>
+  batchUpdate: (updates: Array<{ id: number; data: Partial<Section> }>) => Promise<void>
   remove: (id: number) => Promise<void>
   clear: () => void
 }
@@ -54,6 +55,12 @@ export const useSectionsStore = create<SectionsState>((set, get) => ({
 
   update: async (id, data) => {
     await api(`/sections/${id}`, { method: 'PUT', body: data })
+    const path = get().loadedPath
+    if (path) await get().load(path)
+  },
+
+  batchUpdate: async (updates) => {
+    await Promise.all(updates.map(u => api(`/sections/${u.id}`, { method: 'PUT', body: u.data })))
     const path = get().loadedPath
     if (path) await get().load(path)
   },
