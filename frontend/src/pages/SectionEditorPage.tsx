@@ -262,21 +262,23 @@ export function SectionEditorPage() {
               </button>
             </div>
 
-            <button
-              className="btn btn-primary"
-              style={{ width: '100%', marginBottom: 12, opacity: canSaveEdit ? 1 : 0.4 }}
-              disabled={!canSaveEdit}
-              onClick={handleSaveEdit}
-            >
-              Sektion aktualisieren
-            </button>
-            <button
-              className="btn btn-secondary"
-              style={{ width: '100%', marginBottom: 12 }}
-              onClick={resetForm}
-            >
-              Abbrechen
-            </button>
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
+                disabled={!canSaveEdit}
+                onClick={handleSaveEdit}
+              >
+                Sektion aktualisieren
+              </button>
+              <button
+                className="btn btn-secondary"
+                style={{ flex: 'none' }}
+                onClick={resetForm}
+              >
+                Abbrechen
+              </button>
+            </div>
           </>
         )}
 
