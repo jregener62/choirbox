@@ -161,6 +161,7 @@ export function PlayerPage() {
             timeline={timeline}
             currentTime={currentTime}
             activeSectionId={activeSection?.id ?? null}
+            activeGapIndex={null}
             loopEnabled={loopEnabled}
             loopStart={loopStart}
             loopEnd={loopEnd}
