@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Rewind, FastForward, Play, Pause, MoreVertical } from 'lucide-react'
+import { Play, Pause, MoreVertical } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { MiniWaveform } from '@/components/ui/MiniWaveform.tsx'
@@ -9,6 +9,21 @@ import type { TimelineEntry } from '@/utils/buildTimeline'
 import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
+
+function SkipIcon({ seconds, direction, size = 28 }: { seconds: number; direction: 'back' | 'fwd'; size?: number }) {
+  const flip = direction === 'back'
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
+      <path
+        d="M12 5V1l5 4-5 4V5c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7h2c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9z"
+        fill="currentColor"
+      />
+      <text x="12" y="14.5" textAnchor="middle" fontSize={seconds >= 10 ? '7' : '8.5'} fontWeight="700" fill="currentColor" fontFamily="system-ui, sans-serif">
+        {seconds}
+      </text>
+    </svg>
+  )
+}
 
 interface TopPlayerBarProps {
   variant: 'mini' | 'full'
@@ -56,15 +71,13 @@ export function TopPlayerBar({ variant, peaks, timeline, markers, onSeek }: TopP
       <span className="top-player-time">{formatTime(currentTime)}</span>
       <div className="top-player-controls">
         <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skip(-skipInterval) }}>
-          <Rewind size={18} />
-          <span>{skipInterval}s</span>
+          <SkipIcon seconds={skipInterval} direction="back" />
         </button>
         <button className="top-player-play" onClick={(e) => { e.stopPropagation(); togglePlay() }}>
           {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: 2 }} />}
         </button>
         <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skip(skipInterval) }}>
-          <span>{skipInterval}s</span>
-          <FastForward size={18} />
+          <SkipIcon seconds={skipInterval} direction="fwd" />
         </button>
       </div>
       <span className="top-player-time">{formatTime(duration)}</span>
