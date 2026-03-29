@@ -191,6 +191,14 @@ export function SectionEditorPage() {
         {/* Sektionen / Marker buttons */}
         <div style={{ display: 'flex', gap: 10, margin: '12px 0' }}>
           <button
+            className="player-ab-btn"
+            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+            onClick={addMarker}
+          >
+            <Pin size={18} />
+            Setze Marker
+          </button>
+          <button
             className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
             style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: canGenerateSections ? 1 : 0.4 }}
             onClick={generateSections}
@@ -198,14 +206,6 @@ export function SectionEditorPage() {
           >
             <LayoutList size={18} />
             Erstelle Sektion(en)
-          </button>
-          <button
-            className="player-ab-btn"
-            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-            onClick={addMarker}
-          >
-            <Pin size={18} />
-            Setze Marker
           </button>
         </div>
 
