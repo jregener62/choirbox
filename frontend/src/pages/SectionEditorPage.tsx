@@ -197,7 +197,7 @@ export function SectionEditorPage() {
             disabled={!canGenerateSections}
           >
             <LayoutList size={18} />
-            Sektionen
+            Erstelle Sektion(en)
           </button>
           <button
             className="player-ab-btn"
@@ -205,7 +205,7 @@ export function SectionEditorPage() {
             onClick={addMarker}
           >
             <Pin size={18} />
-            Marker
+            Setze Marker
           </button>
         </div>
 
