@@ -1,11 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Repeat, Pin, Heart, X, Tag, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine, ChevronDown } from 'lucide-react'
+import { Repeat, Pin, X, Trash2, LayoutList, ArrowLeftToLine, ArrowRightToLine, ChevronDown } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
-import { useFavoritesStore } from '@/hooks/useFavorites.ts'
-import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { UnifiedTimeline } from '@/components/ui/UnifiedTimeline.tsx'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
@@ -20,10 +18,7 @@ import type { TimelineEntry } from '@/utils/buildTimeline'
 export function PlayerPage() {
   const navigate = useNavigate()
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
-  const { loaded, load, isFavorite, toggle } = useFavoritesStore()
-  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel } = useLabelsStore()
   const { sections, loadedPath: sectionsLoadedPath, load: loadSections } = useSectionsStore()
-  const [showLabelPicker, setShowLabelPicker] = useState(false)
   const {
     currentName, currentPath,
     currentTime, duration,
@@ -46,18 +41,11 @@ export function PlayerPage() {
   const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
-  const isFav = currentPath ? isFavorite(currentPath) : false
-
-  useEffect(() => {
-    if (!loaded) load()
-    if (!labelsLoaded) loadLabels()
-  }, [loaded, load, labelsLoaded, loadLabels])
 
   useEffect(() => {
     if (currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
   }, [currentPath, sectionsLoadedPath, loadSections])
 
-  const assignedLabels = currentPath ? getLabelsForPath(currentPath) : []
   const timeline = buildTimeline(sections, duration)
   const hasSections = sections.length > 0
 
@@ -118,18 +106,6 @@ export function PlayerPage() {
             <X size={16} />
           </button>
         )}
-        <button
-          className={`player-toolbar-btn ${assignedLabels.length > 0 ? 'player-toolbar-btn--accent' : ''}`}
-          onClick={() => setShowLabelPicker(!showLabelPicker)}
-        >
-          <Tag size={16} />
-        </button>
-        <button
-          className={`player-toolbar-btn ${isFav ? 'player-toolbar-btn--active' : ''}`}
-          onClick={() => currentPath && toggle(currentPath)}
-        >
-          <Heart size={16} fill={isFav ? 'currentColor' : 'none'} />
-        </button>
         {hasMinRole(userRole, 'pro-member') && (
           <button className="player-toolbar-btn" onClick={() => navigate('/sections')}>
             <LayoutList size={16} />
@@ -188,41 +164,6 @@ export function PlayerPage() {
 
         {/* Lyrics & Notes */}
         <div className="player-lyrics-divider" />
-
-        {/* Assigned Labels */}
-        {assignedLabels.length > 0 && (
-          <div className="player-labels" style={{ marginBottom: 8 }}>
-            {assignedLabels.map((l) => (
-              <span key={l.id} className="label-chip" style={{ background: l.color + '25', color: l.color }}>
-                {l.name}
-              </span>
-            ))}
-          </div>
-        )}
-
-        {/* Label Picker */}
-        {showLabelPicker && currentPath && (
-          <div className="label-picker">
-            {labels.map((l) => {
-              const assigned = isAssigned(currentPath, l.id)
-              return (
-                <button
-                  key={l.id}
-                  className={`label-picker-item ${assigned ? 'assigned' : ''}`}
-                  style={{
-                    borderColor: assigned ? l.color : 'var(--border)',
-                    background: assigned ? l.color + '25' : 'none',
-                    color: assigned ? l.color : 'var(--text-secondary)',
-                  }}
-                  onClick={() => toggleLabel(currentPath, l.id)}
-                >
-                  <span className="label-picker-dot" style={{ background: l.color }} />
-                  {l.name}
-                </button>
-              )
-            })}
-          </div>
-        )}
 
         <PlayerLyrics
           dropboxPath={currentPath}

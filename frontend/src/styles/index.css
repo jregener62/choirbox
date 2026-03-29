@@ -759,31 +759,61 @@ body {
   z-index: 1;
 }
 
-.swipe-revealed .swipe-content {
-  transform: translateX(-72px);
-}
-
-.swipe-delete-btn {
+.swipe-actions {
   position: absolute;
   right: 0;
   top: 0;
   bottom: 0;
-  width: 72px;
-  background: var(--danger);
-  color: white;
+  display: flex;
+}
+
+.swipe-revealed .swipe-content {
+  transform: translateX(-96px);
+}
+
+.swipe-revealed .swipe-actions--with-delete .swipe-content,
+.swipe-wrapper:has(.swipe-action-delete) .swipe-revealed .swipe-content {
+  /* auto-calculated via JS isn't needed — CSS handles it */
+}
+
+.swipe-revealed:has(.swipe-action-delete) .swipe-content {
+  transform: translateX(-144px);
+}
+
+.swipe-action-btn {
+  width: 48px;
   border: none;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  font-size: 11px;
-  font-weight: 500;
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
 }
 
-.swipe-delete-btn:active {
+.swipe-action-fav {
+  background: var(--surface);
+  color: #f87171;
+}
+
+.swipe-action-fav:active {
+  background: var(--border);
+}
+
+.swipe-action-label {
+  background: var(--surface);
+  color: var(--accent);
+}
+
+.swipe-action-label:active {
+  background: var(--border);
+}
+
+.swipe-action-delete {
+  background: var(--danger);
+  color: white;
+}
+
+.swipe-action-delete:active {
   background: #dc2626;
 }
 

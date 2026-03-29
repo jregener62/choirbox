@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -26,7 +26,7 @@ export function BrowsePage() {
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
-  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, assignments } = useLabelsStore()
+  const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel, assignments } = useLabelsStore()
   const user = useAuthStore((s) => s.user)
   const canDelete = !!user && ['chorleiter', 'admin'].includes(user.role)
   const [entries, setEntries] = useState<DropboxEntry[]>([])
@@ -38,6 +38,7 @@ export function BrowsePage() {
 
   // Swipe-to-delete state
   const [revealedPath, setRevealedPath] = useState<string | null>(null)
+  const [swipeLabelPath, setSwipeLabelPath] = useState<string | null>(null)
   const [confirmEntry, setConfirmEntry] = useState<DropboxEntry | null>(null)
   const [deleting, setDeleting] = useState(false)
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null)
@@ -347,8 +348,8 @@ export function BrowsePage() {
         )}
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
-          const swipeable = canDelete && entry.type === 'file'
-          const isRevealed = swipeable && revealedPath === entry.path
+          const isFile = entry.type === 'file'
+          const isRevealed = isFile && revealedPath === entry.path
 
           const itemContent = (
             <>
@@ -393,24 +394,14 @@ export function BrowsePage() {
                   ) : null
                 })()}
               </div>
-              {entry.type === 'folder' ? (
+              {entry.type === 'folder' && (
                 <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              ) : (
-                <button
-                  className="fav-toggle"
-                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path) }}
-                >
-                  <Heart
-                    size={16}
-                    fill={isFavorite(entry.path) ? '#f87171' : 'none'}
-                    color={isFavorite(entry.path) ? '#f87171' : 'var(--text-muted)'}
-                  />
-                </button>
               )}
             </>
           )
 
-          if (swipeable) {
+          if (isFile) {
+            const fav = isFavorite(entry.path)
             return (
               <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
                 <div
@@ -421,13 +412,28 @@ export function BrowsePage() {
                 >
                   {itemContent}
                 </div>
-                <button
-                  className="swipe-delete-btn"
-                  onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
-                >
-                  <Trash2 size={18} />
-                  <span>Löschen</span>
-                </button>
+                <div className="swipe-actions">
+                  <button
+                    className="swipe-action-btn swipe-action-fav"
+                    onClick={(e) => { e.stopPropagation(); toggleFav(entry.path) }}
+                  >
+                    <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
+                  </button>
+                  <button
+                    className="swipe-action-btn swipe-action-label"
+                    onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
+                  >
+                    <Tag size={18} />
+                  </button>
+                  {canDelete && (
+                    <button
+                      className="swipe-action-btn swipe-action-delete"
+                      onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  )}
+                </div>
               </li>
             )
           }
@@ -445,6 +451,40 @@ export function BrowsePage() {
       </ul>
 
       </div>{/* end browse-content */}
+
+      {/* Label Picker Overlay */}
+      {swipeLabelPath && (
+        <div className="confirm-overlay" onClick={() => setSwipeLabelPath(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">Labels</p>
+            <div className="label-picker" style={{ margin: 0 }}>
+              {labels.map((l) => {
+                const assigned = isAssigned(swipeLabelPath, l.id)
+                return (
+                  <button
+                    key={l.id}
+                    className={`label-picker-item ${assigned ? 'assigned' : ''}`}
+                    style={{
+                      borderColor: assigned ? l.color : 'var(--border)',
+                      background: assigned ? l.color + '25' : 'none',
+                      color: assigned ? l.color : 'var(--text-secondary)',
+                    }}
+                    onClick={() => toggleLabel(swipeLabelPath, l.id)}
+                  >
+                    <span className="label-picker-dot" style={{ background: l.color }} />
+                    {l.name}
+                  </button>
+                )
+              })}
+            </div>
+            <div className="confirm-actions" style={{ marginTop: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setSwipeLabelPath(null)}>
+                Fertig
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {confirmEntry && (
         <div className="confirm-overlay" onClick={() => !deleting && setConfirmEntry(null)}>
