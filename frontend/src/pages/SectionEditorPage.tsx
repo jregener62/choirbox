@@ -199,6 +199,13 @@ export function SectionEditorPage() {
           onSectionClick={handleSelect}
         />
 
+        {/* Hint when sections exist but none selected */}
+        {editingId === null && sections.length > 0 && (
+          <div style={{ padding: '16px 0', fontSize: 13, color: 'var(--text-muted)', textAlign: 'center' }}>
+            Waehle eine Sektion, um sie zu editieren
+          </div>
+        )}
+
         {/* Edit form — only when editing an existing section */}
         {editingId !== null && (
           <>
