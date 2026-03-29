@@ -283,7 +283,7 @@ export function SectionEditorPage() {
               </button>
               <button
                 className="btn btn-secondary"
-                style={{ flex: 'none' }}
+                style={{ flex: 1 }}
                 onClick={resetForm}
               >
                 Abbrechen
