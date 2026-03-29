@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -45,6 +45,8 @@ export function SettingsPage() {
   // Admin settings
   const [regCode, setRegCode] = useState('')
   const [regCodeSaving, setRegCodeSaving] = useState(false)
+  const [rootFolder, setRootFolder] = useState('')
+  const [rootFolderSaving, setRootFolderSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   // Load Dropbox status
@@ -66,6 +68,7 @@ export function SettingsPage() {
     try {
       const settings = await api<AdminSettings>('/admin/settings')
       setRegCode(settings.registration_code || '')
+      setRootFolder(settings.dropbox_root_folder || '')
     } catch {
       // ignore
     }
@@ -158,6 +161,18 @@ export function SettingsPage() {
       setMessage('Fehler beim Speichern')
     } finally {
       setRegCodeSaving(false)
+    }
+  }
+
+  const saveRootFolder = async () => {
+    setRootFolderSaving(true)
+    try {
+      await api('/admin/settings', { method: 'PUT', body: { dropbox_root_folder: rootFolder.trim() || null } })
+      setMessage('Stammordner gespeichert')
+    } catch {
+      setMessage('Fehler beim Speichern')
+    } finally {
+      setRootFolderSaving(false)
     }
   }
 
@@ -354,6 +369,33 @@ export function SettingsPage() {
                 style={{ width: 'auto', padding: '10px 20px' }}
               >
                 {regCodeSaving ? '...' : 'OK'}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* -- Dropbox Stammordner (Admin) -- */}
+        {isAdmin && (
+          <section>
+            <h3 className="settings-heading"><Folder size={14} /> Dropbox Stammordner</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
+              Ordner in der Dropbox als Startpunkt (z.B. Männerchor). Leer = gesamte Dropbox.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <input
+                className="auth-input"
+                type="text"
+                value={rootFolder}
+                onChange={(e) => setRootFolder(e.target.value)}
+                placeholder="z.B. Männerchor"
+              />
+              <button
+                className="auth-submit"
+                onClick={saveRootFolder}
+                disabled={rootFolderSaving}
+                style={{ width: 'auto', padding: '10px 20px' }}
+              >
+                {rootFolderSaving ? '...' : 'OK'}
               </button>
             </div>
           </section>

@@ -20,6 +20,29 @@ router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 _oauth_states: dict[str, str] = {}
 
 
+def _get_root_folder(session: Session) -> str:
+    """Read dropbox_root_folder from settings, stripped of leading/trailing slashes."""
+    settings = session.get(AppSettings, 1)
+    return (settings.dropbox_root_folder or "").strip("/") if settings else ""
+
+
+def _to_dropbox_path(user_path: str, root_folder: str) -> str:
+    """User-visible path -> actual Dropbox path. '' + 'Männerchor' -> '/Männerchor'"""
+    parts = [p for p in [root_folder, user_path.strip("/")] if p]
+    return "/" + "/".join(parts) if parts else ""
+
+
+def _to_user_path(dropbox_path: str, root_folder: str) -> str:
+    """Actual Dropbox path -> user-visible path. '/Männerchor/Stücke' -> '/Stücke'"""
+    if root_folder:
+        prefix = "/" + root_folder
+        if dropbox_path == prefix or dropbox_path == prefix + "/":
+            return ""
+        if dropbox_path.startswith(prefix + "/"):
+            return dropbox_path[len(prefix):]
+    return dropbox_path
+
+
 def _get_or_create_settings(session: Session) -> AppSettings:
     settings = session.get(AppSettings, 1)
     if not settings:
@@ -149,11 +172,14 @@ async def dropbox_browse(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
+    root_folder = _get_root_folder(session)
+    dropbox_path = _to_dropbox_path(path, root_folder)
+
     try:
-        entries = await dbx.list_folder(path)
+        entries = await dbx.list_folder(dropbox_path)
     except RuntimeError as e:
         if "path/not_found" in str(e):
-            return {"path": path, "entries": [], "error": "Folder not found"}
+            return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
 
     # Filter: only folders and MP3 files
@@ -164,13 +190,13 @@ async def dropbox_browse(
         if tag == "folder":
             filtered.append({
                 "name": name,
-                "path": e.get("path_display", ""),
+                "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "folder",
             })
         elif tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a")):
             filtered.append({
                 "name": name,
-                "path": e.get("path_display", ""),
+                "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "file",
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
@@ -179,7 +205,7 @@ async def dropbox_browse(
     # Sort: folders first, then files, both alphabetical
     filtered.sort(key=lambda x: (0 if x["type"] == "folder" else 1, x["name"].lower()))
 
-    return {"path": path, "entries": filtered}
+    return {"path": path, "entries": filtered, "root_name": root_folder or None}
 
 
 @router.get("/search")
@@ -198,8 +224,11 @@ async def dropbox_search(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
+    root_folder = _get_root_folder(session)
+    search_path = ("/" + root_folder) if root_folder else ""
+
     try:
-        results = await dbx.search(q)
+        results = await dbx.search(q, path=search_path)
     except RuntimeError as e:
         raise HTTPException(500, str(e))
 
@@ -210,7 +239,7 @@ async def dropbox_search(
         if tag == "folder" or (tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a"))):
             entries.append({
                 "name": name,
-                "path": e.get("path_display", ""),
+                "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "folder" if tag == "folder" else "file",
                 "size": e.get("size", 0) if tag == "file" else None,
             })
@@ -234,8 +263,11 @@ async def dropbox_stream(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
+    root_folder = _get_root_folder(session)
+    dropbox_path = _to_dropbox_path(path, root_folder)
+
     try:
-        link = await dbx.get_temporary_link(path)
+        link = await dbx.get_temporary_link(dropbox_path)
     except RuntimeError as e:
         raise HTTPException(502, str(e))
 
@@ -277,10 +309,13 @@ async def dropbox_upload(
         content = mp3_content
         filename = filename.rsplit(".", 1)[0] + ".mp3"
 
+    root_folder = _get_root_folder(session)
+
     if target_path and not target_path.startswith("/"):
         target_path = "/" + target_path
 
-    dropbox_path = f"{target_path}/{filename}".replace("//", "/")
+    full_target = _to_dropbox_path(target_path, root_folder)
+    dropbox_path = f"{full_target}/{filename}".replace("//", "/")
 
     try:
         result = await dbx.upload_file(content, dropbox_path)
@@ -289,7 +324,7 @@ async def dropbox_upload(
 
     return ActionResponse.success(data={
         "name": result.get("name", filename),
-        "path": result.get("path_display", dropbox_path),
+        "path": _to_user_path(result.get("path_display", dropbox_path), root_folder),
         "size": result.get("size", len(content)),
     })
 
@@ -355,8 +390,11 @@ async def dropbox_delete_file(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
+    root_folder = _get_root_folder(session)
+    dropbox_path = _to_dropbox_path(path, root_folder)
+
     try:
-        result = await dbx.delete_file(path)
+        result = await dbx.delete_file(dropbox_path)
     except RuntimeError as e:
         if "path_lookup/not_found" in str(e):
             raise HTTPException(404, "Datei nicht gefunden")
@@ -365,7 +403,7 @@ async def dropbox_delete_file(
     metadata = result.get("metadata", {})
     return ActionResponse.success(data={
         "name": metadata.get("name", ""),
-        "path": metadata.get("path_display", path),
+        "path": _to_user_path(metadata.get("path_display", path), root_folder),
     })
 
 

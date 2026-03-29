@@ -22,6 +22,7 @@ export interface DropboxEntry {
 export interface BrowseResponse {
   path: string
   entries: DropboxEntry[]
+  root_name?: string | null
   error?: string
 }
 
