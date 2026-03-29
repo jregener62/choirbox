@@ -624,6 +624,22 @@ body {
   cursor: not-allowed;
 }
 
+.player-toolbar-btn--wide {
+  min-width: 80px;
+  gap: 6px;
+}
+
+.player-toolbar-btn--narrow {
+  min-width: 36px;
+  padding: 6px 8px;
+}
+
+.player-toolbar-btn-time {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
 .player-toolbar-btn--amber {
   border-color: #f59e0b;
   background: rgba(245,158,11,0.15);

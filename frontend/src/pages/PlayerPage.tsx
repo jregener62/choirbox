@@ -112,22 +112,24 @@ export function PlayerPage() {
       />
       <div className="player-toolbar">
         <button
-          className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
+          className={`player-toolbar-btn player-toolbar-btn--wide ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setA}
         >
           <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>[</span>
+          {loopStart !== null && <span className="player-toolbar-btn-time">{formatTime(loopStart)}</span>}
         </button>
         <button
-          className={`player-toolbar-btn ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
+          className={`player-toolbar-btn player-toolbar-btn--narrow ${loopEnabled ? 'player-toolbar-btn--amber' : ''}`}
           onClick={handleLoopTap}
           disabled={loopStart === null || loopEnd === null}
         >
           <Repeat size={16} />
         </button>
         <button
-          className={`player-toolbar-btn ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
+          className={`player-toolbar-btn player-toolbar-btn--wide ${loopEnd !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setB}
         >
+          {loopEnd !== null && <span className="player-toolbar-btn-time">{formatTime(loopEnd)}</span>}
           <span style={{ fontSize: 18, fontWeight: 700, lineHeight: 1 }}>]</span>
         </button>
       </div>
