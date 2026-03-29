@@ -1,25 +1,26 @@
 /* ChoirBox — Mobile-First CSS */
 
 :root {
-  /* Light theme (default) */
-  --bg-primary: #ffffff;
-  --bg-secondary: #f3f4f6;
-  --bg-tertiary: #e5e7eb;
-  --text-primary: #111827;
-  --text-secondary: #6b7280;
-  --text-muted: #9ca3af;
-  --border: #e5e7eb;
+  /* Light theme (default) — Cool Slate, leicht gedaempft */
+  --bg-primary: #EEF0F4;
+  --bg-secondary: #E2E5EC;
+  --bg-tertiary: #D6DAE2;
+  --bg-elevated: #DADDE5;
+  --text-primary: #1A1F2E;
+  --text-secondary: #5A6170;
+  --text-muted: #8A90A0;
+  --border: rgba(0,0,0,0.07);
   --accent: #6366f1;
   --accent-hover: #4f46e5;
-  --danger: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --marker: #84cc16;
-  --marker-dim: rgba(132,204,22,0.2);
-  --confirm: #3b82f6;
-  --confirm-hover: #2563eb;
-  --player-bg: #1f2937;
-  --player-text: #f9fafb;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+  --marker: #65a30d;
+  --marker-dim: rgba(101,163,13,0.15);
+  --confirm: #2563eb;
+  --confirm-hover: #1d4ed8;
+  --player-bg: #2A3348;
+  --player-text: #E4E8EE;
   /* Voice colors (warm/bright) */
   --sopran: #ec4899;
   --alt: #f97316;
@@ -32,13 +33,15 @@
 }
 
 [data-theme="dark"] {
-  --bg-primary: #0f172a;
-  --bg-secondary: #1e293b;
-  --bg-tertiary: #334155;
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --border: rgba(148,163,184,0.12);
+  /* Dark theme — Cool Slate, aufgehellt */
+  --bg-primary: #1E2538;
+  --bg-secondary: #2A3348;
+  --bg-tertiary: #354050;
+  --bg-elevated: #303A50;
+  --text-primary: #E4E8EE;
+  --text-secondary: #9AA4B4;
+  --text-muted: #6A7484;
+  --border: rgba(148,163,184,0.10);
   --accent: #818cf8;
   --accent-hover: #6366f1;
   --danger: #f87171;
@@ -48,8 +51,8 @@
   --marker-dim: rgba(163,230,53,0.2);
   --confirm: #3b82f6;
   --confirm-hover: #2563eb;
-  --player-bg: #1e293b;
-  --player-text: #f1f5f9;
+  --player-bg: #2A3348;
+  --player-text: #E4E8EE;
 }
 
 * {
@@ -316,7 +319,7 @@ body {
 }
 
 .top-player-bar--full {
-  background: var(--bg-secondary);
+  background: var(--bg-elevated);
   cursor: default;
 }
 
