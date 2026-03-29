@@ -127,17 +127,6 @@ export function SectionEditorPage() {
       <TopPlayerBar variant="full" />
       <div className="player-toolbar">
         <button
-          className={`player-toolbar-btn ${canGenerateSections ? 'player-toolbar-btn--accent' : ''}`}
-          onClick={generateSections}
-          disabled={!canGenerateSections}
-          title="Sektionen aus Markern erstellen"
-        >
-          <LayoutList size={16} />
-        </button>
-        <button className="player-toolbar-btn" onClick={addMarker}>
-          <Pin size={16} />
-        </button>
-        <button
           className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setA}
         >
@@ -198,6 +187,27 @@ export function SectionEditorPage() {
           activeSectionId={activeSection?.id ?? null}
           onSectionClick={handleSelect}
         />
+
+        {/* Sektionen / Marker buttons */}
+        <div style={{ display: 'flex', gap: 10, margin: '12px 0' }}>
+          <button
+            className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
+            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: canGenerateSections ? 1 : 0.4 }}
+            onClick={generateSections}
+            disabled={!canGenerateSections}
+          >
+            <LayoutList size={18} />
+            Sektionen
+          </button>
+          <button
+            className="player-ab-btn"
+            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+            onClick={addMarker}
+          >
+            <Pin size={18} />
+            Marker
+          </button>
+        </div>
 
         {/* Hint when sections exist but none selected */}
         {editingId === null && sections.length > 0 && (
