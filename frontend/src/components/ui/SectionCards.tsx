@@ -23,33 +23,38 @@ export function SectionCards({
   const currentIndex = timeline.findIndex(
     (e) => currentTime >= e.start_time && currentTime < e.end_time,
   )
+  const selectedIndex = activeSectionId !== null
+    ? timeline.findIndex((e) => !e.isGap && e.id === activeSectionId)
+    : -1
+  const highlightIndex = selectedIndex !== -1 ? selectedIndex : currentIndex
 
   useEffect(() => {
-    if (currentIndex !== -1 && currentIndex !== lastIndexRef.current) {
-      lastIndexRef.current = currentIndex
+    if (highlightIndex !== -1 && highlightIndex !== lastIndexRef.current) {
+      lastIndexRef.current = highlightIndex
       activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
     }
-  }, [currentIndex])
+  }, [highlightIndex])
 
   return (
     <div className="section-cards">
       {timeline.map((entry, i) => {
         const isCurrent = i === currentIndex
-        const isLooping = isCurrent && loopEnabled
+        const isSelected = !entry.isGap && entry.id === activeSectionId
+        const isLooping = (isCurrent || isSelected) && loopEnabled
           && loopStart !== null && loopEnd !== null
-          && ((!entry.isGap && entry.id === activeSectionId)
+          && (isSelected
             || (entry.isGap
               && Math.abs(loopStart - entry.start_time) < 0.5
               && Math.abs(loopEnd - entry.end_time) < 0.5))
 
         let cls = 'section-card'
-        if (isCurrent) cls += ' section-card--active'
+        if (isCurrent || isSelected) cls += ' section-card--active'
         if (entry.isGap) cls += ' section-card--gap'
 
         return (
           <button
             key={entry.isGap ? `gap-${i}` : `sec-${entry.id}`}
-            ref={isCurrent ? activeRef : undefined}
+            ref={(isCurrent || isSelected) ? activeRef : undefined}
             className={cls}
             style={!entry.isGap ? { background: hexAlpha(entry.color!, 0.12) } : undefined}
             onClick={() => onSectionClick(entry)}

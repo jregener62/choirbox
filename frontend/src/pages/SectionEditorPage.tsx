@@ -6,8 +6,6 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
-import { Waveform } from '@/components/ui/Waveform.tsx'
-import { SectionLane } from '@/components/ui/SectionLane.tsx'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
@@ -22,7 +20,7 @@ const FALLBACK_COLORS = [
 
 export function SectionEditorPage() {
   const navigate = useNavigate()
-  const { currentPath, currentName, currentTime, duration, markers, loopStart, loopEnd, loopEnabled, activeSection } = usePlayerStore()
+  const { currentPath, currentName, currentTime, duration, markers, loopStart, loopEnd, loopEnabled } = usePlayerStore()
   const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
   const { sections, load, bulkCreate, update, remove } = useSectionsStore()
@@ -125,21 +123,6 @@ export function SectionEditorPage() {
     }
   }
 
-  const handleLaneClick = (section: typeof sections[0]) => {
-    const store = usePlayerStore.getState()
-    if (editingId === section.id) {
-      resetForm()
-    } else {
-      store.setSectionLoop(section)
-      seek(section.start_time)
-      setEditingId(section.id)
-      setLabel(section.label)
-      setColor(section.color)
-      setStartTime(section.start_time)
-      setEndTime(section.end_time)
-    }
-  }
-
   return (
     <div className="player-page">
       {/* Page header — same as PlayerPage */}
@@ -213,25 +196,6 @@ export function SectionEditorPage() {
           </div>
         </div>
 
-        {/* Waveform + SectionLane for editing */}
-        <Waveform
-          peaks={peaks}
-          currentTime={currentTime}
-          duration={duration}
-          loopStart={loopStart}
-          loopEnd={loopEnd}
-          loopEnabled={loopEnabled}
-          markers={markers}
-          activeSectionId={activeSection?.id ?? null}
-          onSeek={seek}
-        />
-        <SectionLane
-          sections={sections}
-          duration={duration}
-          activeSectionId={editingId}
-          onSectionClick={handleLaneClick}
-        />
-
         {/* Section Cards — click selects for editing */}
         {hasSections && (
           <SectionCards
@@ -255,31 +219,29 @@ export function SectionEditorPage() {
 
       {/* Fixed footer — editing controls */}
       <div className="section-editor-footer">
-        {/* Set Marker + Generate Sections */}
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            className="player-ab-btn"
-            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-            onClick={addMarker}
-          >
-            <Pin size={18} />
-            Setze Marker
-          </button>
-          <button
-            className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
-            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: canGenerateSections ? 1 : 0.4 }}
-            onClick={generateSections}
-            disabled={!canGenerateSections}
-          >
-            <LayoutList size={18} />
-            Erstelle Sektion(en)
-          </button>
-        </div>
-
-        {/* Edit form when section selected */}
-        {editingId !== null && (
+        {editingId === null ? (
+          /* Set Marker + Generate Sections — only when not editing */
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="player-ab-btn"
+              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+              onClick={addMarker}
+            >
+              <Pin size={18} />
+              Setze Marker
+            </button>
+            <button
+              className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
+              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: canGenerateSections ? 1 : 0.4 }}
+              onClick={generateSections}
+              disabled={!canGenerateSections}
+            >
+              <LayoutList size={18} />
+              Erstelle Sektion(en)
+            </button>
+          </div>
+        ) : (
           <>
-            <div className="player-divider" style={{ margin: '12px 0' }} />
 
             {/* Preset bricks */}
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>

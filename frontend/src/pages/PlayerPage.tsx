@@ -97,9 +97,6 @@ export function PlayerPage() {
         onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
       />
       <div className="player-toolbar">
-        <button className="player-toolbar-btn" onClick={addMarker}>
-          <Pin size={16} />
-        </button>
         <button
           className={`player-toolbar-btn ${loopStart !== null ? 'player-toolbar-btn--amber' : ''}`}
           onClick={setA}
@@ -119,11 +116,6 @@ export function PlayerPage() {
         >
           <ArrowRightToLine size={16} />
         </button>
-        {hasMinRole(userRole, 'pro-member') && (
-          <button className="player-toolbar-btn" onClick={() => navigate('/sections')}>
-            <LayoutList size={16} />
-          </button>
-        )}
       </div>
       {markers.length > 0 && (
         <div className="player-marker-row">
@@ -179,6 +171,30 @@ export function PlayerPage() {
           duration={duration}
         />
       </div>
+
+      {/* Tools footer */}
+      {hasMinRole(userRole, 'pro-member') && (
+        <div className="section-editor-footer">
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button
+              className="player-ab-btn"
+              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+              onClick={addMarker}
+            >
+              <Pin size={18} />
+              Setze Marker
+            </button>
+            <button
+              className="player-ab-btn"
+              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
+              onClick={() => navigate('/sections')}
+            >
+              <LayoutList size={18} />
+              Sektionen editieren
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
