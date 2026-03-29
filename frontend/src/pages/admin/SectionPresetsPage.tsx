@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Pencil, Trash2, Plus } from 'lucide-react'
 import { api } from '@/api/client.ts'
+import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import type { SectionPreset } from '@/types/index.ts'
 
 const DEFAULT_COLORS = [
@@ -19,6 +20,8 @@ export function SectionPresetsPage() {
   const [editId, setEditId] = useState<number | null>(null)
   const [name, setName] = useState('')
   const [color, setColor] = useState(DEFAULT_COLORS[0])
+
+  const invalidateStore = useSectionPresetsStore((s) => s.invalidate)
 
   const loadPresets = useCallback(async () => {
     try {
@@ -47,13 +50,13 @@ export function SectionPresetsPage() {
       } else {
         await api('/section-presets', { method: 'POST', body: { name: name.trim(), color, sort_order: presets.length } })
       }
-      resetForm(); loadPresets()
+      resetForm(); loadPresets(); invalidateStore()
     } catch { setMessage('Fehler beim Speichern') }
   }
 
   const deletePreset = async (preset: SectionPreset) => {
     if (!confirm(`"${preset.name}" loeschen?`)) return
-    try { await api(`/section-presets/${preset.id}`, { method: 'DELETE' }); loadPresets() }
+    try { await api(`/section-presets/${preset.id}`, { method: 'DELETE' }); loadPresets(); invalidateStore() }
     catch { setMessage('Fehler beim Loeschen') }
   }
 

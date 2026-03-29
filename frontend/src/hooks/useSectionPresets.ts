@@ -6,6 +6,7 @@ interface SectionPresetsState {
   presets: SectionPreset[]
   loaded: boolean
   load: () => Promise<void>
+  invalidate: () => void
 }
 
 export const useSectionPresetsStore = create<SectionPresetsState>((set, get) => ({
@@ -21,4 +22,6 @@ export const useSectionPresetsStore = create<SectionPresetsState>((set, get) => 
       set({ loaded: true })
     }
   },
+
+  invalidate: () => set({ loaded: false }),
 }))
