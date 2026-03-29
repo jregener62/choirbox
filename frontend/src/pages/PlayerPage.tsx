@@ -6,12 +6,13 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
-import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
-import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
+import { parseTrackFilename } from '@/utils/parseTrackFilename'
+import { voiceColor, voiceBg, voiceFullName } from '@/utils/voiceColors'
+import { formatTime, formatDisplayName, middleTruncate } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 export function PlayerPage() {
@@ -53,6 +54,8 @@ export function PlayerPage() {
   }, [])
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
+  const folderName = folderPath.split('/').filter(Boolean).pop() || ''
+  const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
 
   useEffect(() => {
     if (currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
@@ -88,6 +91,17 @@ export function PlayerPage() {
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Player</span>
+        <div className="topbar-track">
+          <span className="topbar-track-name">{middleTruncate(formatDisplayName(currentName!))}</span>
+          {parsed && (
+            <span
+              className="topbar-voice-badge"
+              style={{ background: voiceBg(parsed.voiceKey), color: voiceColor(parsed.voiceKey) }}
+            >
+              {voiceFullName(parsed.voiceKey)}
+            </span>
+          )}
+        </div>
       </div>
       <TopPlayerBar
         variant="full"
@@ -136,19 +150,6 @@ export function PlayerPage() {
 
       {/* Scrollable content */}
       <div className="player-scroll-content">
-        {/* Track Info */}
-        <div className="player-track-info">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-            {currentName && (
-              <VoiceIcon
-                filename={currentName}
-                folderName={folderPath.split('/').filter(Boolean).pop() || ''}
-              />
-            )}
-            <div className="player-track-name">{formatDisplayName(currentName!)}</div>
-          </div>
-        </div>
-
         {/* Section Cards */}
         {hasSections && (
           <SectionCards

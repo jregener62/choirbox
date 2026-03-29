@@ -25,3 +25,15 @@ export function voiceBg(voiceKey: string): string {
   if (voiceKey.length === 1) return VOICE_BG[voiceKey] || MULTI_BG
   return MULTI_BG
 }
+
+const VOICE_FULL: Record<string, string> = {
+  S: 'Sopran',
+  A: 'Alt',
+  T: 'Tenor',
+  B: 'Bass',
+}
+
+export function voiceFullName(voiceKey: string): string {
+  if (voiceKey.length === 1) return VOICE_FULL[voiceKey] || voiceKey
+  return voiceKey.split('').map((v) => VOICE_FULL[v] || v).join('/')
+}

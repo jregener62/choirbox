@@ -7,10 +7,11 @@ import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
-import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { buildTimeline } from '@/utils/buildTimeline'
-import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
+import { parseTrackFilename } from '@/utils/parseTrackFilename'
+import { voiceColor, voiceBg, voiceFullName } from '@/utils/voiceColors'
+import { formatTime, formatDisplayName, middleTruncate } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 const FALLBACK_COLORS = [
@@ -66,6 +67,8 @@ export function SectionEditorPage() {
   }, [])
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
+  const folderName = folderPath.split('/').filter(Boolean).pop() || ''
+  const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
   const timeline = buildTimeline(sections, duration)
   const hasSections = sections.length > 0
   const canGenerateSections = markers.length >= 2
@@ -131,6 +134,17 @@ export function SectionEditorPage() {
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Sektionen</span>
+        <div className="topbar-track">
+          <span className="topbar-track-name">{middleTruncate(formatDisplayName(currentName!))}</span>
+          {parsed && (
+            <span
+              className="topbar-voice-badge"
+              style={{ background: voiceBg(parsed.voiceKey), color: voiceColor(parsed.voiceKey) }}
+            >
+              {voiceFullName(parsed.voiceKey)}
+            </span>
+          )}
+        </div>
       </div>
       <TopPlayerBar
         variant="full"
@@ -184,19 +198,6 @@ export function SectionEditorPage() {
 
       {/* Scrollable content */}
       <div className="player-scroll-content">
-        {/* Track Info — same as PlayerPage */}
-        <div className="player-track-info">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-            {currentName && (
-              <VoiceIcon
-                filename={currentName}
-                folderName={folderPath.split('/').filter(Boolean).pop() || ''}
-              />
-            )}
-            <div className="player-track-name">{formatDisplayName(currentName!)}</div>
-          </div>
-        </div>
-
         {/* Section Cards — click selects for editing */}
         {hasSections && (
           <SectionCards
