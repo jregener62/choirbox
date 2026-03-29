@@ -1,3 +1,4 @@
+import { useRef, useEffect } from 'react'
 import { Repeat } from 'lucide-react'
 import { formatTime } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
@@ -16,13 +17,27 @@ export function SectionCards({
   timeline, currentTime, activeSectionId,
   loopEnabled, loopStart, loopEnd, onSectionClick,
 }: SectionCardsProps) {
+  const activeRef = useRef<HTMLButtonElement>(null)
+  const lastIndexRef = useRef(-1)
+
+  const currentIndex = timeline.findIndex(
+    (e) => currentTime >= e.start_time && currentTime < e.end_time,
+  )
+
+  useEffect(() => {
+    if (currentIndex !== -1 && currentIndex !== lastIndexRef.current) {
+      lastIndexRef.current = currentIndex
+      activeRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+    }
+  }, [currentIndex])
+
   return (
     <div className="section-cards">
       {timeline.map((entry, i) => {
-        const isCurrent = currentTime >= entry.start_time && currentTime < entry.end_time
+        const isCurrent = i === currentIndex
         const isLooping = isCurrent && loopEnabled
           && loopStart !== null && loopEnd !== null
-          && ((! entry.isGap && entry.id === activeSectionId)
+          && ((!entry.isGap && entry.id === activeSectionId)
             || (entry.isGap
               && Math.abs(loopStart - entry.start_time) < 0.5
               && Math.abs(loopEnd - entry.end_time) < 0.5))
@@ -34,6 +49,7 @@ export function SectionCards({
         return (
           <button
             key={entry.isGap ? `gap-${i}` : `sec-${entry.id}`}
+            ref={isCurrent ? activeRef : undefined}
             className={cls}
             style={!entry.isGap ? { background: hexAlpha(entry.color!, 0.12) } : undefined}
             onClick={() => onSectionClick(entry)}
