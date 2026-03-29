@@ -85,20 +85,18 @@ export function useAudioPlayer() {
     audio.removeAttribute('src')
     audio.load()
 
-    const loadAndPlay = async () => {
+    const loadTrack = async () => {
       try {
         const link = await fetchStreamLink(currentPath)
         if (currentLoadedPath !== currentPath) return
         audio.src = link
-        await audio.play()
-        usePlayerStore.getState().setPlaying(true)
+        audio.load()
       } catch (err) {
         console.error('Audio load error:', err)
-        usePlayerStore.getState().setPlaying(false)
       }
     }
 
-    loadAndPlay()
+    loadTrack()
   }, [currentPath])
 
   // Play/pause sync
