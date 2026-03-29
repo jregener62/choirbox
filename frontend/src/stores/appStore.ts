@@ -16,7 +16,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
-  theme: (localStorage.getItem('choirbox_theme') as Theme) || 'dark',
+  theme: (localStorage.getItem('choirbox_theme') as Theme) || 'light',
   activeRequests: 0,
   browsePath: '',
   modalOpen: false,
