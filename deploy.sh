@@ -51,7 +51,7 @@ deploy_server() {
   cd "$PROJECT_DIR"
   rsync -avz --delete \
     --exclude='venv/' --exclude='node_modules/' --exclude='.git/' \
-    --exclude='choirbox.db*' --exclude='.env' --exclude='__pycache__/' \
+    --exclude='choirbox.db*' --exclude='.env' --exclude='data/' --exclude='__pycache__/' \
     --exclude='.pytest_cache/' --exclude='frontend/dist/' \
     --exclude='static/react/' --exclude='.logs/' --exclude='.claude/' \
     --exclude='*.sf2' \
