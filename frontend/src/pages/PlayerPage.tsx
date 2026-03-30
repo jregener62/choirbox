@@ -86,12 +86,22 @@ export function PlayerPage() {
   const isSwiping = useRef(false)
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 1) return // Ignore pinch
     touchStartX.current = e.touches[0].clientX
     touchDelta.current = 0
     isSwiping.current = false
   }, [])
 
   const onTouchMove = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 1) { // Pinch detected — abort swipe
+      isSwiping.current = false
+      touchDelta.current = 0
+      if (panelsRef.current) {
+        panelsRef.current.classList.remove('swiping')
+        panelsRef.current.style.transform = ''
+      }
+      return
+    }
     const dx = e.touches[0].clientX - touchStartX.current
     touchDelta.current = dx
     if (Math.abs(dx) > 10 && !isSwiping.current) {
