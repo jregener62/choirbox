@@ -1,3 +1,4 @@
+import { useRef } from 'react'
 import { X, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
@@ -15,30 +16,48 @@ interface PlayerControlsBarProps {
 export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBarProps) {
   const { loopStart, loopEnd, loopEnabled, pendingLoopMarkerId, loopMarkerIds } = usePlayerStore()
   const { seek } = useAudioPlayer()
+  const lastTappedRef = useRef<string | null>(null)
 
   const handleMarkerTap = (m: Marker) => {
     const store = usePlayerStore.getState()
-    // Active marker-loop: clear it first, tapped marker becomes new pending
-    if (store.loopMarkerIds) {
-      store.clearLoop()
-      store.setPendingLoopMarker(m.id)
+    const isOrange = m.id === store.pendingLoopMarkerId
+      || (store.loopMarkerIds && store.loopMarkerIds.includes(m.id))
+
+    // Tap on orange marker → deactivate loop/loop point
+    if (isOrange) {
+      if (store.loopMarkerIds) {
+        store.clearLoop()
+      } else {
+        store.setPendingLoopMarker(null)
+      }
+      lastTappedRef.current = null
       seek(m.time)
       return
     }
-    if (!store.pendingLoopMarkerId) {
-      store.setPendingLoopMarker(m.id)
-      seek(m.time)
-    } else if (store.pendingLoopMarkerId === m.id) {
-      store.setPendingLoopMarker(null)
-      seek(m.time)
-    } else {
-      const pendingMarker = markers.find((mk) => mk.id === store.pendingLoopMarkerId)
-      if (pendingMarker) {
-        store.createLoopFromMarkers(pendingMarker, m)
-        const earlier = pendingMarker.time <= m.time ? pendingMarker : m
-        seek(earlier.time)
+
+    // Second tap on same marker → set as loop point
+    if (lastTappedRef.current === m.id) {
+      lastTappedRef.current = null
+      if (store.loopMarkerIds) {
+        store.clearLoop()
       }
+      if (store.pendingLoopMarkerId) {
+        const pendingMarker = markers.find((mk) => mk.id === store.pendingLoopMarkerId)
+        if (pendingMarker) {
+          store.createLoopFromMarkers(pendingMarker, m)
+          const earlier = pendingMarker.time <= m.time ? pendingMarker : m
+          seek(earlier.time)
+        }
+      } else {
+        store.setPendingLoopMarker(m.id)
+        seek(m.time)
+      }
+      return
     }
+
+    // First tap → just seek
+    lastTappedRef.current = m.id
+    seek(m.time)
   }
 
   return (
