@@ -113,6 +113,8 @@ export function FileSettingsPage() {
               }}
             />
 
+            <div style={{ borderTop: '1px solid var(--border)', marginTop: 20 }} />
+
             <RefEditor
               filePath={filePath}
               field="pdf_ref_path"
