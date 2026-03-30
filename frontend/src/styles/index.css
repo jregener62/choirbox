@@ -1032,16 +1032,11 @@ body {
 }
 
 .swipe-revealed .swipe-content {
-  transform: translateX(-96px);
-}
-
-.swipe-revealed .swipe-actions--with-delete .swipe-content,
-.swipe-wrapper:has(.swipe-action-delete) .swipe-revealed .swipe-content {
-  /* auto-calculated via JS isn't needed — CSS handles it */
+  transform: translateX(-144px);
 }
 
 .swipe-revealed:has(.swipe-action-delete) .swipe-content {
-  transform: translateX(-144px);
+  transform: translateX(-192px);
 }
 
 .swipe-action-btn {
@@ -1069,6 +1064,15 @@ body {
 }
 
 .swipe-action-label:active {
+  background: var(--border);
+}
+
+.swipe-action-info {
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.swipe-action-info:active {
   background: var(--border);
 }
 

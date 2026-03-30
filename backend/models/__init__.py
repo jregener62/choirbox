@@ -9,3 +9,4 @@ from backend.models.session_token import SessionToken  # noqa: F401
 from backend.models.section import Section  # noqa: F401
 from backend.models.section_preset import SectionPreset  # noqa: F401
 from backend.models.note import Note  # noqa: F401
+from backend.models.file_settings import FileSettings  # noqa: F401

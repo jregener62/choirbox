@@ -8,8 +8,17 @@ from backend.database import get_session
 from backend.models.user import User
 from backend.models.section import Section
 from backend.models.note import Note
+from backend.models.file_settings import FileSettings
 from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
+
+
+def _resolve_section_path(path: str, session: Session) -> str:
+    """Resolve section reference: if file has a section_ref_path, use that instead."""
+    settings = session.get(FileSettings, path)
+    if settings and settings.section_ref_path:
+        return settings.section_ref_path
+    return path
 
 router = APIRouter(prefix="/sections", tags=["sections"])
 
@@ -20,9 +29,10 @@ def list_sections(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
+    resolved_path = _resolve_section_path(path, session)
     sections = session.exec(
         select(Section)
-        .where(Section.dropbox_path == path)
+        .where(Section.dropbox_path == resolved_path)
         .order_by(Section.sort_order, Section.start_time)
     ).all()
     return [
@@ -53,6 +63,7 @@ def create_sections_bulk(
 
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
+    dropbox_path = _resolve_section_path(dropbox_path, session)
     if not isinstance(entries, list) or len(entries) < 1:
         raise HTTPException(400, "sections must be a non-empty list")
 
@@ -103,6 +114,7 @@ def create_section(
 
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
+    dropbox_path = _resolve_section_path(dropbox_path, session)
     if not label:
         raise HTTPException(400, "label is required")
     if start_time is None or end_time is None:

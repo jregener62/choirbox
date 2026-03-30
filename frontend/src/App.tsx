@@ -11,6 +11,7 @@ import { SectionEditorPage } from '@/pages/SectionEditorPage.tsx'
 import { UsersPage } from '@/pages/admin/UsersPage.tsx'
 import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 import { SectionPresetsPage } from '@/pages/admin/SectionPresetsPage.tsx'
+import { FileSettingsPage } from '@/pages/FileSettingsPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -35,6 +36,7 @@ export function App() {
                   <Route path="/favorites" element={<FavoritesPage />} />
                   <Route path="/player" element={<PlayerPage />} />
                   <Route path="/sections" element={<SectionEditorPage />} />
+                  <Route path="/file-settings" element={<FileSettingsPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                   <Route path="/admin/users" element={<UsersPage />} />
                   <Route path="/admin/labels" element={<LabelsPage />} />

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical } from 'lucide-react'
+import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -437,6 +437,12 @@ export function BrowsePage() {
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
                   >
                     <Tag size={18} />
+                  </button>
+                  <button
+                    className="swipe-action-btn swipe-action-info"
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); navigate(`/file-settings?path=${encodeURIComponent(entry.path)}`) }}
+                  >
+                    <Info size={18} />
                   </button>
                   {canDelete && (
                     <button

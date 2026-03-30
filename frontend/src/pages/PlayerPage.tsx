@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, LayoutList, EllipsisVertical, ChevronLeft } from 'lucide-react'
+import { Pin, LayoutList, EllipsisVertical, ChevronLeft, Info } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -169,6 +169,10 @@ function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () 
                 <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
                   <LayoutList size={16} />
                   Sektionen editieren
+                </button>
+                <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
+                  <Info size={16} />
+                  Datei-Einstellungen
                 </button>
               </div>
             )}
