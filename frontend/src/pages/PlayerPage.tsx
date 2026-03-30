@@ -150,7 +150,7 @@ function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <button
           className="player-ab-btn"
-          style={{ padding: '10px 32px', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
+          style={{ padding: '10px 48px', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
           onClick={addMarker}
         >
           <Pin size={18} />
