@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from 'react'
+import { createContext, useContext } from 'react'
 import { createPortal } from 'react-dom'
 
 const FooterContext = createContext<HTMLDivElement | null>(null)

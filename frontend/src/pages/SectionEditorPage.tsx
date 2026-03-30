@@ -51,7 +51,6 @@ export function SectionEditorPage() {
   const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
   const timeline = buildTimeline(sections, duration)
   const hasSections = sections.length > 0
-  const canGenerateSections = markers.length >= 2
 
   const generateSections = useCallback(async () => {
     if (markers.length < 2) return
