@@ -24,6 +24,11 @@ export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBa
     } else if (store.pendingLoopMarkerId === m.id) {
       store.setPendingLoopMarker(null)
       seek(m.time)
+    } else if (store.loopMarkerIds) {
+      const keepPending = store.pendingLoopMarkerId
+      store.clearLoop()
+      store.setPendingLoopMarker(keepPending)
+      seek(m.time)
     } else {
       const pendingMarker = markers.find((mk) => mk.id === store.pendingLoopMarkerId)
       if (pendingMarker) {
