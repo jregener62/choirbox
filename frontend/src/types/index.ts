@@ -77,6 +77,7 @@ export interface PdfInfo {
   has_pdf: boolean
   original_name: string | null
   file_size: number | null
+  page_count: number
   is_ref: boolean
 }
 

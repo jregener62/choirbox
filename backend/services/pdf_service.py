@@ -4,6 +4,7 @@ from pathlib import Path
 from uuid import uuid4
 from typing import Optional
 
+import fitz  # PyMuPDF
 from sqlmodel import Session, select
 
 from backend.models.pdf_file import PdfFile
@@ -13,6 +14,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent.parent
 PDF_DIR = BASE_DIR / "data" / "pdfs"
 
 MAX_PDF_SIZE = 10 * 1024 * 1024  # 10 MB
+PAGE_RENDER_DPI = 200  # Good quality for mobile pinch-to-zoom
 
 
 def ensure_pdf_dir() -> None:
@@ -28,36 +30,71 @@ def save_pdf(
 ) -> PdfFile:
     if len(content) > MAX_PDF_SIZE:
         raise ValueError("PDF zu gross (max. 10 MB)")
-    # Check for %PDF- header (may have leading whitespace/BOM)
     header = content[:1024]
     if b"%PDF-" not in header:
         raise ValueError("Ungueltige Datei — nur PDF erlaubt")
+
+    # Count pages
+    doc = fitz.open(stream=content, filetype="pdf")
+    page_count = len(doc)
+    doc.close()
 
     # Delete existing PDF for this path
     existing = session.exec(
         select(PdfFile).where(PdfFile.dropbox_path == dropbox_path)
     ).first()
     if existing:
-        old_path = PDF_DIR / existing.filename
-        if old_path.exists():
-            old_path.unlink()
+        _delete_files(existing.filename)
         session.delete(existing)
         session.flush()
 
     filename = f"{uuid4().hex}.pdf"
     (PDF_DIR / filename).write_bytes(content)
 
+    # Pre-render pages as JPEG
+    _render_pages(filename, content)
+
     pdf_file = PdfFile(
         dropbox_path=dropbox_path,
         filename=filename,
         original_name=original_name,
         file_size=len(content),
+        page_count=page_count,
         uploaded_by=user_id,
     )
     session.add(pdf_file)
     session.commit()
     session.refresh(pdf_file)
     return pdf_file
+
+
+def _render_pages(filename: str, content: bytes) -> None:
+    """Render all PDF pages as JPEG images."""
+    stem = filename.rsplit(".", 1)[0]
+    doc = fitz.open(stream=content, filetype="pdf")
+    zoom = PAGE_RENDER_DPI / 72
+    matrix = fitz.Matrix(zoom, zoom)
+    for i in range(len(doc)):
+        pix = doc[i].get_pixmap(matrix=matrix)
+        pix.save(str(PDF_DIR / f"{stem}_p{i + 1}.jpg"))
+    doc.close()
+
+
+def _delete_files(filename: str) -> None:
+    """Delete PDF file and all rendered page images."""
+    stem = filename.rsplit(".", 1)[0]
+    pdf_path = PDF_DIR / filename
+    if pdf_path.exists():
+        pdf_path.unlink()
+    for img in PDF_DIR.glob(f"{stem}_p*.jpg"):
+        img.unlink()
+
+
+def get_page_path(pdf_file: PdfFile, page: int) -> Path | None:
+    """Get the path to a rendered page image (1-indexed)."""
+    stem = pdf_file.filename.rsplit(".", 1)[0]
+    path = PDF_DIR / f"{stem}_p{page}.jpg"
+    return path if path.exists() else None
 
 
 def get_pdf(dropbox_path: str, session: Session) -> Optional[PdfFile]:
@@ -69,7 +106,7 @@ def get_pdf(dropbox_path: str, session: Session) -> Optional[PdfFile]:
 def resolve_pdf(
     dropbox_path: str, session: Session
 ) -> tuple[Optional[PdfFile], bool]:
-    """Resolve PDF with section_ref_path fallback.
+    """Resolve PDF with pdf_ref_path fallback.
     Returns (PdfFile | None, is_ref: bool)."""
     direct = get_pdf(dropbox_path, session)
     if direct:
@@ -92,9 +129,7 @@ def delete_pdf(dropbox_path: str, session: Session) -> bool:
     pdf_file = get_pdf(dropbox_path, session)
     if not pdf_file:
         return False
-    file_path = PDF_DIR / pdf_file.filename
-    if file_path.exists():
-        file_path.unlink()
+    _delete_files(pdf_file.filename)
     session.delete(pdf_file)
     session.commit()
     return True

@@ -32,11 +32,12 @@ def pdf_info(
 ):
     pdf_file, is_ref = pdf_service.resolve_pdf(path, session)
     if not pdf_file:
-        return {"has_pdf": False, "original_name": None, "file_size": None, "is_ref": False}
+        return {"has_pdf": False, "original_name": None, "file_size": None, "page_count": 0, "is_ref": False}
     return {
         "has_pdf": True,
         "original_name": pdf_file.original_name,
         "file_size": pdf_file.file_size,
+        "page_count": pdf_file.page_count,
         "is_ref": is_ref,
     }
 
@@ -76,6 +77,29 @@ async def upload_pdf(
         "original_name": pdf_file.original_name,
         "file_size": pdf_file.file_size,
     })
+
+
+@router.get("/page/{page}")
+def pdf_page(
+    page: int,
+    path: str,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Serve a rendered PDF page as JPEG image (1-indexed)."""
+    pdf_file, _ = pdf_service.resolve_pdf(path, session)
+    if not pdf_file:
+        raise HTTPException(404, "Kein PDF vorhanden")
+
+    page_path = pdf_service.get_page_path(pdf_file, page)
+    if not page_path:
+        raise HTTPException(404, f"Seite {page} nicht gefunden")
+
+    return FileResponse(
+        path=str(page_path),
+        media_type="image/jpeg",
+        headers={"Cache-Control": "public, max-age=86400"},
+    )
 
 
 @router.get("/download")

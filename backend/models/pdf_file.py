@@ -13,5 +13,6 @@ class PdfFile(SQLModel, table=True):
     filename: str = Field(max_length=500)
     original_name: str = Field(max_length=500)
     file_size: int = Field(default=0)
+    page_count: int = Field(default=1)
     uploaded_by: Optional[int] = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
