@@ -1,6 +1,6 @@
-import { useEffect } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, LayoutList, ChevronLeft } from 'lucide-react'
+import { Pin, LayoutList, EllipsisVertical, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -127,27 +127,54 @@ export function PlayerPage() {
       </div>
 
       {/* Tools footer */}
-      <div className="section-editor-footer">
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button
-            className="player-ab-btn"
-            style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
-            onClick={addMarker}
-          >
-            <Pin size={18} />
-            Setze Marker
-          </button>
-          {hasMinRole(userRole, 'pro-member') && (
+      <PlayerFooter addMarker={addMarker} canEditSections={hasMinRole(userRole, 'pro-member')} navigate={navigate} />
+    </div>
+  )
+}
+
+function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () => void; canEditSections: boolean; navigate: (path: string) => void }) {
+  const [menuOpen, setMenuOpen] = useState(false)
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const close = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [menuOpen])
+
+  return (
+    <div className="section-editor-footer">
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+        <button
+          className="player-ab-btn"
+          style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
+          onClick={addMarker}
+        >
+          <Pin size={18} />
+          Setze Marker
+        </button>
+        {canEditSections && (
+          <div ref={menuRef} style={{ position: 'relative' }}>
             <button
               className="player-ab-btn"
-              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}
-              onClick={() => navigate('/sections')}
+              style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              onClick={() => setMenuOpen(!menuOpen)}
             >
-              <LayoutList size={18} />
-              Sektionen editieren
+              <EllipsisVertical size={20} />
             </button>
-          )}
-        </div>
+            {menuOpen && (
+              <div className="player-footer-menu">
+                <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
+                  <LayoutList size={16} />
+                  Sektionen editieren
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )
