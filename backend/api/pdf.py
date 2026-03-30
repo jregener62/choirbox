@@ -78,12 +78,34 @@ def download_pdf(
 
 
 @router.delete("")
-def delete_pdf(
+async def delete_pdf(
     path: str,
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
-    deleted = pdf_service.delete_pdf(path, session)
-    if not deleted:
+    # Get PDF info before deleting (need original_name for Dropbox cleanup)
+    pdf_file = pdf_service.get_pdf(path, session)
+    if not pdf_file:
         raise HTTPException(404, "Kein PDF vorhanden")
+
+    original_name = pdf_file.original_name
+
+    # Delete local file + DB record
+    pdf_service.delete_pdf(path, session)
+
+    # Also delete from Dropbox if a file with the same name exists there
+    try:
+        from backend.services.dropbox_service import get_dropbox_service
+        from backend.models.app_settings import AppSettings
+        dbx = get_dropbox_service(session)
+        if dbx:
+            folder = path.rsplit("/", 1)[0] if "/" in path else ""
+            settings = session.get(AppSettings, 1)
+            root_folder = (settings.dropbox_root_folder or "").strip("/") if settings else ""
+            parts = [p for p in [root_folder, folder.strip("/"), original_name] if p]
+            dropbox_pdf_path = "/" + "/".join(parts)
+            await dbx.delete_file(dropbox_pdf_path)
+    except Exception:
+        pass  # Dropbox file may not exist — that's fine
+
     return ActionResponse.success()
