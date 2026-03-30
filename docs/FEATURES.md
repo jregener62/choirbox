@@ -166,6 +166,8 @@ Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap da
 
 ## Datei-Einstellungen
 
+Zentrale Stelle fuer dateibezogene Einstellungen. Aktuell: Sektionsreferenz und PDF-Referenz — beide unabhaengig voneinander konfigurierbar.
+
 ### Sektionsreferenz
 
 Dateien koennen eine andere Datei als Sektionsquelle referenzieren. Sektionen werden dann von der Referenz-Datei geladen und dort gespeichert — z.B. fuer Stems, wo Sektionen nur einmal definiert, aber bei allen Stimmen angezeigt werden. Standalone-Dateien sind davon nicht betroffen (Standardverhalten: eigene Sektionen).
@@ -175,6 +177,16 @@ Zwei Wege:
 - **Uebertragen:** Eine Datei setzt sich als Sektionsquelle fuer ausgewaehlte andere Dateien im selben Ordner
 
 Die Referenz-Aufloesung passiert im Backend — das Frontend muss nicht wissen, ob Sektionen direkt oder via Referenz geladen werden. Beim Erstellen/Bearbeiten von Sektionen wird ebenfalls aufgeloest: Sektionen werden immer gegen die Referenz-Datei gespeichert.
+
+### PDF-Referenz
+
+Dateien koennen eine andere Datei als PDF-Quelle referenzieren. Funktioniert identisch zur Sektionsreferenz — unabhaengig davon. Z.B. koennen alle Stimmlagen auf dieselben Noten verweisen, ohne die Sektionen zu teilen.
+
+Gleiche zwei Wege wie bei Sektionen:
+- **Uebernehmen:** Eine Datei zeigt das PDF einer anderen Datei im selben Ordner
+- **Uebertragen:** Eine Datei setzt sich als PDF-Quelle fuer ausgewaehlte andere Dateien im selben Ordner
+
+Die Referenz-Aufloesung passiert im Backend via `pdf_ref_path` in FileSettings. Im Player zeigt das `is_ref`-Flag an, dass das PDF von einer referenzierten Datei stammt (Loeschen/Ersetzen dann nicht moeglich).
 
 ### Zugang
 
@@ -187,12 +199,67 @@ Die Referenz-Aufloesung passiert im Backend — das Frontend muss nicht wissen, 
 - Lesen: Alle eingeloggten User
 - Aendern: Pro-Mitglied und hoeher
 
+### UI-Aufbau
+
+Generischer `RefEditor` wird fuer beide Felder (Sektionen, PDF) wiederverwendet:
+- Radio-Auswahl: "Eigene" (Standard) / "Uebernehmen von: [Datei-Dropdown]"
+- Info-Text zeigt Vorschau (Sektionsanzahl bzw. PDF-Name)
+- Propagieren: Checkboxen fuer Geschwister-Dateien + "Uebertragen"-Button
+
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/FileSettingsPage.tsx` | Einstellungen-UI mit Radio-Auswahl, Datei-Picker, Propagation |
+| `frontend/src/pages/FileSettingsPage.tsx` | Einstellungen-UI mit generischem RefEditor |
 | `backend/api/file_settings.py` | `GET/PUT /file-settings`, `POST /file-settings/propagate` |
-| `backend/models/file_settings.py` | FileSettings-Modell |
-| `backend/api/sections.py` | Referenz-Aufloesung beim Laden/Speichern von Sektionen |
+| `backend/models/file_settings.py` | FileSettings-Modell (`section_ref_path`, `pdf_ref_path`) |
+| `backend/api/sections.py` | Sektions-Referenz-Aufloesung |
+| `backend/services/pdf_service.py` | PDF-Referenz-Aufloesung |
+
+---
+
+## PDF-Dokumente im Player
+
+PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und direkt im Player angezeigt werden. PDFs werden lokal auf dem Server gespeichert (nicht in Dropbox) und erscheinen nicht im Datei-Browser.
+
+### Ansicht
+
+- **Dot-Indikatoren** zwischen Player-Controls und Content-Bereich: zwei Punkte (aktiver Punkt als Pille)
+- **Swipe-Geste** oder Antippen der Dots wechselt zwischen Sektionsliste (Panel 0) und PDF (Panel 1)
+- Dots nur sichtbar wenn PDF vorhanden oder User pro-member+ ist
+- Ohne PDF und ohne pro-member-Rolle: klassische Sektionsliste ohne Dots
+- **PDF-Viewer**: iframe mit nativer Browser-Darstellung (Pinch-to-Zoom, Scroll)
+- **PDF-Toolbar**: Dateiname, Download-Button, Ersetzen/Loeschen (nur fuer pro-member, nicht bei referenzierten PDFs)
+- Player-Controls, Loop-Bar, Marker und Bottom-Nav bleiben immer sichtbar
+
+### Upload
+
+- **Berechtigung**: Pro-Mitglied und hoeher
+- **Wege**: Upload-Button im leeren PDF-Panel, oder "PDF hochladen/ersetzen" im Kebab-Menue des Player-Footers
+- **Validierung**: PDF-Header (`%PDF-`) in den ersten 1024 Bytes, max. 10 MB
+- **Speicherung**: `data/pdfs/` mit UUID-Dateinamen, DB-Record in `pdf_files`
+- Ein PDF pro Datei (ersetzen ueberschreibt das bestehende)
+
+### Referenz-Aufloesung
+
+PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
+1. Direkt zugeordnetes PDF → verwenden
+2. Kein eigenes PDF, aber `pdf_ref_path` gesetzt → PDF der referenzierten Datei verwenden
+3. `is_ref`-Flag im Response → Frontend unterdrueckt Loeschen/Ersetzen
+
+### Fehlerbehandlung
+
+- Upload-Fehler werden als rote Meldung im PdfPanel angezeigt
+- Upload via Footer-Menu zeigt Fehler als Alert
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/ui/DotBar.tsx` | Generische Dot-Indikatoren (count + activeIndex) |
+| `frontend/src/components/ui/PdfPanel.tsx` | Panel mit 3 Zustaenden (Laden/Upload/Viewer) |
+| `frontend/src/components/ui/PdfViewer.tsx` | iframe-basierter PDF-Viewer mit Toolbar |
+| `frontend/src/hooks/usePdf.ts` | Zustand Store (load/upload/remove) |
+| `frontend/src/pages/PlayerPage.tsx` | Swipeable Panels, DotBar, Footer-Menu-Erweiterung |
+| `backend/api/pdf.py` | `/api/pdf` Endpoints (info/upload/download/delete) |
+| `backend/services/pdf_service.py` | PDF-Speicherung, Validierung, Referenz-Aufloesung |
+| `backend/models/pdf_file.py` | PdfFile-Modell |
 
 ---
 
@@ -621,8 +688,17 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | GET | `/?path=<dropbox_path>` | Einstellungen einer Datei laden (oder Default) | User |
-| PUT | `/` | Einstellungen speichern (Sektionsreferenz setzen/entfernen) | Pro-Mitglied+ |
-| POST | `/propagate` | Referenz auf mehrere Dateien uebertragen | Pro-Mitglied+ |
+| PUT | `/` | Einstellungen speichern (Sektions-/PDF-Referenz setzen/entfernen) | Pro-Mitglied+ |
+| POST | `/propagate` | Referenz auf mehrere Dateien uebertragen (`field`: `section_ref_path` oder `pdf_ref_path`) | Pro-Mitglied+ |
+
+### PDF-Dokumente (`/api/pdf`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/info?path=<dropbox_path>` | PDF-Info mit Referenz-Aufloesung (`has_pdf`, `original_name`, `file_size`, `is_ref`) | User |
+| POST | `/upload` | PDF hochladen (FormData: `file` + `dropbox_path`, max 10 MB) | Pro-Mitglied+ |
+| GET | `/download?path=<dropbox_path>` | PDF-Datei ausliefern (inline, mit Referenz-Aufloesung) | User |
+| DELETE | `/?path=<dropbox_path>` | Direkt zugeordnetes PDF loeschen | Pro-Mitglied+ |
 
 ### Sektionsvorlagen (`/api/section-presets`)
 
@@ -742,8 +818,21 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 |------|-----|-------------|
 | `dropbox_path` | String (max 1000) | Primaerschluessel — Dropbox-Dateipfad |
 | `section_ref_path` | String (optional) | Sektionsquelle (null = eigene Sektionen) |
+| `pdf_ref_path` | String (optional) | PDF-Quelle (null = eigenes PDF), unabhaengig von Sektionsreferenz |
 | `created_at` | DateTime | Erstellungszeitpunkt |
 | `updated_at` | DateTime | Letzte Aenderung |
+
+### PdfFile
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer | Primaerschluessel |
+| `dropbox_path` | String (unique, indexed) | Zugeordnete Audio-Datei |
+| `filename` | String | UUID-Dateiname auf Disk (z.B. `a1b2c3d4.pdf`) |
+| `original_name` | String | Originaler Dateiname fuer Download |
+| `file_size` | Integer | Dateigroesse in Bytes |
+| `uploaded_by` | Integer (FK, optional) | Referenz auf User |
+| `created_at` | DateTime | Erstellungszeitpunkt |
 
 ### SessionToken
 
