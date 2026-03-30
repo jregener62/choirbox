@@ -52,7 +52,8 @@ export function SectionCards({
               && Math.abs(loopEnd - entry.end_time) < 0.5))
 
         let cls = 'section-card'
-        if (isActive) cls += ' section-card--active'
+        if (isLooping) cls += ' section-card--looping'
+        else if (isActive) cls += ' section-card--active'
         if (entry.isGap) cls += ' section-card--gap'
 
         return (
