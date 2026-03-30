@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LayoutList, EllipsisVertical, ChevronLeft, Info, FileUp, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -79,53 +79,7 @@ export function PlayerPage() {
     }
   }
 
-  // Swipe handling
-  const touchStartX = useRef(0)
-  const touchDelta = useRef(0)
-  const panelsRef = useRef<HTMLDivElement>(null)
-  const isSwiping = useRef(false)
-
-  const onTouchStart = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length > 1) return // Ignore pinch
-    touchStartX.current = e.touches[0].clientX
-    touchDelta.current = 0
-    isSwiping.current = false
-  }, [])
-
-  const onTouchMove = useCallback((e: React.TouchEvent) => {
-    if (e.touches.length > 1) { // Pinch detected — abort swipe
-      isSwiping.current = false
-      touchDelta.current = 0
-      if (panelsRef.current) {
-        panelsRef.current.classList.remove('swiping')
-        panelsRef.current.style.transform = ''
-      }
-      return
-    }
-    const dx = e.touches[0].clientX - touchStartX.current
-    touchDelta.current = dx
-    if (Math.abs(dx) > 10 && !isSwiping.current) {
-      isSwiping.current = true
-      panelsRef.current?.classList.add('swiping')
-    }
-    if (isSwiping.current && panelsRef.current) {
-      const base = activePanel * -50
-      const offset = (dx / window.innerWidth) * 50
-      const clamped = Math.max(-50, Math.min(0, base + offset))
-      panelsRef.current.style.transform = `translateX(${clamped}%)`
-    }
-  }, [activePanel])
-
-  const onTouchEnd = useCallback(() => {
-    if (panelsRef.current) {
-      panelsRef.current.classList.remove('swiping')
-      panelsRef.current.style.transform = ''
-    }
-    if (Math.abs(touchDelta.current) > 50) {
-      if (touchDelta.current < 0 && activePanel === 0) setActivePanel(1)
-      if (touchDelta.current > 0 && activePanel === 1) setActivePanel(0)
-    }
-  }, [activePanel])
+  // Panel swipe is handled by DotBar component
 
   return (
     <div className="player-page">
@@ -156,12 +110,8 @@ export function PlayerPage() {
       {showDots ? (
         <div className="player-content-area">
           <div
-            ref={panelsRef}
             className="player-content-panels"
             style={{ transform: `translateX(-${activePanel * 50}%)` }}
-            onTouchStart={onTouchStart}
-            onTouchMove={onTouchMove}
-            onTouchEnd={onTouchEnd}
           >
             <div className="player-content-panel">
               <div className="player-scroll-content">
