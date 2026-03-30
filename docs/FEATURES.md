@@ -230,7 +230,7 @@ PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und 
 - **Pinch-to-Zoom**: JS-basierter Touch-Handler (1x–5x), aendert Bildbreite dynamisch. Container scrollt nativ bei Zoom. Double-Tap togglet 1x/2.5x
 - **PDF-Toolbar**: Dateiname + Seitenzahl, Upload/Ersetzen/Loeschen-Buttons (pro-member+), Download
 - **Loeschen**: Sicherheitsabfrage (Confirm-Dialog) vor dem Loeschen, identisch zu Audio-Dateien
-- Player-Controls, Loop-Bar, Marker und Bottom-Nav bleiben immer sichtbar
+- Player-Controls, Marker und Bottom-Nav bleiben immer sichtbar
 - Swipe-Zone nur auf DotBar — kein Konflikt mit Scroll oder Pinch im Content
 
 ### Upload
@@ -312,35 +312,53 @@ PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
 
 ### Cycle Play (A-B Loop)
 
-Einen Abschnitt des Tracks in Endlosschleife wiederholen.
+Einen Abschnitt des Tracks in Endlosschleife wiederholen. Zwei Wege, einen Loop zu definieren: Marker-Paare oder Section-Tap.
 
-- A-Punkt setzen (Loop-Start) an aktueller Position
-- B-Punkt setzen (Loop-End) an aktueller Position
-- Loop ein/ausschalten per Einfach-Tap auf Loop-Button (nur moeglich wenn A und B gesetzt)
-- Loop-Punkte zuruecksetzen per Doppel-Tap auf Loop-Button
-- Loop-Region in der Waveform visuell hervorgehoben
+**Loop-Button (in der Play Bar):**
+- Repeat-Icon links der Zeitanzeige in der TopPlayerBar (mini + full Variante)
+- Einfach-Tap: Loop ein/ausschalten (nur moeglich wenn Loop-Bereich definiert)
+- Doppel-Tap: Loop-Punkte zuruecksetzen
+- Drei Zustaende: gedimmt (kein Loop-Bereich), hell (Bereich definiert, Loop aus), orange (Loop aktiv)
+
+**Loop via Marker-Paare:**
+- Tap auf einen Marker-Chip: Marker wird als erster Looppunkt gewaehlt (orange hervorgehoben)
+- Tap auf einen zweiten Marker-Chip: Loop wird erstellt — der fruehere Marker wird A, der spaetere B, Loop wird automatisch aktiviert. Beide Marker bleiben orange.
+- Tap auf den gleichen Marker nochmal: Auswahl zuruecksetzen (Marker wird wieder gruen)
+- Tap auf einen beliebigen Marker bei aktivem Marker-Loop: Alter Loop wird sofort deaktiviert (beide Marker werden gruen), der getappte Marker wird neuer erster Looppunkt (orange). User muss dann zweiten Marker waehlen.
+
+**Loop via Section-Tap:**
+- Tap auf Section-Card setzt A/B automatisch auf Start/Ende der Sektion und aktiviert Loop
+- Nochmal Tap auf gleiche Section deaktiviert den Loop
+- Section-Loop und Marker-Loop sind gegenseitig exklusiv (Section-Tap loescht Marker-Loop und umgekehrt)
+
+**Sonstiges:**
+- Loop-Region in der Waveform visuell orange hervorgehoben
+- Play- und Skip-Buttons monochrom (nicht farbig)
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/PlayerPage.tsx` | A/B-Buttons |
-| `frontend/src/stores/playerStore.ts` | `loopStart`, `loopEnd`, `loopEnabled` |
+| `frontend/src/components/ui/TopPlayerBar.tsx` | Loop-Button in der Play Bar |
+| `frontend/src/components/ui/PlayerControlsBar.tsx` | Marker-Tap-Logik |
+| `frontend/src/stores/playerStore.ts` | `loopStart`, `loopEnd`, `loopEnabled`, `loopMarkerIds`, `pendingLoopMarkerId` |
+| `frontend/src/hooks/useLoopControls.ts` | `handleLoopTap()` (Single/Double-Tap) |
 | `frontend/src/hooks/useAudioPlayer.ts` | Loop-Sprung-Logik |
 
 ### Session-Marker
 
-Wichtige Stellen im Track markieren fuer schnelle Navigation.
+Wichtige Stellen im Track markieren fuer schnelle Navigation und Loop-Definition.
 
 - Marker an aktueller Position setzen (automatisch M1, M2, M3...)
-- Alle Marker mit Zeitstempel anzeigen
+- Alle Marker mit Zeitstempel als Chips anzeigen (horizontal scrollbar)
 - Per Klick zum Marker springen
-- Einzelnen Marker entfernen
+- Einzelnen Marker entfernen (X-Button am Chip)
 - Alle Marker auf einmal loeschen (Muelleimer-Icon)
 - Marker als Punkte auf der Waveform sichtbar
+- Marker-Chips dienen als Looppunkt-Auswahl (siehe Cycle Play oben): erster Tap = pending (orange), zweiter Tap auf anderen Marker = Loop erstellen
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/PlayerPage.tsx` | Marker-UI |
-| `frontend/src/stores/playerStore.ts` | `markers[]`, `addMarker()`, `removeMarker()`, `clearMarkers()` |
+| `frontend/src/components/ui/PlayerControlsBar.tsx` | Marker-Chip-UI + Tap-Logik |
+| `frontend/src/stores/playerStore.ts` | `markers[]`, `addMarker()`, `removeMarker()`, `clearMarkers()`, `pendingLoopMarkerId`, `loopMarkerIds` |
 
 ### Sektionen & Section-Loop
 
@@ -354,7 +372,7 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
 - Luecken (Gaps) zwischen definierten Sektionen werden automatisch client-seitig berechnet (nicht in DB) und als gestrichelte Bloecke angezeigt. Gaps sind ebenfalls loopbar.
 - Tap auf Section-Block aktiviert Loop (setzt A/B automatisch auf Start/Ende der Sektion)
 - Nochmal Tap deaktiviert den Loop
-- Manuelles A/B-Setzen ueberschreibt den Section-Loop (beide Systeme koexistieren, gegenseitig exklusiv)
+- Section-Loop und Marker-Loop sind gegenseitig exklusiv
 - Section Editor (Route `/sections`, ab Pro-Mitglied): Marker-basierter 3-Schritte-Workflow:
   1. Track durchhoeren und Marker setzen ("Setze Marker"-Button unterhalb der Waveform) an jeder Sektionsgrenze
   2. Sektionen generieren ("Erstelle Sektion(en)"-Button, aktiv ab 2+ Markern) — erstellt automatisch Sektionen aus Marker-Paaren (M1→M2 = Sektion 1, M2→M3 = Sektion 2, ...), nutzt dabei zyklisch die Sektionsvorlagen (Name + Farbe), loescht Marker danach
