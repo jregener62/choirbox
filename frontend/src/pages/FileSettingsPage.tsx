@@ -256,7 +256,7 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
                 <option value="">— Datei waehlen —</option>
                 {siblingFiles.map((f) => (
                   <option key={f.path} value={f.path}>
-                    {formatDisplayName(f.name)}
+                    {f.name.replace(/\.(mp3|m4a|webm)$/i, '')}
                   </option>
                 ))}
               </select>
