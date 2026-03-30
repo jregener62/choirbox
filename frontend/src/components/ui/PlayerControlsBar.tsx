@@ -18,16 +18,18 @@ export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBa
 
   const handleMarkerTap = (m: Marker) => {
     const store = usePlayerStore.getState()
+    // Active marker-loop: clear it first, tapped marker becomes new pending
+    if (store.loopMarkerIds) {
+      store.clearLoop()
+      store.setPendingLoopMarker(m.id)
+      seek(m.time)
+      return
+    }
     if (!store.pendingLoopMarkerId) {
       store.setPendingLoopMarker(m.id)
       seek(m.time)
     } else if (store.pendingLoopMarkerId === m.id) {
       store.setPendingLoopMarker(null)
-      seek(m.time)
-    } else if (store.loopMarkerIds) {
-      const keepPending = store.pendingLoopMarkerId
-      store.clearLoop()
-      store.setPendingLoopMarker(keepPending)
       seek(m.time)
     } else {
       const pendingMarker = markers.find((mk) => mk.id === store.pendingLoopMarkerId)
