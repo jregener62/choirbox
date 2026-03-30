@@ -1,7 +1,7 @@
 import { Download, Upload, Trash2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePdfStore } from '@/hooks/usePdf.ts'
-import { useRef, useState } from 'react'
+import { useRef, useState, useCallback, useEffect } from 'react'
 import type { PdfInfo } from '@/types/index.ts'
 
 interface PdfViewerProps {
@@ -10,13 +10,78 @@ interface PdfViewerProps {
   canUpload: boolean
 }
 
+function getDistance(t1: Touch, t2: Touch) {
+  const dx = t1.clientX - t2.clientX
+  const dy = t1.clientY - t2.clientY
+  return Math.sqrt(dx * dx + dy * dy)
+}
+
+
 export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
   const token = useAuthStore((s) => s.token)
   const { upload, remove } = usePdfStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const pagesRef = useRef<HTMLDivElement>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [scale, setScale] = useState(1)
+  const pinchRef = useRef({ startDist: 0, startScale: 1 })
   const pdfUrl = `/api/pdf/download?path=${encodeURIComponent(dropboxPath)}&token=${token}`
+
+  // Pinch-to-zoom via touch events
+  useEffect(() => {
+    const el = pagesRef.current
+    if (!el) return
+
+    let currentScale = 1
+
+    function onTouchStart(e: TouchEvent) {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        pinchRef.current.startDist = getDistance(e.touches[0], e.touches[1])
+        pinchRef.current.startScale = currentScale
+      }
+    }
+
+    function onTouchMove(e: TouchEvent) {
+      if (e.touches.length === 2) {
+        e.preventDefault()
+        const dist = getDistance(e.touches[0], e.touches[1])
+        const newScale = Math.max(1, Math.min(5, pinchRef.current.startScale * (dist / pinchRef.current.startDist)))
+        currentScale = newScale
+        setScale(newScale)
+      }
+    }
+
+    function onTouchEnd() {
+      if (currentScale < 1.05) {
+        currentScale = 1
+        setScale(1)
+      }
+    }
+
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
+    el.addEventListener('touchend', onTouchEnd)
+
+    return () => {
+      el.removeEventListener('touchstart', onTouchStart)
+      el.removeEventListener('touchmove', onTouchMove)
+      el.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [])
+
+  // Double-tap to toggle zoom
+  const lastTapRef = useRef(0)
+  const handleDoubleTap = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length !== 1) return
+    const now = Date.now()
+    if (now - lastTapRef.current < 300) {
+      e.preventDefault()
+      setScale((s) => s > 1.1 ? 1 : 2.5)
+    }
+    lastTapRef.current = now
+  }, [])
 
   const handleReplace = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -66,14 +131,20 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
           </a>
         </div>
       </div>
-      <div className="pdf-pages">
+      <div
+        ref={pagesRef}
+        className="pdf-pages"
+        onTouchStart={handleDoubleTap}
+      >
         {pages.map((page) => (
           <img
             key={page}
             className="pdf-page-img"
+            style={{ width: `${scale * 100}%` }}
             src={`/api/pdf/page/${page}?path=${encodeURIComponent(dropboxPath)}&token=${token}`}
             alt={`Seite ${page}`}
             loading={page > 2 ? 'lazy' : 'eager'}
+            draggable={false}
           />
         ))}
       </div>
