@@ -61,3 +61,40 @@ def save_file_settings(
     session.add(settings)
     session.commit()
     return ActionResponse.success()
+
+
+@router.post("/propagate")
+def propagate_reference(
+    data: dict,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    """Set this file as section reference for multiple target files."""
+    reference_path = (data.get("reference_path") or "").strip()
+    target_paths = data.get("target_paths", [])
+
+    if not reference_path:
+        raise HTTPException(400, "reference_path is required")
+    if not isinstance(target_paths, list) or len(target_paths) < 1:
+        raise HTTPException(400, "target_paths must be a non-empty list")
+
+    now = datetime.utcnow()
+    for path in target_paths:
+        path = path.strip()
+        if not path or path == reference_path:
+            continue
+        settings = session.get(FileSettings, path)
+        if settings:
+            settings.section_ref_path = reference_path
+            settings.updated_at = now
+        else:
+            settings = FileSettings(
+                dropbox_path=path,
+                section_ref_path=reference_path,
+                created_at=now,
+                updated_at=now,
+            )
+        session.add(settings)
+
+    session.commit()
+    return ActionResponse.success()

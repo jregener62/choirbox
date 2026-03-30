@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, FileAudio, Info } from 'lucide-react'
+import { ChevronLeft, FileAudio, Info, Send } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
@@ -81,6 +81,11 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
   const [saved, setSaved] = useState(false)
   const [loading, setLoading] = useState(true)
 
+  // Propagation state
+  const [propagateTargets, setPropagateTargets] = useState<Set<string>>(new Set())
+  const [propagating, setPropagating] = useState(false)
+  const [propagated, setPropagated] = useState(false)
+
   // Load current settings
   useEffect(() => {
     async function load() {
@@ -104,9 +109,10 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
     load()
   }, [filePath])
 
-  // Load sibling files when switching to ref mode
+  // Load sibling files for ref picker or propagation
   useEffect(() => {
-    if (mode !== 'ref' || siblingFiles.length > 0) return
+    if (siblingFiles.length > 0) return
+    if (mode !== 'ref' && mode !== 'own') return
     async function loadSiblings() {
       try {
         const data = await api<{ entries: DropboxEntry[] }>(`/dropbox/browse?path=${encodeURIComponent(parentFolder)}`)
@@ -275,12 +281,98 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
         </div>
       </label>
 
+      {/* Propagate to siblings (only when own sections) */}
+      {mode === 'own' && canEdit && siblingFiles.length > 0 && (
+        <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+            <Send size={14} style={{ color: 'var(--text-secondary)' }} />
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>
+              Sektionen uebertragen auf:
+            </span>
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 12 }}>
+            Setzt diese Datei als Sektionsquelle fuer die gewaehlten Dateien.
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+            {siblingFiles.map((f) => {
+              const checked = propagateTargets.has(f.path)
+              return (
+                <label key={f.path} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 10,
+                  padding: '8px 0',
+                  cursor: 'pointer',
+                  fontSize: 14,
+                }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={() => {
+                      const next = new Set(propagateTargets)
+                      if (checked) next.delete(f.path)
+                      else next.add(f.path)
+                      setPropagateTargets(next)
+                    }}
+                    style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
+                  />
+                  <span>{f.name.replace(/\.(mp3|m4a|webm)$/i, '')}</span>
+                </label>
+              )
+            })}
+          </div>
+
+          {propagateTargets.size > 0 && (
+            <button
+              onClick={async () => {
+                setPropagating(true)
+                setPropagated(false)
+                try {
+                  await api('/file-settings/propagate', {
+                    method: 'POST',
+                    body: {
+                      reference_path: filePath,
+                      target_paths: Array.from(propagateTargets),
+                    },
+                  })
+                  setPropagated(true)
+                  setPropagateTargets(new Set())
+                  setTimeout(() => setPropagated(false), 2000)
+                } catch {
+                  // ignore
+                } finally {
+                  setPropagating(false)
+                }
+              }}
+              disabled={propagating}
+              style={{
+                marginTop: 12,
+                width: '100%',
+                padding: '12px',
+                fontSize: 15,
+                fontWeight: 600,
+                fontFamily: 'inherit',
+                borderRadius: 10,
+                border: 'none',
+                background: 'var(--accent)',
+                color: 'white',
+                cursor: 'pointer',
+                opacity: propagating ? 0.6 : 1,
+              }}
+            >
+              {propagating ? 'Uebertragen...' : propagated ? 'Uebertragen ✓' : `Auf ${propagateTargets.size} ${propagateTargets.size === 1 ? 'Datei' : 'Dateien'} uebertragen`}
+            </button>
+          )}
+        </div>
+      )}
+
       {/* Save button */}
-      {canEdit && (
+      {canEdit && hasChanges && (
         <div style={{ marginTop: 24 }}>
           <button
             onClick={save}
-            disabled={saving || !hasChanges || (mode === 'ref' && !refPath)}
+            disabled={saving || (mode === 'ref' && !refPath)}
             style={{
               width: '100%',
               padding: '12px',
@@ -289,9 +381,9 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
               fontFamily: 'inherit',
               borderRadius: 10,
               border: 'none',
-              background: hasChanges ? 'var(--accent)' : 'var(--bg-tertiary)',
-              color: hasChanges ? 'white' : 'var(--text-muted)',
-              cursor: hasChanges ? 'pointer' : 'default',
+              background: 'var(--accent)',
+              color: 'white',
+              cursor: 'pointer',
               opacity: saving ? 0.6 : 1,
             }}
           >
