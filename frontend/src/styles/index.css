@@ -1694,10 +1694,8 @@ body {
   padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
-  max-height: 50vh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
   position: relative;
+  z-index: 20;
 }
 
 .player-footer-menu {
