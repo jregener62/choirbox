@@ -263,8 +263,8 @@ function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, isRef, dropboxPath
     if (!file) return
     try {
       await upload(dropboxPath, file)
-    } catch {
-      // Error handled by store
+    } catch (err) {
+      alert(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
     }
     e.target.value = ''
   }

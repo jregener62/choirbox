@@ -28,7 +28,9 @@ def save_pdf(
 ) -> PdfFile:
     if len(content) > MAX_PDF_SIZE:
         raise ValueError("PDF zu gross (max. 10 MB)")
-    if not content[:5].startswith(b"%PDF-"):
+    # Check for %PDF- header (may have leading whitespace/BOM)
+    header = content[:1024]
+    if b"%PDF-" not in header:
         raise ValueError("Ungueltige Datei — nur PDF erlaubt")
 
     # Delete existing PDF for this path

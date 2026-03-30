@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { FileUp, Upload } from 'lucide-react'
 import { usePdfStore } from '@/hooks/usePdf.ts'
 import { PdfViewer } from '@/components/ui/PdfViewer.tsx'
@@ -9,17 +9,18 @@ interface PdfPanelProps {
 }
 
 export function PdfPanel({ dropboxPath, canUpload }: PdfPanelProps) {
-  const { info, loading, uploading } = usePdfStore()
+  const { info, loading, uploading, upload } = usePdfStore()
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { upload } = usePdfStore()
+  const [error, setError] = useState<string | null>(null)
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    setError(null)
     try {
       await upload(dropboxPath, file)
-    } catch {
-      // Error handled by store
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
     }
     e.target.value = ''
   }
@@ -53,6 +54,11 @@ export function PdfPanel({ dropboxPath, canUpload }: PdfPanelProps) {
               {uploading ? 'Wird hochgeladen...' : 'PDF hochladen'}
             </button>
             <span className="pdf-upload-hint">Max. 10 MB</span>
+            {error && (
+              <div style={{ color: 'var(--danger)', fontSize: 13, marginTop: 4, textAlign: 'center' }}>
+                {error}
+              </div>
+            )}
             <input
               ref={fileInputRef}
               type="file"
