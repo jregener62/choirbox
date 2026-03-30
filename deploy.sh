@@ -106,21 +106,22 @@ case "$TARGET" in
     echo -e "${BOLD}Deploy → Dev${NC}"
     echo ""
     deploy_server "$DEV_SERVER" "$DEV_DIR" "$DEV_URL" "Dev" \
-      "ssh $DEV_SERVER '$DEV_RESTART'"
+      "ssh -t $DEV_SERVER '$DEV_RESTART'" \
+      "ssh $DEV_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8002/'"
     echo -e "${YELLOW}  → Nach Tests: ${NC}${BOLD}./deploy.sh staging${NC}"
     ;;
   staging)
     echo -e "${BOLD}Deploy → Staging${NC}"
     echo ""
     deploy_server "$STAGING_SERVER" "$STAGING_DIR" "$STAGING_URL" "Staging" \
-      "ssh $STAGING_SERVER '$STAGING_RESTART'"
+      "ssh -t $STAGING_SERVER '$STAGING_RESTART'"
     echo -e "${YELLOW}  → Nach Tests: ${NC}${BOLD}./deploy.sh prod${NC}"
     ;;
   prod)
     echo -e "${BOLD}Deploy → Staging + Produktion${NC}"
     echo ""
     deploy_server "$STAGING_SERVER" "$STAGING_DIR" "$STAGING_URL" "Staging" \
-      "ssh $STAGING_SERVER '$STAGING_RESTART'"
+      "ssh -t $STAGING_SERVER '$STAGING_RESTART'"
     deploy_server "$PROD_SERVER" "$PROD_DIR" "$PROD_URL" "Produktion" \
       "ssh $PROD_ROOT_SERVER 'systemctl restart choirbox'" \
       "ssh $PROD_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8001/'"
