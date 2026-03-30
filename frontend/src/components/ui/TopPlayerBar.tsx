@@ -1,8 +1,9 @@
 import { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, Pause, MoreVertical } from 'lucide-react'
+import { Play, Pause, MoreVertical, Repeat } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
+import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { MiniWaveform } from '@/components/ui/MiniWaveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
@@ -44,6 +45,8 @@ export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, 
     skipInterval,
   } = usePlayerStore()
   const { togglePlay, skip } = useAudioPlayer()
+  const { handleLoopTap } = useLoopControls()
+  const hasLoopRange = loopStart != null && loopEnd != null
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -70,7 +73,15 @@ export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, 
       className={`top-player-bar ${isFull ? 'top-player-bar--full' : ''}`}
       onClick={!isFull ? () => navigate('/player') : undefined}
     >
-      {/* Time + Controls */}
+      {/* Loop toggle + Time + Controls */}
+      <button
+        className={`top-player-loop${hasLoopRange ? (loopEnabled ? ' top-player-loop--active' : ' top-player-loop--has-range') : ''}`}
+        onClick={(e) => { e.stopPropagation(); handleLoopTap() }}
+        disabled={!hasLoopRange}
+        aria-label="Loop ein/aus"
+      >
+        <Repeat size={18} />
+      </button>
       <span className="top-player-time">{formatTime(currentTime)}</span>
       <div className="top-player-controls">
         <button className="top-player-skip" onClick={(e) => { e.stopPropagation(); skip(-skipInterval) }}>

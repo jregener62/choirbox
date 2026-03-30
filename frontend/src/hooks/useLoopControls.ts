@@ -4,8 +4,6 @@ import { usePlayerStore } from '@/stores/playerStore.ts'
 export function useLoopControls() {
   const currentTime = usePlayerStore((s) => s.currentTime)
 
-  const setA = () => usePlayerStore.getState().setLoopStart(currentTime)
-  const setB = () => usePlayerStore.getState().setLoopEnd(currentTime)
   const addMarker = () => usePlayerStore.getState().addMarker(currentTime)
 
   const loopTapTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
@@ -23,5 +21,5 @@ export function useLoopControls() {
     loopLastTap.current = now
   }, [])
 
-  return { setA, setB, addMarker, handleLoopTap }
+  return { addMarker, handleLoopTap }
 }

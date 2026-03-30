@@ -25,6 +25,7 @@ interface PlayerState {
 
   // Session markers
   markers: Marker[]
+  pendingLoopMarkerId: string | null
 
   // Skip interval (seconds)
   skipInterval: number
@@ -42,6 +43,8 @@ interface PlayerState {
   addMarker: (time: number) => void
   removeMarker: (id: string) => void
   clearMarkers: () => void
+  setPendingLoopMarker: (id: string | null) => void
+  createLoopFromMarkers: (a: Marker, b: Marker) => void
   setSkipInterval: (interval: number) => void
 }
 
@@ -58,6 +61,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loopEnabled: false,
   activeSection: null,
   markers: [],
+  pendingLoopMarkerId: null,
   skipInterval: 15,
 
   setTrack: (path, name) => set({
@@ -71,6 +75,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     loopEnabled: false,
     activeSection: null,
     markers: [],
+    pendingLoopMarkerId: null,
   }),
 
   setPlaying: (playing) => set({ isPlaying: playing }),
@@ -85,7 +90,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
       set({ loopEnabled: !loopEnabled })
     }
   },
-  clearLoop: () => set({ loopStart: null, loopEnd: null, loopEnabled: false, activeSection: null }),
+  clearLoop: () => set({ loopStart: null, loopEnd: null, loopEnabled: false, activeSection: null, pendingLoopMarkerId: null }),
 
   setSectionLoop: (section) => {
     if (section) {
@@ -94,6 +99,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         loopStart: section.start_time,
         loopEnd: section.end_time,
         loopEnabled: true,
+        pendingLoopMarkerId: null,
       })
     } else {
       set({
@@ -101,6 +107,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
         loopStart: null,
         loopEnd: null,
         loopEnabled: false,
+        pendingLoopMarkerId: null,
       })
     }
   },
@@ -114,7 +121,16 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     }
     set((s) => ({ markers: [...s.markers, marker].sort((a, b) => a.time - b.time) }))
   },
-  removeMarker: (id) => set((s) => ({ markers: s.markers.filter((m) => m.id !== id) })),
-  clearMarkers: () => set({ markers: [] }),
+  removeMarker: (id) => set((s) => ({
+    markers: s.markers.filter((m) => m.id !== id),
+    pendingLoopMarkerId: s.pendingLoopMarkerId === id ? null : s.pendingLoopMarkerId,
+  })),
+  clearMarkers: () => set({ markers: [], pendingLoopMarkerId: null }),
+  setPendingLoopMarker: (id) => set({ pendingLoopMarkerId: id }),
+  createLoopFromMarkers: (a, b) => {
+    const earlier = a.time <= b.time ? a : b
+    const later = a.time <= b.time ? b : a
+    set({ loopStart: earlier.time, loopEnd: later.time, loopEnabled: true, activeSection: null, pendingLoopMarkerId: null })
+  },
   setSkipInterval: (interval) => set({ skipInterval: interval }),
 }))
