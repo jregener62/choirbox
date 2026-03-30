@@ -95,6 +95,13 @@ deploy_server() {
 # --- Ziel bestimmen ---
 TARGET="${1:-test}"
 
+if [ "$TARGET" = "prod" ]; then
+  echo -e "${BOLD}Deploy → Testserver + Prodserver${NC}"
+else
+  echo -e "${BOLD}Deploy → Testserver${NC}"
+fi
+echo ""
+
 # Testserver immer deployen
 deploy_server "$TEST_SERVER" "$TEST_DIR" "$TEST_URL" "Testserver" \
   "ssh $TEST_SERVER '$TEST_RESTART'"
