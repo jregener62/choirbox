@@ -47,7 +47,7 @@ export function FileSettingsPage() {
           api<{ entries: DropboxEntry[] }>(`/dropbox/browse?path=${encodeURIComponent(parentFolder)}`),
         ])
         setSettings(data)
-        setSiblingFiles(browse.entries.filter((e) => e.type === 'file' && e.path !== filePath))
+        setSiblingFiles(browse.entries.filter((e) => e.type === 'file' && e.path !== filePath && /\.(mp3|m4a|webm)$/i.test(e.name)))
       } catch {
         // ignore
       } finally {
