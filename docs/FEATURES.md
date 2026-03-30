@@ -218,32 +218,44 @@ Generischer `RefEditor` wird fuer beide Felder (Sektionen, PDF) wiederverwendet:
 
 ## PDF-Dokumente im Player
 
-PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und direkt im Player angezeigt werden. PDFs werden lokal auf dem Server gespeichert (nicht in Dropbox) und erscheinen nicht im Datei-Browser.
+PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und direkt im Player angezeigt werden. PDFs werden lokal auf dem Server und als Backup in Dropbox gespeichert. Sie erscheinen nicht im Datei-Browser (Browse-API filtert auf Audio-Dateien).
 
 ### Ansicht
 
 - **Dot-Indikatoren** zwischen Player-Controls und Content-Bereich: zwei Punkte (aktiver Punkt als Pille)
-- **Swipe-Geste** oder Antippen der Dots wechselt zwischen Sektionsliste (Panel 0) und PDF (Panel 1)
+- **Panel-Wechsel** per Tippen auf Dots oder horizontalem Swipe ueber die DotBar
 - Dots nur sichtbar wenn PDF vorhanden oder User pro-member+ ist
 - Ohne PDF und ohne pro-member-Rolle: klassische Sektionsliste ohne Dots
-- **PDF-Viewer**: iframe mit nativer Browser-Darstellung (Pinch-to-Zoom, Scroll)
-- **PDF-Toolbar**: Dateiname, Download-Button, Ersetzen/Loeschen (nur fuer pro-member, nicht bei referenzierten PDFs)
+- **PDF-Rendering**: Server rendert PDF-Seiten on-the-fly als JPEG (PyMuPDF, 200 DPI). Frontend zeigt `<img>`-Tags — natives Pinch-to-Zoom auf iOS und allen Plattformen
+- **Pinch-to-Zoom**: JS-basierter Touch-Handler (1x–5x), aendert Bildbreite dynamisch. Container scrollt nativ bei Zoom. Double-Tap togglet 1x/2.5x
+- **PDF-Toolbar**: Dateiname + Seitenzahl, Upload/Ersetzen/Loeschen-Buttons (pro-member+), Download
+- **Loeschen**: Sicherheitsabfrage (Confirm-Dialog) vor dem Loeschen, identisch zu Audio-Dateien
 - Player-Controls, Loop-Bar, Marker und Bottom-Nav bleiben immer sichtbar
+- Swipe-Zone nur auf DotBar — kein Konflikt mit Scroll oder Pinch im Content
 
 ### Upload
 
 - **Berechtigung**: Pro-Mitglied und hoeher
 - **Wege**: Upload-Button im leeren PDF-Panel, oder "PDF hochladen/ersetzen" im Kebab-Menue des Player-Footers
 - **Validierung**: PDF-Header (`%PDF-`) in den ersten 1024 Bytes, max. 10 MB
-- **Speicherung**: `data/pdfs/` mit UUID-Dateinamen, DB-Record in `pdf_files`
+- **Speicherung**: Lokal in `data/pdfs/` mit UUID-Dateinamen + Backup in Dropbox (gleicher Ordner wie Audio-Datei, Originalname)
 - Ein PDF pro Datei (ersetzen ueberschreibt das bestehende)
+- **Loeschen** entfernt lokale Datei und Dropbox-Kopie
+
+### Rendering-Architektur
+
+- **On-the-fly**: Seiten werden bei Abruf gerendert, nicht vorab gespeichert (minimaler Disk-Verbrauch)
+- **LRU-Cache**: 64 Seiten im RAM (kein Re-Render bei erneutem Abruf)
+- **Browser-Cache**: 24h Cache-Control Header fuer Seitenbilder
+- **Lazy Loading**: Ab Seite 3 werden Bilder erst beim Scrollen geladen
+- **PyMuPDF**: Rendert bei 200 DPI, JPEG-Qualitaet 85%
 
 ### Referenz-Aufloesung
 
 PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
 1. Direkt zugeordnetes PDF → verwenden
 2. Kein eigenes PDF, aber `pdf_ref_path` gesetzt → PDF der referenzierten Datei verwenden
-3. `is_ref`-Flag im Response → Frontend unterdrueckt Loeschen/Ersetzen
+3. `is_ref`-Flag im Response signalisiert dem Frontend den Referenz-Status
 
 ### Fehlerbehandlung
 
@@ -252,14 +264,14 @@ PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/components/ui/DotBar.tsx` | Generische Dot-Indikatoren (count + activeIndex) |
+| `frontend/src/components/ui/DotBar.tsx` | Generische Dot-Indikatoren mit Swipe-Handler |
 | `frontend/src/components/ui/PdfPanel.tsx` | Panel mit 3 Zustaenden (Laden/Upload/Viewer) |
-| `frontend/src/components/ui/PdfViewer.tsx` | iframe-basierter PDF-Viewer mit Toolbar |
+| `frontend/src/components/ui/PdfViewer.tsx` | Bild-basierter PDF-Viewer mit JS Pinch-to-Zoom |
 | `frontend/src/hooks/usePdf.ts` | Zustand Store (load/upload/remove) |
-| `frontend/src/pages/PlayerPage.tsx` | Swipeable Panels, DotBar, Footer-Menu-Erweiterung |
-| `backend/api/pdf.py` | `/api/pdf` Endpoints (info/upload/download/delete) |
-| `backend/services/pdf_service.py` | PDF-Speicherung, Validierung, Referenz-Aufloesung |
-| `backend/models/pdf_file.py` | PdfFile-Modell |
+| `frontend/src/pages/PlayerPage.tsx` | Panel-Layout, DotBar, Footer-Menu-Erweiterung |
+| `backend/api/pdf.py` | `/api/pdf` Endpoints (info/upload/page/download/delete) |
+| `backend/services/pdf_service.py` | On-the-fly Rendering, LRU-Cache, Validierung, Referenz-Aufloesung |
+| `backend/models/pdf_file.py` | PdfFile-Modell (inkl. page_count) |
 
 ---
 
