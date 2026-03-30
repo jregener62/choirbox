@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft, FileAudio, Info } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useSectionsStore } from '@/hooks/useSections.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import type { DropboxEntry, Section } from '@/types/index.ts'
@@ -158,6 +159,8 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
         dropbox_path: filePath,
         section_ref_path: mode === 'ref' ? refPath : null,
       })
+      // Invalidate cached sections so player reloads from new source
+      useSectionsStore.getState().clear()
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     } catch {
