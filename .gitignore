@@ -13,6 +13,9 @@ __pycache__/
 *.db-shm
 *.db-wal
 
+# Uploaded data
+data/
+
 # Node
 node_modules/
 frontend/dist/

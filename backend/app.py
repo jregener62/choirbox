@@ -13,6 +13,7 @@ from backend.api.sections import router as sections_router
 from backend.api.notes import router as notes_router
 from backend.api.section_presets import router as section_presets_router
 from backend.api.file_settings import router as file_settings_router
+from backend.api.pdf import router as pdf_router
 
 
 class CacheControlMiddleware:
@@ -58,6 +59,7 @@ app.include_router(sections_router, prefix="/api")
 app.include_router(notes_router, prefix="/api")
 app.include_router(section_presets_router, prefix="/api")
 app.include_router(file_settings_router, prefix="/api")
+app.include_router(pdf_router, prefix="/api")
 
 # Static files
 BASE = Path(__file__).resolve().parent.parent
@@ -92,3 +94,5 @@ def index():
 async def on_startup():
     import backend.models  # noqa: F401
     create_db_and_tables()
+    from backend.services.pdf_service import ensure_pdf_dir
+    ensure_pdf_dir()

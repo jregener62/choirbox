@@ -1,13 +1,16 @@
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Pin, LayoutList, EllipsisVertical, ChevronLeft, Info } from 'lucide-react'
+import { LayoutList, EllipsisVertical, ChevronLeft, Info, FileUp, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
+import { usePdfStore } from '@/hooks/usePdf.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
 import { PlayerControlsBar } from '@/components/ui/PlayerControlsBar.tsx'
+import { DotBar } from '@/components/ui/DotBar.tsx'
+import { PdfPanel } from '@/components/ui/PdfPanel.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
@@ -19,7 +22,9 @@ import type { TimelineEntry } from '@/utils/buildTimeline'
 export function PlayerPage() {
   const navigate = useNavigate()
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
+  const canEdit = hasMinRole(userRole, 'pro-member')
   const { sections, loadedPath: sectionsLoadedPath, load: loadSections } = useSectionsStore()
+  const { info: pdfInfo, loadedPath: pdfLoadedPath, load: loadPdf } = usePdfStore()
   const {
     currentName, currentPath,
     currentTime, duration,
@@ -30,6 +35,8 @@ export function PlayerPage() {
   const { seek } = useAudioPlayer()
   const { peaks } = useWaveform(currentPath)
   const { addMarker } = useLoopControls()
+
+  const [activePanel, setActivePanel] = useState(0)
 
   if (!currentPath) {
     navigate('/', { replace: true })
@@ -44,8 +51,14 @@ export function PlayerPage() {
     if (currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
   }, [currentPath, sectionsLoadedPath, loadSections])
 
+  useEffect(() => {
+    if (currentPath && currentPath !== pdfLoadedPath) loadPdf(currentPath)
+  }, [currentPath, pdfLoadedPath, loadPdf])
+
   const timeline = buildTimeline(sections, duration)
   const hasSections = sections.length > 0
+
+  const showDots = pdfInfo?.has_pdf || canEdit
 
   const handleSectionClick = (entry: TimelineEntry) => {
     const store = usePlayerStore.getState()
@@ -65,6 +78,44 @@ export function PlayerPage() {
       seek(entry.start_time)
     }
   }
+
+  // Swipe handling
+  const touchStartX = useRef(0)
+  const touchDelta = useRef(0)
+  const panelsRef = useRef<HTMLDivElement>(null)
+  const isSwiping = useRef(false)
+
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    touchStartX.current = e.touches[0].clientX
+    touchDelta.current = 0
+    isSwiping.current = false
+  }, [])
+
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    const dx = e.touches[0].clientX - touchStartX.current
+    touchDelta.current = dx
+    if (Math.abs(dx) > 10 && !isSwiping.current) {
+      isSwiping.current = true
+      panelsRef.current?.classList.add('swiping')
+    }
+    if (isSwiping.current && panelsRef.current) {
+      const base = activePanel * -50
+      const offset = (dx / window.innerWidth) * 50
+      const clamped = Math.max(-50, Math.min(0, base + offset))
+      panelsRef.current.style.transform = `translateX(${clamped}%)`
+    }
+  }, [activePanel])
+
+  const onTouchEnd = useCallback(() => {
+    if (panelsRef.current) {
+      panelsRef.current.classList.remove('swiping')
+      panelsRef.current.style.transform = ''
+    }
+    if (Math.abs(touchDelta.current) > 50) {
+      if (touchDelta.current < 0 && activePanel === 0) setActivePanel(1)
+      if (touchDelta.current > 0 && activePanel === 1) setActivePanel(0)
+    }
+  }, [activePanel])
 
   return (
     <div className="player-page">
@@ -88,53 +139,115 @@ export function PlayerPage() {
       </div>
       <PlayerControlsBar peaks={peaks} timeline={timeline} markers={markers} />
 
-      {/* Scrollable content */}
-      <div className="player-scroll-content">
-        {hasSections ? (
-          <SectionCards
-            timeline={timeline}
-            currentTime={currentTime}
-            activeSectionId={activeSection?.id ?? null}
-            activeGapIndex={null}
-            loopEnabled={loopEnabled}
-            loopStart={loopStart}
-            loopEnd={loopEnd}
-            onSectionClick={handleSectionClick}
-          />
-        ) : (
-          <div className="player-empty-sections">
-            <svg className="player-empty-waveform" viewBox="0 0 120 48" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <rect x="4" y="18" width="3" height="12" rx="1.5" fill="currentColor" />
-              <rect x="11" y="12" width="3" height="24" rx="1.5" fill="currentColor" />
-              <rect x="18" y="8" width="3" height="32" rx="1.5" fill="currentColor" />
-              <rect x="25" y="14" width="3" height="20" rx="1.5" fill="currentColor" />
-              <rect x="32" y="4" width="3" height="40" rx="1.5" fill="currentColor" />
-              <rect x="39" y="10" width="3" height="28" rx="1.5" fill="currentColor" />
-              <rect x="46" y="16" width="3" height="16" rx="1.5" fill="currentColor" />
-              <rect x="53" y="6" width="3" height="36" rx="1.5" fill="currentColor" />
-              <rect x="60" y="2" width="3" height="44" rx="1.5" fill="currentColor" />
-              <rect x="67" y="10" width="3" height="28" rx="1.5" fill="currentColor" />
-              <rect x="74" y="16" width="3" height="16" rx="1.5" fill="currentColor" />
-              <rect x="81" y="8" width="3" height="32" rx="1.5" fill="currentColor" />
-              <rect x="88" y="14" width="3" height="20" rx="1.5" fill="currentColor" />
-              <rect x="95" y="6" width="3" height="36" rx="1.5" fill="currentColor" />
-              <rect x="102" y="12" width="3" height="24" rx="1.5" fill="currentColor" />
-              <rect x="109" y="18" width="3" height="12" rx="1.5" fill="currentColor" />
-            </svg>
-            <span>Noch keine Sektionen festgelegt</span>
+      {showDots && (
+        <DotBar count={2} activeIndex={activePanel} onDotClick={setActivePanel} />
+      )}
+
+      {showDots ? (
+        <div className="player-content-area">
+          <div
+            ref={panelsRef}
+            className="player-content-panels"
+            style={{ transform: `translateX(-${activePanel * 50}%)` }}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+          >
+            <div className="player-content-panel">
+              <div className="player-scroll-content">
+                {hasSections ? (
+                  <SectionCards
+                    timeline={timeline}
+                    currentTime={currentTime}
+                    activeSectionId={activeSection?.id ?? null}
+                    activeGapIndex={null}
+                    loopEnabled={loopEnabled}
+                    loopStart={loopStart}
+                    loopEnd={loopEnd}
+                    onSectionClick={handleSectionClick}
+                  />
+                ) : (
+                  <EmptySections />
+                )}
+              </div>
+            </div>
+            <div className="player-content-panel">
+              <PdfPanel dropboxPath={currentPath} canUpload={canEdit} />
+            </div>
           </div>
-        )}
-      </div>
+        </div>
+      ) : (
+        <div className="player-scroll-content">
+          {hasSections ? (
+            <SectionCards
+              timeline={timeline}
+              currentTime={currentTime}
+              activeSectionId={activeSection?.id ?? null}
+              activeGapIndex={null}
+              loopEnabled={loopEnabled}
+              loopStart={loopStart}
+              loopEnd={loopEnd}
+              onSectionClick={handleSectionClick}
+            />
+          ) : (
+            <EmptySections />
+          )}
+        </div>
+      )}
 
       {/* Tools footer */}
-      <PlayerFooter addMarker={addMarker} canEditSections={hasMinRole(userRole, 'pro-member')} navigate={navigate} />
+      <PlayerFooter
+        addMarker={addMarker}
+        canEdit={canEdit}
+        navigate={navigate}
+        hasPdf={pdfInfo?.has_pdf ?? false}
+        isRef={pdfInfo?.is_ref ?? false}
+        dropboxPath={currentPath}
+      />
     </div>
   )
 }
 
-function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () => void; canEditSections: boolean; navigate: (path: string) => void }) {
+function EmptySections() {
+  return (
+    <div className="player-empty-sections">
+      <svg className="player-empty-waveform" viewBox="0 0 120 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect x="4" y="18" width="3" height="12" rx="1.5" fill="currentColor" />
+        <rect x="11" y="12" width="3" height="24" rx="1.5" fill="currentColor" />
+        <rect x="18" y="8" width="3" height="32" rx="1.5" fill="currentColor" />
+        <rect x="25" y="14" width="3" height="20" rx="1.5" fill="currentColor" />
+        <rect x="32" y="4" width="3" height="40" rx="1.5" fill="currentColor" />
+        <rect x="39" y="10" width="3" height="28" rx="1.5" fill="currentColor" />
+        <rect x="46" y="16" width="3" height="16" rx="1.5" fill="currentColor" />
+        <rect x="53" y="6" width="3" height="36" rx="1.5" fill="currentColor" />
+        <rect x="60" y="2" width="3" height="44" rx="1.5" fill="currentColor" />
+        <rect x="67" y="10" width="3" height="28" rx="1.5" fill="currentColor" />
+        <rect x="74" y="16" width="3" height="16" rx="1.5" fill="currentColor" />
+        <rect x="81" y="8" width="3" height="32" rx="1.5" fill="currentColor" />
+        <rect x="88" y="14" width="3" height="20" rx="1.5" fill="currentColor" />
+        <rect x="95" y="6" width="3" height="36" rx="1.5" fill="currentColor" />
+        <rect x="102" y="12" width="3" height="24" rx="1.5" fill="currentColor" />
+        <rect x="109" y="18" width="3" height="12" rx="1.5" fill="currentColor" />
+      </svg>
+      <span>Noch keine Sektionen festgelegt</span>
+    </div>
+  )
+}
+
+interface PlayerFooterProps {
+  addMarker: () => void
+  canEdit: boolean
+  navigate: (path: string) => void
+  hasPdf: boolean
+  isRef: boolean
+  dropboxPath: string
+}
+
+function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, isRef, dropboxPath }: PlayerFooterProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const { upload, remove } = usePdfStore()
 
   useEffect(() => {
     if (!menuOpen) return
@@ -145,18 +258,28 @@ function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () 
     return () => document.removeEventListener('mousedown', close)
   }, [menuOpen])
 
+  const handlePdfSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    try {
+      await upload(dropboxPath, file)
+    } catch {
+      // Error handled by store
+    }
+    e.target.value = ''
+  }
+
   return (
     <div className="section-editor-footer">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <button
           className="player-ab-btn"
-          style={{ width: 170, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
+          style={{ padding: '5px 14px', fontSize: 14, borderColor: 'var(--marker)', color: 'var(--marker)' }}
           onClick={addMarker}
         >
-          <Pin size={18} />
           Setze Marker
         </button>
-        {canEditSections && (
+        {canEdit && (
           <div ref={menuRef} style={{ position: 'absolute', right: 20 }}>
             <button
               style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
@@ -174,8 +297,25 @@ function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () 
                   <Info size={16} />
                   Datei-Einstellungen
                 </button>
+                <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); fileInputRef.current?.click() }}>
+                  <FileUp size={16} />
+                  {hasPdf ? 'PDF ersetzen' : 'PDF hochladen'}
+                </button>
+                {hasPdf && !isRef && (
+                  <button className="player-footer-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); remove(dropboxPath) }}>
+                    <Trash2 size={16} />
+                    PDF loeschen
+                  </button>
+                )}
               </div>
             )}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".pdf"
+              style={{ display: 'none' }}
+              onChange={handlePdfSelect}
+            />
           </div>
         )}
       </div>

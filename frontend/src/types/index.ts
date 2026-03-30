@@ -73,6 +73,13 @@ export interface Note {
   text: string
 }
 
+export interface PdfInfo {
+  has_pdf: boolean
+  original_name: string | null
+  file_size: number | null
+  is_ref: boolean
+}
+
 export interface ActionResponse<T = unknown> {
   outcome: 'success' | 'success_with_warnings' | 'failure'
   reason: string | null

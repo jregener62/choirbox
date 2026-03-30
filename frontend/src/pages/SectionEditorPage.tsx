@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Trash2, Pin, ChevronLeft, LayoutList } from 'lucide-react'
+import { Trash2, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useWaveform } from '@/hooks/useWaveform.ts'
@@ -282,19 +282,17 @@ export function SectionEditorPage() {
           <div style={{ display: 'flex', gap: 10 }}>
             <button
               className="player-ab-btn"
-              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
+              style={{ flex: 1, padding: '5px 14px', fontSize: 14, borderColor: 'var(--marker)', color: 'var(--marker)' }}
               onClick={addMarker}
             >
-              <Pin size={18} />
               Setze Marker
             </button>
             <button
               className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
-              style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, opacity: canGenerateSections ? 1 : 0.4 }}
+              style={{ flex: 1, padding: '5px 14px', fontSize: 14, opacity: canGenerateSections ? 1 : 0.4 }}
               onClick={generateSections}
               disabled={!canGenerateSections}
             >
-              <LayoutList size={18} />
               Erstelle Sektion(en)
             </button>
           </div>
