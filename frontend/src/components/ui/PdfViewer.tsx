@@ -32,7 +32,7 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
       <div className="pdf-toolbar">
         <span className="pdf-toolbar-name">{info.original_name}</span>
         <div className="pdf-toolbar-actions">
-          {canUpload && !info.is_ref && (
+          {canUpload && (
             <>
               <button className="pdf-toolbar-btn" onClick={() => fileInputRef.current?.click()} title="PDF ersetzen">
                 <Upload size={16} />

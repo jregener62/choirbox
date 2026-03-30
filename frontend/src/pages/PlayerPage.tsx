@@ -201,7 +201,7 @@ export function PlayerPage() {
         canEdit={canEdit}
         navigate={navigate}
         hasPdf={pdfInfo?.has_pdf ?? false}
-        isRef={pdfInfo?.is_ref ?? false}
+
         dropboxPath={currentPath}
       />
     </div>
@@ -239,11 +239,10 @@ interface PlayerFooterProps {
   canEdit: boolean
   navigate: (path: string) => void
   hasPdf: boolean
-  isRef: boolean
   dropboxPath: string
 }
 
-function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, isRef, dropboxPath }: PlayerFooterProps) {
+function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: PlayerFooterProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -301,7 +300,7 @@ function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, isRef, dropboxPath
                   <FileUp size={16} />
                   {hasPdf ? 'PDF ersetzen' : 'PDF hochladen'}
                 </button>
-                {hasPdf && !isRef && (
+                {hasPdf && (
                   <button className="player-footer-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); remove(dropboxPath) }}>
                     <Trash2 size={16} />
                     PDF loeschen
