@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Play, Pause, MoreVertical, Repeat, X, Trash2, MapPin } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
+import { Play, Pause, MoreVertical, Repeat, X, Trash2, MapPin, ListPlus } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
@@ -58,7 +59,12 @@ export function GlobalPlayerBar() {
     return () => document.removeEventListener('mousedown', close)
   }, [menuOpen])
 
-  if (!currentPath) return null
+  const location = useLocation()
+  const isBrowse = location.pathname === '/' || location.pathname === '/browse'
+  const isSections = location.pathname === '/sections'
+  const canGenerateSections = isSections && markers.length >= 2
+
+  if (!currentPath || isBrowse) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
@@ -154,7 +160,20 @@ export function GlobalPlayerBar() {
 
       {/* Controls */}
       <div className="global-player-controls">
-        <div className="gpc-slot">
+        {isSections && (
+          <div className="gpc-slot gpc-slot-generate">
+            <button
+              className="global-player-side-btn"
+              onClick={() => window.dispatchEvent(new Event('generate-sections'))}
+              disabled={!canGenerateSections}
+              aria-label="Sektionen erstellen"
+            >
+              <ListPlus size={24} />
+            </button>
+          </div>
+        )}
+
+        <div className="gpc-slot gpc-slot-loop">
           <button
             className={`global-player-side-btn${hasLoopRange ? (loopEnabled ? ' global-player-side-btn--active' : ' global-player-side-btn--has-range') : ''}`}
             onClick={handleLoopTap}
@@ -179,7 +198,7 @@ export function GlobalPlayerBar() {
           <span className="top-player-time">{formatTime(duration)}</span>
         </div>
 
-        <div className="gpc-slot">
+        <div className="gpc-slot gpc-slot-marker">
           <button
             className="global-player-side-btn"
             onClick={addMarker}

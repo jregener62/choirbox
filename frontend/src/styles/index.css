@@ -651,11 +651,15 @@ body {
   z-index: 1;
 }
 
-.gpc-slot:first-child {
+.gpc-slot-generate {
+  left: 12.5%;
+}
+
+.gpc-slot-loop {
   left: 25%;
 }
 
-.gpc-slot:nth-child(3) {
+.gpc-slot-marker {
   left: 75%;
 }
 
