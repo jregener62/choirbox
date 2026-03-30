@@ -5,7 +5,6 @@ import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
-import { formatDisplayName } from '@/utils/formatters.ts'
 import type { DropboxEntry, Section } from '@/types/index.ts'
 
 interface FileSettingsData {
@@ -47,7 +46,7 @@ export function FileSettingsPage() {
           <FileAudio size={24} style={{ color: 'var(--accent)', flexShrink: 0 }} />
           <div style={{ minWidth: 0 }}>
             <div style={{ fontWeight: 600, fontSize: 15, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {formatDisplayName(fileName)}
+              {fileName.replace(/\.(mp3|m4a|webm)$/i, '')}
             </div>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               {parentFolder}
