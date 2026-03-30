@@ -67,6 +67,7 @@ export function GlobalPlayerBar() {
   if (!currentPath || isBrowse) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
+  const hasActiveLoop = loopEnabled && hasLoopRange && duration > 0
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   const handleMarkerTap = (m: Marker) => {
@@ -131,20 +132,21 @@ export function GlobalPlayerBar() {
       )}
 
       {/* Seek bar */}
-      <div className="seek-bar" ref={seekBarRef} onClick={handleSeek}>
-        {loopEnabled && loopStart != null && loopEnd != null && duration > 0 && (
-          <div
-            className="seek-bar-loop"
-            style={{
-              left: `${(loopStart / duration) * 100}%`,
-              width: `${((loopEnd - loopStart) / duration) * 100}%`,
-            }}
-          />
-        )}
+      <div className={`seek-bar${hasActiveLoop ? ' seek-bar--loop' : ''}`} ref={seekBarRef} onClick={handleSeek}>
         <div className="seek-bar-track">
-          <div className="seek-bar-played" style={{ width: `${progress}%` }} />
+          {hasActiveLoop ? (
+            <div
+              className="seek-bar-loop-fill"
+              style={{
+                left: `${(loopStart! / duration) * 100}%`,
+                width: `${((loopEnd! - loopStart!) / duration) * 100}%`,
+              }}
+            />
+          ) : (
+            <div className="seek-bar-played" style={{ width: `${progress}%` }} />
+          )}
         </div>
-        <div className="seek-bar-thumb" style={{ left: `${progress}%` }} />
+        <div className={`seek-bar-thumb${hasActiveLoop ? ' seek-bar-thumb--loop' : ''}`} style={{ left: `${progress}%` }} />
         {markers.length > 0 && duration > 0 && (
           <div className="seek-bar-markers">
             {markers.map((m) => (

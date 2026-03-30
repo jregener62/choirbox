@@ -605,14 +605,15 @@ body {
   pointer-events: none;
 }
 
-.seek-bar-loop {
+.seek-bar-thumb--loop {
+  background: #f59e0b;
+}
+
+.seek-bar-loop-fill {
   position: absolute;
-  top: 50%;
-  height: 3px;
-  transform: translateY(-50%);
-  background: rgba(245, 158, 11, 0.5);
+  height: 100%;
+  background: #f59e0b;
   border-radius: 1.5px;
-  pointer-events: none;
 }
 
 .seek-bar-markers {
