@@ -137,6 +137,7 @@ Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap da
 
 - **Favorit** (Herz): Datei als Favorit markieren/entfernen
 - **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen
+- **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei
 - **Loeschen** (Papierkorb): Nur fuer Chorleiter (Level 3) und Admin (Level 4) sichtbar. Bestaetigungsdialog vor dem Loeschen.
 - Tippen auf ein anderes Element oder erneutes Tippen auf die drei Punkte schliesst das Menue
 - Einfach-Tap auf eine Datei oeffnet direkt den Player (kein Doppelklick noetig)
@@ -160,6 +161,38 @@ Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap da
 | `frontend/src/pages/BrowsePage.tsx` | Such-UI und Debounce-Logik |
 | `backend/api/dropbox.py` | `GET /dropbox/search` |
 | `backend/services/dropbox_service.py` | `search()` (max. 50 Ergebnisse) |
+
+---
+
+## Datei-Einstellungen
+
+### Sektionsreferenz
+
+Dateien koennen eine andere Datei als Sektionsquelle referenzieren. Sektionen werden dann von der Referenz-Datei geladen und dort gespeichert — z.B. fuer Stems, wo Sektionen nur einmal definiert, aber bei allen Stimmen angezeigt werden. Standalone-Dateien sind davon nicht betroffen (Standardverhalten: eigene Sektionen).
+
+Zwei Wege:
+- **Uebernehmen:** Eine Datei holt sich Sektionen von einer anderen Datei im selben Ordner
+- **Uebertragen:** Eine Datei setzt sich als Sektionsquelle fuer ausgewaehlte andere Dateien im selben Ordner
+
+Die Referenz-Aufloesung passiert im Backend — das Frontend muss nicht wissen, ob Sektionen direkt oder via Referenz geladen werden. Beim Erstellen/Bearbeiten von Sektionen wird ebenfalls aufgeloest: Sektionen werden immer gegen die Referenz-Datei gespeichert.
+
+### Zugang
+
+- **Browse-Page:** Info-Button in den Swipe-Actions jeder Datei
+- **Player-Page:** Kebab-Menue-Eintrag "Datei-Einstellungen"
+- Route: `/#/file-settings?path=<dropbox_path>`
+
+### Berechtigungen
+
+- Lesen: Alle eingeloggten User
+- Aendern: Pro-Mitglied und hoeher
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/FileSettingsPage.tsx` | Einstellungen-UI mit Radio-Auswahl, Datei-Picker, Propagation |
+| `backend/api/file_settings.py` | `GET/PUT /file-settings`, `POST /file-settings/propagate` |
+| `backend/models/file_settings.py` | FileSettings-Modell |
+| `backend/api/sections.py` | Referenz-Aufloesung beim Laden/Speichern von Sektionen |
 
 ---
 
@@ -583,6 +616,14 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | PUT | `/lyrics` | Lyrics fuer mehrere Sektionen auf einmal speichern | Pro-Mitglied+ |
 | DELETE | `/{id}` | Sektion loeschen (loescht zugehoerige Notizen) | Pro-Mitglied+ |
 
+### Datei-Einstellungen (`/api/file-settings`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/?path=<dropbox_path>` | Einstellungen einer Datei laden (oder Default) | User |
+| PUT | `/` | Einstellungen speichern (Sektionsreferenz setzen/entfernen) | Pro-Mitglied+ |
+| POST | `/propagate` | Referenz auf mehrere Dateien uebertragen | Pro-Mitglied+ |
+
 ### Sektionsvorlagen (`/api/section-presets`)
 
 | Methode | Pfad | Beschreibung | Zugang |
@@ -692,6 +733,15 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `dropbox_path` | String | Dropbox-Dateipfad |
 | `section_id` | Integer (FK, optional) | Referenz auf Section (null = Track-Notiz) |
 | `text` | String | Notiztext |
+| `created_at` | DateTime | Erstellungszeitpunkt |
+| `updated_at` | DateTime | Letzte Aenderung |
+
+### FileSettings
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `dropbox_path` | String (max 1000) | Primaerschluessel — Dropbox-Dateipfad |
+| `section_ref_path` | String (optional) | Sektionsquelle (null = eigene Sektionen) |
 | `created_at` | DateTime | Erstellungszeitpunkt |
 | `updated_at` | DateTime | Letzte Aenderung |
 
