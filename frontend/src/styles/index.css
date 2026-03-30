@@ -17,6 +17,7 @@
   --warning: #d97706;
   --marker: #65a30d;
   --marker-dim: rgba(101,163,13,0.15);
+  --playback: #0ea5c9;
   --confirm: #2563eb;
   --confirm-hover: #1d4ed8;
   --player-bg: #2A3348;
@@ -49,6 +50,7 @@
   --warning: #fbbf24;
   --marker: #a3e635;
   --marker-dim: rgba(163,230,53,0.2);
+  --playback: #22d3ee;
   --confirm: #3b82f6;
   --confirm-hover: #2563eb;
   --player-bg: #2A3348;
@@ -392,7 +394,7 @@ body {
 .top-player-skip {
   background: none;
   border: none;
-  color: var(--text-primary);
+  color: var(--playback);
   cursor: pointer;
   padding: 6px 10px;
   border-radius: 50%;
@@ -417,7 +419,7 @@ body {
   width: 46px;
   height: 46px;
   border-radius: 50%;
-  background: var(--text-primary);
+  background: var(--playback);
   border: none;
   color: var(--bg-primary);
   cursor: pointer;
@@ -430,7 +432,8 @@ body {
 }
 
 .top-player-play:active {
-  background: var(--text-secondary);
+  background: var(--playback);
+  opacity: 0.8;
   transform: scale(0.95);
 }
 
@@ -532,12 +535,6 @@ body {
   cursor: pointer;
 }
 
-.mini-waveform-strip {
-  display: block;
-  width: 100%;
-  height: 3px;
-}
-
 .mini-waveform-markers {
   position: relative;
   width: 100%;
@@ -552,6 +549,79 @@ body {
   border-radius: 50%;
   background: var(--marker);
   transform: translateX(-50%);
+}
+
+/* Footer slot (below GlobalPlayerBar in AppShell) */
+.footer-slot {
+  flex-shrink: 0;
+}
+
+/* Global Player Bar (bottom of AppShell) */
+.global-player {
+  flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-top: 1px solid var(--border);
+}
+
+.global-player-markers {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border);
+}
+
+.global-player-waveform {
+  position: relative;
+}
+
+.global-player-waveform .mini-waveform {
+  position: relative;
+}
+
+.global-player-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px 16px;
+  padding-bottom: calc(4px + env(safe-area-inset-bottom, 0px));
+  position: relative;
+  min-height: 50px;
+}
+
+.global-player-menu {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 60;
+}
+
+.global-player-menu-popup {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  min-width: 72px;
+}
+
+.global-player-progress {
+  height: 3px;
+  background: var(--bg-tertiary);
+}
+
+.global-player-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.3s linear;
 }
 
 /* Section cards */

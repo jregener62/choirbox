@@ -4,16 +4,14 @@ import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
 import { formatTime } from '@/utils/formatters.ts'
-import type { TimelineEntry } from '@/utils/buildTimeline'
 import type { Marker } from '@/stores/playerStore'
 
 interface PlayerControlsBarProps {
   peaks?: number[]
-  timeline: TimelineEntry[]
   markers: Marker[]
 }
 
-export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBarProps) {
+export function PlayerControlsBar({ peaks, markers }: PlayerControlsBarProps) {
   const { loopStart, loopEnd, loopEnabled, pendingLoopMarkerId, loopMarkerIds } = usePlayerStore()
   const { seek } = useAudioPlayer()
   const lastTappedRef = useRef<string | null>(null)
@@ -68,7 +66,6 @@ export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBa
         loopStart={loopStart}
         loopEnd={loopEnd}
         loopEnabled={loopEnabled}
-        timeline={timeline}
         markers={markers}
         onSeek={(time) => { seek(time); usePlayerStore.getState().setPlaying(true) }}
       />

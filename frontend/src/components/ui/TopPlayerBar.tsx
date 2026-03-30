@@ -6,7 +6,6 @@ import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { MiniWaveform } from '@/components/ui/MiniWaveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
-import type { TimelineEntry } from '@/utils/buildTimeline'
 import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
@@ -32,12 +31,11 @@ interface TopPlayerBarProps {
   loopStart?: number | null
   loopEnd?: number | null
   loopEnabled?: boolean
-  timeline?: TimelineEntry[]
   markers?: Marker[]
   onSeek?: (time: number) => void
 }
 
-export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, timeline, markers, onSeek }: TopPlayerBarProps) {
+export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, markers, onSeek }: TopPlayerBarProps) {
   const navigate = useNavigate()
   const {
     currentName,
@@ -133,7 +131,6 @@ export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, 
           loopStart={loopStart}
           loopEnd={loopEnd}
           loopEnabled={loopEnabled}
-          timeline={timeline}
           markers={markers}
           onSeek={onSeek}
         />

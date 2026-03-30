@@ -10,6 +10,7 @@ import { RecordingModal } from '@/components/ui/RecordingModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { FooterSlot } from '@/components/layout/FooterPortal.tsx'
 import { platform } from '@/utils/platform'
 import { formatDisplayName } from '@/utils/formatters.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
@@ -523,31 +524,32 @@ export function BrowsePage() {
         </div>
       )}
 
-      {/* Footer: Aufnahme + Upload */}
-      <div className="browse-footer">
-        <button className="browse-footer-btn" onClick={() => setRecordingOpen(true)}>
-          <Mic size={20} />
-          <span>Aufnahme</span>
-        </button>
-        <button className="browse-footer-btn" onClick={() => fileInputRef.current?.click()}>
-          <Upload size={20} />
-          <span>Upload</span>
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi'}
-          style={{ display: 'none' }}
-          onChange={(e) => {
-            const file = e.target.files?.[0]
-            if (file) {
-              setImportedFile(file)
-              setRecordingOpen(true)
-            }
-            e.target.value = ''
-          }}
-        />
-      </div>
+      <FooterSlot>
+        <div className="browse-footer">
+          <button className="browse-footer-btn" onClick={() => setRecordingOpen(true)}>
+            <Mic size={20} />
+            <span>Aufnahme</span>
+          </button>
+          <button className="browse-footer-btn" onClick={() => fileInputRef.current?.click()}>
+            <Upload size={20} />
+            <span>Upload</span>
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi'}
+            style={{ display: 'none' }}
+            onChange={(e) => {
+              const file = e.target.files?.[0]
+              if (file) {
+                setImportedFile(file)
+                setRecordingOpen(true)
+              }
+              e.target.value = ''
+            }}
+          />
+        </div>
+      </FooterSlot>
 
       {recordingOpen && (
         <RecordingModal

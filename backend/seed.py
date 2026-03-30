@@ -89,7 +89,7 @@ def _seed_default_section_presets(session: Session):
         SectionPreset(name="Strophe", color="#ef4444", sort_order=2),
         SectionPreset(name="Refrain", color="#8b5cf6", sort_order=3),
         SectionPreset(name="Bridge", color="#ec4899", sort_order=4),
-        SectionPreset(name="Solo", color="#06b6d4", sort_order=5),
+        SectionPreset(name="Solo", color="#f97316", sort_order=5),
         SectionPreset(name="Outro", color="#a855f7", sort_order=6),
     ]
     for preset in defaults:

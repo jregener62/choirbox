@@ -1,5 +1,4 @@
 import { useRef, useEffect, useCallback } from 'react'
-import type { TimelineEntry } from '@/utils/buildTimeline'
 import type { Marker } from '@/stores/playerStore'
 
 interface MiniWaveformProps {
@@ -9,7 +8,6 @@ interface MiniWaveformProps {
   loopStart?: number | null
   loopEnd?: number | null
   loopEnabled?: boolean
-  timeline?: TimelineEntry[]
   markers?: Marker[]
   onSeek: (time: number) => void
 }
@@ -18,9 +16,8 @@ const COLOR_PLAYED = 'rgba(129, 140, 248, 0.9)'
 const COLOR_UNPLAYED = 'rgba(51, 65, 85, 0.8)'
 const COLOR_LOOP = '#f59e0b'
 
-export function MiniWaveform({ peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, timeline, markers, onSeek }: MiniWaveformProps) {
+export function MiniWaveform({ peaks, currentTime, duration, loopStart, loopEnd, loopEnabled, markers, onSeek }: MiniWaveformProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  const stripRef = useRef<HTMLCanvasElement>(null)
 
   const draw = useCallback(() => {
     const canvas = canvasRef.current
@@ -63,35 +60,10 @@ export function MiniWaveform({ peaks, currentTime, duration, loopStart, loopEnd,
 
     // Playhead line
     if (duration > 0) {
-      ctx.fillStyle = '#f1f5f9'
+      ctx.fillStyle = getComputedStyle(canvas).getPropertyValue('--playback').trim() || '#22d3ee'
       ctx.fillRect(playX - 1, 0, 2, h)
     }
   }, [peaks, currentTime, duration, loopStart, loopEnd, loopEnabled])
-
-  // Draw section color strip
-  const drawStrip = useCallback(() => {
-    const canvas = stripRef.current
-    if (!canvas || !timeline || timeline.length === 0 || duration <= 0) return
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    const dpr = window.devicePixelRatio || 1
-    const rect = canvas.getBoundingClientRect()
-    const w = rect.width
-    const h = rect.height
-    canvas.width = w * dpr
-    canvas.height = h * dpr
-    ctx.scale(dpr, dpr)
-    ctx.clearRect(0, 0, w, h)
-
-    for (const entry of timeline) {
-      if (entry.isGap) continue
-      const x = (entry.start_time / duration) * w
-      const entryW = ((entry.end_time - entry.start_time) / duration) * w
-      ctx.fillStyle = entry.color || '#334155'
-      ctx.fillRect(x, 0, entryW, h)
-    }
-  }, [timeline, duration])
 
   useEffect(() => {
     let raf: number
@@ -102,8 +74,6 @@ export function MiniWaveform({ peaks, currentTime, duration, loopStart, loopEnd,
     raf = requestAnimationFrame(loop)
     return () => cancelAnimationFrame(raf)
   }, [draw])
-
-  useEffect(() => { drawStrip() }, [drawStrip])
 
   const handleSeek = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const canvas = canvasRef.current
@@ -122,9 +92,6 @@ export function MiniWaveform({ peaks, currentTime, duration, loopStart, loopEnd,
         className="mini-waveform-canvas"
         onClick={handleSeek}
       />
-      {timeline && timeline.length > 0 && (
-        <canvas ref={stripRef} className="mini-waveform-strip" />
-      )}
       {markers && markers.length > 0 && duration > 0 && (
         <div className="mini-waveform-markers">
           {markers.map((m) => (

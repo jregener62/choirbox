@@ -3,14 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import { LayoutList, EllipsisVertical, ChevronLeft, Info, FileUp, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
-import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { usePdfStore } from '@/hooks/usePdf.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
-import { PlayerControlsBar } from '@/components/ui/PlayerControlsBar.tsx'
 import { DotBar } from '@/components/ui/DotBar.tsx'
 import { PdfPanel } from '@/components/ui/PdfPanel.tsx'
+import { FooterSlot } from '@/components/layout/FooterPortal.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
@@ -30,10 +29,8 @@ export function PlayerPage() {
     currentTime, duration,
     loopEnabled, loopStart, loopEnd,
     activeSection,
-    markers,
   } = usePlayerStore()
   const { seek } = useAudioPlayer()
-  const { peaks } = useWaveform(currentPath)
   const { addMarker } = useLoopControls()
 
   const [activePanel, setActivePanel] = useState(0)
@@ -101,7 +98,6 @@ export function PlayerPage() {
           )}
         </div>
       </div>
-      <PlayerControlsBar peaks={peaks} timeline={timeline} markers={markers} />
 
       {showDots && (
         <DotBar count={2} activeIndex={activePanel} onDotClick={setActivePanel} />
@@ -155,15 +151,15 @@ export function PlayerPage() {
         </div>
       )}
 
-      {/* Tools footer */}
-      <PlayerFooter
-        addMarker={addMarker}
-        canEdit={canEdit}
-        navigate={navigate}
-        hasPdf={pdfInfo?.has_pdf ?? false}
-
-        dropboxPath={currentPath}
-      />
+      <FooterSlot>
+        <PlayerFooter
+          addMarker={addMarker}
+          canEdit={canEdit}
+          navigate={navigate}
+          hasPdf={pdfInfo?.has_pdf ?? false}
+          dropboxPath={currentPath}
+        />
+      </FooterSlot>
     </div>
   )
 }

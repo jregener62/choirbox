@@ -3,29 +3,27 @@ import { useNavigate } from 'react-router-dom'
 import { Trash2, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
-import { useWaveform } from '@/hooks/useWaveform.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
-import { PlayerControlsBar } from '@/components/ui/PlayerControlsBar.tsx'
+import { FooterSlot } from '@/components/layout/FooterPortal.tsx'
 import { buildTimeline } from '@/utils/buildTimeline'
 import { parseTrackFilename } from '@/utils/parseTrackFilename'
 import { voiceColor, voiceBg, voiceFullName } from '@/utils/voiceColors'
 import { formatTime, formatDisplayName, middleTruncate } from '@/utils/formatters.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
-// Reservierte Farben ausgeschlossen: Orange #f59e0b (Playback), Lime #84cc16 (Marker), Blau #3b82f6 (Confirm)
+// Reservierte Farben ausgeschlossen: Orange #f59e0b (Loop), Lime #84cc16 (Marker), Blau #3b82f6 (Confirm), Cyan #22d3ee (Playback)
 const FALLBACK_COLORS = [
   '#ef4444', '#8b5cf6', '#ec4899', '#14b8a6',
-  '#e879f9', '#f97316', '#06b6d4', '#a855f7',
+  '#e879f9', '#f97316', '#a855f7',
 ]
 
 export function SectionEditorPage() {
   const navigate = useNavigate()
   const { currentPath, currentName, currentTime, duration, markers, loopStart, loopEnd, loopEnabled } = usePlayerStore()
   const { seek } = useAudioPlayer()
-  const { peaks } = useWaveform(currentPath)
   const { sections, load, create, bulkCreate, update, batchUpdate, remove } = useSectionsStore()
   const { presets, loaded: presetsLoaded, load: loadPresets } = useSectionPresetsStore()
 
@@ -249,7 +247,6 @@ export function SectionEditorPage() {
           )}
         </div>
       </div>
-      <PlayerControlsBar peaks={peaks} timeline={timeline} markers={markers} />
 
       {/* Scrollable content */}
       <div className="player-scroll-content">
@@ -275,134 +272,131 @@ export function SectionEditorPage() {
         )}
       </div>
 
-      {/* Fixed footer — editing controls */}
-      <div className="section-editor-footer">
-        {!isEditing ? (
-          /* Set Marker + Generate Sections — only when not editing */
-          <div style={{ display: 'flex', gap: 10 }}>
-            <button
-              className="player-ab-btn"
-              style={{ flex: 1, padding: '5px 14px', fontSize: 14, borderColor: 'var(--marker)', color: 'var(--marker)' }}
-              onClick={addMarker}
-            >
-              Setze Marker
-            </button>
-            <button
-              className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
-              style={{ flex: 1, padding: '5px 14px', fontSize: 14, opacity: canGenerateSections ? 1 : 0.4 }}
-              onClick={generateSections}
-              disabled={!canGenerateSections}
-            >
-              Erstelle Sektion(en)
-            </button>
-          </div>
-        ) : (
-          <>
-            {/* 1. Preset bricks — horizontal scrollable */}
-            <div style={{ display: 'flex', gap: 6, justifyContent: 'center', overflowX: 'auto', marginBottom: 12, flexWrap: 'nowrap' }}>
-              {presets.map((p) => {
-                const isActive = label === p.name && color === p.color
-                return (
-                  <button
-                    key={p.id}
-                    onClick={() => { setLabel(p.name); setColor(p.color) }}
-                    style={{
-                      padding: '6px 14px',
-                      borderRadius: 8,
-                      fontSize: 13,
-                      fontWeight: 600,
-                      background: isActive ? p.color : p.color + '25',
-                      color: isActive ? '#fff' : p.color,
-                      border: isActive ? `2px solid ${p.color}` : '2px solid transparent',
-                      cursor: 'pointer',
-                      textAlign: 'center',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {p.name}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* 2. Start / Delete / Ende with +/- shift buttons */}
-            <div className="section-boundary-row">
-              <button
-                className="section-shift-btn"
-                onClick={() => shiftBoundary('start', -1)}
-                disabled={startTime !== null && startTime <= 0}
-              >
-                &minus;
-              </button>
-              <button
-                className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
-                style={{ padding: '8px 12px', fontSize: 13 }}
-                onClick={() => setStartTime(currentTime)}
-              >
-                Start: {startTime !== null ? formatTime(startTime) : '\u2014'}
-              </button>
-              <button
-                className="section-shift-btn"
-                onClick={() => shiftBoundary('start', 1)}
-                disabled={startTime !== null && endTime !== null && endTime - startTime <= 1}
-              >
-                +
-              </button>
-
-              {editingId !== null && (
-                <button
-                  className="player-ab-btn"
-                  style={{ width: 'auto', aspectRatio: '1', alignSelf: 'stretch', padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
-                  onClick={() => { remove(editingId!); resetForm() }}
-                >
-                  <Trash2 size={16} />
-                </button>
-              )}
-
-              <button
-                className="section-shift-btn"
-                onClick={() => shiftBoundary('end', -1)}
-                disabled={startTime !== null && endTime !== null && endTime - startTime <= 1}
-              >
-                &minus;
-              </button>
-              <button
-                className={`player-ab-btn ${endTime !== null ? 'active' : ''}`}
-                style={{ padding: '8px 12px', fontSize: 13 }}
-                onClick={() => setEndTime(currentTime)}
-              >
-                Ende: {endTime !== null ? formatTime(endTime) : '\u2014'}
-              </button>
-              <button
-                className="section-shift-btn"
-                onClick={() => shiftBoundary('end', 1)}
-                disabled={endTime !== null && endTime >= duration}
-              >
-                +
-              </button>
-            </div>
-
-            {/* 3. Aktualisieren / Abbrechen */}
+      <FooterSlot>
+        <div className="section-editor-footer">
+          {!isEditing ? (
             <div style={{ display: 'flex', gap: 10 }}>
               <button
-                className="btn btn-primary"
-                style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
-                disabled={!canSaveEdit}
-                onClick={handleSaveEdit}
+                className="player-ab-btn"
+                style={{ flex: 1, padding: '5px 14px', fontSize: 14, borderColor: 'var(--marker)', color: 'var(--marker)' }}
+                onClick={addMarker}
               >
-                {editingGap ? 'Sektion erstellen' : 'Sektion aktualisieren'}
+                Setze Marker
               </button>
               <button
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
-                onClick={resetForm}
+                className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
+                style={{ flex: 1, padding: '5px 14px', fontSize: 14, opacity: canGenerateSections ? 1 : 0.4 }}
+                onClick={generateSections}
+                disabled={!canGenerateSections}
               >
-                Abbrechen
+                Erstelle Sektion(en)
               </button>
             </div>
-          </>
-        )}
-      </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', gap: 6, justifyContent: 'center', overflowX: 'auto', marginBottom: 12, flexWrap: 'nowrap' }}>
+                {presets.map((p) => {
+                  const isActive = label === p.name && color === p.color
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => { setLabel(p.name); setColor(p.color) }}
+                      style={{
+                        padding: '6px 14px',
+                        borderRadius: 8,
+                        fontSize: 13,
+                        fontWeight: 600,
+                        background: isActive ? p.color : p.color + '25',
+                        color: isActive ? '#fff' : p.color,
+                        border: isActive ? `2px solid ${p.color}` : '2px solid transparent',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {p.name}
+                    </button>
+                  )
+                })}
+              </div>
+
+              <div className="section-boundary-row">
+                <button
+                  className="section-shift-btn"
+                  onClick={() => shiftBoundary('start', -1)}
+                  disabled={startTime !== null && startTime <= 0}
+                >
+                  &minus;
+                </button>
+                <button
+                  className={`player-ab-btn ${startTime !== null ? 'active' : ''}`}
+                  style={{ padding: '8px 12px', fontSize: 13 }}
+                  onClick={() => setStartTime(currentTime)}
+                >
+                  Start: {startTime !== null ? formatTime(startTime) : '\u2014'}
+                </button>
+                <button
+                  className="section-shift-btn"
+                  onClick={() => shiftBoundary('start', 1)}
+                  disabled={startTime !== null && endTime !== null && endTime - startTime <= 1}
+                >
+                  +
+                </button>
+
+                {editingId !== null && (
+                  <button
+                    className="player-ab-btn"
+                    style={{ width: 'auto', aspectRatio: '1', alignSelf: 'stretch', padding: 0, flexShrink: 0, color: 'var(--danger)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    onClick={() => { remove(editingId!); resetForm() }}
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                )}
+
+                <button
+                  className="section-shift-btn"
+                  onClick={() => shiftBoundary('end', -1)}
+                  disabled={startTime !== null && endTime !== null && endTime - startTime <= 1}
+                >
+                  &minus;
+                </button>
+                <button
+                  className={`player-ab-btn ${endTime !== null ? 'active' : ''}`}
+                  style={{ padding: '8px 12px', fontSize: 13 }}
+                  onClick={() => setEndTime(currentTime)}
+                >
+                  Ende: {endTime !== null ? formatTime(endTime) : '\u2014'}
+                </button>
+                <button
+                  className="section-shift-btn"
+                  onClick={() => shiftBoundary('end', 1)}
+                  disabled={endTime !== null && endTime >= duration}
+                >
+                  +
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', gap: 10 }}>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1, opacity: canSaveEdit ? 1 : 0.4 }}
+                  disabled={!canSaveEdit}
+                  onClick={handleSaveEdit}
+                >
+                  {editingGap ? 'Sektion erstellen' : 'Sektion aktualisieren'}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  style={{ flex: 1 }}
+                  onClick={resetForm}
+                >
+                  Abbrechen
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </FooterSlot>
     </div>
   )
 }
