@@ -147,23 +147,22 @@ function PlayerFooter({ addMarker, canEditSections, navigate }: { addMarker: () 
 
   return (
     <div className="section-editor-footer">
-      <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <button
           className="player-ab-btn"
-          style={{ flex: 1, padding: '10px 0', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
+          style={{ padding: '10px 32px', fontSize: 13, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, borderColor: 'var(--marker)', color: 'var(--marker)' }}
           onClick={addMarker}
         >
           <Pin size={18} />
           Setze Marker
         </button>
         {canEditSections && (
-          <div ref={menuRef} style={{ position: 'relative' }}>
+          <div ref={menuRef} style={{ position: 'absolute', right: 20 }}>
             <button
-              className="player-ab-btn"
-              style={{ padding: '10px 12px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', padding: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               onClick={() => setMenuOpen(!menuOpen)}
             >
-              <EllipsisVertical size={20} />
+              <EllipsisVertical size={22} />
             </button>
             {menuOpen && (
               <div className="player-footer-menu">

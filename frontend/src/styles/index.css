@@ -1697,6 +1697,7 @@ body {
   max-height: 50vh;
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
+  position: relative;
 }
 
 .player-footer-menu {
