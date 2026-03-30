@@ -1,8 +1,11 @@
-import { Download, Upload, Trash2 } from 'lucide-react'
+import { Download, Upload, Trash2, Maximize2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePdfStore } from '@/hooks/usePdf.ts'
 import { useRef, useState } from 'react'
 import type { PdfInfo } from '@/types/index.ts'
+
+const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)
 
 interface PdfViewerProps {
   dropboxPath: string
@@ -54,16 +57,32 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
               </button>
             </>
           )}
+          <a href={pdfUrl} target="_blank" rel="noopener noreferrer" className="pdf-toolbar-btn" title="Vollbild">
+            <Maximize2 size={16} />
+          </a>
           <a href={pdfUrl} download={info.original_name ?? 'document.pdf'} className="pdf-toolbar-btn" title="Download">
             <Download size={16} />
           </a>
         </div>
       </div>
-      <iframe
-        className="pdf-iframe"
-        src={pdfUrl}
-        title="PDF Dokument"
-      />
+      {isIOS ? (
+        <a
+          href={pdfUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="pdf-ios-open"
+        >
+          <Maximize2 size={32} />
+          <span>Tippen zum Oeffnen</span>
+          <span className="pdf-ios-hint">Pinch-to-Zoom im Browser</span>
+        </a>
+      ) : (
+        <iframe
+          className="pdf-iframe"
+          src={pdfUrl}
+          title="PDF Dokument"
+        />
+      )}
       <input
         ref={fileInputRef}
         type="file"

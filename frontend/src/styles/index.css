@@ -809,6 +809,32 @@ body {
   border: none;
   background: var(--bg-primary);
 }
+.pdf-ios-open {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  background: var(--bg-secondary);
+  border-radius: 12px;
+  margin: 8px 12px;
+}
+.pdf-ios-open:active {
+  background: var(--bg-tertiary);
+}
+.pdf-ios-open span {
+  font-size: 15px;
+  font-weight: 600;
+}
+.pdf-ios-hint {
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  color: var(--text-muted);
+}
+
 .pdf-upload {
   flex: 1;
   display: flex;
