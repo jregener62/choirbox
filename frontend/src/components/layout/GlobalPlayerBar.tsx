@@ -1,10 +1,8 @@
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Play, Pause, MoreVertical, Repeat, X, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
-import { useWaveform } from '@/hooks/useWaveform.ts'
-import { MiniWaveform } from '@/components/ui/MiniWaveform.tsx'
 import { formatTime } from '@/utils/formatters.ts'
 import type { Marker } from '@/stores/playerStore'
 
@@ -35,11 +33,21 @@ export function GlobalPlayerBar() {
   } = usePlayerStore()
   const { togglePlay, skip, seek } = useAudioPlayer()
   const { handleLoopTap } = useLoopControls()
-  const { peaks } = useWaveform(currentPath)
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const seekBarRef = useRef<HTMLDivElement>(null)
   const lastTappedRef = useRef<string | null>(null)
+
+  const handleSeek = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const bar = seekBarRef.current
+    if (!bar || duration <= 0) return
+    const rect = bar.getBoundingClientRect()
+    const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
+    seek(frac * duration)
+    usePlayerStore.getState().setPlaying(true)
+  }, [duration, seek])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -53,7 +61,6 @@ export function GlobalPlayerBar() {
   if (!currentPath) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
-  const hasWaveform = peaks.length > 0
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0
 
   const handleMarkerTap = (m: Marker) => {
@@ -93,11 +100,6 @@ export function GlobalPlayerBar() {
     seek(m.time)
   }
 
-  const handleWaveformSeek = (time: number) => {
-    seek(time)
-    usePlayerStore.getState().setPlaying(true)
-  }
-
   return (
     <div className="global-player">
       {/* Marker row */}
@@ -122,22 +124,30 @@ export function GlobalPlayerBar() {
         </div>
       )}
 
-      {/* Waveform / progress bar */}
-      <div className="global-player-waveform">
-        {hasWaveform ? (
-          <MiniWaveform
-            peaks={peaks}
-            currentTime={currentTime}
-            duration={duration}
-            loopStart={loopStart}
-            loopEnd={loopEnd}
-            loopEnabled={loopEnabled}
-            markers={markers}
-            onSeek={handleWaveformSeek}
+      {/* Seek bar */}
+      <div className="seek-bar" ref={seekBarRef} onClick={handleSeek}>
+        {loopEnabled && loopStart != null && loopEnd != null && duration > 0 && (
+          <div
+            className="seek-bar-loop"
+            style={{
+              left: `${(loopStart / duration) * 100}%`,
+              width: `${((loopEnd - loopStart) / duration) * 100}%`,
+            }}
           />
-        ) : (
-          <div className="global-player-progress">
-            <div className="global-player-progress-fill" style={{ width: `${progress}%` }} />
+        )}
+        <div className="seek-bar-track">
+          <div className="seek-bar-played" style={{ width: `${progress}%` }} />
+        </div>
+        <div className="seek-bar-thumb" style={{ left: `${progress}%` }} />
+        {markers.length > 0 && duration > 0 && (
+          <div className="seek-bar-markers">
+            {markers.map((m) => (
+              <span
+                key={m.id}
+                className="seek-bar-marker-dot"
+                style={{ left: `${(m.time / duration) * 100}%` }}
+              />
+            ))}
           </div>
         )}
       </div>
