@@ -59,7 +59,6 @@ export function FileSettingsPage() {
         <SectionRefEditor
           filePath={filePath}
           parentFolder={parentFolder}
-          fileName={fileName}
           canEdit={canEdit}
         />
       </div>
@@ -68,10 +67,9 @@ export function FileSettingsPage() {
 }
 
 
-function SectionRefEditor({ filePath, parentFolder, fileName, canEdit }: {
+function SectionRefEditor({ filePath, parentFolder, canEdit }: {
   filePath: string
   parentFolder: string
-  fileName: string
   canEdit: boolean
 }) {
   const [settings, setSettings] = useState<FileSettingsData | null>(null)
