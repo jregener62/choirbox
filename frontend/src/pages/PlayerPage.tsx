@@ -244,9 +244,11 @@ interface PlayerFooterProps {
 
 function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: PlayerFooterProps) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-  const { upload, remove } = usePdfStore()
+  const { upload, remove, info } = usePdfStore()
 
   useEffect(() => {
     if (!menuOpen) return
@@ -266,6 +268,16 @@ function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: Pla
       alert(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
     }
     e.target.value = ''
+  }
+
+  const handleDelete = async () => {
+    setDeleting(true)
+    try {
+      await remove(dropboxPath)
+    } finally {
+      setDeleting(false)
+      setConfirmDelete(false)
+    }
   }
 
   return (
@@ -301,7 +313,7 @@ function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: Pla
                   {hasPdf ? 'PDF ersetzen' : 'PDF hochladen'}
                 </button>
                 {hasPdf && (
-                  <button className="player-footer-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); remove(dropboxPath) }}>
+                  <button className="player-footer-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}>
                     <Trash2 size={16} />
                     PDF loeschen
                   </button>
@@ -318,6 +330,23 @@ function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: Pla
           </div>
         )}
       </div>
+      {confirmDelete && (
+        <div className="confirm-overlay" onClick={() => !deleting && setConfirmDelete(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">PDF loeschen?</p>
+            <p className="confirm-filename">{info?.original_name}</p>
+            <p className="confirm-hint">Wird unwiderruflich aus der Dropbox geloescht.</p>
+            <div className="confirm-actions">
+              <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)} disabled={deleting}>
+                Abbrechen
+              </button>
+              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
+                {deleting ? 'Loeschen...' : 'Loeschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
