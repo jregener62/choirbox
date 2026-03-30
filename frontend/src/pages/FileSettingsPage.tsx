@@ -202,84 +202,83 @@ function SectionRefEditor({ filePath, parentFolder, canEdit }: {
         <span>Sektionen koennen von einer anderen Datei uebernommen werden — z.B. wenn mehrere Stimmlagen als separate Dateien vorliegen.</span>
       </div>
 
-      {/* Radio: own sections */}
-      <label style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 10,
-        padding: '12px 0',
-        cursor: canEdit ? 'pointer' : 'default',
-        fontSize: 14,
-      }}>
-        <input
-          type="radio"
-          name="section-mode"
-          checked={mode === 'own'}
-          onChange={() => { setMode('own'); setRefPath('') }}
-          disabled={!canEdit}
-          style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
-        />
-        <span>Eigene Sektionen</span>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>(Standard)</span>
-      </label>
+      {/* Radio options side by side */}
+      <div style={{ display: 'flex', gap: 16, padding: '12px 0' }}>
+        {/* Radio: own sections */}
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: canEdit ? 'pointer' : 'default',
+          fontSize: 14,
+        }}>
+          <input
+            type="radio"
+            name="section-mode"
+            checked={mode === 'own'}
+            onChange={() => { setMode('own'); setRefPath('') }}
+            disabled={!canEdit}
+            style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
+          />
+          <span>Eigene</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>(Standard)</span>
+        </label>
 
-      {/* Radio: ref sections */}
-      <label style={{
-        display: 'flex',
-        alignItems: 'flex-start',
-        gap: 10,
-        padding: '12px 0',
-        cursor: canEdit ? 'pointer' : 'default',
-        fontSize: 14,
-      }}>
-        <input
-          type="radio"
-          name="section-mode"
-          checked={mode === 'ref'}
-          onChange={() => setMode('ref')}
-          disabled={!canEdit}
-          style={{ accentColor: 'var(--accent)', width: 18, height: 18, marginTop: 2 }}
-        />
-        <div style={{ flex: 1 }}>
-          <div>Sektionen uebernehmen von:</div>
+        {/* Radio: ref sections */}
+        <label style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          cursor: canEdit ? 'pointer' : 'default',
+          fontSize: 14,
+        }}>
+          <input
+            type="radio"
+            name="section-mode"
+            checked={mode === 'ref'}
+            onChange={() => setMode('ref')}
+            disabled={!canEdit}
+            style={{ accentColor: 'var(--accent)', width: 18, height: 18 }}
+          />
+          <span>Uebernehmen von:</span>
+        </label>
+      </div>
 
-          {mode === 'ref' && (
-            <div style={{ marginTop: 8 }}>
-              <select
-                value={refPath}
-                onChange={(e) => setRefPath(e.target.value)}
-                disabled={!canEdit}
-                style={{
-                  width: '100%',
-                  padding: '10px 12px',
-                  fontSize: 14,
-                  fontFamily: 'inherit',
-                  borderRadius: 8,
-                  border: '1px solid var(--border)',
-                  background: 'var(--bg-secondary)',
-                  color: 'var(--text-primary)',
-                  appearance: 'auto',
-                }}
-              >
-                <option value="">— Datei waehlen —</option>
-                {siblingFiles.map((f) => (
-                  <option key={f.path} value={f.path}>
-                    {f.name.replace(/\.(mp3|m4a|webm)$/i, '')}
-                  </option>
-                ))}
-              </select>
+      {mode === 'ref' && (
+        <div>
+          <select
+            value={refPath}
+            onChange={(e) => setRefPath(e.target.value)}
+            disabled={!canEdit}
+            style={{
+              width: '100%',
+              padding: '10px 12px',
+              fontSize: 14,
+              fontFamily: 'inherit',
+              borderRadius: 8,
+              border: '1px solid var(--border)',
+              background: 'var(--bg-secondary)',
+              color: 'var(--text-primary)',
+              appearance: 'auto',
+            }}
+          >
+            <option value="">— Datei waehlen —</option>
+            {siblingFiles.map((f) => (
+              <option key={f.path} value={f.path}>
+                {f.name.replace(/\.(mp3|m4a|webm)$/i, '')}
+              </option>
+            ))}
+          </select>
 
-              {refPath && refSectionCount !== null && (
-                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
-                  {refSectionCount === 0
-                    ? 'Keine Sektionen vorhanden'
-                    : `${refSectionCount} ${refSectionCount === 1 ? 'Sektion' : 'Sektionen'} vorhanden`}
-                </div>
-              )}
+          {refPath && refSectionCount !== null && (
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 6 }}>
+              {refSectionCount === 0
+                ? 'Keine Sektionen vorhanden'
+                : `${refSectionCount} ${refSectionCount === 1 ? 'Sektion' : 'Sektionen'} vorhanden`}
             </div>
           )}
         </div>
-      </label>
+      )}
 
       {/* Propagate to siblings (only when own sections) */}
       {mode === 'own' && canEdit && siblingFiles.length > 0 && (
