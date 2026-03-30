@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Play, Pause, MoreVertical, Repeat, X, Trash2 } from 'lucide-react'
+import { Play, Pause, MoreVertical, Repeat, X, Trash2, MapPin } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
@@ -32,7 +32,7 @@ export function GlobalPlayerBar() {
     skipInterval,
   } = usePlayerStore()
   const { togglePlay, skip, seek } = useAudioPlayer()
-  const { handleLoopTap } = useLoopControls()
+  const { addMarker, handleLoopTap } = useLoopControls()
 
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
@@ -154,16 +154,19 @@ export function GlobalPlayerBar() {
 
       {/* Controls */}
       <div className="global-player-controls">
-        <button
-          className={`top-player-loop${hasLoopRange ? (loopEnabled ? ' top-player-loop--active' : ' top-player-loop--has-range') : ''}`}
-          onClick={handleLoopTap}
-          disabled={!hasLoopRange}
-          aria-label="Loop ein/aus"
-        >
-          <Repeat size={18} />
-        </button>
-        <span className="top-player-time">{formatTime(currentTime)}</span>
-        <div className="top-player-controls">
+        <div className="gpc-slot">
+          <button
+            className={`global-player-side-btn${hasLoopRange ? (loopEnabled ? ' global-player-side-btn--active' : ' global-player-side-btn--has-range') : ''}`}
+            onClick={handleLoopTap}
+            disabled={!hasLoopRange}
+            aria-label="Loop ein/aus"
+          >
+            <Repeat size={24} />
+          </button>
+        </div>
+
+        <div className="gpc-center">
+          <span className="top-player-time">{formatTime(currentTime)}</span>
           <button className="top-player-skip" onClick={() => skip(-skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="back" />
           </button>
@@ -173,8 +176,18 @@ export function GlobalPlayerBar() {
           <button className="top-player-skip" onClick={() => skip(skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="fwd" />
           </button>
+          <span className="top-player-time">{formatTime(duration)}</span>
         </div>
-        <span className="top-player-time">{formatTime(duration)}</span>
+
+        <div className="gpc-slot">
+          <button
+            className="global-player-side-btn"
+            onClick={addMarker}
+            aria-label="Marker setzen"
+          >
+            <MapPin size={24} />
+          </button>
+        </div>
 
         <div className="global-player-menu" ref={menuRef}>
           <button

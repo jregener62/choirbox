@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { LayoutList, EllipsisVertical, ChevronLeft, Info, FileUp, Trash2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
-import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { usePdfStore } from '@/hooks/usePdf.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
@@ -31,7 +30,6 @@ export function PlayerPage() {
     activeSection,
   } = usePlayerStore()
   const { seek } = useAudioPlayer()
-  const { addMarker } = useLoopControls()
 
   const [activePanel, setActivePanel] = useState(0)
 
@@ -153,7 +151,6 @@ export function PlayerPage() {
 
       <FooterSlot>
         <PlayerFooter
-          addMarker={addMarker}
           canEdit={canEdit}
           navigate={navigate}
           hasPdf={pdfInfo?.has_pdf ?? false}
@@ -191,14 +188,13 @@ function EmptySections() {
 }
 
 interface PlayerFooterProps {
-  addMarker: () => void
   canEdit: boolean
   navigate: (path: string) => void
   hasPdf: boolean
   dropboxPath: string
 }
 
-function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: PlayerFooterProps) {
+function PlayerFooter({ canEdit, navigate, hasPdf, dropboxPath }: PlayerFooterProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
@@ -236,16 +232,11 @@ function PlayerFooter({ addMarker, canEdit, navigate, hasPdf, dropboxPath }: Pla
     }
   }
 
+  if (!canEdit) return null
+
   return (
     <div className="section-editor-footer">
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <button
-          className="player-ab-btn"
-          style={{ padding: '5px 14px', fontSize: 14, borderColor: 'var(--marker)', color: 'var(--marker)' }}
-          onClick={addMarker}
-        >
-          Setze Marker
-        </button>
         {canEdit && (
           <div ref={menuRef} style={{ position: 'absolute', right: 20 }}>
             <button

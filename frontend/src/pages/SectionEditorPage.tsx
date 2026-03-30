@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import { Trash2, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
-import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
@@ -47,8 +46,6 @@ export function SectionEditorPage() {
     navigate('/', { replace: true })
     return null
   }
-
-  const { addMarker } = useLoopControls()
 
   const folderPath = currentPath.split('/').slice(0, -1).join('/')
   const folderName = folderPath.split('/').filter(Boolean).pop() || ''
@@ -275,17 +272,10 @@ export function SectionEditorPage() {
       <FooterSlot>
         <div className="section-editor-footer">
           {!isEditing ? (
-            <div style={{ display: 'flex', gap: 10 }}>
-              <button
-                className="player-ab-btn"
-                style={{ flex: 1, padding: '5px 14px', fontSize: 14, borderColor: 'var(--marker)', color: 'var(--marker)' }}
-                onClick={addMarker}
-              >
-                Setze Marker
-              </button>
+            <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
               <button
                 className={`player-ab-btn ${canGenerateSections ? 'active' : ''}`}
-                style={{ flex: 1, padding: '5px 14px', fontSize: 14, opacity: canGenerateSections ? 1 : 0.4 }}
+                style={{ padding: '5px 14px', fontSize: 14, opacity: canGenerateSections ? 1 : 0.4 }}
                 onClick={generateSections}
                 disabled={!canGenerateSections}
               >
