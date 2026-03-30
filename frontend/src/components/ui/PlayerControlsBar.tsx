@@ -13,7 +13,7 @@ interface PlayerControlsBarProps {
 }
 
 export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBarProps) {
-  const { loopStart, loopEnd, loopEnabled, pendingLoopMarkerId } = usePlayerStore()
+  const { loopStart, loopEnd, loopEnabled, pendingLoopMarkerId, loopMarkerIds } = usePlayerStore()
   const { seek } = useAudioPlayer()
 
   const handleMarkerTap = (m: Marker) => {
@@ -51,7 +51,7 @@ export function PlayerControlsBar({ peaks, timeline, markers }: PlayerControlsBa
           {markers.map((m) => (
             <button
               key={m.id}
-              className={`player-toolbar-marker${m.id === pendingLoopMarkerId ? ' player-toolbar-marker--pending' : ''}`}
+              className={`player-toolbar-marker${m.id === pendingLoopMarkerId || (loopMarkerIds && loopMarkerIds.includes(m.id)) ? ' player-toolbar-marker--pending' : ''}`}
               onClick={() => handleMarkerTap(m)}
             >
               <span className="marker-dot" />
