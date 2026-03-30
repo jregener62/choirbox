@@ -31,6 +31,7 @@ def _migrate(eng):
     migrations = [
         ("sections", "lyrics", "TEXT"),
         ("sections", "updated_at", "DATETIME"),
+        ("file_settings", "pdf_ref_path", "VARCHAR(1000)"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in migrations:

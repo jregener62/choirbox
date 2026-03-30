@@ -74,8 +74,8 @@ def resolve_pdf(
         return direct, False
 
     settings = session.get(FileSettings, dropbox_path)
-    if settings and settings.section_ref_path:
-        ref_pdf = get_pdf(settings.section_ref_path, session)
+    if settings and settings.pdf_ref_path:
+        ref_pdf = get_pdf(settings.pdf_ref_path, session)
         if ref_pdf:
             return ref_pdf, True
 

@@ -21,10 +21,11 @@ def get_file_settings(
 ):
     settings = session.get(FileSettings, path)
     if not settings:
-        return {"dropbox_path": path, "section_ref_path": None}
+        return {"dropbox_path": path, "section_ref_path": None, "pdf_ref_path": None}
     return {
         "dropbox_path": settings.dropbox_path,
         "section_ref_path": settings.section_ref_path,
+        "pdf_ref_path": settings.pdf_ref_path,
     }
 
 
@@ -39,21 +40,26 @@ def save_file_settings(
         raise HTTPException(400, "dropbox_path is required")
 
     section_ref_path = (data.get("section_ref_path") or "").strip() or None
+    pdf_ref_path = (data.get("pdf_ref_path") or "").strip() or None
 
     # Prevent self-reference
     if section_ref_path == dropbox_path:
         section_ref_path = None
+    if pdf_ref_path == dropbox_path:
+        pdf_ref_path = None
 
     settings = session.get(FileSettings, dropbox_path)
     now = datetime.utcnow()
 
     if settings:
         settings.section_ref_path = section_ref_path
+        settings.pdf_ref_path = pdf_ref_path
         settings.updated_at = now
     else:
         settings = FileSettings(
             dropbox_path=dropbox_path,
             section_ref_path=section_ref_path,
+            pdf_ref_path=pdf_ref_path,
             created_at=now,
             updated_at=now,
         )
@@ -69,10 +75,14 @@ def propagate_reference(
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
-    """Set this file as section reference for multiple target files."""
+    """Set this file as reference for multiple target files.
+    Supports both section_ref_path and pdf_ref_path via 'field' parameter."""
     reference_path = (data.get("reference_path") or "").strip()
     target_paths = data.get("target_paths", [])
+    field = data.get("field", "section_ref_path")
 
+    if field not in ("section_ref_path", "pdf_ref_path"):
+        raise HTTPException(400, "field must be 'section_ref_path' or 'pdf_ref_path'")
     if not reference_path:
         raise HTTPException(400, "reference_path is required")
     if not isinstance(target_paths, list) or len(target_paths) < 1:
@@ -85,15 +95,15 @@ def propagate_reference(
             continue
         settings = session.get(FileSettings, path)
         if settings:
-            settings.section_ref_path = reference_path
+            setattr(settings, field, reference_path)
             settings.updated_at = now
         else:
             settings = FileSettings(
                 dropbox_path=path,
-                section_ref_path=reference_path,
                 created_at=now,
                 updated_at=now,
             )
+            setattr(settings, field, reference_path)
         session.add(settings)
 
     session.commit()
