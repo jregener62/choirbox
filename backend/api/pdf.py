@@ -1,7 +1,7 @@
 """PDF API — upload, view and manage PDF documents for audio files."""
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from sqlmodel import Session
 
 from backend.database import get_session
@@ -86,17 +86,17 @@ def pdf_page(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    """Serve a rendered PDF page as JPEG image (1-indexed)."""
+    """Render and serve a PDF page as JPEG image on-the-fly (1-indexed)."""
     pdf_file, _ = pdf_service.resolve_pdf(path, session)
     if not pdf_file:
         raise HTTPException(404, "Kein PDF vorhanden")
 
-    page_path = pdf_service.get_page_path(pdf_file, page)
-    if not page_path:
+    data = pdf_service.render_page(pdf_file.filename, page)
+    if not data:
         raise HTTPException(404, f"Seite {page} nicht gefunden")
 
-    return FileResponse(
-        path=str(page_path),
+    return Response(
+        content=data,
         media_type="image/jpeg",
         headers={"Cache-Control": "public, max-age=86400"},
     )
