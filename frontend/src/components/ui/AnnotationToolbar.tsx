@@ -1,3 +1,4 @@
+import { useMemo } from 'react'
 import { Pen, Highlighter, Eraser, Undo2, Trash2 } from 'lucide-react'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 
@@ -24,7 +25,8 @@ export function AnnotationToolbar({ pageKey }: AnnotationToolbarProps) {
   const tool = useAnnotationStore((s) => s.tool)
   const color = useAnnotationStore((s) => s.color)
   const strokeWidth = useAnnotationStore((s) => s.strokeWidth)
-  const strokes = useAnnotationStore((s) => s.pages[pageKey] || [])
+  const rawStrokes = useAnnotationStore((s) => s.pages[pageKey])
+  const strokes = useMemo(() => rawStrokes || [], [rawStrokes])
   const setTool = useAnnotationStore((s) => s.setTool)
   const setColor = useAnnotationStore((s) => s.setColor)
   const setStrokeWidth = useAnnotationStore((s) => s.setStrokeWidth)

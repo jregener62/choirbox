@@ -1,4 +1,4 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { toNormalized, getSvgPathFromStroke, getViewBoxHeight } from '@/utils/strokeUtils.ts'
 import type { Stroke } from '@/types/index.ts'
@@ -24,7 +24,8 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
   const strokeWidth = useAnnotationStore((s) => s.strokeWidth)
   const activeStroke = useAnnotationStore((s) => s.activeStroke)
   const key = `${dropboxPath}::${page}`
-  const strokes = useAnnotationStore((s) => s.pages[key] || [])
+  const rawStrokes = useAnnotationStore((s) => s.pages[key])
+  const strokes = useMemo(() => rawStrokes || [], [rawStrokes])
 
   const loadPage = useAnnotationStore((s) => s.loadPage)
   const setActiveStroke = useAnnotationStore((s) => s.setActiveStroke)
