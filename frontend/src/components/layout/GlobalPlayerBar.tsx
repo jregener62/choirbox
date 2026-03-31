@@ -145,19 +145,15 @@ export function GlobalPlayerBar() {
           ) : (
             <div className="seek-bar-played" style={{ width: `${progress}%` }} />
           )}
+          <div className={`seek-bar-thumb${hasActiveLoop ? ' seek-bar-thumb--loop' : ''}`} style={{ left: `${progress}%` }} />
+          {markers.length > 0 && duration > 0 && markers.map((m) => (
+            <span
+              key={m.id}
+              className="seek-bar-marker-dot"
+              style={{ left: `${(m.time / duration) * 100}%` }}
+            />
+          ))}
         </div>
-        <div className={`seek-bar-thumb${hasActiveLoop ? ' seek-bar-thumb--loop' : ''}`} style={{ left: `${progress}%` }} />
-        {markers.length > 0 && duration > 0 && (
-          <div className="seek-bar-markers">
-            {markers.map((m) => (
-              <span
-                key={m.id}
-                className="seek-bar-marker-dot"
-                style={{ left: `${(m.time / duration) * 100}%` }}
-              />
-            ))}
-          </div>
-        )}
         <div className="seek-bar-times">
           <span className="seek-bar-time">{formatTime(currentTime)}</span>
           <span className="seek-bar-time">{formatTime(duration)}</span>

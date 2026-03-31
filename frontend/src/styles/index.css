@@ -615,6 +615,7 @@ body {
   background: var(--playback);
   transform: translate(-50%, -50%);
   pointer-events: none;
+  z-index: 2;
 }
 
 .seek-bar-thumb--loop {
@@ -628,23 +629,16 @@ body {
   border-radius: 1.5px;
 }
 
-.seek-bar-markers {
-  position: absolute;
-  left: 16px;
-  right: 16px;
-  top: 50%;
-  height: 0;
-  pointer-events: none;
-}
-
 .seek-bar-marker-dot {
   position: absolute;
-  top: -3px;
-  width: 5px;
-  height: 5px;
+  top: 50%;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: var(--marker);
-  transform: translateX(-50%);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
 }
 
 /* Controls row — pure flex, no absolute positioning */
