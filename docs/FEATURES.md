@@ -241,6 +241,31 @@ PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und 
 - **Audio laeuft weiter** — nur die UI-Elemente werden versteckt
 - **Reset-Logik**: Fullscreen wird automatisch aufgehoben bei Panel-Wechsel (zurueck zu Sektionen) oder Navigation weg vom Player
 
+### Handschriftliche Annotationen
+
+Chormitglieder koennen auf den angezeigten PDF-Seiten handschriftliche Markierungen machen — z.B. Atemzeichen, Dynamik, Einsaetze. Jeder User sieht nur seine eigenen Annotationen.
+
+- **Zeichenmodus-Toggle**: Floating Action Button (Stift-Icon) unten-links auf dem PDF-Panel. Wird blau wenn aktiv
+- **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (Tap auf Strich loescht ihn)
+- **6 Farben**: Rot, Blau, Gruen, Gelb, Lila, Schwarz
+- **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8)
+- **Undo**: Letzter Strich rueckgaengig machen
+- **Seite loeschen**: Alle Annotationen einer Seite entfernen
+- **Technologie**: SVG-Overlay auf jeder `<img>`-Seite + `perfect-freehand` (druckempfindliche Striche). Koordinaten normalisiert (ViewBox 0-1000), skalieren bei jedem Zoom korrekt
+- **Touch-Konflikt**: Im Zeichenmodus sind Scroll, Pinch-to-Zoom und Double-Tap deaktiviert. SVG faengt alle Pointer-Events
+- **Auto-Save**: 500ms Debounce nach jedem Strich → `PUT /api/annotations`. Sofortiger Flush bei Seitenwechsel und `beforeunload`
+- **Speicherung**: Strokes als JSON-Blob in SQLite, pro User + PDF-Pfad + Seitennummer (unique constraint). Leere Strokes loeschen den DB-Eintrag
+- **Berechtigung**: Lesen fuer alle authentifizierten User, Schreiben ab Rolle `member`
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/ui/AnnotatedPage.tsx` | `<img>` + SVG-Overlay pro Seite, Pointer-Event-Handling |
+| `frontend/src/components/ui/AnnotationToolbar.tsx` | Floating Toolbar: Stift, Textmarker, Radierer, Farben, Breiten, Undo, Loeschen |
+| `frontend/src/hooks/useAnnotations.ts` | Zustand Store: drawingMode, tool, color, strokes, undo, API-Calls |
+| `frontend/src/utils/strokeUtils.ts` | Koordinaten-Normalisierung, SVG-Path-Generierung via perfect-freehand |
+| `backend/api/annotations.py` | `GET/PUT/DELETE /api/annotations` |
+| `backend/models/annotation.py` | Annotation-Modell (user_id, dropbox_path, page_number, strokes_json) |
+
 ### Upload
 
 - **Berechtigung**: Pro-Mitglied und hoeher
@@ -754,6 +779,15 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | POST | `/upload` | PDF hochladen (FormData: `file` + `dropbox_path`, max 10 MB) | Pro-Mitglied+ |
 | GET | `/download?path=<dropbox_path>` | PDF-Datei ausliefern (inline, mit Referenz-Aufloesung) | User |
 | DELETE | `/?path=<dropbox_path>` | Direkt zugeordnetes PDF loeschen | Pro-Mitglied+ |
+
+### Annotationen (`/api/annotations`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/?path=<dropbox_path>&page=<n>` | Strokes fuer User + Seite laden | User |
+| PUT | `/` | Upsert: alle Strokes einer Seite speichern (leere Strokes loeschen Eintrag) | Member+ |
+| DELETE | `/?path=<dropbox_path>&page=<n>` | Annotationen einer Seite loeschen | Member+ |
+| DELETE | `/all?path=<dropbox_path>` | Alle Annotationen eines PDFs loeschen | Member+ |
 
 ### Sektionsvorlagen (`/api/section-presets`)
 
