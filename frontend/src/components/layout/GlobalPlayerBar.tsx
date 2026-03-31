@@ -235,7 +235,7 @@ export function GlobalPlayerBar() {
         </div>
 
         <div className="gpc-side gpc-side--right">
-          <button className="gpc-btn" onClick={addMarker} disabled={markers.length >= 4} aria-label="Marker setzen">
+          <button className="gpc-btn" onClick={addMarker} disabled={markers.length >= 5} aria-label="Marker setzen">
             <MapPin size={32} />
           </button>
         </div>

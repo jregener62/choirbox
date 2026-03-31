@@ -371,7 +371,7 @@ Einen Abschnitt des Tracks in Endlosschleife wiederholen. Zwei Wege, einen Loop 
 Wichtige Stellen im Track markieren fuer schnelle Navigation und Loop-Definition.
 
 - Marker an aktueller Position setzen (automatisch M1, M2, M3...)
-- Maximal 4 Marker gleichzeitig — "Setze Marker"-Button wird bei 4 Markern deaktiviert, bei Loeschung wieder aktiv
+- Maximal 5 Marker gleichzeitig — "Setze Marker"-Button wird bei 5 Markern deaktiviert, bei Loeschung wieder aktiv
 - Alle Marker mit Zeitstempel als Chips anzeigen (horizontal scrollbar)
 - Per Klick zum Marker springen
 - Kebab-Menue (⋮) in der Marker-Zeile mit zwei Optionen:
