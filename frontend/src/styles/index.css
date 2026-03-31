@@ -985,7 +985,7 @@ body {
   height: 100%;
 }
 .pdf-toolbar {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   padding: 4px 12px;
