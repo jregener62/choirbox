@@ -131,7 +131,7 @@ export function GlobalPlayerBar() {
         </div>
       )}
 
-      {/* Seek bar */}
+      {/* Seek bar + time labels */}
       <div className={`seek-bar${hasActiveLoop ? ' seek-bar--loop' : ''}`} ref={seekBarRef} onClick={handleSeek}>
         <div className="seek-bar-track">
           {hasActiveLoop ? (
@@ -158,6 +158,10 @@ export function GlobalPlayerBar() {
             ))}
           </div>
         )}
+        <div className="seek-bar-times">
+          <span className="seek-bar-time">{formatTime(currentTime)}</span>
+          <span className="seek-bar-time">{formatTime(duration)}</span>
+        </div>
       </div>
 
       {/* Controls */}
@@ -187,7 +191,6 @@ export function GlobalPlayerBar() {
         </div>
 
         <div className="gpc-center">
-          <span className="top-player-time">{formatTime(currentTime)}</span>
           <button className="top-player-skip" onClick={() => skip(-skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="back" />
           </button>
@@ -197,7 +200,6 @@ export function GlobalPlayerBar() {
           <button className="top-player-skip" onClick={() => skip(skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="fwd" />
           </button>
-          <span className="top-player-time">{formatTime(duration)}</span>
         </div>
 
         <div className="gpc-slot gpc-slot-marker">

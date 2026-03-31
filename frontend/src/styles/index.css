@@ -575,9 +575,22 @@ body {
 /* Seek bar (Dropbox-style slider) */
 .seek-bar {
   position: relative;
-  padding: 14px 16px;
+  padding: 14px 16px 0;
   cursor: pointer;
   touch-action: none;
+}
+
+.seek-bar-times {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0 2px;
+}
+
+.seek-bar-time {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
 }
 
 .seek-bar-track {
