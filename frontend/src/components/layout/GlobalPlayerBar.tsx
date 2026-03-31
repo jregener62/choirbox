@@ -83,7 +83,7 @@ export function GlobalPlayerBar() {
   }, [])
 
   const location = useLocation()
-  const hiddenRoutes = ['/', '/browse', '/favorites', '/settings']
+  const hiddenRoutes = ['/', '/browse', '/favorites', '/settings', '/file-settings']
   const isHidden = hiddenRoutes.includes(location.pathname)
   const isSections = location.pathname === '/sections'
   const canGenerateSections = isSections && markers.length >= 2
