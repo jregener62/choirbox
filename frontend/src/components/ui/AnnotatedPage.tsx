@@ -65,16 +65,37 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
     [viewBoxHeight],
   )
 
+  const findStrokeAtPoint = useCallback(
+    (point: number[]): string | null => {
+      const [px, py] = point
+      const threshold = 20
+      for (let i = strokes.length - 1; i >= 0; i--) {
+        const s = strokes[i]
+        for (const [sx, sy] of s.points) {
+          const dist = Math.sqrt((px - sx) ** 2 + (py - sy) ** 2)
+          if (dist < threshold + s.width) return s.id
+        }
+      }
+      return null
+    },
+    [strokes],
+  )
+
   const handlePointerDown = useCallback(
     (e: React.PointerEvent) => {
       if (!drawingMode || e.button !== 0) return
-
-      if (tool === 'eraser') return // eraser works on pointerDown on existing strokes
 
       const point = getPointerData(e)
       if (!point) return
 
       e.currentTarget.setPointerCapture(e.pointerId)
+
+      if (tool === 'eraser') {
+        const id = findStrokeAtPoint(point)
+        if (id) eraseStroke(key, id)
+        return
+      }
+
       const newStroke: Stroke = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         points: [point],
@@ -84,35 +105,34 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
       }
       setActiveStroke(newStroke)
     },
-    [drawingMode, tool, color, strokeWidth, getPointerData, setActiveStroke],
+    [drawingMode, tool, color, strokeWidth, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, key],
   )
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
-      if (!drawingMode || !activeStroke) return
+      if (!drawingMode) return
       const point = getPointerData(e)
       if (!point) return
 
+      if (tool === 'eraser') {
+        const id = findStrokeAtPoint(point)
+        if (id) eraseStroke(key, id)
+        return
+      }
+
+      if (!activeStroke) return
       setActiveStroke({
         ...activeStroke,
         points: [...activeStroke.points, point],
       })
     },
-    [drawingMode, activeStroke, getPointerData, setActiveStroke],
+    [drawingMode, tool, activeStroke, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, key],
   )
 
   const handlePointerUp = useCallback(() => {
     if (!drawingMode || !activeStroke) return
     commitStroke(key)
   }, [drawingMode, activeStroke, key, commitStroke])
-
-  const handleEraseClick = useCallback(
-    (strokeId: string) => {
-      if (!drawingMode || tool !== 'eraser') return
-      eraseStroke(key, strokeId)
-    },
-    [drawingMode, tool, key, eraseStroke],
-  )
 
   const renderStroke = (stroke: Stroke) => {
     const d = getSvgPathFromStroke(stroke.points, stroke.width, stroke.tool)
@@ -122,8 +142,6 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
         key={stroke.id}
         d={d}
         fill={stroke.color}
-        onClick={() => handleEraseClick(stroke.id)}
-        style={tool === 'eraser' && drawingMode ? { cursor: 'pointer' } : undefined}
       />
     )
   }
