@@ -581,17 +581,16 @@ body {
 }
 
 .seek-bar-track {
+  position: relative;
   height: 3px;
-  background: var(--text-muted);
+  background: rgba(138, 144, 160, 0.4);
   border-radius: 1.5px;
-  opacity: 0.4;
 }
 
 .seek-bar-played {
   height: 100%;
   background: var(--playback);
   border-radius: 1.5px;
-  opacity: 1;
 }
 
 .seek-bar-thumb {
