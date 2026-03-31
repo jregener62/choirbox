@@ -20,6 +20,7 @@ export function PlayerPage() {
   const navigate = useNavigate()
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const canEdit = hasMinRole(userRole, 'pro-member')
+  const isBeta = hasMinRole(userRole, 'beta-tester')
   const { sections, loadedPath: sectionsLoadedPath, load: loadSections } = useSectionsStore()
   const { info: pdfInfo, loadedPath: pdfLoadedPath, load: loadPdf, upload, remove } = usePdfStore()
   const {
@@ -57,8 +58,8 @@ export function PlayerPage() {
   const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
 
   useEffect(() => {
-    if (currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
-  }, [currentPath, sectionsLoadedPath, loadSections])
+    if (isBeta && currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
+  }, [isBeta, currentPath, sectionsLoadedPath, loadSections])
 
   useEffect(() => {
     if (currentPath && currentPath !== pdfLoadedPath) loadPdf(currentPath)
@@ -74,9 +75,9 @@ export function PlayerPage() {
     if (index !== 1 && pdfFullscreen) usePlayerStore.getState().setPdfFullscreen(false)
   }
 
-  const timeline = buildTimeline(sections, duration)
-  const hasSections = sections.length > 0
-  const showDots = pdfInfo?.has_pdf || canEdit
+  const timeline = isBeta ? buildTimeline(sections, duration) : []
+  const hasSections = isBeta && sections.length > 0
+  const showDots = isBeta && (pdfInfo?.has_pdf || canEdit)
   const hasPdf = pdfInfo?.has_pdf ?? false
 
   const handleSectionClick = (entry: TimelineEntry) => {
@@ -214,7 +215,7 @@ export function PlayerPage() {
             </div>
           </div>
         </div>
-      ) : (
+      ) : isBeta ? (
         <div className="player-scroll-content">
           {hasSections ? (
             <SectionCards
@@ -231,7 +232,11 @@ export function PlayerPage() {
             <EmptySections />
           )}
         </div>
-      )}
+      ) : (hasPdf || canEdit) ? (
+        <div className="player-scroll-content">
+          <PdfPanel dropboxPath={currentPath} canUpload={canEdit} />
+        </div>
+      ) : null}
 
       {confirmDelete && (
         <div className="confirm-overlay" onClick={() => !deleting && setConfirmDelete(false)}>
