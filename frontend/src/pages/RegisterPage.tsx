@@ -55,7 +55,7 @@ export function RegisterPage() {
           <div className="auth-logo-icon">
             <Music size={24} />
           </div>
-          <h1 className="auth-title">ChoirBox</h1>
+          <h1 className="auth-title">Cantabox</h1>
           <p className="auth-subtitle">Konto erstellen</p>
         </div>
 
