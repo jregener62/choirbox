@@ -662,7 +662,7 @@ body {
   align-items: center;
 }
 .gpc-side--left { justify-content: flex-end; }
-.gpc-side--right { justify-content: flex-start; padding-left: 50px; }
+.gpc-side--right { justify-content: flex-start; padding-left: 35px; }
 
 .gpc-center {
   display: flex;
