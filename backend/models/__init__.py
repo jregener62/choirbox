@@ -11,3 +11,4 @@ from backend.models.section_preset import SectionPreset  # noqa: F401
 from backend.models.note import Note  # noqa: F401
 from backend.models.file_settings import FileSettings  # noqa: F401
 from backend.models.pdf_file import PdfFile  # noqa: F401
+from backend.models.annotation import Annotation  # noqa: F401

@@ -81,6 +81,14 @@ export interface PdfInfo {
   is_ref: boolean
 }
 
+export interface Stroke {
+  id: string
+  points: number[][]  // [x, y, pressure]
+  color: string
+  width: number
+  tool: 'pen' | 'highlighter'
+}
+
 export interface ActionResponse<T = unknown> {
   outcome: 'success' | 'success_with_warnings' | 'failure'
   reason: string | null

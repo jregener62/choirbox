@@ -1,9 +1,12 @@
-import { Download, Upload, Trash2, Maximize2, Minimize2 } from 'lucide-react'
+import { Download, Upload, Trash2, Maximize2, Minimize2, PenLine } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { usePdfStore } from '@/hooks/usePdf.ts'
+import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useRef, useState, useCallback, useEffect } from 'react'
 import type { PdfInfo } from '@/types/index.ts'
+import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
+import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
 
 interface PdfViewerProps {
   dropboxPath: string
@@ -24,6 +27,9 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
+  const drawingMode = useAnnotationStore((s) => s.drawingMode)
+  const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
+  const flushAll = useAnnotationStore((s) => s.flushAll)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -33,6 +39,11 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
   const pdfUrl = `/api/pdf/download?path=${encodeURIComponent(dropboxPath)}&token=${token}`
+
+  // Flush annotations on unmount
+  useEffect(() => {
+    return () => { flushAll() }
+  }, [flushAll])
 
   // Auto-fade FAB after 3s in fullscreen
   const resetFadeTimer = useCallback(() => {
@@ -71,6 +82,7 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
     let currentScale = 1
 
     function onTouchStart(e: TouchEvent) {
+      if (useAnnotationStore.getState().drawingMode) return
       if (e.touches.length === 2) {
         e.preventDefault()
         pinchRef.current.startDist = getDistance(e.touches[0], e.touches[1])
@@ -79,6 +91,7 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
     }
 
     function onTouchMove(e: TouchEvent) {
+      if (useAnnotationStore.getState().drawingMode) return
       if (e.touches.length === 2) {
         e.preventDefault()
         const dist = getDistance(e.touches[0], e.touches[1])
@@ -109,6 +122,7 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
   // Double-tap to toggle zoom
   const lastTapRef = useRef(0)
   const handleDoubleTap = useCallback((e: React.TouchEvent) => {
+    if (drawingMode) return
     if (e.touches.length !== 1) return
     const now = Date.now()
     if (now - lastTapRef.current < 300) {
@@ -116,7 +130,7 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
       setScale((s) => s > 1.1 ? 1 : 2.5)
     }
     lastTapRef.current = now
-  }, [])
+  }, [drawingMode])
 
   const handleReplace = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -161,25 +175,33 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
               </button>
             </>
           )}
+          <button
+            className={`pdf-toolbar-btn${drawingMode ? ' pdf-toolbar-btn--active' : ''}`}
+            onClick={() => setDrawingMode(!drawingMode)}
+            title={drawingMode ? 'Zeichenmodus beenden' : 'Zeichnen'}
+          >
+            <PenLine size={16} />
+          </button>
           <a href={pdfUrl} download={info.original_name ?? 'document.pdf'} className="pdf-toolbar-btn" title="Download">
             <Download size={16} />
           </a>
         </div>
       </div>
+      {drawingMode && <AnnotationToolbar pageKey={`${dropboxPath}::1`} />}
       <div
         ref={pagesRef}
-        className="pdf-pages"
+        className={`pdf-pages${drawingMode ? ' pdf-pages--drawing' : ''}`}
         onTouchStart={(e) => { handleDoubleTap(e); handlePdfAreaTouch() }}
       >
         {pages.map((page) => (
-          <img
+          <AnnotatedPage
             key={page}
-            className="pdf-page-img"
-            style={{ width: `${scale * 100}%` }}
+            page={page}
+            scale={scale}
             src={`/api/pdf/page/${page}?path=${encodeURIComponent(dropboxPath)}&token=${token}`}
             alt={`Seite ${page}`}
             loading={page > 2 ? 'lazy' : 'eager'}
-            draggable={false}
+            dropboxPath={dropboxPath}
           />
         ))}
       </div>
