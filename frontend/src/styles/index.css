@@ -1023,7 +1023,7 @@ body {
   position: relative;
 }
 .pdf-toolbar {
-  display: none;
+  display: flex;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-1) var(--space-3);
