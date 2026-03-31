@@ -661,8 +661,8 @@ body {
   display: flex;
   align-items: center;
 }
-.gpc-side--left { justify-content: flex-end; }
-.gpc-side--right { justify-content: flex-start; padding-left: 35px; }
+.gpc-side--left { justify-content: flex-end; padding-right: 12px; }
+.gpc-side--right { justify-content: flex-start; padding-left: 20px; }
 
 .gpc-center {
   display: flex;
