@@ -9,10 +9,10 @@ import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
 
-function SkipIcon({ seconds, direction, size = 42 }: { seconds: number; direction: 'back' | 'fwd'; size?: number }) {
+function SkipIcon({ seconds, direction }: { seconds: number; direction: 'back' | 'fwd' }) {
   const flip = direction === 'back'
   return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
+    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
       <path
         d="M12 5V1l5 4-5 4V5c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7h2c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9z"
         fill="currentColor"
@@ -132,7 +132,7 @@ export function GlobalPlayerBar() {
       )}
 
       {/* Seek bar + time labels */}
-      <div className={`seek-bar${hasActiveLoop ? ' seek-bar--loop' : ''}`} ref={seekBarRef} onClick={handleSeek}>
+      <div className="seek-bar" ref={seekBarRef} onClick={handleSeek}>
         <div className="seek-bar-track">
           {hasActiveLoop ? (
             <div
@@ -164,78 +164,70 @@ export function GlobalPlayerBar() {
         </div>
       </div>
 
-      {/* Controls */}
+      {/* Controls — pure flex, no absolute positioning */}
       <div className="global-player-controls">
-        {isSections && (
-          <div className="gpc-slot gpc-slot-generate">
+        <div className="gpc-side gpc-side--left">
+          {isSections && (
             <button
-              className="global-player-side-btn"
+              className="gpc-btn"
               onClick={() => window.dispatchEvent(new Event('generate-sections'))}
               disabled={!canGenerateSections}
               aria-label="Sektionen erstellen"
             >
-              <ListPlus size={28} />
+              <ListPlus size={22} />
             </button>
-          </div>
-        )}
-
-        <div className="gpc-slot gpc-slot-loop">
+          )}
           <button
-            className={`global-player-side-btn${hasLoopRange ? (loopEnabled ? ' global-player-side-btn--active' : ' global-player-side-btn--has-range') : ''}`}
+            className={`gpc-btn${hasLoopRange ? (loopEnabled ? ' gpc-btn--active' : '') : ''}`}
             onClick={handleLoopTap}
             disabled={!hasLoopRange}
             aria-label="Loop ein/aus"
           >
-            <Repeat size={28} />
+            <Repeat size={22} />
           </button>
         </div>
 
         <div className="gpc-center">
-          <button className="top-player-skip" onClick={() => skip(-skipInterval)}>
+          <button className="gpc-btn gpc-btn-skip" onClick={() => skip(-skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="back" />
           </button>
-          <button className="top-player-play" onClick={togglePlay}>
-            {isPlaying ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: 2 }} />}
+          <button className="gpc-btn-play" onClick={togglePlay}>
+            {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: 2 }} />}
           </button>
-          <button className="top-player-skip" onClick={() => skip(skipInterval)}>
+          <button className="gpc-btn gpc-btn-skip" onClick={() => skip(skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="fwd" />
           </button>
         </div>
 
-        <div className="gpc-slot gpc-slot-marker">
-          <button
-            className="global-player-side-btn"
-            onClick={addMarker}
-            aria-label="Marker setzen"
-          >
-            <MapPin size={28} />
+        <div className="gpc-side gpc-side--right">
+          <button className="gpc-btn" onClick={addMarker} aria-label="Marker setzen">
+            <MapPin size={22} />
           </button>
-        </div>
-
-        <div className="global-player-menu" ref={menuRef}>
-          <button
-            className="top-player-menu-btn"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Skip-Zeit aendern"
-          >
-            <MoreVertical size={18} />
-          </button>
-          {menuOpen && (
-            <div className="global-player-menu-popup">
-              {SKIP_OPTIONS.map((s) => (
-                <button
-                  key={s}
-                  className={`top-player-menu-item ${s === skipInterval ? 'active' : ''}`}
-                  onClick={() => {
-                    usePlayerStore.getState().setSkipInterval(s)
-                    setMenuOpen(false)
-                  }}
-                >
-                  {s}s
-                </button>
-              ))}
-            </div>
-          )}
+          <div ref={menuRef} style={{ position: 'relative' }}>
+            <button
+              className="gpc-btn gpc-btn-menu"
+              onClick={() => setMenuOpen(!menuOpen)}
+              aria-label="Skip-Zeit aendern"
+            >
+              <MoreVertical size={18} />
+            </button>
+            {menuOpen && (
+              <div className="gpc-menu-popup">
+                {SKIP_OPTIONS.map((s) => (
+                  <button
+                    key={s}
+                    className={`gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
+                    onClick={() => {
+                      usePlayerStore.getState().setSkipInterval(s)
+                      setMenuOpen(false)
+                    }}
+                  >
+                    {s}s
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
