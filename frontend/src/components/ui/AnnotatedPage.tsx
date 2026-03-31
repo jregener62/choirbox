@@ -46,6 +46,14 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
     }
   }, [])
 
+  // Handle cached images where onLoad may have already fired
+  useEffect(() => {
+    const img = imgRef.current
+    if (img && img.complete && img.naturalWidth > 0 && !imgLoaded) {
+      handleImgLoad()
+    }
+  }, [handleImgLoad, imgLoaded])
+
   const getPointerData = useCallback(
     (e: React.PointerEvent) => {
       const svg = svgRef.current
