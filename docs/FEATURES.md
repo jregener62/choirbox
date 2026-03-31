@@ -281,6 +281,21 @@ PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
 | `backend/services/pdf_service.py` | On-the-fly Rendering, LRU-Cache, Validierung, Referenz-Aufloesung |
 | `backend/models/pdf_file.py` | PdfFile-Modell (inkl. page_count) |
 
+### Bulk-Import (Script)
+
+PDFs aus einem externen Quell-Ordner koennen per Script den passenden ChoirBox-Ordnern zugeordnet und in die App importiert werden. Das Script simuliert den manuellen Upload-Workflow fuer viele Dateien auf einmal.
+
+- **Matching**: Fuzzy-Name-Matching (SequenceMatcher) zwischen PDF-Dateinamen und Ordnernamen. Suffixe wie `-Foto`, `_MOTW` werden vor dem Vergleich entfernt. Schwellwert: 75% Aehnlichkeit.
+- **Vorschau-Tabelle**: Vor der Ausfuehrung zeigt das Script eine Zuordnungstabelle (PDF → Ordner → Haupt-Track → Anzahl Tracks) zur manuellen Pruefung.
+- **Haupt-Track-Erkennung**: Pro Ordner wird automatisch der "Mix"- oder "Gesamt"-Track erkannt (Keywords: Mix, Komplett, Gesamt, SATB, Chor). Einzelstimmen-Prefixe (S, A, T, B, Sopran, Alt, Tenor, Bass) werden abgewertet.
+- **DB-Import**: PDF wird in `data/pdfs/` mit UUID-Dateiname gespeichert. `PdfFile`-Eintrag fuer den Haupt-Track, `FileSettings.pdf_ref_path` fuer alle weiteren Audio-Dateien im selben Ordner.
+- **Prod-Deploy**: Separates Script (`deploy_pdfs.sh`) synchronisiert `data/pdfs/` per rsync und exportiert SQL-Inserts auf den Prod-Server.
+
+| Datei | Rolle |
+|-------|-------|
+| `copy_texte.py` | Matching, Kopieren, DB-Import (lokal) |
+| `deploy_pdfs.sh` | PDF-Dateien + DB-Eintraege auf Prod deployen |
+
 ---
 
 ## Audio-Player

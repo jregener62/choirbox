@@ -113,7 +113,7 @@ def require_user(request: Request, session: Session = Depends(get_session)) -> U
     return user
 
 
-ROLE_HIERARCHY = {"guest": 0, "member": 1, "pro-member": 2, "chorleiter": 3, "admin": 4}
+ROLE_HIERARCHY = {"guest": 0, "member": 1, "pro-member": 2, "chorleiter": 3, "admin": 4, "beta-tester": 5, "developer": 6}
 VALID_ROLES = set(ROLE_HIERARCHY.keys())
 
 

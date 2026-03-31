@@ -148,10 +148,12 @@ export function PlayerPage() {
             </button>
             {menuOpen && (
               <div className="player-topbar-menu">
-                <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
-                  <LayoutList size={16} />
-                  Sektionen editieren
-                </button>
+                {hasMinRole(userRole, 'beta-tester') && (
+                  <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
+                    <LayoutList size={16} />
+                    Sektionen editieren
+                  </button>
+                )}
                 <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
                   <Info size={16} />
                   Datei-Einstellungen

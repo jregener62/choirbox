@@ -1,4 +1,4 @@
-export type Role = 'guest' | 'member' | 'pro-member' | 'chorleiter' | 'admin'
+export type Role = 'guest' | 'member' | 'pro-member' | 'chorleiter' | 'admin' | 'beta-tester' | 'developer'
 
 const ROLE_LEVELS: Record<Role, number> = {
   guest: 0,
@@ -6,6 +6,8 @@ const ROLE_LEVELS: Record<Role, number> = {
   'pro-member': 2,
   chorleiter: 3,
   admin: 4,
+  'beta-tester': 5,
+  developer: 6,
 }
 
 export const ROLE_LABELS: Record<Role, string> = {
@@ -14,9 +16,11 @@ export const ROLE_LABELS: Record<Role, string> = {
   'pro-member': 'Pro-Mitglied',
   chorleiter: 'Chorleiter',
   admin: 'Admin',
+  'beta-tester': 'Beta-Tester',
+  developer: 'Developer',
 }
 
-export const ALL_ROLES: Role[] = ['guest', 'member', 'pro-member', 'chorleiter', 'admin']
+export const ALL_ROLES: Role[] = ['guest', 'member', 'pro-member', 'chorleiter', 'admin', 'beta-tester', 'developer']
 
 export function hasMinRole(userRole: string, minRole: Role): boolean {
   return (ROLE_LEVELS[userRole as Role] ?? 0) >= ROLE_LEVELS[minRole]

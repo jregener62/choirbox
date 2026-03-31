@@ -1,5 +1,6 @@
 import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { hasMinRole } from '@/utils/roles.ts'
 import { LoginPage } from '@/pages/LoginPage.tsx'
 import { RegisterPage } from '@/pages/RegisterPage.tsx'
 import { AppShell } from '@/components/layout/AppShell.tsx'
@@ -19,6 +20,26 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   return <>{children}</>
 }
 
+function AppRoutes() {
+  const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
+  const isBeta = hasMinRole(userRole, 'beta-tester')
+
+  return (
+    <Routes>
+      <Route path="/" element={<BrowsePage />} />
+      <Route path="/browse" element={<BrowsePage />} />
+      <Route path="/favorites" element={<FavoritesPage />} />
+      <Route path="/player" element={<PlayerPage />} />
+      {isBeta && <Route path="/sections" element={<SectionEditorPage />} />}
+      <Route path="/file-settings" element={<FileSettingsPage />} />
+      <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/admin/users" element={<UsersPage />} />
+      <Route path="/admin/labels" element={<LabelsPage />} />
+      <Route path="/admin/section-presets" element={<SectionPresetsPage />} />
+    </Routes>
+  )
+}
+
 export function App() {
   return (
     <HashRouter>
@@ -30,18 +51,7 @@ export function App() {
           element={
             <AuthGuard>
               <AppShell>
-                <Routes>
-                  <Route path="/" element={<BrowsePage />} />
-                  <Route path="/browse" element={<BrowsePage />} />
-                  <Route path="/favorites" element={<FavoritesPage />} />
-                  <Route path="/player" element={<PlayerPage />} />
-                  <Route path="/sections" element={<SectionEditorPage />} />
-                  <Route path="/file-settings" element={<FileSettingsPage />} />
-                  <Route path="/settings" element={<SettingsPage />} />
-                  <Route path="/admin/users" element={<UsersPage />} />
-                  <Route path="/admin/labels" element={<LabelsPage />} />
-                  <Route path="/admin/section-presets" element={<SectionPresetsPage />} />
-                </Routes>
+                <AppRoutes />
               </AppShell>
             </AuthGuard>
           }
