@@ -137,7 +137,7 @@ Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap da
 
 - **Favorit** (Herz): Datei als Favorit markieren/entfernen
 - **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen
-- **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei
+- **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
 - **Loeschen** (Papierkorb): Nur fuer Chorleiter (Level 3) und Admin (Level 4) sichtbar. Bestaetigungsdialog vor dem Loeschen.
 - Tippen auf ein anderes Element oder erneutes Tippen auf die drei Punkte schliesst das Menue
 - Einfach-Tap auf eine Datei oeffnet direkt den Player (kein Doppelklick noetig)
@@ -188,11 +188,11 @@ Gleiche zwei Wege wie bei Sektionen:
 
 Die Referenz-Aufloesung passiert im Backend via `pdf_ref_path` in FileSettings. Im Player zeigt das `is_ref`-Flag an, dass das PDF von einer referenzierten Datei stammt (Loeschen/Ersetzen dann nicht moeglich).
 
-### Zugang
+### Zugang (ab pro-member)
 
-- **Browse-Page:** Info-Button in den Swipe-Actions jeder Datei
-- **Player-Page:** Kebab-Menue-Eintrag "Datei-Einstellungen"
-- Route: `/#/file-settings?path=<dropbox_path>`
+- **Browse-Page:** Info-Button in den Swipe-Actions jeder Datei (nur pro-member+)
+- **Player-Page:** Kebab-Menue-Eintrag "Datei-Einstellungen" (nur pro-member+)
+- Route: `/#/file-settings?path=<dropbox_path>` (Route nur fuer pro-member+ registriert)
 
 ### Berechtigungen
 

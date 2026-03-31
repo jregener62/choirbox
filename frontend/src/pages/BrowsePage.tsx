@@ -10,6 +10,7 @@ import { RecordingModal } from '@/components/ui/RecordingModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { hasMinRole } from '@/utils/roles.ts'
 import { platform } from '@/utils/platform'
 import { formatDisplayName } from '@/utils/formatters.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
@@ -29,6 +30,7 @@ export function BrowsePage() {
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel, assignments } = useLabelsStore()
   const user = useAuthStore((s) => s.user)
   const canDelete = !!user && ['chorleiter', 'admin'].includes(user.role)
+  const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [rootName, setRootName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
@@ -444,12 +446,14 @@ export function BrowsePage() {
                   >
                     <Tag size={18} />
                   </button>
-                  <button
-                    className="swipe-action-btn swipe-action-info"
-                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); navigate(`/file-settings?path=${encodeURIComponent(entry.path)}`) }}
-                  >
-                    <Info size={18} />
-                  </button>
+                  {isProMember && (
+                    <button
+                      className="swipe-action-btn swipe-action-info"
+                      onClick={(e) => { e.stopPropagation(); setRevealedPath(null); navigate(`/file-settings?path=${encodeURIComponent(entry.path)}`) }}
+                    >
+                      <Info size={18} />
+                    </button>
+                  )}
                   {canDelete && (
                     <button
                       className="swipe-action-btn swipe-action-delete"

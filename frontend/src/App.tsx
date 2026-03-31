@@ -31,7 +31,7 @@ function AppRoutes() {
       <Route path="/favorites" element={<FavoritesPage />} />
       <Route path="/player" element={<PlayerPage />} />
       {isBeta && <Route path="/sections" element={<SectionEditorPage />} />}
-      <Route path="/file-settings" element={<FileSettingsPage />} />
+      {hasMinRole(userRole, 'pro-member') && <Route path="/file-settings" element={<FileSettingsPage />} />}
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/admin/users" element={<UsersPage />} />
       <Route path="/admin/labels" element={<LabelsPage />} />

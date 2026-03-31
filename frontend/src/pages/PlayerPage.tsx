@@ -155,10 +155,12 @@ export function PlayerPage() {
                     Sektionen editieren
                   </button>
                 )}
-                <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
-                  <Info size={16} />
-                  Datei-Einstellungen
-                </button>
+                {hasMinRole(userRole, 'pro-member') && (
+                  <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
+                    <Info size={16} />
+                    Datei-Einstellungen
+                  </button>
+                )}
                 <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); fileInputRef.current?.click() }}>
                   <FileUp size={16} />
                   {hasPdf ? 'PDF ersetzen' : 'PDF hochladen'}
