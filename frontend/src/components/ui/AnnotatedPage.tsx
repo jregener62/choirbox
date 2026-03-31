@@ -76,7 +76,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
 
       e.currentTarget.setPointerCapture(e.pointerId)
       const newStroke: Stroke = {
-        id: crypto.randomUUID(),
+        id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         points: [point],
         color: tool === 'highlighter' ? color + '80' : color,
         width: tool === 'highlighter' ? strokeWidth * 3 : strokeWidth,
