@@ -135,6 +135,13 @@ Danach reicht `python run.py` allein — FastAPI liefert das React-Build aus `st
 - Aussagekraeftige Commit-Messages schreiben.
 - Nicht automatisch committen — immer erst fragen.
 
+### Standard-Abschluss nach jedem Change
+
+Nach jedem abgeschlossenen Change:
+1. **FEATURES.md aktualisieren** — neue Features dokumentieren, Bugfixes in eigene Bugfix-Sektion
+2. **Commit** — aussagekraeftige Commit-Message
+3. **Deploy** (`./deploy.sh`) — aber **nur bei Code-Aenderungen**. Reine Doku-Updates (FEATURES.md, CLAUDE.md etc.) brauchen **kein Deploy**.
+
 ### Code-Qualitaet
 
 - **Modular entwickeln**: Wiederverwendbare Module bevorzugen, Duplikate vermeiden.
