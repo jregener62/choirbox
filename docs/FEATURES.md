@@ -230,8 +230,16 @@ PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und 
 - **Pinch-to-Zoom**: JS-basierter Touch-Handler (1x–5x), aendert Bildbreite dynamisch. Container scrollt nativ bei Zoom. Double-Tap togglet 1x/2.5x
 - **PDF-Toolbar**: Dateiname + Seitenzahl, Upload/Ersetzen/Loeschen-Buttons (pro-member+), Download
 - **Loeschen**: Sicherheitsabfrage (Confirm-Dialog) vor dem Loeschen, identisch zu Audio-Dateien
-- Player-Controls, Marker und Bottom-Nav bleiben immer sichtbar
 - Swipe-Zone nur auf DotBar — kein Konflikt mit Scroll oder Pinch im Content
+
+### PDF Fullscreen-Modus
+
+- **Floating Action Button (FAB)** rechts unten auf dem PDF-Panel: Maximize-Icon zum Aktivieren, Minimize-Icon zum Deaktivieren
+- **Aktivierung**: Tap auf FAB blendet TopBar, DotBar und GlobalPlayerBar mit Slide-Animation (300ms ease) aus — das PDF nutzt den gesamten Bildschirm
+- **Progress-Ring**: Im Fullscreen zeigt ein SVG-Ring um den FAB die aktuelle Abspielposition
+- **Auto-Fade**: FAB fadet nach 3 Sekunden Inaktivitaet auf 30% Opazitaet. Jede Beruehrung der PDF-Flaeche stellt volle Sichtbarkeit wieder her
+- **Audio laeuft weiter** — nur die UI-Elemente werden versteckt
+- **Reset-Logik**: Fullscreen wird automatisch aufgehoben bei Panel-Wechsel (zurueck zu Sektionen) oder Navigation weg vom Player
 
 ### Upload
 
@@ -266,7 +274,7 @@ PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
 |-------|-------|
 | `frontend/src/components/ui/DotBar.tsx` | Generische Dot-Indikatoren mit Swipe-Handler |
 | `frontend/src/components/ui/PdfPanel.tsx` | Panel mit 3 Zustaenden (Laden/Upload/Viewer) |
-| `frontend/src/components/ui/PdfViewer.tsx` | Bild-basierter PDF-Viewer mit JS Pinch-to-Zoom |
+| `frontend/src/components/ui/PdfViewer.tsx` | Bild-basierter PDF-Viewer mit JS Pinch-to-Zoom und Fullscreen-FAB |
 | `frontend/src/hooks/usePdf.ts` | Zustand Store (load/upload/remove) |
 | `frontend/src/pages/PlayerPage.tsx` | Panel-Layout, DotBar, Footer-Menu-Erweiterung |
 | `backend/api/pdf.py` | `/api/pdf` Endpoints (info/upload/page/download/delete) |
