@@ -1,0 +1,111 @@
+/* ChoirBox — Design Tokens
+   Zentrale Definitionen fuer alle Design-Variablen.
+   Aenderungen hier wirken sich global auf die gesamte App aus.
+
+   Spacing: 4px-Raster (mit 2px und 6px Zwischenstufen)
+   Typography: Mobile-optimierte Skala von 10px bis 32px
+   Radii: 5 Stufen von subtle bis full-circle
+   Shadows: 3 Elevation-Stufen
+   Colors: Light + Dark Theme
+*/
+
+:root {
+  /* --- Spacing Scale (4px base) --- */
+  --space-0: 0px;
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-2-5: 10px;
+  --space-3: 12px;
+  --space-3-5: 14px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 28px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* --- Typography Scale --- */
+  --text-2xs: 10px;
+  --text-xs: 11px;
+  --text-sm: 12px;
+  --text-caption: 13px;
+  --text-body-sm: 14px;
+  --text-body: 15px;
+  --text-md: 16px;
+  --text-lg: 17px;
+  --text-xl: 18px;
+  --text-2xl: 20px;
+  --text-3xl: 32px;
+
+  /* --- Border Radius --- */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 12px;
+  --radius-2xl: 16px;
+  --radius-pill: 9999px;
+  --radius-full: 50%;
+
+  /* --- Box Shadows --- */
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.2);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.25);
+
+  /* --- Colors: Light Theme (default) --- */
+  --bg-primary: #EEF0F4;
+  --bg-secondary: #E2E5EC;
+  --bg-tertiary: #D6DAE2;
+  --bg-elevated: #DADDE5;
+  --text-primary: #1A1F2E;
+  --text-secondary: #5A6170;
+  --text-muted: #8A90A0;
+  --border: rgba(0,0,0,0.07);
+  --accent: #6366f1;
+  --accent-hover: #4f46e5;
+  --danger: #dc2626;
+  --success: #16a34a;
+  --warning: #d97706;
+  --marker: #65a30d;
+  --marker-dim: rgba(101,163,13,0.15);
+  --playback: #0ea5c9;
+  --confirm: #2563eb;
+  --confirm-hover: #1d4ed8;
+  --player-bg: #2A3348;
+  --player-text: #E4E8EE;
+  /* Voice colors */
+  --sopran: #ec4899;
+  --alt: #f97316;
+  --tenor: #3b82f6;
+  --bass: #22c55e;
+  --satb: #8b5cf6;
+  --piano: #a78bfa;
+  /* Section color */
+  --sec-color: #64748b;
+}
+
+/* --- Colors: Dark Theme --- */
+[data-theme="dark"] {
+  --bg-primary: #1E2538;
+  --bg-secondary: #2A3348;
+  --bg-tertiary: #354050;
+  --bg-elevated: #303A50;
+  --text-primary: #E4E8EE;
+  --text-secondary: #9AA4B4;
+  --text-muted: #6A7484;
+  --border: rgba(148,163,184,0.10);
+  --accent: #818cf8;
+  --accent-hover: #6366f1;
+  --danger: #f87171;
+  --success: #4ade80;
+  --warning: #fbbf24;
+  --marker: #a3e635;
+  --marker-dim: rgba(163,230,53,0.2);
+  --playback: #22d3ee;
+  --confirm: #3b82f6;
+  --confirm-hover: #2563eb;
+  --player-bg: #2A3348;
+  --player-text: #E4E8EE;
+}
