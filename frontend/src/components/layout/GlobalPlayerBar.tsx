@@ -38,12 +38,13 @@ export function GlobalPlayerBar() {
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const seekBarRef = useRef<HTMLDivElement>(null)
+  const trackRef = useRef<HTMLDivElement>(null)
   const lastTappedRef = useRef<string | null>(null)
 
   const handleSeek = useCallback((e: React.MouseEvent | React.TouchEvent) => {
-    const bar = seekBarRef.current
-    if (!bar || duration <= 0) return
-    const rect = bar.getBoundingClientRect()
+    const track = trackRef.current
+    if (!track || duration <= 0) return
+    const rect = track.getBoundingClientRect()
     const clientX = 'touches' in e ? e.touches[0].clientX : e.clientX
     const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width))
     seek(frac * duration)
@@ -133,7 +134,7 @@ export function GlobalPlayerBar() {
 
       {/* Seek bar + time labels */}
       <div className="seek-bar" ref={seekBarRef} onClick={handleSeek}>
-        <div className="seek-bar-track">
+        <div className="seek-bar-track" ref={trackRef}>
           {hasActiveLoop ? (
             <div
               className="seek-bar-loop-fill"
