@@ -61,11 +61,12 @@ export function GlobalPlayerBar() {
   }, [menuOpen])
 
   const location = useLocation()
-  const isBrowse = location.pathname === '/' || location.pathname === '/browse'
+  const hiddenRoutes = ['/', '/browse', '/favorites', '/settings']
+  const isHidden = hiddenRoutes.includes(location.pathname)
   const isSections = location.pathname === '/sections'
   const canGenerateSections = isSections && markers.length >= 2
 
-  if (!currentPath || isBrowse) return null
+  if (!currentPath || isHidden) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
   const hasActiveLoop = loopEnabled && hasLoopRange && duration > 0
