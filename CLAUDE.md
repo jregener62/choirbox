@@ -162,6 +162,18 @@ Danach reicht `python run.py` allein — FastAPI liefert das React-Build aus `st
 - **Bestehende Hooks zuerst suchen:** Vor dem Schreiben neuer Logik pruefen, ob ein bestehender Hook das Problem bereits loest.
 - **Hooks statt Copy-Paste:** Wenn Code zwischen Pages dupliziert wird, ist das ein Signal fuer einen fehlenden Hook.
 
+**Frontend — Design Tokens (PFLICHT):**
+- Alle Design-Variablen sind zentral in `frontend/src/styles/tokens.css` definiert.
+- **Keine Magic Numbers** in CSS fuer: `gap`, `padding`, `margin`, `font-size`, `border-radius`, `box-shadow`.
+- Stattdessen immer die passenden Tokens verwenden:
+  - Spacing: `var(--space-1)` bis `var(--space-12)` (4px-Raster)
+  - Typography: `var(--text-2xs)` bis `var(--text-3xl)`
+  - Radii: `var(--radius-xs)` bis `var(--radius-full)`
+  - Shadows: `var(--shadow-sm)`, `var(--shadow-md)`, `var(--shadow-lg)`
+  - Farben: Bestehende Farb-Tokens (`var(--accent)`, `var(--bg-primary)`, etc.)
+- Neue Tokens nur in `tokens.css` hinzufuegen, nicht in `index.css`.
+- Ausnahmen: `width`/`height`/`min-width`/`min-height` (Dimensionen), `1px`/`1.5px` (Borders), Werte in `calc()`.
+
 **Frontend — Mobile-First:**
 - Alle Komponenten werden zuerst fuer Smartphones entworfen (min-width Breakpoints fuer Desktop).
 - Touch-Targets mindestens 44px.
