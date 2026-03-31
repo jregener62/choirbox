@@ -205,6 +205,14 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
         ))}
       </div>
       <button
+        className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+        onClick={() => setDrawingMode(!drawingMode)}
+        onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
+        aria-label={drawingMode ? 'Zeichenmodus beenden' : 'Zeichnen'}
+      >
+        <PenLine size={18} />
+      </button>
+      <button
         className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
         onClick={handleFabClick}
         onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}

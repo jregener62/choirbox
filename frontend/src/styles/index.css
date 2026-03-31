@@ -1023,7 +1023,7 @@ body {
   position: relative;
 }
 .pdf-toolbar {
-  display: flex;
+  display: none;
   align-items: center;
   justify-content: space-between;
   padding: var(--space-1) var(--space-3);
@@ -1206,6 +1206,15 @@ body {
 }
 .pdf-fab:active {
   transform: scale(0.93);
+}
+.pdf-fab--draw {
+  right: auto;
+  left: var(--space-3);
+}
+.pdf-fab--draw-active {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
 }
 .pdf-fab--fullscreen {
   background: var(--accent);
