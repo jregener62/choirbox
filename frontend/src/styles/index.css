@@ -653,6 +653,7 @@ body {
   align-items: center;
   padding: 4px 16px 16px;
   padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  position: relative;
 }
 
 .gpc-side {
@@ -710,6 +711,14 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 .gpc-btn-play:active { opacity: 0.8; transform: scale(0.95); }
+
+/* Menu — pinned to right edge, same as topbar icons */
+.gpc-menu {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+}
 
 /* Menu button — smaller, muted */
 .gpc-btn-menu {

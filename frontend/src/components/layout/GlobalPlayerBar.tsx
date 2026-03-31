@@ -203,31 +203,32 @@ export function GlobalPlayerBar() {
           <button className="gpc-btn" onClick={addMarker} aria-label="Marker setzen">
             <MapPin size={22} />
           </button>
-          <div ref={menuRef} style={{ position: 'relative' }}>
-            <button
-              className="gpc-btn gpc-btn-menu"
-              onClick={() => setMenuOpen(!menuOpen)}
-              aria-label="Skip-Zeit aendern"
-            >
-              <MoreVertical size={18} />
-            </button>
-            {menuOpen && (
-              <div className="gpc-menu-popup">
-                {SKIP_OPTIONS.map((s) => (
-                  <button
-                    key={s}
-                    className={`gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
-                    onClick={() => {
-                      usePlayerStore.getState().setSkipInterval(s)
-                      setMenuOpen(false)
-                    }}
-                  >
-                    {s}s
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+        </div>
+
+        <div className="gpc-menu" ref={menuRef}>
+          <button
+            className="gpc-btn gpc-btn-menu"
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label="Skip-Zeit aendern"
+          >
+            <MoreVertical size={18} />
+          </button>
+          {menuOpen && (
+            <div className="gpc-menu-popup">
+              {SKIP_OPTIONS.map((s) => (
+                <button
+                  key={s}
+                  className={`gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
+                  onClick={() => {
+                    usePlayerStore.getState().setSkipInterval(s)
+                    setMenuOpen(false)
+                  }}
+                >
+                  {s}s
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
