@@ -9,7 +9,7 @@ import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
 
-function SkipIcon({ seconds, direction, size = 36 }: { seconds: number; direction: 'back' | 'fwd'; size?: number }) {
+function SkipIcon({ seconds, direction, size = 42 }: { seconds: number; direction: 'back' | 'fwd'; size?: number }) {
   const flip = direction === 'back'
   return (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
@@ -174,7 +174,7 @@ export function GlobalPlayerBar() {
               disabled={!canGenerateSections}
               aria-label="Sektionen erstellen"
             >
-              <ListPlus size={24} />
+              <ListPlus size={28} />
             </button>
           </div>
         )}
@@ -186,7 +186,7 @@ export function GlobalPlayerBar() {
             disabled={!hasLoopRange}
             aria-label="Loop ein/aus"
           >
-            <Repeat size={24} />
+            <Repeat size={28} />
           </button>
         </div>
 
@@ -195,7 +195,7 @@ export function GlobalPlayerBar() {
             <SkipIcon seconds={skipInterval} direction="back" />
           </button>
           <button className="top-player-play" onClick={togglePlay}>
-            {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: 2 }} />}
+            {isPlaying ? <Pause size={28} /> : <Play size={28} style={{ marginLeft: 2 }} />}
           </button>
           <button className="top-player-skip" onClick={() => skip(skipInterval)}>
             <SkipIcon seconds={skipInterval} direction="fwd" />
@@ -208,7 +208,7 @@ export function GlobalPlayerBar() {
             onClick={addMarker}
             aria-label="Marker setzen"
           >
-            <MapPin size={24} />
+            <MapPin size={28} />
           </button>
         </div>
 

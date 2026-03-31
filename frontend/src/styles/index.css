@@ -396,7 +396,7 @@ body {
   border: none;
   color: var(--playback);
   cursor: pointer;
-  padding: 6px 10px;
+  padding: 8px 12px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -416,8 +416,8 @@ body {
 }
 
 .top-player-play {
-  width: 46px;
-  height: 46px;
+  width: 52px;
+  height: 52px;
   border-radius: 50%;
   background: var(--playback);
   border: none;
@@ -652,9 +652,9 @@ body {
   align-items: center;
   justify-content: center;
   padding: 6px 0;
-  padding-bottom: calc(6px + env(safe-area-inset-bottom, 0px));
+  padding-bottom: calc(36px + env(safe-area-inset-bottom, 0px));
   position: relative;
-  min-height: 56px;
+  min-height: 86px;
 }
 
 .gpc-slot {
@@ -687,12 +687,12 @@ body {
   border: none;
   color: var(--text-secondary);
   cursor: pointer;
-  padding: 8px;
+  padding: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 44px;
-  min-height: 44px;
+  min-width: 50px;
+  min-height: 50px;
   border-radius: 50%;
   touch-action: manipulation;
   flex-shrink: 0;
