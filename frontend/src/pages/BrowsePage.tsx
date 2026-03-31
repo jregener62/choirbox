@@ -237,12 +237,16 @@ export function BrowsePage() {
                   <SlidersHorizontal size={18} />
                 </button>
               )}
-              <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
-                <Mic size={18} />
-              </button>
-              <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-                <Upload size={18} />
-              </button>
+              {isProMember && (
+                <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
+                  <Mic size={18} />
+                </button>
+              )}
+              {isProMember && (
+                <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+                  <Upload size={18} />
+                </button>
+              )}
               <button className="player-header-btn" onClick={openSearch}>
                 <Search size={18} />
               </button>

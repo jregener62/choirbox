@@ -278,7 +278,7 @@ async def dropbox_stream(
 async def dropbox_upload(
     file: UploadFile = File(...),
     target_path: str = Form(...),
-    user: User = Depends(require_user),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
     """Upload a recording to Dropbox, converting to MP3 first."""
