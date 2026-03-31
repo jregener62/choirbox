@@ -531,8 +531,19 @@ body {
   align-items: center;
   gap: var(--space-1-5);
   padding: var(--space-1) var(--space-3);
-  overflow-x: auto;
   border-bottom: 1px solid var(--border);
+  overflow: visible;
+}
+
+.global-player-markers-scroll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 /* Seek bar (Dropbox-style slider) */
@@ -810,9 +821,18 @@ body {
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
+  overflow: visible;
+  white-space: nowrap;
+}
+
+.player-marker-row-scroll {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
-  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
 }
 
 .player-toolbar-btn {
@@ -872,11 +892,62 @@ body {
   color: #f59e0b;
 }
 
+.player-toolbar-marker--deletable {
+  border-color: #fff;
+  background: rgba(255,255,255,0.12);
+  color: #fff;
+}
+
+.player-toolbar-marker--deletable .marker-dot {
+  background: #fff;
+}
+
 .player-toolbar-marker-x {
   display: flex;
   align-items: center;
   color: var(--text-muted);
   margin-left: var(--space-0-5);
+}
+
+.marker-kebab-wrap {
+  position: relative;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.marker-kebab-popup {
+  position: absolute;
+  right: 0;
+  bottom: calc(100% + 4px);
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: var(--space-1-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-0-5);
+  box-shadow: var(--shadow-md);
+  min-width: 160px;
+  z-index: 60;
+  white-space: nowrap;
+}
+
+.marker-kebab-item {
+  background: none;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  padding: var(--space-2-5) var(--space-4);
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  font-family: inherit;
+  border-radius: var(--radius-md);
+  text-align: left;
+  touch-action: manipulation;
+}
+
+.marker-kebab-item:active {
+  background: var(--bg-tertiary);
 }
 
 /* Player page scroll content */

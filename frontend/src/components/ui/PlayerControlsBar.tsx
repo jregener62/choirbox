@@ -1,5 +1,5 @@
-import { useRef } from 'react'
-import { X, Trash2 } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { MoreVertical } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { TopPlayerBar } from '@/components/ui/TopPlayerBar.tsx'
@@ -15,6 +15,36 @@ export function PlayerControlsBar({ peaks, markers }: PlayerControlsBarProps) {
   const { loopStart, loopEnd, loopEnabled, pendingLoopMarkerId, loopMarkerIds } = usePlayerStore()
   const { seek } = useAudioPlayer()
   const lastTappedRef = useRef<string | null>(null)
+  const [markerMenuOpen, setMarkerMenuOpen] = useState(false)
+  const [deleteMode, setDeleteMode] = useState(false)
+  const markerMenuRef = useRef<HTMLDivElement>(null)
+  const deleteModeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const startDeleteMode = () => {
+    setDeleteMode(true)
+    setMarkerMenuOpen(false)
+    if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current)
+    deleteModeTimer.current = setTimeout(() => setDeleteMode(false), 3000)
+  }
+
+  const handleDeleteMarker = (id: string) => {
+    usePlayerStore.getState().removeMarker(id)
+    if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current)
+    deleteModeTimer.current = setTimeout(() => setDeleteMode(false), 3000)
+  }
+
+  useEffect(() => {
+    if (!markerMenuOpen) return
+    const close = (e: MouseEvent) => {
+      if (markerMenuRef.current && !markerMenuRef.current.contains(e.target as Node)) setMarkerMenuOpen(false)
+    }
+    document.addEventListener('mousedown', close)
+    return () => document.removeEventListener('mousedown', close)
+  }, [markerMenuOpen])
+
+  useEffect(() => {
+    return () => { if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current) }
+  }, [])
 
   const handleMarkerTap = (m: Marker) => {
     const store = usePlayerStore.getState()
@@ -71,22 +101,35 @@ export function PlayerControlsBar({ peaks, markers }: PlayerControlsBarProps) {
       />
       {markers.length > 0 && (
         <div className="player-marker-row">
-          {markers.map((m) => (
-            <button
-              key={m.id}
-              className={`player-toolbar-marker${m.id === pendingLoopMarkerId || (loopMarkerIds && loopMarkerIds.includes(m.id)) ? ' player-toolbar-marker--pending' : ''}`}
-              onClick={() => handleMarkerTap(m)}
-            >
-              <span className="marker-dot" />
-              {formatTime(m.time)}
-              <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
-                <X size={10} />
-              </span>
+          <div className="player-marker-row-scroll">
+            {markers.map((m) => {
+              const isPending = m.id === pendingLoopMarkerId || (loopMarkerIds && loopMarkerIds.includes(m.id))
+              let cls = 'player-toolbar-marker'
+              if (deleteMode) cls += ' player-toolbar-marker--deletable'
+              else if (isPending) cls += ' player-toolbar-marker--pending'
+              return (
+                <button
+                  key={m.id}
+                  className={cls}
+                  onClick={() => deleteMode ? handleDeleteMarker(m.id) : handleMarkerTap(m)}
+                >
+                  <span className="marker-dot" />
+                  {formatTime(m.time)}
+                </button>
+              )
+            })}
+          </div>
+          <div className="marker-kebab-wrap" ref={markerMenuRef}>
+            <button className="player-toolbar-btn" onClick={() => setMarkerMenuOpen(!markerMenuOpen)} aria-label="Marker-Optionen">
+              <MoreVertical size={14} />
             </button>
-          ))}
-          <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
-            <Trash2 size={14} />
-          </button>
+            {markerMenuOpen && (
+              <div className="marker-kebab-popup">
+                <button className="marker-kebab-item" onClick={startDeleteMode}>Marker loeschen</button>
+                <button className="marker-kebab-item" onClick={() => { usePlayerStore.getState().clearMarkers(); setMarkerMenuOpen(false); setDeleteMode(false) }}>Alle Marker loeschen</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </>

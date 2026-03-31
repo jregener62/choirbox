@@ -371,10 +371,12 @@ Einen Abschnitt des Tracks in Endlosschleife wiederholen. Zwei Wege, einen Loop 
 Wichtige Stellen im Track markieren fuer schnelle Navigation und Loop-Definition.
 
 - Marker an aktueller Position setzen (automatisch M1, M2, M3...)
+- Maximal 4 Marker gleichzeitig — "Setze Marker"-Button wird bei 4 Markern deaktiviert, bei Loeschung wieder aktiv
 - Alle Marker mit Zeitstempel als Chips anzeigen (horizontal scrollbar)
 - Per Klick zum Marker springen
-- Einzelnen Marker entfernen (X-Button am Chip)
-- Alle Marker auf einmal loeschen (Muelleimer-Icon)
+- Kebab-Menue (⋮) in der Marker-Zeile mit zwei Optionen:
+  - **Marker loeschen**: Aktiviert Loesch-Modus — Marker wechseln auf weissen Rahmen, Tap loescht einzelnen Marker. Modus endet automatisch nach 3 Sekunden.
+  - **Alle Marker loeschen**: Entfernt alle Marker auf einmal
 - Marker als Punkte auf der Waveform sichtbar
 - Marker-Chips dienen als Looppunkt-Auswahl (siehe Cycle Play oben): erster Tap = pending (orange), zweiter Tap auf anderen Marker = Loop erstellen
 

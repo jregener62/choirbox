@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Play, Pause, MoreVertical, Repeat, X, Trash2, MapPin, ListPlus } from 'lucide-react'
+import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
@@ -36,10 +36,27 @@ export function GlobalPlayerBar() {
   const { addMarker, handleLoopTap } = useLoopControls()
 
   const [menuOpen, setMenuOpen] = useState(false)
+  const [markerMenuOpen, setMarkerMenuOpen] = useState(false)
+  const [deleteMode, setDeleteMode] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const markerMenuRef = useRef<HTMLDivElement>(null)
+  const deleteModeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seekBarRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
   const lastTappedRef = useRef<string | null>(null)
+
+  const startDeleteMode = () => {
+    setDeleteMode(true)
+    setMarkerMenuOpen(false)
+    if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current)
+    deleteModeTimer.current = setTimeout(() => setDeleteMode(false), 3000)
+  }
+
+  const handleDeleteMarker = (id: string) => {
+    usePlayerStore.getState().removeMarker(id)
+    if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current)
+    deleteModeTimer.current = setTimeout(() => setDeleteMode(false), 3000)
+  }
 
   const handleSeek = useCallback((e: React.MouseEvent | React.TouchEvent) => {
     const track = trackRef.current
@@ -52,13 +69,18 @@ export function GlobalPlayerBar() {
   }, [duration, seek])
 
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen && !markerMenuOpen) return
     const close = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
+      if (markerMenuOpen && markerMenuRef.current && !markerMenuRef.current.contains(e.target as Node)) setMarkerMenuOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
-  }, [menuOpen])
+  }, [menuOpen, markerMenuOpen])
+
+  useEffect(() => {
+    return () => { if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current) }
+  }, [])
 
   const location = useLocation()
   const hiddenRoutes = ['/', '/browse', '/favorites', '/settings']
@@ -116,22 +138,35 @@ export function GlobalPlayerBar() {
       {/* Marker row */}
       {markers.length > 0 && (
         <div className="global-player-markers">
-          {markers.map((m) => (
-            <button
-              key={m.id}
-              className={`player-toolbar-marker${m.id === pendingLoopMarkerId || (loopMarkerIds && loopMarkerIds.includes(m.id)) ? ' player-toolbar-marker--pending' : ''}`}
-              onClick={() => handleMarkerTap(m)}
-            >
-              <span className="marker-dot" />
-              {formatTime(m.time)}
-              <span className="player-toolbar-marker-x" onClick={(e) => { e.stopPropagation(); usePlayerStore.getState().removeMarker(m.id) }}>
-                <X size={10} />
-              </span>
+          <div className="global-player-markers-scroll">
+            {markers.map((m) => {
+              const isPending = m.id === pendingLoopMarkerId || (loopMarkerIds && loopMarkerIds.includes(m.id))
+              let cls = 'player-toolbar-marker'
+              if (deleteMode) cls += ' player-toolbar-marker--deletable'
+              else if (isPending) cls += ' player-toolbar-marker--pending'
+              return (
+                <button
+                  key={m.id}
+                  className={cls}
+                  onClick={() => deleteMode ? handleDeleteMarker(m.id) : handleMarkerTap(m)}
+                >
+                  <span className="marker-dot" />
+                  {formatTime(m.time)}
+                </button>
+              )
+            })}
+          </div>
+          <div className="marker-kebab-wrap" ref={markerMenuRef}>
+            <button className="player-toolbar-btn" onClick={() => setMarkerMenuOpen(!markerMenuOpen)} aria-label="Marker-Optionen">
+              <MoreVertical size={14} />
             </button>
-          ))}
-          <button className="player-toolbar-btn" onClick={() => usePlayerStore.getState().clearMarkers()} title="Alle Marker loeschen">
-            <Trash2 size={14} />
-          </button>
+            {markerMenuOpen && (
+              <div className="marker-kebab-popup">
+                <button className="marker-kebab-item" onClick={startDeleteMode}>Marker loeschen</button>
+                <button className="marker-kebab-item" onClick={() => { usePlayerStore.getState().clearMarkers(); setMarkerMenuOpen(false); setDeleteMode(false) }}>Alle Marker loeschen</button>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -200,7 +235,7 @@ export function GlobalPlayerBar() {
         </div>
 
         <div className="gpc-side gpc-side--right">
-          <button className="gpc-btn" onClick={addMarker} aria-label="Marker setzen">
+          <button className="gpc-btn" onClick={addMarker} disabled={markers.length >= 4} aria-label="Marker setzen">
             <MapPin size={32} />
           </button>
         </div>
