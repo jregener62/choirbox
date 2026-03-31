@@ -246,7 +246,7 @@ PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und 
 Chormitglieder koennen auf den angezeigten PDF-Seiten handschriftliche Markierungen machen — z.B. Atemzeichen, Dynamik, Einsaetze. Jeder User sieht nur seine eigenen Annotationen.
 
 - **Zeichenmodus-Toggle**: Floating Action Button (Stift-Icon) unten-links auf dem PDF-Panel. Wird blau wenn aktiv
-- **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (Tap auf Strich loescht ihn)
+- **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (ueber Striche streichen loescht sie, Distanz-basierter Hit-Test)
 - **6 Farben**: Rot, Blau, Gruen, Gelb, Lila, Schwarz
 - **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8)
 - **Undo**: Letzter Strich rueckgaengig machen
