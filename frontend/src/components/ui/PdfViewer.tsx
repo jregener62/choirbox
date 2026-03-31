@@ -29,7 +29,6 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
   const duration = usePlayerStore((s) => s.duration)
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
-  const flushAll = useAnnotationStore((s) => s.flushAll)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -42,8 +41,8 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
 
   // Flush annotations on unmount
   useEffect(() => {
-    return () => { flushAll() }
-  }, [flushAll])
+    return () => { useAnnotationStore.getState().flushAll() }
+  }, [])
 
   // Auto-fade FAB after 3s in fullscreen
   const resetFadeTimer = useCallback(() => {
