@@ -86,6 +86,15 @@ body {
   border-bottom: 1px solid var(--border);
   min-height: 40px;
   gap: var(--space-2-5);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.topbar--hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  z-index: 10;
 }
 
 .topbar-back {
@@ -507,6 +516,14 @@ body {
   flex-shrink: 0;
   background: var(--bg-secondary);
   border-top: 1px solid var(--border);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+.global-player--hidden {
+  transform: translateY(100%);
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
 }
 
 .global-player-markers {
@@ -879,6 +896,15 @@ body {
   padding: var(--space-3) 0;
   flex-shrink: 0;
   cursor: pointer;
+  transition: transform 0.3s ease, opacity 0.3s ease, height 0.3s ease, padding 0.3s ease;
+}
+.dot-bar--hidden {
+  transform: translateY(-100%);
+  opacity: 0;
+  height: 0;
+  padding: 0;
+  overflow: hidden;
+  pointer-events: none;
 }
 .dot {
   width: 7px;
@@ -923,6 +949,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  position: relative;
 }
 .pdf-toolbar {
   display: none;
@@ -982,6 +1009,59 @@ body {
   user-select: none;
   -webkit-user-select: none;
   pointer-events: none;
+}
+
+/* PDF Fullscreen FAB */
+.pdf-fab {
+  position: absolute;
+  bottom: var(--space-3);
+  right: var(--space-3);
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+  transition: opacity 0.5s ease;
+}
+.pdf-fab:active {
+  transform: scale(0.93);
+}
+.pdf-fab--fullscreen {
+  background: var(--accent);
+  color: white;
+  border-color: transparent;
+}
+.pdf-fab--faded {
+  opacity: 0.3;
+}
+.pdf-fab-progress {
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  width: 48px;
+  height: 48px;
+  pointer-events: none;
+}
+.pdf-fab-progress circle {
+  fill: none;
+  stroke-width: 2;
+  transform: rotate(-90deg);
+  transform-origin: center;
+}
+.pdf-fab-progress .pdf-fab-progress-track {
+  stroke: rgba(255,255,255,0.15);
+}
+.pdf-fab-progress .pdf-fab-progress-fill {
+  stroke: white;
+  stroke-dasharray: 138.23;
+  transition: stroke-dashoffset 0.3s ease;
 }
 
 .pdf-upload {

@@ -31,6 +31,9 @@ interface PlayerState {
   // Skip interval (seconds)
   skipInterval: number
 
+  // PDF fullscreen
+  pdfFullscreen: boolean
+
   // Actions
   setTrack: (path: string, name: string) => void
   setPlaying: (playing: boolean) => void
@@ -47,6 +50,7 @@ interface PlayerState {
   setPendingLoopMarker: (id: string | null) => void
   createLoopFromMarkers: (a: Marker, b: Marker) => void
   setSkipInterval: (interval: number) => void
+  setPdfFullscreen: (fullscreen: boolean) => void
 }
 
 let markerCounter = 0
@@ -65,6 +69,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   pendingLoopMarkerId: null,
   loopMarkerIds: null,
   skipInterval: 15,
+  pdfFullscreen: false,
 
   setTrack: (path, name) => set({
     currentPath: path,
@@ -139,4 +144,5 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     set({ loopStart: earlier.time, loopEnd: later.time, loopEnabled: true, activeSection: null, pendingLoopMarkerId: null, loopMarkerIds: [earlier.id, later.id] })
   },
   setSkipInterval: (interval) => set({ skipInterval: interval }),
+  setPdfFullscreen: (fullscreen) => set({ pdfFullscreen: fullscreen }),
 }))

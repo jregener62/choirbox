@@ -4,9 +4,10 @@ interface DotBarProps {
   count: number
   activeIndex: number
   onDotClick: (index: number) => void
+  className?: string
 }
 
-export function DotBar({ count, activeIndex, onDotClick }: DotBarProps) {
+export function DotBar({ count, activeIndex, onDotClick, className }: DotBarProps) {
   const touchStartX = useRef(0)
 
   const onTouchStart = useCallback((e: React.TouchEvent) => {
@@ -26,7 +27,7 @@ export function DotBar({ count, activeIndex, onDotClick }: DotBarProps) {
 
   return (
     <div
-      className="dot-bar"
+      className={`dot-bar${className ? ' ' + className : ''}`}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >

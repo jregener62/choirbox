@@ -66,6 +66,8 @@ export function GlobalPlayerBar() {
   const isSections = location.pathname === '/sections'
   const canGenerateSections = isSections && markers.length >= 2
 
+  const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
+
   if (!currentPath || isHidden) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
@@ -110,7 +112,7 @@ export function GlobalPlayerBar() {
   }
 
   return (
-    <div className="global-player">
+    <div className={`global-player${pdfFullscreen ? ' global-player--hidden' : ''}`}>
       {/* Marker row */}
       {markers.length > 0 && (
         <div className="global-player-markers">

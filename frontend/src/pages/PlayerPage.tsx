@@ -27,6 +27,7 @@ export function PlayerPage() {
     currentTime, duration,
     loopEnabled, loopStart, loopEnd,
     activeSection,
+    pdfFullscreen,
   } = usePlayerStore()
   const { seek } = useAudioPlayer()
 
@@ -62,6 +63,16 @@ export function PlayerPage() {
   useEffect(() => {
     if (currentPath && currentPath !== pdfLoadedPath) loadPdf(currentPath)
   }, [currentPath, pdfLoadedPath, loadPdf])
+
+  // Reset fullscreen on unmount (navigation away)
+  useEffect(() => {
+    return () => { usePlayerStore.getState().setPdfFullscreen(false) }
+  }, [])
+
+  const handlePanelChange = (index: number) => {
+    setActivePanel(index)
+    if (index !== 1 && pdfFullscreen) usePlayerStore.getState().setPdfFullscreen(false)
+  }
 
   const timeline = buildTimeline(sections, duration)
   const hasSections = sections.length > 0
@@ -111,7 +122,7 @@ export function PlayerPage() {
   return (
     <div className="player-page">
       {/* Page header */}
-      <div className="topbar">
+      <div className={`topbar${pdfFullscreen && activePanel === 1 ? ' topbar--hidden' : ''}`}>
         <button className="topbar-back" onClick={() => navigate('/')}>
           <ChevronLeft size={22} />
         </button>
@@ -169,7 +180,7 @@ export function PlayerPage() {
       </div>
 
       {showDots && (
-        <DotBar count={2} activeIndex={activePanel} onDotClick={setActivePanel} />
+        <DotBar count={2} activeIndex={activePanel} onDotClick={handlePanelChange} className={pdfFullscreen && activePanel === 1 ? 'dot-bar--hidden' : ''} />
       )}
 
       {showDots ? (

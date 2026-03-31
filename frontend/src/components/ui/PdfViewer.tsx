@@ -1,5 +1,6 @@
-import { Download, Upload, Trash2 } from 'lucide-react'
+import { Download, Upload, Trash2, Maximize2, Minimize2 } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import { usePdfStore } from '@/hooks/usePdf.ts'
 import { useRef, useState, useCallback, useEffect } from 'react'
 import type { PdfInfo } from '@/types/index.ts'
@@ -20,13 +21,47 @@ function getDistance(t1: Touch, t2: Touch) {
 export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
   const token = useAuthStore((s) => s.token)
   const { upload, remove } = usePdfStore()
+  const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
+  const currentTime = usePlayerStore((s) => s.currentTime)
+  const duration = usePlayerStore((s) => s.duration)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [scale, setScale] = useState(1)
+  const [fabFaded, setFabFaded] = useState(false)
+  const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
   const pdfUrl = `/api/pdf/download?path=${encodeURIComponent(dropboxPath)}&token=${token}`
+
+  // Auto-fade FAB after 3s in fullscreen
+  const resetFadeTimer = useCallback(() => {
+    setFabFaded(false)
+    if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
+    fadeTimerRef.current = setTimeout(() => setFabFaded(true), 3000)
+  }, [])
+
+  useEffect(() => {
+    if (!pdfFullscreen) {
+      setFabFaded(false)
+      if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current)
+      return
+    }
+    resetFadeTimer()
+    return () => { if (fadeTimerRef.current) clearTimeout(fadeTimerRef.current) }
+  }, [pdfFullscreen, resetFadeTimer])
+
+  const handleFabClick = () => {
+    usePlayerStore.getState().setPdfFullscreen(!pdfFullscreen)
+  }
+
+  const handlePdfAreaTouch = useCallback(() => {
+    if (pdfFullscreen) resetFadeTimer()
+  }, [pdfFullscreen, resetFadeTimer])
+
+  const progress = duration > 0 ? currentTime / duration : 0
+  const circumference = 2 * Math.PI * 22
+  const dashOffset = circumference * (1 - progress)
 
   // Pinch-to-zoom via touch events
   useEffect(() => {
@@ -134,7 +169,7 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
       <div
         ref={pagesRef}
         className="pdf-pages"
-        onTouchStart={handleDoubleTap}
+        onTouchStart={(e) => { handleDoubleTap(e); handlePdfAreaTouch() }}
       >
         {pages.map((page) => (
           <img
@@ -148,6 +183,24 @@ export function PdfViewer({ dropboxPath, info, canUpload }: PdfViewerProps) {
           />
         ))}
       </div>
+      <button
+        className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+        onClick={handleFabClick}
+        onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
+        aria-label={pdfFullscreen ? 'Fullscreen beenden' : 'Fullscreen'}
+      >
+        {pdfFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        {pdfFullscreen && (
+          <svg className="pdf-fab-progress" viewBox="0 0 48 48">
+            <circle className="pdf-fab-progress-track" cx="24" cy="24" r="22" />
+            <circle
+              className="pdf-fab-progress-fill"
+              cx="24" cy="24" r="22"
+              style={{ strokeDashoffset: dashOffset }}
+            />
+          </svg>
+        )}
+      </button>
       <input
         ref={fileInputRef}
         type="file"
