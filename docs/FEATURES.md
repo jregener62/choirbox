@@ -145,7 +145,7 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 - Zurueck-Button (..) fuer uebergeordneten Ordner
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Ordner zuerst, dann Dateien, jeweils alphabetisch
-- Dateidetails: Groesse, Labels
+- Dateidetails: Audio-Dauer (gecacht nach erstem Abspielen), Labels
 - Voice-Icons: Farbiges Stimmkuerzel (S, A, T, B, SA, SAT, SATB...) als Datei-Icon statt generischem Noten-Symbol. Einzelstimmen in Stimmfarbe, Mehrfachstimmen in lila. Dateien ohne Stimminfo zeigen Noten-Icon.
 
 | Datei | Rolle |
@@ -156,6 +156,8 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 | `frontend/src/stores/appStore.ts` | `browsePath` State |
 | `backend/api/dropbox.py` | `GET /dropbox/browse` |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
+| `backend/models/audio_duration.py` | Dauer-Cache (SQLModel) |
+| `backend/services/audio_duration_service.py` | Dauer speichern/abfragen |
 
 ### Datei-Aktionen (Swipe & Drei-Punkte-Menue)
 

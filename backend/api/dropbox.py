@@ -202,23 +202,24 @@ async def dropbox_browse(
                 "type": "folder",
             })
         elif tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a")):
-            duration = None
-            media_info = e.get("media_info")
-            if media_info and media_info.get(".tag") == "metadata":
-                meta = media_info.get("metadata", {})
-                if "duration" in meta:
-                    duration = meta["duration"] / 1000
             filtered.append({
                 "name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "file",
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
-                "duration": duration,
             })
 
     # Sort: folders first, then files, both alphabetical
     filtered.sort(key=lambda x: (0 if x["type"] == "folder" else 1, x["name"].lower()))
+
+    # Attach cached durations
+    from backend.services.audio_duration_service import get_durations_for_paths
+    file_paths = [e["path"] for e in filtered if e["type"] == "file"]
+    durations = get_durations_for_paths(session, file_paths)
+    for e in filtered:
+        if e["type"] == "file" and e["path"] in durations:
+            e["duration"] = durations[e["path"]]
 
     return {"path": path, "entries": filtered, "root_name": root_folder or None}
 
@@ -451,6 +452,24 @@ async def dropbox_delete_file(
         "name": metadata.get("name", ""),
         "path": _to_user_path(metadata.get("path_display", path), root_folder),
     })
+
+
+@router.post("/duration")
+def report_duration(
+    data: dict,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    """Cache a track's audio duration (reported by the frontend)."""
+    from backend.services.audio_duration_service import save_duration
+
+    path = (data.get("path") or "").strip()
+    duration = data.get("duration")
+    if not path or not isinstance(duration, (int, float)) or duration <= 0:
+        raise HTTPException(400, "path and positive duration required")
+
+    save_duration(session, path, float(duration))
+    return ActionResponse.success()
 
 
 @router.post("/disconnect")

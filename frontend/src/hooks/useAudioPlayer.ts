@@ -66,6 +66,14 @@ export function useAudioPlayer() {
     audio.addEventListener('loadedmetadata', () => {
       if (audio.duration && isFinite(audio.duration)) {
         usePlayerStore.getState().setDuration(audio.duration)
+        const path = usePlayerStore.getState().currentPath
+        if (path) {
+          api('/dropbox/duration', {
+            method: 'POST',
+            body: { path, duration: audio.duration },
+            silent: true,
+          }).catch(() => {})
+        }
       }
     })
 
