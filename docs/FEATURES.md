@@ -659,6 +659,12 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 
 ## Darstellung & Einstellungen
 
+### Popup-Menus (zentralisiert)
+
+Alle Popup-Menus teilen einen einheitlichen Style ueber die CSS-Klassen `.popup-menu` (Container) und `.popup-menu-item` (Eintraege). Komponentenspezifische Klassen enthalten nur noch Positionierung und Overrides.
+
+Betrifft: Player-Header-Menu, Player-Footer-Menu, Marker-Kebab-Menu, Skip-Interval-Menus (TopPlayerBar + GlobalPlayerBar).
+
 ### Dark/Light Theme
 
 - Umschalten zwischen dunklem und hellem Design
