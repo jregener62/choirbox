@@ -57,6 +57,9 @@ export function BrowsePage() {
   const [renameName, setRenameName] = useState('')
   const [renaming, setRenaming] = useState(false)
 
+  // Kebab menu state
+  const [kebabOpen, setKebabOpen] = useState(false)
+
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
   const [filterOpen, setFilterOpen] = useState(false)
@@ -302,27 +305,42 @@ export function BrowsePage() {
                   <SlidersHorizontal size={18} />
                 </button>
               )}
-              {isProMember && (
-                <button className="player-header-btn" onClick={() => setRecordingOpen(true)}>
-                  <Mic size={18} />
-                </button>
-              )}
-              {isProMember && (
-                <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={18} />
-                </button>
-              )}
-              {isAdmin && (
-                <button className="player-header-btn" onClick={() => { setNewFolderName(''); setCreateFolderOpen(true) }}>
-                  <FolderPlus size={18} />
-                </button>
-              )}
               <button className="player-header-btn" onClick={openSearch}>
                 <Search size={18} />
               </button>
               <button className="player-header-btn" onClick={() => navigate('/settings')}>
                 <Settings size={18} />
               </button>
+              {isProMember && (
+                <div style={{ position: 'relative' }}>
+                  <button className="player-header-btn" onClick={() => setKebabOpen(!kebabOpen)}>
+                    <EllipsisVertical size={18} />
+                  </button>
+                  {kebabOpen && (
+                    <>
+                      <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setKebabOpen(false)} />
+                      <div style={{
+                        position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 100,
+                        background: 'var(--bg-secondary)', border: '1px solid var(--border)',
+                        borderRadius: 'var(--radius-lg)', padding: 'var(--space-2) 0',
+                        minWidth: 200, boxShadow: 'var(--shadow-lg)',
+                      }}>
+                        <button className="kebab-item" onClick={() => { setKebabOpen(false); setRecordingOpen(true) }}>
+                          <Mic size={16} /> Aufnehmen
+                        </button>
+                        <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
+                          <Upload size={16} /> Datei hochladen
+                        </button>
+                        {isAdmin && (
+                          <button className="kebab-item" onClick={() => { setKebabOpen(false); setNewFolderName(''); setCreateFolderOpen(true) }}>
+                            <FolderPlus size={16} /> Ordner erstellen
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </>
           )}
           {searchOpen && (
