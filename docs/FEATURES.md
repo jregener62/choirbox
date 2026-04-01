@@ -29,13 +29,14 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 
 ### Login
 
-- Benutzername + Passwort
+- Benutzername + Passwort — Chor wird automatisch ueber `user.choir_id` bestimmt
 - Token-basierte Session (7 Tage gueltig), persistiert in SQLite
 - Sessions ueberleben Server-Neustarts (DB-backed statt In-Memory)
 - Rate-Limiting: max. 5 fehlgeschlagene Versuche pro Minute pro IP
 - Letzter Login-Zeitpunkt wird gespeichert
 - Token in `localStorage` persistiert
 - Abgelaufene Tokens werden beim Login automatisch bereinigt
+- Login-Response enthaelt `choir_name` und `must_change_password` Flag
 
 | Datei | Rolle |
 |-------|-------|
@@ -49,11 +50,27 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 - Anzeigename aendern
 - Stimme wechseln (Sopran/Alt/Tenor/Bass)
 - Passwort aendern (altes Passwort muss bestaetigt werden, neues min. 4 Zeichen)
+- Chor-Name wird im Profil angezeigt
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/SettingsPage.tsx` | Profil-Sektion |
 | `backend/api/auth.py` | `PUT /auth/me`, `PUT /auth/me/password` |
+
+### Erzwungene Passwort-Aenderung
+
+Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwort mit `must_change_password`-Flag.
+
+- Nach Login: Redirect zu Einstellungen, Passwort-Formular automatisch offen
+- Hinweis: "Bitte aendere dein Standard-Passwort"
+- Abbrechen-Button ausgeblendet, Zurueck-Button zeigt Warnmeldung
+- Nach erfolgreicher Aenderung: Flag wird gecleared, App normal nutzbar
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/App.tsx` | AuthGuard mit `must_change_password`-Redirect |
+| `frontend/src/pages/SettingsPage.tsx` | Erzwungenes PW-Formular |
+| `backend/api/auth.py` | Flag in `_user_response`, Clear bei PW-Aenderung |
 
 ### Rollen-Hierarchie
 
@@ -93,7 +110,7 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 
 ### Verbindung (nur Developer)
 
-Ein Developer verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle Choere teilen diesen Zugang, jeder Chor hat seinen eigenen Unterordner (`dropbox_root_folder`).
+Ein Developer verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle Choere teilen diesen Zugang, jeder Chor hat seinen eigenen Unterordner (`Choir.dropbox_root_folder`). Optional kann ein globaler App-Ordner (`AppSettings.dropbox_root_folder`) als Prefix gesetzt werden — effektiver Pfad: `{app_root}/{choir_root}`.
 
 - OAuth 2.0 Authorization Code Flow mit Refresh Token
 - Account-E-Mail und ID werden gespeichert
@@ -123,7 +140,8 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 ### Ordner-Navigation
 
 - Dropbox-Ordnerstruktur hierarchisch durchsuchbar
-- Breadcrumb-Navigation mit klickbaren Pfadteilen
+- Header zeigt den Chor-Namen prominent statt "Dateien"
+- Breadcrumb-Navigation mit Home-Icon als Root und klickbaren Pfadteilen
 - Zurueck-Button (..) fuer uebergeordneten Ordner
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Ordner zuerst, dann Dateien, jeweils alphabetisch
@@ -612,13 +630,17 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 
 ### Chor-Verwaltung (nur Developer)
 
-- Alle Choere auflisten
-- Neuen Chor erstellen (Name, Einladungscode, Dropbox-Stammordner)
+- Alle Choere auflisten mit Einladungslinks (klickbar + Copy-Button)
+- Neuen Chor erstellen (Name, Einladungscode, Dropbox-Ordner, Admin-User + Passwort)
+- Beim Erstellen wird automatisch ein Admin-Account fuer den Chor angelegt (`must_change_password`)
+- Bestehende Choere bearbeiten (Name, Einladungscode, Ordner) per Stift-Button
 - Einladungscodes muessen eindeutig sein
+- Globaler Dropbox App-Ordner konfigurierbar (Prefix fuer alle Choere)
 
 | Datei | Rolle |
 |-------|-------|
-| `backend/api/admin.py` | `GET/POST /admin/choirs` |
+| `frontend/src/pages/admin/ChoirsPage.tsx` | Chor-Verwaltungs-UI |
+| `backend/api/admin.py` | `GET/POST/PUT /admin/choirs` |
 
 ### Label-Verwaltung
 
@@ -648,11 +670,13 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Profil (Anzeigename, Stimme, Chor-Name)
 - Passwort aendern
 - Theme-Toggle
-- Dropbox-Status (nur Developer)
-- Einladungslink mit Copy-Button (nur Admin)
-- Dropbox-Stammordner (nur Admin)
+- Dropbox-Verbindung (nur Developer)
+- Dropbox App-Ordner — globaler Prefix fuer alle Choere (nur Developer)
+- Einladungslink mit Copy-Button und klickbarer URL (nur Admin)
+- Chor-Ordner in der Dropbox (nur Admin)
 - Labels verwalten (ab Pro-Mitglied)
 - Sektionsvorlagen verwalten (ab Pro-Mitglied)
+- Choere verwalten (nur Developer)
 - Nutzer verwalten (nur Admin)
 - Logout
 
@@ -714,7 +738,7 @@ Audio-Caching und Offline-Modus sind als Future Feature dokumentiert. Siehe `doc
 
 Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Hauptseite (Dateien) haben links einen Zurueck-Button (`<`).
 
-- **Dateien** (Hauptseite): Header mit Titel + Aktions-Icons (Favoriten, Filter, Suche, Einstellungen). Footer mit Aufnahme- und Upload-Buttons.
+- **Dateien** (Hauptseite): Header mit Chor-Name + Aktions-Icons (Favoriten, Filter, Suche, Einstellungen). Breadcrumb mit Home-Icon. Footer mit Aufnahme- und Upload-Buttons.
 - **Player, Sektionen**: Header mit Zurueck-Button + Titel, darunter Player-Controls und Toolbar.
 - **Favoriten, Einstellungen**: Header mit Zurueck-Button + Titel.
 - **Admin-Seiten**: Header mit Zurueck-Button + Titel + optionale Aktions-Buttons.
@@ -734,6 +758,7 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 | `/admin/users` | Nutzerverwaltung | Admin |
 | `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |
 | `/admin/section-presets` | Sektionsvorlagen | Pro-Mitglied+ |
+| `/admin/choirs` | Chor-Verwaltung | Developer |
 
 HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
@@ -850,7 +875,8 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | GET | `/settings` | Chor-Settings lesen (invite_code, root_folder) | Admin |
 | PUT | `/settings` | Chor-Settings aendern | Admin |
 | GET | `/choirs` | Alle Choere auflisten | Developer |
-| POST | `/choirs` | Neuen Chor erstellen | Developer |
+| POST | `/choirs` | Neuen Chor erstellen (inkl. Admin-User) | Developer |
+| PUT | `/choirs/{id}` | Chor bearbeiten | Developer |
 
 ---
 
@@ -866,6 +892,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `role` | String | `guest`, `member`, `pro-member`, `chorleiter`, `admin`, `beta-tester`, `developer` |
 | `voice_part` | String | Sopran, Alt, Tenor oder Bass |
 | `choir_id` | UUID (FK) | Referenz auf Choir |
+| `must_change_password` | Boolean | Erzwungene PW-Aenderung nach erstem Login |
 | `password_hash` | String | PBKDF2-Hash |
 | `created_at` | DateTime | Erstellungszeitpunkt |
 | `updated_at` | DateTime | Letzte Aenderung |
@@ -988,5 +1015,5 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `dropbox_account_id` | String | Dropbox Account ID |
 | `dropbox_account_email` | String | Dropbox Account E-Mail |
 | `dropbox_connected_at` | DateTime | Verbindungszeitpunkt |
-| `dropbox_root_folder` | String | Legacy (nicht mehr genutzt, durch Choir.dropbox_root_folder ersetzt) |
+| `dropbox_root_folder` | String | Optionaler globaler App-Ordner (Prefix fuer alle Chor-Ordner) |
 | `updated_at` | DateTime | Letzte Aenderung |
