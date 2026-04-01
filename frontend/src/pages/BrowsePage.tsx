@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info } from 'lucide-react'
+import { Folder, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info, Home } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -32,7 +32,6 @@ export function BrowsePage() {
   const canDelete = !!user && ['chorleiter', 'admin'].includes(user.role)
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
   const [entries, setEntries] = useState<DropboxEntry[]>([])
-  const [rootName, setRootName] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [recordingOpen, setRecordingOpen] = useState(false)
@@ -67,7 +66,6 @@ export function BrowsePage() {
       const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(path)}`)
       setEntries(data.entries)
       setBrowsePath(data.path)
-      if (data.root_name !== undefined) setRootName(data.root_name)
       if (data.error) setError(data.error)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Fehler beim Laden')
@@ -230,7 +228,7 @@ export function BrowsePage() {
       <div className="browse-header">
         {/* Topbar: search mode or normal with breadcrumb */}
         <div className="topbar">
-          <span className="topbar-title">Dateien</span>
+          <span className="topbar-title">{user?.choir_name || 'Dateien'}</span>
           {!searchOpen && (
             <>
               <button className="player-header-btn" style={{ marginLeft: 'auto' }} onClick={() => navigate('/favorites')}>
@@ -284,7 +282,7 @@ export function BrowsePage() {
         {!searchOpen && (
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-              <span className="breadcrumb-item" onClick={() => loadFolder('')}>{rootName || 'Root'}</span>
+              <span className="breadcrumb-item" onClick={() => loadFolder('')} style={{ display: 'flex', alignItems: 'center' }}><Home size={14} /></span>
               {pathParts.map((part, i) => {
                 const path = '/' + pathParts.slice(0, i + 1).join('/')
                 const isLast = i === pathParts.length - 1
