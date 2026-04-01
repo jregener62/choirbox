@@ -1592,7 +1592,6 @@ body {
   align-items: center;
   padding: var(--space-3-5) var(--space-4);
   gap: var(--space-3-5);
-  background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
