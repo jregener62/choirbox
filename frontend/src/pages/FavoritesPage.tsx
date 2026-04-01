@@ -190,10 +190,10 @@ export function FavoritesPage() {
                 </span>
               )}
               <button
-                className="fav-folder-divider-heart"
+                className="fav-toggle"
                 onClick={(e) => { e.stopPropagation(); toggle(group.folder.dropbox_path, 'folder') }}
               >
-                <Heart size={16} fill="currentColor" />
+                <Trash2 size={16} color="var(--text-muted)" />
               </button>
             </div>
             <ul className="file-list">
