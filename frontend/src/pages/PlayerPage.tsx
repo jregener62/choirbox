@@ -148,25 +148,25 @@ export function PlayerPage() {
               <EllipsisVertical size={20} />
             </button>
             {menuOpen && (
-              <div className="player-topbar-menu">
+              <div className="popup-menu player-topbar-menu">
                 {hasMinRole(userRole, 'beta-tester') && (
-                  <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
+                  <button className="popup-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
                     <LayoutList size={16} />
                     Sektionen editieren
                   </button>
                 )}
                 {hasMinRole(userRole, 'pro-member') && (
-                  <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
+                  <button className="popup-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
                     <Info size={16} />
                     Datei-Einstellungen
                   </button>
                 )}
-                <button className="player-footer-menu-item" onClick={() => { setMenuOpen(false); fileInputRef.current?.click() }}>
+                <button className="popup-menu-item" onClick={() => { setMenuOpen(false); fileInputRef.current?.click() }}>
                   <FileUp size={16} />
                   {hasPdf ? 'PDF ersetzen' : 'PDF hochladen'}
                 </button>
                 {hasPdf && (
-                  <button className="player-footer-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}>
+                  <button className="popup-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}>
                     <Trash2 size={16} />
                     PDF loeschen
                   </button>

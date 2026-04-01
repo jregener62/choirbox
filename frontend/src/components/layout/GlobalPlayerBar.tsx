@@ -161,9 +161,9 @@ export function GlobalPlayerBar() {
               <MoreVertical size={14} />
             </button>
             {markerMenuOpen && (
-              <div className="marker-kebab-popup">
-                <button className="marker-kebab-item" onClick={startDeleteMode}>Marker loeschen</button>
-                <button className="marker-kebab-item" onClick={() => { usePlayerStore.getState().clearMarkers(); setMarkerMenuOpen(false); setDeleteMode(false) }}>Alle Marker loeschen</button>
+              <div className="popup-menu marker-kebab-popup">
+                <button className="popup-menu-item" onClick={startDeleteMode}>Marker loeschen</button>
+                <button className="popup-menu-item" onClick={() => { usePlayerStore.getState().clearMarkers(); setMarkerMenuOpen(false); setDeleteMode(false) }}>Alle Marker loeschen</button>
               </div>
             )}
           </div>
@@ -249,11 +249,11 @@ export function GlobalPlayerBar() {
             <MoreVertical size={18} />
           </button>
           {menuOpen && (
-            <div className="gpc-menu-popup">
+            <div className="popup-menu gpc-menu-popup">
               {SKIP_OPTIONS.map((s) => (
                 <button
                   key={s}
-                  className={`gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
+                  className={`popup-menu-item gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
                   onClick={() => {
                     usePlayerStore.getState().setSkipInterval(s)
                     setMenuOpen(false)

@@ -124,9 +124,9 @@ export function PlayerControlsBar({ peaks, markers }: PlayerControlsBarProps) {
               <MoreVertical size={14} />
             </button>
             {markerMenuOpen && (
-              <div className="marker-kebab-popup">
-                <button className="marker-kebab-item" onClick={startDeleteMode}>Marker loeschen</button>
-                <button className="marker-kebab-item" onClick={() => { usePlayerStore.getState().clearMarkers(); setMarkerMenuOpen(false); setDeleteMode(false) }}>Alle Marker loeschen</button>
+              <div className="popup-menu marker-kebab-popup">
+                <button className="popup-menu-item" onClick={startDeleteMode}>Marker loeschen</button>
+                <button className="popup-menu-item" onClick={() => { usePlayerStore.getState().clearMarkers(); setMarkerMenuOpen(false); setDeleteMode(false) }}>Alle Marker loeschen</button>
               </div>
             )}
           </div>

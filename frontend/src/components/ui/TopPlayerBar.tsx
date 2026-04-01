@@ -104,11 +104,11 @@ export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, 
           <MoreVertical size={18} />
         </button>
         {menuOpen && (
-          <div className="top-player-menu-popup">
+          <div className="popup-menu top-player-menu-popup">
             {SKIP_OPTIONS.map((s) => (
               <button
                 key={s}
-                className={`top-player-menu-item ${s === skipInterval ? 'active' : ''}`}
+                className={`popup-menu-item top-player-menu-item ${s === skipInterval ? 'active' : ''}`}
                 onClick={(e) => {
                   e.stopPropagation()
                   usePlayerStore.getState().setSkipInterval(s)
