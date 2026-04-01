@@ -369,18 +369,10 @@ export function BrowsePage() {
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
           const isFile = entry.type === 'file'
-          const isRevealed = isFile && revealedPath === entry.path
+          const isRevealed = revealedPath === entry.path
 
           const itemContent = (
             <>
-              {entry.type === 'folder' && (
-                <button
-                  className="folder-fav-btn"
-                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, 'folder') }}
-                >
-                  <Heart size={18} fill={isFavorite(entry.path) ? 'currentColor' : 'none'} />
-                </button>
-              )}
               {entry.type === 'folder' ? (
                 <div className="file-icon-box file-icon-folder">
                   <Folder size={18} />
@@ -422,75 +414,61 @@ export function BrowsePage() {
                   ) : null
                 })()}
               </div>
-              {entry.type === 'folder' ? (
-                <ChevronRight size={16} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-              ) : (
-                <button
-                  className="file-actions-btn"
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setRevealedPath(revealedPath === entry.path ? null : entry.path)
-                  }}
-                >
-                  <EllipsisVertical size={18} />
-                </button>
-              )}
+              <button
+                className="file-actions-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setRevealedPath(revealedPath === entry.path ? null : entry.path)
+                }}
+              >
+                <EllipsisVertical size={18} />
+              </button>
             </>
           )
 
-          if (isFile) {
-            const fav = isFavorite(entry.path)
-            return (
-              <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
-                <div
-                  className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}`}
-                  onClick={() => handleEntryClick(entry)}
-                  onTouchStart={handleSwipeStart}
-                  onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}
+          const fav = isFavorite(entry.path)
+          return (
+            <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
+              <div
+                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}`}
+                onClick={() => handleEntryClick(entry)}
+                onTouchStart={handleSwipeStart}
+                onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}
+              >
+                {itemContent}
+              </div>
+              <div className="swipe-actions">
+                <button
+                  className="swipe-action-btn swipe-action-fav"
+                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, isFile ? 'file' : 'folder') }}
                 >
-                  {itemContent}
-                </div>
-                <div className="swipe-actions">
-                  <button
-                    className="swipe-action-btn swipe-action-fav"
-                    onClick={(e) => { e.stopPropagation(); toggleFav(entry.path) }}
-                  >
-                    <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
-                  </button>
+                  <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
+                </button>
+                {isFile && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
                   >
                     <Tag size={18} />
                   </button>
-                  {isProMember && (
-                    <button
-                      className="swipe-action-btn swipe-action-info"
-                      onClick={(e) => { e.stopPropagation(); setRevealedPath(null); navigate(`/file-settings?path=${encodeURIComponent(entry.path)}`) }}
-                    >
-                      <Info size={18} />
-                    </button>
-                  )}
-                  {canDelete && (
-                    <button
-                      className="swipe-action-btn swipe-action-delete"
-                      onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  )}
-                </div>
-              </li>
-            )
-          }
-
-          return (
-            <li
-              key={entry.path}
-              className={`file-item ${isActive ? 'file-item--active' : ''}`}
-              onClick={() => handleEntryClick(entry)}
-            >
-              {itemContent}
+                )}
+                {isFile && isProMember && (
+                  <button
+                    className="swipe-action-btn swipe-action-info"
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); navigate(`/file-settings?path=${encodeURIComponent(entry.path)}`) }}
+                  >
+                    <Info size={18} />
+                  </button>
+                )}
+                {canDelete && (
+                  <button
+                    className="swipe-action-btn swipe-action-delete"
+                    onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
+                  >
+                    <Trash2 size={18} />
+                  </button>
+                )}
+              </div>
             </li>
           )
         })}
