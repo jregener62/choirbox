@@ -163,6 +163,7 @@ export function BrowsePage() {
     if (revealedPath) { setRevealedPath(null); return }
     if (entry.type === 'folder') {
       closeSearch()
+      useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
     } else {
       if (entry.path !== currentPath) {
@@ -172,7 +173,14 @@ export function BrowsePage() {
     }
   }
 
+  const browseReturnTo = useAppStore((s) => s.browseReturnTo)
+
   const navigateUp = () => {
+    if (browseReturnTo) {
+      useAppStore.getState().setBrowseReturnTo(null)
+      navigate(browseReturnTo)
+      return
+    }
     const parts = browsePath.split('/').filter(Boolean)
     parts.pop()
     const parent = parts.length > 0 ? '/' + parts.join('/') : ''

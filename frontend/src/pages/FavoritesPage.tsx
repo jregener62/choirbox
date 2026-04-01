@@ -174,6 +174,7 @@ export function FavoritesPage() {
               className="fav-folder-divider"
               onClick={() => {
                 useAppStore.getState().setBrowsePath(group.folder.dropbox_path)
+                useAppStore.getState().setBrowseReturnTo('/favorites')
                 navigate('/')
               }}
             >
