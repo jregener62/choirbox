@@ -12,6 +12,7 @@ import { SectionEditorPage } from '@/pages/SectionEditorPage.tsx'
 import { UsersPage } from '@/pages/admin/UsersPage.tsx'
 import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 import { SectionPresetsPage } from '@/pages/admin/SectionPresetsPage.tsx'
+import { ChoirsPage } from '@/pages/admin/ChoirsPage.tsx'
 import { FileSettingsPage } from '@/pages/FileSettingsPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
@@ -36,6 +37,7 @@ function AppRoutes() {
       <Route path="/admin/users" element={<UsersPage />} />
       <Route path="/admin/labels" element={<LabelsPage />} />
       <Route path="/admin/section-presets" element={<SectionPresetsPage />} />
+      {hasMinRole(userRole, 'developer') && <Route path="/admin/choirs" element={<ChoirsPage />} />}
     </Routes>
   )
 }

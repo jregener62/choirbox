@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -450,6 +450,13 @@ export function SettingsPage() {
                 <span>Sektionsvorlagen</span>
                 <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
               </button>
+              {isDeveloper && (
+                <button className="settings-nav-item" onClick={() => navigate('/admin/choirs')}>
+                  <Music size={18} />
+                  <span>Choere verwalten</span>
+                  <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+                </button>
+              )}
             </div>
           </section>
         )}
