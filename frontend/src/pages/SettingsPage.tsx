@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Hash, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -14,7 +14,7 @@ interface DropboxStatus {
 }
 
 interface AdminSettings {
-  registration_code: string | null
+  invite_code: string | null
   dropbox_root_folder: string | null
 }
 
@@ -25,6 +25,7 @@ export function SettingsPage() {
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
+  const isDeveloper = hasMinRole(user?.role ?? 'guest', 'developer')
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
 
   // Profile edit state
@@ -43,8 +44,9 @@ export function SettingsPage() {
   const [dbxLoading, setDbxLoading] = useState(false)
 
   // Admin settings
-  const [regCode, setRegCode] = useState('')
-  const [regCodeSaving, setRegCodeSaving] = useState(false)
+  const [inviteCode, setInviteCode] = useState('')
+  const [inviteCodeSaving, setInviteCodeSaving] = useState(false)
+  const [linkCopied, setLinkCopied] = useState(false)
   const [rootFolder, setRootFolder] = useState('')
   const [rootFolderSaving, setRootFolderSaving] = useState(false)
   const [message, setMessage] = useState('')
@@ -67,7 +69,7 @@ export function SettingsPage() {
     if (!isAdmin) return
     try {
       const settings = await api<AdminSettings>('/admin/settings')
-      setRegCode(settings.registration_code || '')
+      setInviteCode(settings.invite_code || '')
       setRootFolder(settings.dropbox_root_folder || '')
     } catch {
       // ignore
@@ -152,16 +154,25 @@ export function SettingsPage() {
     }
   }
 
-  const saveRegCode = async () => {
-    setRegCodeSaving(true)
+  const saveInviteCode = async () => {
+    setInviteCodeSaving(true)
     try {
-      await api('/admin/settings', { method: 'PUT', body: { registration_code: regCode } })
-      setMessage('Registrierungscode gespeichert')
+      await api('/admin/settings', { method: 'PUT', body: { invite_code: inviteCode } })
+      setMessage('Einladungscode gespeichert')
     } catch {
       setMessage('Fehler beim Speichern')
     } finally {
-      setRegCodeSaving(false)
+      setInviteCodeSaving(false)
     }
+  }
+
+  const copyInviteLink = () => {
+    if (!inviteCode) return
+    const link = `${window.location.origin}${window.location.pathname}#/join/${encodeURIComponent(inviteCode)}`
+    navigator.clipboard.writeText(link).then(() => {
+      setLinkCopied(true)
+      setTimeout(() => setLinkCopied(false), 2000)
+    })
   }
 
   const saveRootFolder = async () => {
@@ -256,6 +267,12 @@ export function SettingsPage() {
                 <span className="settings-label">Stimmgruppe</span>
                 <span>{user?.voice_part}</span>
               </div>
+              {user?.choir_name && (
+                <div className="settings-row">
+                  <span className="settings-label">Chor</span>
+                  <span>{user.choir_name}</span>
+                </div>
+              )}
             </div>
           )}
         </section>
@@ -306,8 +323,8 @@ export function SettingsPage() {
           </div>
         </section>
 
-        {/* -- Dropbox (Admin) -- */}
-        {isAdmin && (
+        {/* -- Dropbox (Developer) -- */}
+        {isDeveloper && (
           <section>
             <h3 className="settings-heading">{dbxStatus?.connected ? <Cloud size={14} /> : <CloudOff size={14} />} Dropbox</h3>
             {dbxLoading ? (
@@ -347,28 +364,38 @@ export function SettingsPage() {
           </section>
         )}
 
-        {/* -- Registrierungscode (Admin) -- */}
+        {/* -- Einladungslink (Admin) -- */}
         {isAdmin && (
           <section>
-            <h3 className="settings-heading"><Hash size={14} /> Registrierungscode</h3>
+            <h3 className="settings-heading"><Link size={14} /> Einladungslink</h3>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-              Diesen Code an Chormitglieder weitergeben.
+              Diesen Link an neue Chormitglieder weitergeben.
             </div>
+            {inviteCode && (
+              <button
+                className="btn btn-secondary"
+                style={{ width: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                onClick={copyInviteLink}
+              >
+                <Copy size={16} />
+                {linkCopied ? 'Link kopiert!' : 'Einladungslink kopieren'}
+              </button>
+            )}
             <div style={{ display: 'flex', gap: 8 }}>
               <input
                 className="auth-input"
                 type="text"
-                value={regCode}
-                onChange={(e) => setRegCode(e.target.value)}
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value)}
                 placeholder="z.B. MeinChor2026"
               />
               <button
                 className="auth-submit"
-                onClick={saveRegCode}
-                disabled={regCodeSaving}
+                onClick={saveInviteCode}
+                disabled={inviteCodeSaving}
                 style={{ width: 'auto', padding: '10px 20px' }}
               >
-                {regCodeSaving ? '...' : 'OK'}
+                {inviteCodeSaving ? '...' : 'OK'}
               </button>
             </div>
           </section>

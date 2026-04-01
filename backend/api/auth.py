@@ -13,6 +13,7 @@ from sqlmodel import Session, select
 
 from backend.config import REGISTRATION_CODE
 from backend.database import get_session
+from backend.models.choir import Choir
 from backend.models.user import User
 from backend.models.app_settings import AppSettings
 from backend.models.session_token import SessionToken
@@ -130,14 +131,20 @@ def require_role(min_role: str):
 require_admin = require_role("admin")
 
 
-def _user_response(user: User) -> dict:
-    """Build user response dict."""
+def _user_response(user: User, session: Session) -> dict:
+    """Build user response dict including choir info."""
+    choir_name = None
+    if user.choir_id:
+        choir = session.get(Choir, user.choir_id)
+        choir_name = choir.name if choir else None
     return {
         "id": user.id,
         "username": user.username,
         "display_name": user.display_name,
         "role": user.role,
         "voice_part": user.voice_part,
+        "choir_id": user.choir_id,
+        "choir_name": choir_name,
     }
 
 
@@ -164,12 +171,12 @@ def login(data: dict, request: Request, session: Session = Depends(get_session))
     session.refresh(user)
 
     token = _create_token(user.id, session)
-    return {"token": token, "user": _user_response(user)}
+    return {"token": token, "user": _user_response(user, session)}
 
 
 @router.get("/me")
-def get_me(user: User = Depends(require_user)):
-    return _user_response(user)
+def get_me(user: User = Depends(require_user), session: Session = Depends(get_session)):
+    return _user_response(user, session)
 
 
 @router.put("/me")
@@ -183,7 +190,7 @@ def update_me(data: dict, user: User = Depends(require_user), session: Session =
     session.add(user)
     session.commit()
     session.refresh(user)
-    return ActionResponse.success(data=_user_response(user))
+    return ActionResponse.success(data=_user_response(user, session))
 
 
 @router.put("/me/password")
@@ -204,17 +211,31 @@ def change_password(data: dict, user: User = Depends(require_user), session: Ses
     return ActionResponse.success()
 
 
+@router.get("/choir-info")
+def choir_info(invite_code: str, session: Session = Depends(get_session)):
+    """Public endpoint: resolve invite code to choir name."""
+    choir = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
+    if not choir:
+        raise HTTPException(404, "Ungueltiger Einladungslink")
+    return {"choir_id": choir.id, "choir_name": choir.name}
+
+
 @router.post("/register")
 def register(data: dict, request: Request, session: Session = Depends(get_session)):
     ip = request.client.host if request.client else "unknown"
     _check_rate_limit(ip)
 
-    code = data.get("registration_code", "").strip()
+    invite_code = data.get("invite_code", "").strip()
+    # Backward compat: accept registration_code too
+    if not invite_code:
+        invite_code = data.get("registration_code", "").strip()
     username = data.get("username", "").strip()
     display_name = data.get("display_name", "").strip()
     password = data.get("password", "")
     voice_part = data.get("voice_part", "").strip()
 
+    if not invite_code:
+        raise HTTPException(400, "Einladungscode erforderlich")
     if not username or not password:
         raise HTTPException(400, "Username and password required")
     if len(password) < 4:
@@ -222,12 +243,19 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
     if voice_part not in VALID_VOICE_PARTS:
         raise HTTPException(400, f"Voice part must be one of: {', '.join(sorted(VALID_VOICE_PARTS))}")
 
-    # Validate registration code
-    settings = session.get(AppSettings, 1)
-    expected_code = (settings.registration_code if settings else None) or REGISTRATION_CODE
-    if expected_code and code != expected_code:
-        _record_login_attempt(ip)
-        raise HTTPException(403, "Invalid registration code")
+    # Look up choir by invite code
+    choir = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
+    if not choir:
+        # Backward compat: check old AppSettings registration_code
+        settings = session.get(AppSettings, 1)
+        expected_code = (settings.registration_code if settings else None) or REGISTRATION_CODE
+        if not expected_code or invite_code != expected_code:
+            _record_login_attempt(ip)
+            raise HTTPException(403, "Ungueltiger Einladungscode")
+        # Assign to default (first) choir
+        choir = session.exec(select(Choir)).first()
+        if not choir:
+            raise HTTPException(500, "Kein Chor konfiguriert")
 
     # Check uniqueness
     existing = session.exec(select(User).where(User.username == username)).first()
@@ -240,13 +268,14 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
         role="member",
         voice_part=voice_part,
         password_hash=_hash_password(password),
+        choir_id=choir.id,
     )
     session.add(user)
     session.commit()
     session.refresh(user)
 
     token = _create_token(user.id, session)
-    return {"token": token, "user": _user_response(user)}
+    return {"token": token, "user": _user_response(user, session)}
 
 
 @router.post("/logout")

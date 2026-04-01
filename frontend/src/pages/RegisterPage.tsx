@@ -1,12 +1,14 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useState, useEffect, type FormEvent } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { Music, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 
 const VOICE_PARTS = ['Sopran', 'Alt', 'Tenor', 'Bass'] as const
 
 export function RegisterPage() {
-  const [code, setCode] = useState('')
+  const { inviteCode } = useParams<{ inviteCode: string }>()
+  const [choirName, setChoirName] = useState<string | null>(null)
+  const [choirError, setChoirError] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -17,6 +19,59 @@ export function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const register = useAuthStore((s) => s.register)
   const navigate = useNavigate()
+
+  useEffect(() => {
+    if (!inviteCode) return
+    fetch(`/api/auth/choir-info?invite_code=${encodeURIComponent(inviteCode)}`)
+      .then((res) => {
+        if (!res.ok) throw new Error('Ungueltiger Einladungslink')
+        return res.json()
+      })
+      .then((data) => setChoirName(data.choir_name))
+      .catch(() => setChoirError('Ungueltiger Einladungslink'))
+  }, [inviteCode])
+
+  if (!inviteCode) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <div className="auth-logo-icon">
+              <Music size={24} />
+            </div>
+            <h1 className="auth-title">Cantabox</h1>
+          </div>
+          <p style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
+            Du brauchst einen Einladungslink von deinem Chorleiter, um ein Konto zu erstellen.
+          </p>
+          <p className="auth-footer">
+            Bereits registriert?{' '}
+            <a onClick={() => navigate('/login')}>Anmelden</a>
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  if (choirError) {
+    return (
+      <div className="auth-page">
+        <div className="auth-card">
+          <div className="auth-logo">
+            <div className="auth-logo-icon">
+              <Music size={24} />
+            </div>
+            <h1 className="auth-title">Cantabox</h1>
+          </div>
+          <div className="auth-error">{choirError}</div>
+          <p className="auth-footer">
+            Bereits registriert?{' '}
+            <a onClick={() => navigate('/login')}>Anmelden</a>
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
@@ -34,7 +89,7 @@ export function RegisterPage() {
     setLoading(true)
     try {
       await register({
-        registration_code: code,
+        invite_code: inviteCode,
         username,
         display_name: displayName || username,
         password,
@@ -57,22 +112,16 @@ export function RegisterPage() {
           </div>
           <h1 className="auth-title">Cantabox</h1>
           <p className="auth-subtitle">Konto erstellen</p>
+          {choirName && (
+            <p style={{ marginTop: 'var(--space-2)', opacity: 0.8 }}>
+              Chor: <strong>{choirName}</strong>
+            </p>
+          )}
         </div>
 
         {error && <div className="auth-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="auth-field">
-            <label className="auth-label">Registrierungscode</label>
-            <input
-              className="auth-input"
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              placeholder="Vom Chorleiter erhalten"
-              required
-            />
-          </div>
           <div className="auth-field">
             <label className="auth-label">Anzeigename</label>
             <input

@@ -34,6 +34,9 @@ def _migrate(eng):
         ("file_settings", "pdf_ref_path", "VARCHAR(1000)"),
         ("pdf_files", "page_count", "INTEGER DEFAULT 1"),
         ("favorites", "entry_type", "VARCHAR(10) DEFAULT 'file'"),
+        ("users", "choir_id", "VARCHAR(36)"),
+        ("labels", "choir_id", "VARCHAR(36)"),
+        ("section_presets", "choir_id", "VARCHAR(36)"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in migrations:

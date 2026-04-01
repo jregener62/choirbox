@@ -15,7 +15,7 @@ router = APIRouter(prefix="/labels", tags=["labels"])
 
 @router.get("")
 def list_labels(user: User = Depends(require_user), session: Session = Depends(get_session)):
-    labels = session.exec(select(Label).order_by(Label.sort_order)).all()
+    labels = session.exec(select(Label).where(Label.choir_id == user.choir_id).order_by(Label.sort_order)).all()
     return [
         {
             "id": l.id,
@@ -38,6 +38,7 @@ def create_label(data: dict, user: User = Depends(require_role("pro-member")), s
         color=data.get("color", "#6366f1"),
         category=data.get("category"),
         sort_order=data.get("sort_order", 0),
+        choir_id=user.choir_id,
     )
     session.add(label)
     session.commit()
@@ -53,7 +54,7 @@ def update_label(
     session: Session = Depends(get_session),
 ):
     label = session.get(Label, label_id)
-    if not label:
+    if not label or label.choir_id != user.choir_id:
         raise HTTPException(404, "Label not found")
 
     for field in ["name", "color", "category", "sort_order"]:
@@ -72,7 +73,7 @@ def delete_label(
     session: Session = Depends(get_session),
 ):
     label = session.get(Label, label_id)
-    if not label:
+    if not label or label.choir_id != user.choir_id:
         raise HTTPException(404, "Label not found")
 
     # Remove all user-label assignments for this label

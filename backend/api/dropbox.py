@@ -11,6 +11,7 @@ from sqlmodel import Session
 from backend.config import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REDIRECT_URI
 from backend.database import get_session
 from backend.models.app_settings import AppSettings
+from backend.models.choir import Choir
 from backend.models.user import User
 from backend.api.auth import require_user, require_admin, require_role
 from backend.schemas import ActionResponse
@@ -20,10 +21,13 @@ router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 _oauth_states: dict[str, str] = {}
 
 
-def _get_root_folder(session: Session) -> str:
-    """Read dropbox_root_folder from settings, stripped of leading/trailing slashes."""
-    settings = session.get(AppSettings, 1)
-    return (settings.dropbox_root_folder or "").strip("/") if settings else ""
+def _get_root_folder(user: User, session: Session) -> str:
+    """Read dropbox_root_folder from the user's choir."""
+    if user.choir_id:
+        choir = session.get(Choir, user.choir_id)
+        if choir:
+            return (choir.dropbox_root_folder or "").strip("/")
+    return ""
 
 
 def _to_dropbox_path(user_path: str, root_folder: str) -> str:
@@ -69,7 +73,7 @@ def dropbox_status(
 
 
 @router.get("/authorize")
-def dropbox_authorize(user: User = Depends(require_admin)):
+def dropbox_authorize(user: User = Depends(require_role("developer"))):
     if not DROPBOX_APP_KEY or not DROPBOX_APP_SECRET:
         raise HTTPException(400, "Dropbox App Key and App Secret must be configured in .env.")
 
@@ -172,7 +176,7 @@ async def dropbox_browse(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(session)
+    root_folder = _get_root_folder(user, session)
     dropbox_path = _to_dropbox_path(path, root_folder)
 
     try:
@@ -224,7 +228,7 @@ async def dropbox_search(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(session)
+    root_folder = _get_root_folder(user, session)
     search_path = ("/" + root_folder) if root_folder else ""
 
     try:
@@ -263,7 +267,7 @@ async def dropbox_stream(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(session)
+    root_folder = _get_root_folder(user, session)
     dropbox_path = _to_dropbox_path(path, root_folder)
 
     try:
@@ -309,7 +313,7 @@ async def dropbox_upload(
         content = mp3_content
         filename = filename.rsplit(".", 1)[0] + ".mp3"
 
-    root_folder = _get_root_folder(session)
+    root_folder = _get_root_folder(user, session)
 
     if target_path and not target_path.startswith("/"):
         target_path = "/" + target_path
@@ -421,7 +425,7 @@ async def dropbox_delete_file(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(session)
+    root_folder = _get_root_folder(user, session)
     dropbox_path = _to_dropbox_path(path, root_folder)
 
     try:
@@ -440,7 +444,7 @@ async def dropbox_delete_file(
 
 @router.post("/disconnect")
 def dropbox_disconnect(
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("developer")),
     session: Session = Depends(get_session),
 ):
     settings = _get_or_create_settings(session)

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/section-presets", tags=["section-presets"])
 
 @router.get("")
 def list_presets(user: User = Depends(require_user), session: Session = Depends(get_session)):
-    presets = session.exec(select(SectionPreset).order_by(SectionPreset.sort_order)).all()
+    presets = session.exec(select(SectionPreset).where(SectionPreset.choir_id == user.choir_id).order_by(SectionPreset.sort_order)).all()
     return [{"id": p.id, "name": p.name, "color": p.color, "sort_order": p.sort_order} for p in presets]
 
 
@@ -28,6 +28,7 @@ def create_preset(data: dict, user: User = Depends(require_role("pro-member")), 
         name=name,
         color=data.get("color", "#8b5cf6"),
         sort_order=data.get("sort_order", 0),
+        choir_id=user.choir_id,
     )
     session.add(preset)
     session.commit()
@@ -43,7 +44,7 @@ def update_preset(
     session: Session = Depends(get_session),
 ):
     preset = session.get(SectionPreset, preset_id)
-    if not preset:
+    if not preset or preset.choir_id != user.choir_id:
         raise HTTPException(404, "Preset not found")
 
     for field in ["name", "color", "sort_order"]:
@@ -62,7 +63,7 @@ def delete_preset(
     session: Session = Depends(get_session),
 ):
     preset = session.get(SectionPreset, preset_id)
-    if not preset:
+    if not preset or preset.choir_id != user.choir_id:
         raise HTTPException(404, "Preset not found")
 
     session.delete(preset)

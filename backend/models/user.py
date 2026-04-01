@@ -14,4 +14,5 @@ class User(SQLModel, table=True):
     password_hash: str = Field(max_length=255)
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
+    choir_id: Optional[str] = Field(default=None, foreign_key="choirs.id", index=True)
     last_login_at: Optional[datetime] = Field(default=None)

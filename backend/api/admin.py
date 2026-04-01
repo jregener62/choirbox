@@ -1,13 +1,14 @@
-"""Admin API — user management."""
+"""Admin API — user management and choir management."""
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 
 from backend.database import get_session
+from backend.models.choir import Choir
 from backend.models.user import User
 from backend.models.app_settings import AppSettings
-from backend.api.auth import require_admin, _hash_password, VALID_VOICE_PARTS, VALID_ROLES
+from backend.api.auth import require_admin, require_role, _hash_password, VALID_VOICE_PARTS, VALID_ROLES
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -15,7 +16,7 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 @router.get("/users")
 def list_users(user: User = Depends(require_admin), session: Session = Depends(get_session)):
-    users = session.exec(select(User).order_by(User.created_at)).all()
+    users = session.exec(select(User).where(User.choir_id == user.choir_id).order_by(User.created_at)).all()
     return [
         {
             "id": u.id,
@@ -55,6 +56,7 @@ def create_user(data: dict, user: User = Depends(require_admin), session: Sessio
         role=role,
         voice_part=voice_part,
         password_hash=_hash_password(password),
+        choir_id=user.choir_id,
     )
     session.add(new_user)
     session.commit()
@@ -70,7 +72,7 @@ def update_user(
     session: Session = Depends(get_session),
 ):
     target = session.get(User, user_id)
-    if not target:
+    if not target or target.choir_id != user.choir_id:
         raise HTTPException(404, "User not found")
 
     if "role" in data and data["role"] not in VALID_ROLES:
@@ -96,7 +98,7 @@ def delete_user(
     session: Session = Depends(get_session),
 ):
     target = session.get(User, user_id)
-    if not target:
+    if not target or target.choir_id != user.choir_id:
         raise HTTPException(404, "User not found")
     if target.id == user.id:
         raise HTTPException(400, "Cannot delete yourself")
@@ -108,25 +110,68 @@ def delete_user(
 
 @router.get("/settings")
 def get_settings(user: User = Depends(require_admin), session: Session = Depends(get_session)):
-    settings = session.get(AppSettings, 1)
+    choir = session.get(Choir, user.choir_id) if user.choir_id else None
     return {
-        "registration_code": settings.registration_code if settings else None,
-        "dropbox_root_folder": settings.dropbox_root_folder if settings else None,
+        "invite_code": choir.invite_code if choir else None,
+        "dropbox_root_folder": choir.dropbox_root_folder if choir else None,
     }
 
 
 @router.put("/settings")
 def update_settings(data: dict, user: User = Depends(require_admin), session: Session = Depends(get_session)):
-    settings = session.get(AppSettings, 1)
-    if not settings:
-        settings = AppSettings(id=1)
+    if not user.choir_id:
+        raise HTTPException(400, "Kein Chor zugeordnet")
+    choir = session.get(Choir, user.choir_id)
+    if not choir:
+        raise HTTPException(404, "Chor nicht gefunden")
 
-    if "registration_code" in data:
-        settings.registration_code = data["registration_code"]
+    if "invite_code" in data:
+        new_code = data["invite_code"].strip()
+        if new_code and new_code != choir.invite_code:
+            existing = session.exec(select(Choir).where(Choir.invite_code == new_code)).first()
+            if existing:
+                raise HTTPException(409, "Einladungscode bereits vergeben")
+            choir.invite_code = new_code
     if "dropbox_root_folder" in data:
-        settings.dropbox_root_folder = data["dropbox_root_folder"]
+        choir.dropbox_root_folder = data["dropbox_root_folder"].strip() or None
 
-    settings.updated_at = datetime.utcnow()
-    session.add(settings)
+    session.add(choir)
     session.commit()
     return ActionResponse.success()
+
+
+# -- Choir management (developer only) --
+
+@router.get("/choirs")
+def list_choirs(user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+    choirs = session.exec(select(Choir).order_by(Choir.created_at)).all()
+    return [
+        {
+            "id": c.id,
+            "name": c.name,
+            "invite_code": c.invite_code,
+            "dropbox_root_folder": c.dropbox_root_folder,
+            "created_at": c.created_at.isoformat(),
+        }
+        for c in choirs
+    ]
+
+
+@router.post("/choirs")
+def create_choir(data: dict, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+    name = data.get("name", "").strip()
+    invite_code = data.get("invite_code", "").strip()
+    dropbox_root_folder = data.get("dropbox_root_folder", "").strip() or None
+
+    if not name or not invite_code:
+        raise HTTPException(400, "name und invite_code sind erforderlich")
+
+    existing = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
+    if existing:
+        raise HTTPException(409, "Einladungscode bereits vergeben")
+
+    choir = Choir(name=name, invite_code=invite_code, dropbox_root_folder=dropbox_root_folder)
+    session.add(choir)
+    session.commit()
+    session.refresh(choir)
+    return ActionResponse.success(data={"id": choir.id, "name": choir.name})

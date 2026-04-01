@@ -5,8 +5,8 @@ from fastapi.responses import FileResponse, Response
 from sqlmodel import Session
 
 from backend.database import get_session
+from backend.models.choir import Choir
 from backend.models.user import User
-from backend.models.app_settings import AppSettings
 from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
 from backend.services import pdf_service
@@ -15,10 +15,13 @@ from backend.services.dropbox_service import get_dropbox_service
 router = APIRouter(prefix="/pdf", tags=["pdf"])
 
 
-def _dropbox_pdf_path(audio_path: str, pdf_name: str, session: Session) -> str | None:
+def _dropbox_pdf_path(audio_path: str, pdf_name: str, user: User, session: Session) -> str | None:
     """Build the Dropbox path for a PDF in the same folder as the audio file."""
-    settings = session.get(AppSettings, 1)
-    root_folder = (settings.dropbox_root_folder or "").strip("/") if settings else ""
+    root_folder = ""
+    if user.choir_id:
+        choir = session.get(Choir, user.choir_id)
+        if choir:
+            root_folder = (choir.dropbox_root_folder or "").strip("/")
     folder = audio_path.rsplit("/", 1)[0] if "/" in audio_path else ""
     parts = [p for p in [root_folder, folder.strip("/"), pdf_name] if p]
     return "/" + "/".join(parts) if parts else None
@@ -67,7 +70,7 @@ async def upload_pdf(
     try:
         dbx = get_dropbox_service(session)
         if dbx:
-            dbx_path = _dropbox_pdf_path(dropbox_path, original_name, session)
+            dbx_path = _dropbox_pdf_path(dropbox_path, original_name, user, session)
             if dbx_path:
                 await dbx.upload_file(content, dbx_path)
     except Exception:
@@ -143,7 +146,7 @@ async def delete_pdf(
     try:
         dbx = get_dropbox_service(session)
         if dbx:
-            dbx_path = _dropbox_pdf_path(path, original_name, session)
+            dbx_path = _dropbox_pdf_path(path, original_name, user, session)
             if dbx_path:
                 await dbx.delete_file(dbx_path)
     except Exception:

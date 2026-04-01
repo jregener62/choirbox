@@ -4,6 +4,8 @@ export interface User {
   display_name: string
   role: 'guest' | 'member' | 'pro-member' | 'chorleiter' | 'admin'
   voice_part: string
+  choir_id: string | null
+  choir_name: string | null
 }
 
 export interface LoginResponse {

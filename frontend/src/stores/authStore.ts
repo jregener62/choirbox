@@ -24,7 +24,7 @@ interface AuthState {
   user: User | null
   login: (username: string, password: string) => Promise<void>
   register: (data: {
-    registration_code: string
+    invite_code: string
     username: string
     display_name: string
     password: string

@@ -46,6 +46,7 @@ export function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/join/:inviteCode" element={<RegisterPage />} />
         <Route
           path="/*"
           element={

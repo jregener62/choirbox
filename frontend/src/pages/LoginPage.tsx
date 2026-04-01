@@ -78,8 +78,7 @@ export function LoginPage() {
         </form>
 
         <p className="auth-footer">
-          Noch kein Konto?{' '}
-          <a onClick={() => navigate('/register')}>Jetzt registrieren</a>
+          Noch kein Konto? Du brauchst einen Einladungslink von deinem Chorleiter.
         </p>
       </div>
     </div>
