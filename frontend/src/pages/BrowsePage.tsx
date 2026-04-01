@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info, Home, Pencil } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -566,107 +567,95 @@ export function BrowsePage() {
 
       {/* Label Picker Overlay */}
       {swipeLabelPath && (
-        <div className="confirm-overlay" onClick={() => setSwipeLabelPath(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-title">Labels</p>
-            <div className="label-picker" style={{ margin: 0 }}>
-              {labels.map((l) => {
-                const assigned = isAssigned(swipeLabelPath, l.id)
-                return (
-                  <button
-                    key={l.id}
-                    className={`label-picker-item ${assigned ? 'assigned' : ''}`}
-                    style={{
-                      borderColor: assigned ? l.color : 'var(--border)',
-                      background: assigned ? l.color + '25' : 'none',
-                      color: assigned ? l.color : 'var(--text-secondary)',
-                    }}
-                    onClick={() => toggleLabel(swipeLabelPath, l.id)}
-                  >
-                    <span className="label-picker-dot" style={{ background: l.color }} />
-                    {l.name}
-                  </button>
-                )
-              })}
-            </div>
-            <div className="confirm-actions" style={{ marginTop: 12 }}>
-              <button className="btn btn-secondary" onClick={() => setSwipeLabelPath(null)}>
-                Fertig
-              </button>
-            </div>
+        <ConfirmDialog
+          title="Labels"
+          onClose={() => setSwipeLabelPath(null)}
+          confirmLabel="Fertig"
+          onConfirm={() => setSwipeLabelPath(null)}
+          cancelLabel={null}
+          variant="secondary"
+        >
+          <div className="label-picker" style={{ margin: 0 }}>
+            {labels.map((l) => {
+              const assigned = isAssigned(swipeLabelPath, l.id)
+              return (
+                <button
+                  key={l.id}
+                  className={`label-picker-item ${assigned ? 'assigned' : ''}`}
+                  style={{
+                    borderColor: assigned ? l.color : 'var(--border)',
+                    background: assigned ? l.color + '25' : 'none',
+                    color: assigned ? l.color : 'var(--text-secondary)',
+                  }}
+                  onClick={() => toggleLabel(swipeLabelPath, l.id)}
+                >
+                  <span className="label-picker-dot" style={{ background: l.color }} />
+                  {l.name}
+                </button>
+              )
+            })}
           </div>
-        </div>
+        </ConfirmDialog>
       )}
 
       {confirmEntry && (
-        <div className="confirm-overlay" onClick={() => !deleting && setConfirmEntry(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-title">{confirmEntry.type === 'folder' ? 'Ordner loeschen?' : 'Datei loeschen?'}</p>
-            <p className="confirm-filename">{confirmEntry.name}</p>
-            <p className="confirm-hint">
-              {confirmEntry.type === 'folder'
-                ? 'Nur leere Ordner koennen geloescht werden.'
-                : 'Wird unwiderruflich aus der Dropbox geloescht.'}
-            </p>
-            <div className="confirm-actions">
-              <button className="btn btn-secondary" onClick={() => setConfirmEntry(null)} disabled={deleting}>
-                Abbrechen
-              </button>
-              <button className="btn btn-danger" onClick={confirmEntry.type === 'folder' ? handleDeleteFolder : handleDelete} disabled={deleting}>
-                {deleting ? 'Loeschen...' : 'Loeschen'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={confirmEntry.type === 'folder' ? 'Ordner loeschen?' : 'Datei loeschen?'}
+          filename={confirmEntry.name}
+          hint={confirmEntry.type === 'folder'
+            ? 'Nur leere Ordner koennen geloescht werden.'
+            : 'Wird unwiderruflich aus der Dropbox geloescht.'}
+          onClose={() => setConfirmEntry(null)}
+          confirmLabel="Loeschen"
+          confirmLoadingLabel="Loeschen..."
+          onConfirm={confirmEntry.type === 'folder' ? handleDeleteFolder : handleDelete}
+          loading={deleting}
+        />
       )}
 
       {createFolderOpen && (
-        <div className="confirm-overlay" onClick={() => !creating && setCreateFolderOpen(false)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-title">Ordner erstellen</p>
-            <input
-              className="auth-input"
-              type="text"
-              value={newFolderName}
-              onChange={(e) => setNewFolderName(e.target.value)}
-              placeholder="Ordnername"
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
-            />
-            <div className="confirm-actions" style={{ marginTop: 12 }}>
-              <button className="btn btn-secondary" onClick={() => setCreateFolderOpen(false)} disabled={creating}>
-                Abbrechen
-              </button>
-              <button className="auth-submit" style={{ flex: 1 }} onClick={handleCreateFolder} disabled={creating || !newFolderName.trim()}>
-                {creating ? 'Erstellen...' : 'Erstellen'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="Ordner erstellen"
+          onClose={() => setCreateFolderOpen(false)}
+          confirmLabel="Erstellen"
+          confirmLoadingLabel="Erstellen..."
+          onConfirm={handleCreateFolder}
+          loading={creating}
+          confirmDisabled={!newFolderName.trim()}
+          variant="primary"
+        >
+          <input
+            className="auth-input"
+            type="text"
+            value={newFolderName}
+            onChange={(e) => setNewFolderName(e.target.value)}
+            placeholder="Ordnername"
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+          />
+        </ConfirmDialog>
       )}
 
       {renameEntry && (
-        <div className="confirm-overlay" onClick={() => !renaming && setRenameEntry(null)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-title">{renameEntry.type === 'folder' ? 'Ordner umbenennen' : 'Datei umbenennen'}</p>
-            <input
-              className="auth-input"
-              type="text"
-              value={renameName}
-              onChange={(e) => setRenameName(e.target.value)}
-              autoFocus
-              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
-            />
-            <div className="confirm-actions" style={{ marginTop: 12 }}>
-              <button className="btn btn-secondary" onClick={() => setRenameEntry(null)} disabled={renaming}>
-                Abbrechen
-              </button>
-              <button className="auth-submit" style={{ flex: 1 }} onClick={handleRename} disabled={renaming || !renameName.trim()}>
-                {renaming ? 'Speichern...' : 'Speichern'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title={renameEntry.type === 'folder' ? 'Ordner umbenennen' : 'Datei umbenennen'}
+          onClose={() => setRenameEntry(null)}
+          confirmLabel="Speichern"
+          confirmLoadingLabel="Speichern..."
+          onConfirm={handleRename}
+          loading={renaming}
+          confirmDisabled={!renameName.trim()}
+          variant="primary"
+        >
+          <input
+            className="auth-input"
+            type="text"
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+          />
+        </ConfirmDialog>
       )}
 
       <input

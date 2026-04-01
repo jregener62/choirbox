@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LayoutList, EllipsisVertical, ChevronLeft, Info, FileUp, Trash2 } from 'lucide-react'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
@@ -241,21 +242,16 @@ export function PlayerPage() {
       ) : null}
 
       {confirmDelete && (
-        <div className="confirm-overlay" onClick={() => !deleting && setConfirmDelete(false)}>
-          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-title">PDF loeschen?</p>
-            <p className="confirm-filename">{pdfInfo?.original_name}</p>
-            <p className="confirm-hint">Wird unwiderruflich aus der Dropbox geloescht.</p>
-            <div className="confirm-actions">
-              <button className="btn btn-secondary" onClick={() => setConfirmDelete(false)} disabled={deleting}>
-                Abbrechen
-              </button>
-              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Loeschen...' : 'Loeschen'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <ConfirmDialog
+          title="PDF loeschen?"
+          filename={pdfInfo?.original_name}
+          hint="Wird unwiderruflich aus der Dropbox geloescht."
+          onClose={() => setConfirmDelete(false)}
+          confirmLabel="Loeschen"
+          confirmLoadingLabel="Loeschen..."
+          onConfirm={handleDelete}
+          loading={deleting}
+        />
       )}
     </div>
   )
