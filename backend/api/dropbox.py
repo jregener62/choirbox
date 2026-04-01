@@ -454,6 +454,119 @@ async def dropbox_delete_file(
     })
 
 
+@router.post("/folder")
+async def dropbox_create_folder(
+    data: dict,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Create a new folder in Dropbox. Requires Admin role."""
+    from backend.services.dropbox_service import get_dropbox_service
+
+    name = (data.get("name") or "").strip()
+    path = data.get("path", "")
+    if not name:
+        raise HTTPException(400, "Ordnername ist erforderlich")
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox not connected")
+
+    root_folder = _get_root_folder(user, session)
+    parent = _to_dropbox_path(path, root_folder)
+    full_path = f"{parent}/{name}".replace("//", "/")
+
+    try:
+        result = await dbx.create_folder(full_path)
+    except RuntimeError as e:
+        if "path/conflict" in str(e):
+            raise HTTPException(409, "Ordner existiert bereits")
+        raise HTTPException(502, str(e))
+
+    return ActionResponse.success(data={
+        "name": result.get("name", name),
+        "path": _to_user_path(result.get("path_display", full_path), root_folder),
+    })
+
+
+@router.delete("/folder")
+async def dropbox_delete_folder(
+    path: str = "",
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Delete an empty folder from Dropbox. Requires Admin role."""
+    from backend.services.dropbox_service import get_dropbox_service
+
+    if not path:
+        raise HTTPException(400, "path is required")
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox not connected")
+
+    root_folder = _get_root_folder(user, session)
+    dropbox_path = _to_dropbox_path(path, root_folder)
+
+    # Check if folder is empty
+    try:
+        entries = await dbx.list_folder(dropbox_path)
+    except RuntimeError as e:
+        if "path/not_found" in str(e):
+            raise HTTPException(404, "Ordner nicht gefunden")
+        raise HTTPException(502, str(e))
+
+    if entries:
+        raise HTTPException(409, "Ordner ist nicht leer")
+
+    try:
+        await dbx.delete_file(dropbox_path)
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+
+    return ActionResponse.success()
+
+
+@router.post("/rename")
+async def dropbox_rename(
+    data: dict,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Rename a file or folder in Dropbox. Requires Admin role."""
+    from backend.services.dropbox_service import get_dropbox_service
+
+    path = (data.get("path") or "").strip()
+    new_name = (data.get("new_name") or "").strip()
+    if not path or not new_name:
+        raise HTTPException(400, "path und new_name sind erforderlich")
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox not connected")
+
+    root_folder = _get_root_folder(user, session)
+    from_dropbox = _to_dropbox_path(path, root_folder)
+
+    # Build new path: same parent + new name
+    parent = from_dropbox.rsplit("/", 1)[0] if "/" in from_dropbox else ""
+    to_dropbox = f"{parent}/{new_name}" if parent else f"/{new_name}"
+
+    try:
+        result = await dbx.move_file(from_dropbox, to_dropbox)
+    except RuntimeError as e:
+        if "to/conflict" in str(e) or "path/conflict" in str(e):
+            raise HTTPException(409, "Name bereits vergeben")
+        if "path_lookup/not_found" in str(e) or "from_lookup/not_found" in str(e):
+            raise HTTPException(404, "Datei/Ordner nicht gefunden")
+        raise HTTPException(502, str(e))
+
+    return ActionResponse.success(data={
+        "name": result.get("name", new_name),
+        "path": _to_user_path(result.get("path_display", to_dropbox), root_folder),
+    })
+
+
 @router.post("/duration")
 def report_duration(
     data: dict,

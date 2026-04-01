@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info, Home } from 'lucide-react'
+import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info, Home, Pencil } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -30,6 +30,7 @@ export function BrowsePage() {
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel, assignments } = useLabelsStore()
   const user = useAuthStore((s) => s.user)
   const canDelete = !!user && ['chorleiter', 'admin'].includes(user.role)
+  const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
   const [entries, setEntries] = useState<DropboxEntry[]>([])
   const [loading, setLoading] = useState(false)
@@ -45,6 +46,16 @@ export function BrowsePage() {
   const [deleting, setDeleting] = useState(false)
   const swipeStartRef = useRef<{ x: number; y: number } | null>(null)
   const didSwipeRef = useRef(false)
+
+  // Folder create state
+  const [createFolderOpen, setCreateFolderOpen] = useState(false)
+  const [newFolderName, setNewFolderName] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  // Rename state
+  const [renameEntry, setRenameEntry] = useState<DropboxEntry | null>(null)
+  const [renameName, setRenameName] = useState('')
+  const [renaming, setRenaming] = useState(false)
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
@@ -222,6 +233,54 @@ export function BrowsePage() {
   // Show filter bar if user has any label assignments at all
   const hasAnyLabels = assignments.length > 0
 
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim() || creating) return
+    setCreating(true)
+    try {
+      await api('/dropbox/folder', { method: 'POST', body: { name: newFolderName.trim(), path: browsePath } })
+      setNewFolderName('')
+      setCreateFolderOpen(false)
+      await loadFolder(browsePath)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Erstellen')
+    } finally {
+      setCreating(false)
+    }
+  }
+
+  const handleDeleteFolder = async () => {
+    if (!confirmEntry || deleting) return
+    setDeleting(true)
+    try {
+      await api(`/dropbox/folder?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })
+      setConfirmEntry(null)
+      setRevealedPath(null)
+      await loadFolder(browsePath)
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Fehler beim Loeschen'
+      setError(msg)
+      setConfirmEntry(null)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const handleRename = async () => {
+    if (!renameEntry || !renameName.trim() || renaming) return
+    setRenaming(true)
+    try {
+      await api('/dropbox/rename', { method: 'POST', body: { path: renameEntry.path, new_name: renameName.trim() } })
+      setRenameEntry(null)
+      setRevealedPath(null)
+      await loadFolder(browsePath)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Fehler beim Umbenennen')
+      setRenameEntry(null)
+    } finally {
+      setRenaming(false)
+    }
+  }
+
   return (
     <div className="browse-page">
       {/* Sticky header area */}
@@ -251,6 +310,11 @@ export function BrowsePage() {
               {isProMember && (
                 <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
                   <Upload size={18} />
+                </button>
+              )}
+              {isAdmin && (
+                <button className="player-header-btn" onClick={() => { setNewFolderName(''); setCreateFolderOpen(true) }}>
+                  <FolderPlus size={18} />
                 </button>
               )}
               <button className="player-header-btn" onClick={openSearch}>
@@ -458,7 +522,15 @@ export function BrowsePage() {
                     <Info size={18} />
                   </button>
                 )}
-                {isFile && canDelete && (
+                {isAdmin && (
+                  <button
+                    className="swipe-action-btn swipe-action-info"
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setRenameName(entry.name); setRenameEntry(entry) }}
+                  >
+                    <Pencil size={18} />
+                  </button>
+                )}
+                {(isFile ? canDelete : isAdmin) && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
@@ -511,15 +583,68 @@ export function BrowsePage() {
       {confirmEntry && (
         <div className="confirm-overlay" onClick={() => !deleting && setConfirmEntry(null)}>
           <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-            <p className="confirm-title">Datei löschen?</p>
+            <p className="confirm-title">{confirmEntry.type === 'folder' ? 'Ordner loeschen?' : 'Datei loeschen?'}</p>
             <p className="confirm-filename">{confirmEntry.name}</p>
-            <p className="confirm-hint">Wird unwiderruflich aus der Dropbox gelöscht.</p>
+            <p className="confirm-hint">
+              {confirmEntry.type === 'folder'
+                ? 'Nur leere Ordner koennen geloescht werden.'
+                : 'Wird unwiderruflich aus der Dropbox geloescht.'}
+            </p>
             <div className="confirm-actions">
               <button className="btn btn-secondary" onClick={() => setConfirmEntry(null)} disabled={deleting}>
                 Abbrechen
               </button>
-              <button className="btn btn-danger" onClick={handleDelete} disabled={deleting}>
-                {deleting ? 'Löschen...' : 'Löschen'}
+              <button className="btn btn-danger" onClick={confirmEntry.type === 'folder' ? handleDeleteFolder : handleDelete} disabled={deleting}>
+                {deleting ? 'Loeschen...' : 'Loeschen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {createFolderOpen && (
+        <div className="confirm-overlay" onClick={() => !creating && setCreateFolderOpen(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">Ordner erstellen</p>
+            <input
+              className="auth-input"
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Ordnername"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleCreateFolder()}
+            />
+            <div className="confirm-actions" style={{ marginTop: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setCreateFolderOpen(false)} disabled={creating}>
+                Abbrechen
+              </button>
+              <button className="auth-submit" style={{ flex: 1 }} onClick={handleCreateFolder} disabled={creating || !newFolderName.trim()}>
+                {creating ? 'Erstellen...' : 'Erstellen'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {renameEntry && (
+        <div className="confirm-overlay" onClick={() => !renaming && setRenameEntry(null)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <p className="confirm-title">{renameEntry.type === 'folder' ? 'Ordner umbenennen' : 'Datei umbenennen'}</p>
+            <input
+              className="auth-input"
+              type="text"
+              value={renameName}
+              onChange={(e) => setRenameName(e.target.value)}
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+            />
+            <div className="confirm-actions" style={{ marginTop: 12 }}>
+              <button className="btn btn-secondary" onClick={() => setRenameEntry(null)} disabled={renaming}>
+                Abbrechen
+              </button>
+              <button className="auth-submit" style={{ flex: 1 }} onClick={handleRename} disabled={renaming || !renameName.trim()}>
+                {renaming ? 'Speichern...' : 'Speichern'}
               </button>
             </div>
           </div>

@@ -160,10 +160,7 @@ class DropboxService:
 
     async def list_folder(self, path: str) -> list[dict]:
         """List files and folders at a Dropbox path with full pagination."""
-        result = await self.api_call("files/list_folder", {
-            "path": path,
-            "include_media_info": True,
-        })
+        result = await self.api_call("files/list_folder", {"path": path})
         entries = result.get("entries", [])
 
         page = 1
@@ -205,6 +202,19 @@ class DropboxService:
     async def delete_file(self, dropbox_path: str) -> dict:
         """Delete a file or folder from Dropbox."""
         return await self.api_call("files/delete_v2", {"path": dropbox_path})
+
+    async def create_folder(self, path: str) -> dict:
+        """Create a folder in Dropbox."""
+        result = await self.api_call("files/create_folder_v2", {"path": path})
+        return result.get("metadata", {})
+
+    async def move_file(self, from_path: str, to_path: str) -> dict:
+        """Move/rename a file or folder in Dropbox."""
+        result = await self.api_call("files/move_v2", {
+            "from_path": from_path,
+            "to_path": to_path,
+        })
+        return result.get("metadata", {})
 
     async def get_account_info(self) -> dict:
         """Get current account info (for connection test)."""
