@@ -2,7 +2,7 @@ import type { ReactNode } from 'react'
 
 interface ConfirmDialogProps {
   title: string
-  filename?: string
+  filename?: string | null
   hint?: string
   children?: ReactNode
   onClose: () => void
