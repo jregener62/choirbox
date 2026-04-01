@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Plus, Copy, Check } from 'lucide-react'
+import { ChevronLeft, Plus, Copy, Check, Pencil, X } from 'lucide-react'
 import { api } from '@/api/client.ts'
 
 interface Choir {
@@ -21,6 +21,10 @@ export function ChoirsPage() {
   const [rootFolder, setRootFolder] = useState('')
   const [saving, setSaving] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [editId, setEditId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editInviteCode, setEditInviteCode] = useState('')
+  const [editRootFolder, setEditRootFolder] = useState('')
   const navigate = useNavigate()
 
   const loadChoirs = useCallback(async () => {
@@ -61,6 +65,40 @@ export function ChoirsPage() {
       loadChoirs()
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Fehler beim Erstellen')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const startEdit = (choir: Choir) => {
+    setEditId(choir.id)
+    setEditName(choir.name)
+    setEditInviteCode(choir.invite_code)
+    setEditRootFolder(choir.dropbox_root_folder || '')
+  }
+
+  const cancelEdit = () => setEditId(null)
+
+  const saveEdit = async () => {
+    if (!editId || !editName.trim() || !editInviteCode.trim()) {
+      setMessage('Name und Einladungscode sind erforderlich')
+      return
+    }
+    setSaving(true)
+    try {
+      await api(`/admin/choirs/${editId}`, {
+        method: 'PUT',
+        body: {
+          name: editName.trim(),
+          invite_code: editInviteCode.trim(),
+          dropbox_root_folder: editRootFolder.trim() || null,
+        },
+      })
+      setEditId(null)
+      setMessage('Chor aktualisiert')
+      loadChoirs()
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Fehler beim Speichern')
     } finally {
       setSaving(false)
     }
@@ -116,41 +154,21 @@ export function ChoirsPage() {
         <div style={{ padding: 16, borderBottom: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div className="auth-field">
             <label className="auth-label">Chor-Name</label>
-            <input
-              className="auth-input"
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="z.B. Singkreis Harmonie"
-            />
+            <input className="auth-input" type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="z.B. Singkreis Harmonie" />
           </div>
           <div className="auth-field">
             <label className="auth-label">Einladungscode</label>
-            <input
-              className="auth-input"
-              type="text"
-              value={inviteCode}
-              onChange={(e) => setInviteCode(e.target.value)}
-              placeholder="z.B. Harmonie2026"
-            />
+            <input className="auth-input" type="text" value={inviteCode} onChange={(e) => setInviteCode(e.target.value)} placeholder="z.B. Harmonie2026" />
           </div>
           <div className="auth-field">
-            <label className="auth-label">Dropbox-Stammordner</label>
-            <input
-              className="auth-input"
-              type="text"
-              value={rootFolder}
-              onChange={(e) => setRootFolder(e.target.value)}
-              placeholder="z.B. choirbox/Singkreis Harmonie"
-            />
+            <label className="auth-label">Chor-Ordner in der Dropbox</label>
+            <input className="auth-input" type="text" value={rootFolder} onChange={(e) => setRootFolder(e.target.value)} placeholder="z.B. Singkreis Harmonie" />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="auth-submit" style={{ flex: 1 }} onClick={createChoir} disabled={saving}>
               {saving ? 'Erstellen...' : 'Chor erstellen'}
             </button>
-            <button className="btn btn-secondary" onClick={() => setShowForm(false)}>
-              Abbrechen
-            </button>
+            <button className="btn btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
           </div>
         </div>
       )}
@@ -160,33 +178,49 @@ export function ChoirsPage() {
       <ul className="file-list">
         {choirs.map((c) => (
           <li key={c.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-              <div className="user-avatar">
-                {c.name.charAt(0).toUpperCase()}
-              </div>
-              <div style={{ flex: 1 }}>
-                <div className="file-name">{c.name}</div>
-                <div className="file-meta">
-                  {c.dropbox_root_folder || 'Kein Stammordner'}
+            {editId === c.id ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div className="auth-field">
+                  <label className="auth-label">Chor-Name</label>
+                  <input className="auth-input" type="text" value={editName} onChange={(e) => setEditName(e.target.value)} />
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label">Einladungscode</label>
+                  <input className="auth-input" type="text" value={editInviteCode} onChange={(e) => setEditInviteCode(e.target.value)} />
+                </div>
+                <div className="auth-field">
+                  <label className="auth-label">Chor-Ordner in der Dropbox</label>
+                  <input className="auth-input" type="text" value={editRootFolder} onChange={(e) => setEditRootFolder(e.target.value)} />
+                </div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button className="auth-submit" style={{ flex: 1 }} onClick={saveEdit} disabled={saving}>
+                    <Check size={16} style={{ marginRight: 4 }} /> Speichern
+                  </button>
+                  <button className="btn btn-secondary" onClick={cancelEdit}><X size={16} /></button>
                 </div>
               </div>
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <a
-                href={getLink(c)}
-                style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all', flex: 1 }}
-              >
-                {getLink(c)}
-              </a>
-              <button
-                className="player-header-btn"
-                title="Einladungslink kopieren"
-                onClick={() => copyLink(c)}
-                style={{ flexShrink: 0 }}
-              >
-                {copiedId === c.id ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Copy size={16} />}
-              </button>
-            </div>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                  <div className="user-avatar">{c.name.charAt(0).toUpperCase()}</div>
+                  <div style={{ flex: 1 }}>
+                    <div className="file-name">{c.name}</div>
+                    <div className="file-meta">{c.dropbox_root_folder || 'Kein Chor-Ordner'}</div>
+                  </div>
+                  <button className="player-header-btn" title="Bearbeiten" onClick={() => startEdit(c)}>
+                    <Pencil size={16} />
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <a href={getLink(c)} style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all', flex: 1 }}>
+                    {getLink(c)}
+                  </a>
+                  <button className="player-header-btn" title="Einladungslink kopieren" onClick={() => copyLink(c)} style={{ flexShrink: 0 }}>
+                    {copiedId === c.id ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Copy size={16} />}
+                  </button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>

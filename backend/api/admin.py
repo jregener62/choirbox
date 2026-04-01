@@ -188,3 +188,26 @@ def create_choir(data: dict, user: User = Depends(require_role("developer")), se
     session.commit()
     session.refresh(choir)
     return ActionResponse.success(data={"id": choir.id, "name": choir.name})
+
+
+@router.put("/choirs/{choir_id}")
+def update_choir(choir_id: str, data: dict, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+    choir = session.get(Choir, choir_id)
+    if not choir:
+        raise HTTPException(404, "Chor nicht gefunden")
+
+    if "name" in data:
+        choir.name = data["name"].strip()
+    if "dropbox_root_folder" in data:
+        choir.dropbox_root_folder = data["dropbox_root_folder"].strip() or None
+    if "invite_code" in data:
+        new_code = data["invite_code"].strip()
+        if new_code and new_code != choir.invite_code:
+            existing = session.exec(select(Choir).where(Choir.invite_code == new_code)).first()
+            if existing:
+                raise HTTPException(409, "Einladungscode bereits vergeben")
+            choir.invite_code = new_code
+
+    session.add(choir)
+    session.commit()
+    return ActionResponse.success()
