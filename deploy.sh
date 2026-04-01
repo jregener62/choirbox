@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # ─────────────────────────────────────────────────────────────
 # ChoirBox — Deploy
-# Usage: ./deploy.sh              → Deploy nur auf Dev
-#        ./deploy.sh staging      → Deploy auf Staging
-#        ./deploy.sh prod         → Deploy auf Staging + Produktion
+# Usage: ./deploy.sh 1   → Dev
+#        ./deploy.sh 2   → Staging
+#        ./deploy.sh 3   → Prod (Staging + Produktion)
+#        ./deploy.sh 4   → Alle (Dev + Staging + Produktion)
+#        ./deploy.sh     → Fragt nach
 # ─────────────────────────────────────────────────────────────
 
 set -euo pipefail
@@ -99,37 +101,63 @@ deploy_server() {
 }
 
 # --- Ziel bestimmen ---
-TARGET="${1:-dev}"
+TARGET="${1:-}"
+
+if [ -z "$TARGET" ]; then
+  echo ""
+  echo "Deploy-Ziel waehlen:"
+  echo "  1 = Dev"
+  echo "  2 = Staging"
+  echo "  3 = Prod (Staging + Produktion)"
+  echo "  4 = Alle (Dev + Staging + Produktion)"
+  echo ""
+  read -rp "Nummer: " TARGET
+fi
+
+deploy_dev() {
+  deploy_server "$DEV_SERVER" "$DEV_DIR" "$DEV_URL" "Dev" \
+    "ssh -t $DEV_SERVER '$DEV_RESTART'" \
+    "ssh $DEV_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8002/'"
+}
+
+deploy_staging() {
+  deploy_server "$STAGING_SERVER" "$STAGING_DIR" "$STAGING_URL" "Staging" \
+    "ssh -t $STAGING_SERVER '$STAGING_RESTART'"
+}
+
+deploy_prod() {
+  deploy_server "$PROD_SERVER" "$PROD_DIR" "$PROD_URL" "Produktion" \
+    "ssh $PROD_ROOT_SERVER 'systemctl restart choirbox'" \
+    "ssh $PROD_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8001/'"
+}
 
 case "$TARGET" in
-  dev)
+  1)
     echo -e "${BOLD}Deploy → Dev${NC}"
     echo ""
-    deploy_server "$DEV_SERVER" "$DEV_DIR" "$DEV_URL" "Dev" \
-      "ssh -t $DEV_SERVER '$DEV_RESTART'" \
-      "ssh $DEV_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8002/'"
-    echo -e "${YELLOW}  → Nach Tests: ${NC}${BOLD}./deploy.sh staging${NC}"
+    deploy_dev
     ;;
-  staging)
+  2)
     echo -e "${BOLD}Deploy → Staging${NC}"
     echo ""
-    deploy_server "$STAGING_SERVER" "$STAGING_DIR" "$STAGING_URL" "Staging" \
-      "ssh -t $STAGING_SERVER '$STAGING_RESTART'"
-    echo -e "${YELLOW}  → Nach Tests: ${NC}${BOLD}./deploy.sh prod${NC}"
+    deploy_staging
     ;;
-  prod)
+  3)
     echo -e "${BOLD}Deploy → Staging + Produktion${NC}"
     echo ""
-    deploy_server "$STAGING_SERVER" "$STAGING_DIR" "$STAGING_URL" "Staging" \
-      "ssh -t $STAGING_SERVER '$STAGING_RESTART'"
-    deploy_server "$PROD_SERVER" "$PROD_DIR" "$PROD_URL" "Produktion" \
-      "ssh $PROD_ROOT_SERVER 'systemctl restart choirbox'" \
-      "ssh $PROD_SERVER 'curl -s -o /dev/null -w \"%{http_code}\" --connect-timeout 5 http://localhost:8001/'"
-    echo -e "${GREEN}${BOLD}Deploy auf Staging + Produktion abgeschlossen.${NC}"
+    deploy_staging
+    deploy_prod
+    ;;
+  4)
+    echo -e "${BOLD}Deploy → Dev + Staging + Produktion${NC}"
+    echo ""
+    deploy_dev
+    deploy_staging
+    deploy_prod
     ;;
   *)
     echo -e "${RED}Unbekanntes Ziel: $TARGET${NC}"
-    echo "Erlaubt: dev (default), staging, prod"
+    echo "Erlaubt: 1 (Dev), 2 (Staging), 3 (Prod), 4 (Alle)"
     exit 1
     ;;
 esac

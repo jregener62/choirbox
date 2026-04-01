@@ -140,7 +140,8 @@ Danach reicht `python run.py` allein — FastAPI liefert das React-Build aus `st
 Nach jedem abgeschlossenen Change:
 1. **FEATURES.md aktualisieren** — neue Features dokumentieren, Bugfixes in eigene Bugfix-Sektion
 2. **Commit** — aussagekraeftige Commit-Message
-3. **Deploy** (`./deploy.sh`) — aber **nur bei Code-Aenderungen**. Reine Doku-Updates (FEATURES.md, CLAUDE.md etc.) brauchen **kein Deploy**.
+3. **Deploy** (`./deploy.sh <Nr>`) — aber **nur bei Code-Aenderungen**. Reine Doku-Updates (FEATURES.md, CLAUDE.md etc.) brauchen **kein Deploy**.
+   - Deploy-Ziele: `1` = Dev, `2` = Staging, `3` = Prod (Staging + Produktion), `4` = Alle. Ohne Nummer: nachfragen.
 
 ### Code-Qualitaet
 
