@@ -9,6 +9,7 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
 import { ImportModal } from '@/components/ui/ImportModal'
+import { RenameModal } from '@/components/ui/RenameModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
@@ -658,9 +659,9 @@ export function BrowsePage() {
         </ConfirmDialog>
       )}
 
-      {renameEntry && (
+      {renameEntry && renameEntry.type === 'folder' && (
         <ConfirmDialog
-          title={renameEntry.type === 'folder' ? 'Ordner umbenennen' : 'Datei umbenennen'}
+          title="Ordner umbenennen"
           onClose={() => setRenameEntry(null)}
           confirmLabel="Speichern"
           confirmLoadingLabel="Speichern..."
@@ -678,6 +679,16 @@ export function BrowsePage() {
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
           />
         </ConfirmDialog>
+      )}
+
+      {renameEntry && renameEntry.type === 'file' && (
+        <RenameModal
+          path={renameEntry.path}
+          currentName={renameEntry.name}
+          folderPath={browsePath}
+          onClose={() => setRenameEntry(null)}
+          onRenamed={() => { setRenameEntry(null); loadFolder(browsePath) }}
+        />
       )}
 
       <input
