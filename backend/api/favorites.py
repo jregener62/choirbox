@@ -23,6 +23,7 @@ def list_favorites(user: User = Depends(require_user), session: Session = Depend
             "id": f.id,
             "dropbox_path": f.dropbox_path,
             "file_name": f.file_name,
+            "entry_type": f.entry_type or "file",
             "created_at": f.created_at.isoformat(),
         }
         for f in favorites
@@ -45,8 +46,9 @@ def add_favorite(data: dict, user: User = Depends(require_user), session: Sessio
     if existing:
         return ActionResponse.success(data={"id": existing.id, "already_exists": True})
 
+    entry_type = data.get("entry_type", "file")
     file_name = os.path.basename(dropbox_path)
-    favorite = Favorite(user_id=user.id, dropbox_path=dropbox_path, file_name=file_name)
+    favorite = Favorite(user_id=user.id, dropbox_path=dropbox_path, file_name=file_name, entry_type=entry_type)
     session.add(favorite)
     session.commit()
     session.refresh(favorite)
@@ -86,8 +88,9 @@ def toggle_favorite(data: dict, user: User = Depends(require_user), session: Ses
         session.commit()
         return ActionResponse.success(data={"is_favorite": False})
     else:
+        entry_type = data.get("entry_type", "file")
         file_name = os.path.basename(dropbox_path)
-        favorite = Favorite(user_id=user.id, dropbox_path=dropbox_path, file_name=file_name)
+        favorite = Favorite(user_id=user.id, dropbox_path=dropbox_path, file_name=file_name, entry_type=entry_type)
         session.add(favorite)
         session.commit()
         session.refresh(favorite)

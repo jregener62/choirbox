@@ -365,6 +365,14 @@ export function BrowsePage() {
 
           const itemContent = (
             <>
+              {entry.type === 'folder' && (
+                <button
+                  className="folder-fav-btn"
+                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, 'folder') }}
+                >
+                  <Heart size={18} fill={isFavorite(entry.path) ? 'currentColor' : 'none'} />
+                </button>
+              )}
               {entry.type === 'folder' ? (
                 <div className="file-icon-box file-icon-folder">
                   <Folder size={18} />

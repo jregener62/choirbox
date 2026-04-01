@@ -9,4 +9,5 @@ class Favorite(SQLModel, table=True):
     user_id: str = Field(foreign_key="users.id", index=True)
     dropbox_path: str = Field(max_length=1000)
     file_name: str = Field(max_length=255)
+    entry_type: str = Field(default="file", max_length=10)  # 'file' or 'folder'
     created_at: datetime = Field(default_factory=datetime.utcnow)

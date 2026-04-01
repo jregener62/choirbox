@@ -7,7 +7,7 @@ interface FavoritesState {
   loaded: boolean
   load: () => Promise<void>
   isFavorite: (dropboxPath: string) => boolean
-  toggle: (dropboxPath: string) => Promise<boolean>
+  toggle: (dropboxPath: string, entryType?: 'file' | 'folder') => Promise<boolean>
 }
 
 export const useFavoritesStore = create<FavoritesState>((set, get) => ({
@@ -27,10 +27,10 @@ export const useFavoritesStore = create<FavoritesState>((set, get) => ({
     return get().favorites.some((f) => f.dropbox_path === dropboxPath)
   },
 
-  toggle: async (dropboxPath: string) => {
+  toggle: async (dropboxPath: string, entryType: 'file' | 'folder' = 'file') => {
     const result = await api<{ is_favorite: boolean; id?: number }>(
       '/favorites/toggle',
-      { method: 'POST', body: { dropbox_path: dropboxPath } },
+      { method: 'POST', body: { dropbox_path: dropboxPath, entry_type: entryType } },
     )
     // Reload favorites list to stay in sync
     await get().load()

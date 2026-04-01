@@ -33,6 +33,7 @@ def _migrate(eng):
         ("sections", "updated_at", "DATETIME"),
         ("file_settings", "pdf_ref_path", "VARCHAR(1000)"),
         ("pdf_files", "page_count", "INTEGER DEFAULT 1"),
+        ("favorites", "entry_type", "VARCHAR(10) DEFAULT 'file'"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in migrations:

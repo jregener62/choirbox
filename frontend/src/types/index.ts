@@ -37,6 +37,7 @@ export interface Favorite {
   id: number
   dropbox_path: string
   file_name: string
+  entry_type: 'file' | 'folder'
   created_at: string
 }
 
