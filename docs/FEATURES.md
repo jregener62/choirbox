@@ -84,12 +84,12 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | `chorleiter` | 3 | Erweiterte Verwaltungsrechte |
 | `admin` | 4 | Voller Zugriff (Nutzer, Einladungslink, Settings) innerhalb des eigenen Chors |
 | `beta-tester` | 5 | Beta-Features (z.B. Section-Editor) |
-| `developer` | 6 | Instanz-Verwaltung: Choere erstellen, Dropbox OAuth |
+| `developer` | 6 | Instanz-Verwaltung: Choere erstellen/wechseln, Dropbox OAuth |
 
 - Neue Registrierungen erhalten automatisch die Rolle `member`
 - Rollen sind pro Chor (User gehoert zu genau einem Chor)
 - Admin kann Rollen ueber die Nutzerverwaltung aendern (Dropdown mit allen Rollen)
-- Developer kann neue Choere erstellen und die Dropbox-Verbindung verwalten
+- Developer kann neue Choere erstellen, zwischen Choeren wechseln und die Dropbox-Verbindung verwalten
 - Backend: `require_role("pro-member")` als Dependency fuer rollenbasierte Endpunkte
 - Frontend: `hasMinRole(userRole, "pro-member")` fuer UI-Sichtbarkeit
 
@@ -167,19 +167,26 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - **Favorit** (Herz): Datei als Favorit markieren/entfernen
 - **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen
 - **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
-- **Loeschen** (Papierkorb): Nur fuer Chorleiter (Level 3) und Admin (Level 4) sichtbar. Bestaetigungsdialog vor dem Loeschen.
+- **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+) sichtbar. Bestaetigungsdialog vor dem Loeschen.
+- **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
 
 **Ordner:**
 - **Favorit** (Herz): Ordner als Favorit markieren/entfernen
+- **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
+- **Loeschen** (Papierkorb): Nur Admin (Level 4+). Nur leere Ordner koennen geloescht werden.
+
+**Kebab-Menue (Drei-Punkte im Header):**
+- Ab Pro-Mitglied sichtbar. Enthaelt: Aufnehmen, Datei hochladen, Ordner erstellen (Admin).
+- Member sehen kein Kebab-Menue (nur Favoriten, Filter, Suche, Settings im Header).
 
 - Tippen auf ein anderes Element oder erneutes Tippen auf die drei Punkte schliesst das Menue
 - Einfach-Tap auf eine Datei oeffnet direkt den Player (kein Doppelklick noetig)
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Drei-Punkte-Button, Label-Picker-Overlay, Loeschlogik |
-| `backend/api/dropbox.py` | `DELETE /dropbox/file` |
-| `backend/services/dropbox_service.py` | `delete_file()` |
+| `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Drei-Punkte-Button, Kebab-Menue, Dialoge |
+| `backend/api/dropbox.py` | `DELETE /dropbox/file`, `POST/DELETE /dropbox/folder`, `POST /dropbox/rename` |
+| `backend/services/dropbox_service.py` | `delete_file()`, `create_folder()`, `move_file()` |
 
 ### Suche
 
@@ -636,6 +643,7 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 - Neuen Chor erstellen (Name, Einladungscode, Dropbox-Ordner, Admin-User + Passwort)
 - Beim Erstellen wird automatisch ein Admin-Account fuer den Chor angelegt (`must_change_password`)
 - Bestehende Choere bearbeiten (Name, Einladungscode, Ordner) per Stift-Button
+- Chor-Wechsel: Developer kann per Login-Button in jeden Chor wechseln, aktiver Chor wird mit "Aktiv"-Badge markiert
 - Einladungscodes muessen eindeutig sein
 - Globaler Dropbox App-Ordner konfigurierbar (Prefix fuer alle Choere)
 
@@ -799,6 +807,9 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | GET | `/stream` | Streaming-Link holen | User |
 | POST | `/upload` | Aufnahme hochladen | User |
 | DELETE | `/file` | Datei loeschen | Chorleiter+ |
+| POST | `/folder` | Ordner erstellen | Admin |
+| DELETE | `/folder` | Leeren Ordner loeschen | Admin |
+| POST | `/rename` | Datei/Ordner umbenennen | Admin |
 
 ### Favoriten (`/api/favorites`)
 
@@ -885,6 +896,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | GET | `/choirs` | Alle Choere auflisten | Developer |
 | POST | `/choirs` | Neuen Chor erstellen (inkl. Admin-User) | Developer |
 | PUT | `/choirs/{id}` | Chor bearbeiten | Developer |
+| POST | `/choirs/{id}/switch` | In Chor wechseln (setzt user.choir_id) | Developer |
 
 ---
 
