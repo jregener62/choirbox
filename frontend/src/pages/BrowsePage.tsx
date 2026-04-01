@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ArrowUp, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info } from 'lucide-react'
+import { Folder, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -354,10 +354,7 @@ export function BrowsePage() {
         {!isSearching && !isFiltering && browsePath && (
           <li className="file-item" onClick={navigateUp}>
             <div className="file-icon-box file-icon-folder">
-              <ArrowUp size={18} />
-            </div>
-            <div className="file-info">
-              <div className="file-name" style={{ color: 'var(--text-muted)' }}>..</div>
+              <ArrowLeft size={18} />
             </div>
           </li>
         )}

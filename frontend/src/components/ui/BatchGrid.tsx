@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import { Music, Play, ArrowUp, Folder, ChevronRight } from 'lucide-react'
+import { Music, Play, ArrowLeft, Folder, ChevronRight } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore'
 import type { DropboxEntry } from '@/types/index'
 import type { BatchGridData } from '@/utils/buildBatchGrid'
@@ -38,10 +38,7 @@ export function BatchGrid({ gridData, onFileClick, onNavigateUp, browsePath }: B
           {browsePath && (
             <li className="file-item" onClick={onNavigateUp}>
               <div className="file-icon-box file-icon-folder">
-                <ArrowUp size={18} />
-              </div>
-              <div className="file-info">
-                <div className="file-name" style={{ color: 'var(--text-muted)' }}>..</div>
+                <ArrowLeft size={18} />
               </div>
             </li>
           )}
