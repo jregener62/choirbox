@@ -482,20 +482,24 @@ Kompakte Wiedergabe-Steuerung unterhalb des Seiten-Headers auf Browse-Seiten.
 
 ## Favoriten
 
-Persoenliche Sammlung von Lieblings-Dateien pro User.
+Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
 
 - Datei als Favorit markieren/entfernen (Herz-Icon) ueber Drei-Punkte-Menue im Browser
-- Eigene Favoriten-Seite mit Liste aller markierten Dateien
+- **Ordner als Favorit markieren** ueber Herz-Button links neben dem Folder-Icon auf der Browse-Seite
+- Eigene Favoriten-Seite mit gruppierter Darstellung:
+  - Favorisierte Ordner als blaue Divider-Zeilen mit Datei-Anzahl
+  - Zugehoerige favorisierte Dateien eingerueckt darunter
+  - Einzelne Dateien ohne Folder-Favorit unter "Einzelne Dateien"
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
 - Label-Filter auch auf Favoriten-Seite verfuegbar
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/FavoritesPage.tsx` | Favoriten-Seite |
-| `frontend/src/pages/BrowsePage.tsx` | Favorit-Toggle im Drei-Punkte-Menue |
+| `frontend/src/pages/FavoritesPage.tsx` | Favoriten-Seite (gruppiert nach Ordnern) |
+| `frontend/src/pages/BrowsePage.tsx` | Favorit-Toggle fuer Dateien (Swipe) und Ordner (Herz-Button) |
 | `frontend/src/hooks/useFavorites.ts` | Zustand Store + API-Logik |
 | `backend/api/favorites.py` | `GET /favorites`, `POST /favorites/toggle` |
-| `backend/models/favorite.py` | Favoriten-Modell (user_id + dropbox_path) |
+| `backend/models/favorite.py` | Favoriten-Modell (user_id + dropbox_path + entry_type) |
 
 ---
 
@@ -843,6 +847,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `user_id` | UUID (FK) | Referenz auf User |
 | `dropbox_path` | String | Dropbox-Dateipfad |
 | `file_name` | String | Dateiname (aus Pfad extrahiert) |
+| `entry_type` | String | `'file'` oder `'folder'` (Default: `'file'`) |
 | `created_at` | DateTime | Erstellungszeitpunkt |
 
 ### Label
