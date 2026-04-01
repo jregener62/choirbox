@@ -124,7 +124,7 @@ export function PlayerPage() {
     <div className="player-page">
       {/* Page header */}
       <div className={`topbar${pdfFullscreen && activePanel === 1 ? ' topbar--hidden' : ''}`}>
-        <button className="topbar-back" onClick={() => navigate('/')}>
+        <button className="topbar-back" onClick={() => navigate(-1)}>
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Player</span>

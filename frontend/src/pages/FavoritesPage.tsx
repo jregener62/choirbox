@@ -43,8 +43,10 @@ export function FavoritesPage() {
   }, [loaded, load, labelsLoaded, loadLabels])
 
   const handlePlay = (dropboxPath: string, fileName: string) => {
-    usePlayerStore.getState().setTrack(dropboxPath, fileName)
-    usePlayerStore.getState().setPlaying(true)
+    if (dropboxPath !== currentPath) {
+      usePlayerStore.getState().setTrack(dropboxPath, fileName)
+    }
+    navigate('/player')
   }
 
   const toggleFilter = (labelId: number) => {
