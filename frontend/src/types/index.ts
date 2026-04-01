@@ -20,6 +20,7 @@ export interface DropboxEntry {
   type: 'folder' | 'file'
   size?: number
   modified?: string
+  duration?: number
 }
 
 export interface BrowseResponse {

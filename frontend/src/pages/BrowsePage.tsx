@@ -12,7 +12,7 @@ import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { platform } from '@/utils/platform'
-import { formatDisplayName } from '@/utils/formatters.ts'
+import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -393,8 +393,8 @@ export function BrowsePage() {
                 )}
                 {entry.type === 'file' && (
                   <div className="file-meta">
-                    {!isSearching && entry.size && (
-                      <span>{(entry.size / 1024 / 1024).toFixed(1)} MB</span>
+                    {!isSearching && entry.duration && (
+                      <span>{formatTime(entry.duration)}</span>
                     )}
                     <TrackBadges filename={entry.name} folderName={folderName} inline />
                   </div>

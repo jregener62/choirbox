@@ -202,12 +202,19 @@ async def dropbox_browse(
                 "type": "folder",
             })
         elif tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a")):
+            duration = None
+            media_info = e.get("media_info")
+            if media_info and media_info.get(".tag") == "metadata":
+                meta = media_info.get("metadata", {})
+                if "duration" in meta:
+                    duration = meta["duration"] / 1000
             filtered.append({
                 "name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "file",
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
+                "duration": duration,
             })
 
     # Sort: folders first, then files, both alphabetical

@@ -160,7 +160,10 @@ class DropboxService:
 
     async def list_folder(self, path: str) -> list[dict]:
         """List files and folders at a Dropbox path with full pagination."""
-        result = await self.api_call("files/list_folder", {"path": path})
+        result = await self.api_call("files/list_folder", {
+            "path": path,
+            "include_media_info": True,
+        })
         entries = result.get("entries", [])
 
         page = 1
