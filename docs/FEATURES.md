@@ -2,7 +2,7 @@
 
 ## Ueberblick
 
-ChoirBox ist eine Smartphone-optimierte Web-App fuer Chormitglieder. Kernfunktionen: Audio-Dateien aus einer geteilten Dropbox durchsuchen, abspielen, mit Labels organisieren, und eigene Uebungs-Aufnahmen hochladen.
+ChoirBox ist eine Smartphone-optimierte Web-App fuer Chormitglieder. Kernfunktionen: Audio-Dateien aus einer geteilten Dropbox durchsuchen, abspielen, mit Labels organisieren, und eigene Uebungs-Aufnahmen hochladen. Eine Instanz kann mehrere unabhaengige Choere verwalten.
 
 ---
 
@@ -10,18 +10,22 @@ ChoirBox ist eine Smartphone-optimierte Web-App fuer Chormitglieder. Kernfunktio
 
 ### Registrierung
 
-Chormitglieder registrieren sich selbst mit einem Registrierungscode, den der Admin vorgibt.
+Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identifiziert.
 
-- Pflichtfelder: Registrierungscode, Benutzername, Anzeigename, Passwort, Stimme (Sopran/Alt/Tenor/Bass)
+- Einladungslink-Format: `/#/join/<invite_code>` — identifiziert den Chor automatisch
+- Pflichtfelder: Benutzername, Anzeigename, Passwort, Stimme (Sopran/Alt/Tenor/Bass)
 - Passwort mindestens 4 Zeichen
 - Passwort-Hashing: PBKDF2-HMAC-SHA256 (100.000 Iterationen)
-- Benutzername muss eindeutig sein
+- Benutzername muss eindeutig sein (ueber alle Choere hinweg)
+- User wird automatisch dem Chor des Einladungslinks zugewiesen
+- Ohne Einladungslink: Hinweis "Du brauchst einen Einladungslink von deinem Chorleiter"
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/RegisterPage.tsx` | Registrierungs-UI |
-| `backend/api/auth.py` | `POST /auth/register` |
-| `backend/models/user.py` | User-Modell |
+| `frontend/src/pages/RegisterPage.tsx` | Registrierungs-UI mit Chor-Anzeige |
+| `backend/api/auth.py` | `POST /auth/register`, `GET /auth/choir-info` |
+| `backend/models/user.py` | User-Modell (mit `choir_id`) |
+| `backend/models/choir.py` | Choir-Modell |
 
 ### Login
 
@@ -61,10 +65,14 @@ Chormitglieder registrieren sich selbst mit einem Registrierungscode, den der Ad
 | `member` | 1 | Standard-Chormitglied (Browsen, Streamen, Upload, Favoriten) |
 | `pro-member` | 2 | Kann Labels und Sections verwalten |
 | `chorleiter` | 3 | Erweiterte Verwaltungsrechte |
-| `admin` | 4 | Voller Zugriff (Nutzer, Dropbox, Settings) |
+| `admin` | 4 | Voller Zugriff (Nutzer, Einladungslink, Settings) innerhalb des eigenen Chors |
+| `beta-tester` | 5 | Beta-Features (z.B. Section-Editor) |
+| `developer` | 6 | Instanz-Verwaltung: Choere erstellen, Dropbox OAuth |
 
 - Neue Registrierungen erhalten automatisch die Rolle `member`
+- Rollen sind pro Chor (User gehoert zu genau einem Chor)
 - Admin kann Rollen ueber die Nutzerverwaltung aendern (Dropdown mit allen Rollen)
+- Developer kann neue Choere erstellen und die Dropbox-Verbindung verwalten
 - Backend: `require_role("pro-member")` als Dependency fuer rollenbasierte Endpunkte
 - Frontend: `hasMinRole(userRole, "pro-member")` fuer UI-Sichtbarkeit
 
@@ -83,14 +91,14 @@ Chormitglieder registrieren sich selbst mit einem Registrierungscode, den der Ad
 
 ## Dropbox-Integration
 
-### Verbindung (nur Admin)
+### Verbindung (nur Developer)
 
-Der Admin verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle User teilen diesen Zugang (nur Lesen + Upload).
+Ein Developer verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle Choere teilen diesen Zugang, jeder Chor hat seinen eigenen Unterordner (`dropbox_root_folder`).
 
 - OAuth 2.0 Authorization Code Flow mit Refresh Token
 - Account-E-Mail und ID werden gespeichert
-- Admin kann Verbindung trennen
-- Status sichtbar auf der Einstellungen-Seite
+- Developer kann Verbindung trennen
+- Status sichtbar auf der Einstellungen-Seite (nur fuer Developer)
 
 | Datei | Rolle |
 |-------|-------|
@@ -579,26 +587,38 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 
 ### Nutzerverwaltung
 
-- Alle User auflisten (Benutzername, Anzeigename, Rolle, Stimme, letzter Login)
-- Rolle aendern per Dropdown (Gast, Mitglied, Pro-Mitglied, Chorleiter, Admin)
-- User loeschen (eigenen Account nicht loeschbar)
-- Neue User manuell anlegen
+- Alle User des eigenen Chors auflisten (Benutzername, Anzeigename, Rolle, Stimme, letzter Login)
+- Rolle aendern per Dropdown (Gast, Mitglied, Pro-Mitglied, Chorleiter, Admin, Beta-Tester, Developer)
+- User loeschen (eigenen Account nicht loeschbar, nur innerhalb des eigenen Chors)
+- Neue User manuell anlegen (werden dem eigenen Chor zugewiesen)
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/admin/UsersPage.tsx` | User-Verwaltungs-UI |
 | `backend/api/admin.py` | `/admin/users` Endpoints |
 
-### Registrierungscode
+### Einladungslink
 
-- Admin legt Registrierungscode fest
-- Code wird bei Registrierung geprueft
+- Jeder Chor hat einen eindeutigen Einladungscode (`invite_code`)
+- Einladungslink: `/#/join/<invite_code>` — fuehrt zur Registrierung mit Chor-Kontext
+- Admin kann den Einladungscode aendern
+- Copy-Button zum einfachen Teilen des kompletten Links
 - Aenderbar ueber Einstellungen-Seite
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/SettingsPage.tsx` | Code-Sektion |
+| `frontend/src/pages/SettingsPage.tsx` | Einladungslink-Sektion |
 | `backend/api/admin.py` | `GET/PUT /admin/settings` |
+
+### Chor-Verwaltung (nur Developer)
+
+- Alle Choere auflisten
+- Neuen Chor erstellen (Name, Einladungscode, Dropbox-Stammordner)
+- Einladungscodes muessen eindeutig sein
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/api/admin.py` | `GET/POST /admin/choirs` |
 
 ### Label-Verwaltung
 
@@ -625,11 +645,12 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 ### Einstellungen-Seite
 
 Zentrale Seite fuer alle User- und Admin-Konfigurationen:
-- Profil (Anzeigename, Stimme)
+- Profil (Anzeigename, Stimme, Chor-Name)
 - Passwort aendern
 - Theme-Toggle
-- Dropbox-Status (nur Admin)
-- Registrierungscode (nur Admin)
+- Dropbox-Status (nur Developer)
+- Einladungslink mit Copy-Button (nur Admin)
+- Dropbox-Stammordner (nur Admin)
 - Labels verwalten (ab Pro-Mitglied)
 - Sektionsvorlagen verwalten (ab Pro-Mitglied)
 - Nutzer verwalten (nur Admin)
@@ -703,7 +724,8 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 | Pfad | Seite | Zugang |
 |------|-------|--------|
 | `/login` | Login | Oeffentlich |
-| `/register` | Registrierung | Oeffentlich |
+| `/register` | Registrierung (Hinweis ohne Einladungslink) | Oeffentlich |
+| `/join/:inviteCode` | Registrierung mit Chor-Kontext | Oeffentlich |
 | `/browse` | Datei-Browser | Authentifiziert |
 | `/favorites` | Favoriten | Authentifiziert |
 | `/player` | Audio-Player | Authentifiziert |
@@ -724,9 +746,10 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | POST | `/login` | Login | Oeffentlich |
-| POST | `/register` | Registrierung | Oeffentlich |
+| GET | `/choir-info` | Chor-Info per invite_code | Oeffentlich |
+| POST | `/register` | Registrierung (mit invite_code) | Oeffentlich |
 | POST | `/logout` | Logout | User |
-| GET | `/me` | Eigenes Profil | User |
+| GET | `/me` | Eigenes Profil (inkl. choir_name) | User |
 | PUT | `/me` | Profil aendern | User |
 | PUT | `/me/password` | Passwort aendern | User |
 
@@ -735,7 +758,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
 | GET | `/status` | Verbindungsstatus | User |
-| GET | `/authorize` | OAuth-URL holen | Admin |
+| GET | `/authorize` | OAuth-URL holen | Developer |
 | GET | `/callback` | OAuth-Callback | Oeffentlich |
 | POST | `/disconnect` | Verbindung trennen | Admin |
 | GET | `/browse` | Ordner auflisten | User |
@@ -820,12 +843,14 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
-| GET | `/users` | User auflisten | Admin |
-| POST | `/users` | User anlegen | Admin |
-| PUT | `/users/{id}` | User bearbeiten | Admin |
-| DELETE | `/users/{id}` | User loeschen | Admin |
-| GET | `/settings` | App-Settings lesen | Admin |
-| PUT | `/settings` | App-Settings aendern | Admin |
+| GET | `/users` | User des eigenen Chors auflisten | Admin |
+| POST | `/users` | User anlegen (im eigenen Chor) | Admin |
+| PUT | `/users/{id}` | User bearbeiten (nur eigener Chor) | Admin |
+| DELETE | `/users/{id}` | User loeschen (nur eigener Chor) | Admin |
+| GET | `/settings` | Chor-Settings lesen (invite_code, root_folder) | Admin |
+| PUT | `/settings` | Chor-Settings aendern | Admin |
+| GET | `/choirs` | Alle Choere auflisten | Developer |
+| POST | `/choirs` | Neuen Chor erstellen | Developer |
 
 ---
 
@@ -836,10 +861,11 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | Feld | Typ | Beschreibung |
 |------|-----|-------------|
 | `id` | UUID | Primaerschluessel |
-| `username` | String (max 100) | Eindeutig |
+| `username` | String (max 100) | Eindeutig (ueber alle Choere) |
 | `display_name` | String (max 100) | Anzeigename |
-| `role` | String | `guest`, `member`, `pro-member`, `chorleiter`, `admin` |
+| `role` | String | `guest`, `member`, `pro-member`, `chorleiter`, `admin`, `beta-tester`, `developer` |
 | `voice_part` | String | Sopran, Alt, Tenor oder Bass |
+| `choir_id` | UUID (FK) | Referenz auf Choir |
 | `password_hash` | String | PBKDF2-Hash |
 | `created_at` | DateTime | Erstellungszeitpunkt |
 | `updated_at` | DateTime | Letzte Aenderung |
@@ -942,15 +968,25 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `user_id` | UUID (FK) | Referenz auf User |
 | `created_at` | DateTime | Erstellungszeitpunkt (Ablauf nach 7 Tagen) |
 
+### Choir
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | UUID | Primaerschluessel |
+| `name` | String (max 200) | Chor-Name |
+| `invite_code` | String (max 100) | Eindeutiger Einladungscode |
+| `dropbox_root_folder` | String (max 500) | Unterordner in der Dropbox |
+| `created_at` | DateTime | Erstellungszeitpunkt |
+
 ### AppSettings (Singleton)
 
 | Feld | Typ | Beschreibung |
 |------|-----|-------------|
 | `id` | Integer | Immer 1 |
-| `registration_code` | String | Registrierungscode |
-| `dropbox_refresh_token` | String | OAuth Refresh Token |
+| `registration_code` | String | Legacy (nicht mehr genutzt, durch Choir.invite_code ersetzt) |
+| `dropbox_refresh_token` | String | OAuth Refresh Token (global, alle Choere teilen einen Account) |
 | `dropbox_account_id` | String | Dropbox Account ID |
 | `dropbox_account_email` | String | Dropbox Account E-Mail |
 | `dropbox_connected_at` | DateTime | Verbindungszeitpunkt |
-| `dropbox_root_folder` | String | Optionaler Root-Ordner |
+| `dropbox_root_folder` | String | Legacy (nicht mehr genutzt, durch Choir.dropbox_root_folder ersetzt) |
 | `updated_at` | DateTime | Letzte Aenderung |
