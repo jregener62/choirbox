@@ -460,7 +460,7 @@ export function BrowsePage() {
                     <Info size={18} />
                   </button>
                 )}
-                {canDelete && (
+                {isFile && canDelete && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
