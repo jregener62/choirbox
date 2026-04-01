@@ -229,7 +229,13 @@ export function SettingsPage() {
   return (
     <div>
       <div className="topbar">
-        <button className="topbar-back" onClick={() => navigate('/')}>
+        <button className="topbar-back" onClick={() => {
+          if (mustChangePw) {
+            setMessage('Bitte aendere zuerst dein Passwort, bevor du fortfaehrst.')
+            return
+          }
+          navigate('/')
+        }}>
           <ChevronLeft size={22} />
         </button>
         <div className="topbar-title">Einstellungen</div>
