@@ -232,3 +232,19 @@ def update_choir(choir_id: str, data: dict, user: User = Depends(require_role("d
     session.add(choir)
     session.commit()
     return ActionResponse.success()
+
+
+@router.post("/choirs/{choir_id}/switch")
+def switch_choir(choir_id: str, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+    """Switch the developer's active choir."""
+    choir = session.get(Choir, choir_id)
+    if not choir:
+        raise HTTPException(404, "Chor nicht gefunden")
+
+    user.choir_id = choir.id
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+
+    from backend.api.auth import _user_response
+    return ActionResponse.success(data=_user_response(user, session))

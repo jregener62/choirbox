@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Plus, Copy, Check, Pencil, X } from 'lucide-react'
+import { ChevronLeft, Plus, Copy, Check, Pencil, X, LogIn } from 'lucide-react'
 import { api } from '@/api/client.ts'
+import { useAuthStore } from '@/stores/authStore.ts'
+import type { User } from '@/types/index.ts'
 
 interface Choir {
   id: string
@@ -12,6 +14,7 @@ interface Choir {
 }
 
 export function ChoirsPage() {
+  const user = useAuthStore((s) => s.user)
   const [choirs, setChoirs] = useState<Choir[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
@@ -111,6 +114,17 @@ export function ChoirsPage() {
       setMessage(err instanceof Error ? err.message : 'Fehler beim Speichern')
     } finally {
       setSaving(false)
+    }
+  }
+
+  const switchChoir = async (choir: Choir) => {
+    try {
+      const updatedUser = await api<User>(`/admin/choirs/${choir.id}/switch`, { method: 'POST' })
+      localStorage.setItem('choirbox_user', JSON.stringify(updatedUser))
+      useAuthStore.setState({ user: updatedUser })
+      setMessage(`Gewechselt zu: ${choir.name}`)
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Fehler beim Wechseln')
     }
   }
 
@@ -229,6 +243,13 @@ export function ChoirsPage() {
                   <button className="player-header-btn" title="Bearbeiten" onClick={() => startEdit(c)}>
                     <Pencil size={16} />
                   </button>
+                  {user?.choir_id === c.id ? (
+                    <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600, padding: '4px 8px' }}>Aktiv</span>
+                  ) : (
+                    <button className="player-header-btn" title="In diesen Chor wechseln" onClick={() => switchChoir(c)}>
+                      <LogIn size={16} />
+                    </button>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <a href={getLink(c)} style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all', flex: 1 }}>
