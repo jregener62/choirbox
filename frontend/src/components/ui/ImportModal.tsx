@@ -129,8 +129,8 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
               <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
               <span>
                 {isAdmin
-                  ? 'Tipp: Dateien lassen sich jederzeit per Wisch-Aktion umbenennen.'
-                  : 'Tipp: Ein Admin kann hochgeladene Dateien bei Bedarf umbenennen.'
+                  ? 'Tipp: Dateien lassen sich jederzeit über das Menü (⋮) → „Datei(en) umbenennen" umbenennen.'
+                  : 'Tipp: Ein Admin kann hochgeladene Dateien über das Menü (⋮) umbenennen.'
                 }
               </span>
             </div>

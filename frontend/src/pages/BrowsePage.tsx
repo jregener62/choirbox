@@ -58,6 +58,7 @@ export function BrowsePage() {
   const [renameEntry, setRenameEntry] = useState<DropboxEntry | null>(null)
   const [renameName, setRenameName] = useState('')
   const [renaming, setRenaming] = useState(false)
+  const [renameMode, setRenameMode] = useState(false)
 
   // Kebab menu state
   const [kebabOpen, setKebabOpen] = useState(false)
@@ -175,6 +176,11 @@ export function BrowsePage() {
   const handleEntryClick = (entry: DropboxEntry) => {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
+    if (renameMode && entry.type === 'file') {
+      setRenameName(entry.name)
+      setRenameEntry(entry)
+      return
+    }
     if (entry.type === 'folder') {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
@@ -331,8 +337,13 @@ export function BrowsePage() {
                           <Mic size={16} /> Aufnehmen
                         </button>
                         <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
-                          <Upload size={16} /> Datei hochladen
+                          <Upload size={16} /> Datei(en) hochladen
                         </button>
+                        {isAdmin && (
+                          <button className="kebab-item" onClick={() => { setKebabOpen(false); setRenameMode(!renameMode) }}>
+                            <Pencil size={16} /> Datei(en) umbenennen
+                          </button>
+                        )}
                         {isAdmin && (
                           <button className="kebab-item" onClick={() => { setKebabOpen(false); setNewFolderName(''); setCreateFolderOpen(true) }}>
                             <FolderPlus size={16} /> Ordner erstellen
@@ -408,6 +419,16 @@ export function BrowsePage() {
           </div>
         )}
       </div>
+
+      {renameMode && (
+        <div className="rename-mode-banner">
+          <Pencil size={14} />
+          <span>Umbenennen: Datei antippen</span>
+          <button className="btn btn-secondary" style={{ marginLeft: 'auto', padding: 'var(--space-1) var(--space-3)', minHeight: 32, fontSize: 'var(--text-sm)' }} onClick={() => setRenameMode(false)}>
+            Fertig
+          </button>
+        </div>
+      )}
 
       {/* Scrollable content */}
       <div className="browse-content">
