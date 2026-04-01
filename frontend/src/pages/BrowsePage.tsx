@@ -8,6 +8,7 @@ import { useAppStore } from '@/stores/appStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
+import { ImportModal } from '@/components/ui/ImportModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
@@ -37,7 +38,8 @@ export function BrowsePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [recordingOpen, setRecordingOpen] = useState(false)
-  const [importedFile, setImportedFile] = useState<File | undefined>(undefined)
+  const [importOpen, setImportOpen] = useState(false)
+  const [importedFiles, setImportedFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Swipe-to-delete state
@@ -661,13 +663,14 @@ export function BrowsePage() {
       <input
         ref={fileInputRef}
         type="file"
+        multiple
         accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi'}
         style={{ display: 'none' }}
         onChange={(e) => {
-          const file = e.target.files?.[0]
-          if (file) {
-            setImportedFile(file)
-            setRecordingOpen(true)
+          const files = e.target.files
+          if (files && files.length > 0) {
+            setImportedFiles(Array.from(files))
+            setImportOpen(true)
           }
           e.target.value = ''
         }}
@@ -676,9 +679,18 @@ export function BrowsePage() {
       {recordingOpen && (
         <RecordingModal
           targetPath={browsePath}
-          onClose={() => { setRecordingOpen(false); setImportedFile(undefined) }}
+          onClose={() => setRecordingOpen(false)}
           onUploadComplete={() => loadFolder(browsePath)}
-          importedFile={importedFile}
+        />
+      )}
+
+      {importOpen && importedFiles.length > 0 && (
+        <ImportModal
+          files={importedFiles}
+          targetPath={browsePath}
+          isAdmin={isAdmin}
+          onClose={() => { setImportOpen(false); setImportedFiles([]) }}
+          onUploadComplete={() => loadFolder(browsePath)}
         />
       )}
     </div>
