@@ -133,12 +133,17 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 
 ### Datei-Aktionen (Swipe & Drei-Punkte-Menue)
 
-Jede Audio-Datei hat rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap darauf oder Swipe nach links enthuellt die Aktions-Buttons:
+Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap darauf oder Swipe nach links enthuellt die Aktions-Buttons:
 
+**Dateien:**
 - **Favorit** (Herz): Datei als Favorit markieren/entfernen
 - **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen
 - **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
 - **Loeschen** (Papierkorb): Nur fuer Chorleiter (Level 3) und Admin (Level 4) sichtbar. Bestaetigungsdialog vor dem Loeschen.
+
+**Ordner:**
+- **Favorit** (Herz): Ordner als Favorit markieren/entfernen
+
 - Tippen auf ein anderes Element oder erneutes Tippen auf die drei Punkte schliesst das Menue
 - Einfach-Tap auf eine Datei oeffnet direkt den Player (kein Doppelklick noetig)
 
@@ -484,19 +489,20 @@ Kompakte Wiedergabe-Steuerung unterhalb des Seiten-Headers auf Browse-Seiten.
 
 Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
 
-- Datei als Favorit markieren/entfernen (Herz-Icon) ueber Drei-Punkte-Menue im Browser
-- **Ordner als Favorit markieren** ueber Herz-Button links neben dem Folder-Icon auf der Browse-Seite
+- Datei oder Ordner als Favorit markieren/entfernen (Herz-Icon) ueber Drei-Punkte-Menue/Swipe im Browser
 - Eigene Favoriten-Seite mit gruppierter Darstellung:
   - Favorisierte Ordner als blaue Divider-Zeilen mit Datei-Anzahl
   - Zugehoerige favorisierte Dateien eingerueckt darunter
   - Einzelne Dateien ohne Folder-Favorit unter "Einzelne Dateien"
+- Tap auf Folder-Divider navigiert zum Ordner im Browser, Zurueck-Pfeil fuehrt zu Favorites
+- Tap auf Datei oeffnet direkt den Player, Zurueck-Pfeil fuehrt zu Favorites
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
 - Label-Filter auch auf Favoriten-Seite verfuegbar
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/FavoritesPage.tsx` | Favoriten-Seite (gruppiert nach Ordnern) |
-| `frontend/src/pages/BrowsePage.tsx` | Favorit-Toggle fuer Dateien (Swipe) und Ordner (Herz-Button) |
+| `frontend/src/pages/BrowsePage.tsx` | Favorit-Toggle fuer Dateien und Ordner (Swipe/Kebab) |
 | `frontend/src/hooks/useFavorites.ts` | Zustand Store + API-Logik |
 | `backend/api/favorites.py` | `GET /favorites`, `POST /favorites/toggle` |
 | `backend/models/favorite.py` | Favoriten-Modell (user_id + dropbox_path + entry_type) |
