@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
+import { useAppStore } from '@/stores/appStore.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { formatDisplayName } from '@/utils/formatters.ts'
 import type { Favorite } from '@/types/index.ts'
@@ -169,7 +170,13 @@ export function FavoritesPage() {
         {/* Folder groups */}
         {groups.map((group) => (
           <li key={group.folder.id} className="fav-folder-group">
-            <div className="fav-folder-divider">
+            <div
+              className="fav-folder-divider"
+              onClick={() => {
+                useAppStore.getState().setBrowsePath(group.folder.dropbox_path)
+                navigate('/')
+              }}
+            >
               <div className="fav-folder-divider-icon">
                 <Folder size={14} />
               </div>
@@ -181,7 +188,7 @@ export function FavoritesPage() {
               )}
               <button
                 className="fav-folder-divider-heart"
-                onClick={() => toggle(group.folder.dropbox_path, 'folder')}
+                onClick={(e) => { e.stopPropagation(); toggle(group.folder.dropbox_path, 'folder') }}
               >
                 <Heart size={16} fill="currentColor" />
               </button>
