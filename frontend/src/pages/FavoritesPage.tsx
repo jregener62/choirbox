@@ -181,7 +181,7 @@ export function FavoritesPage() {
               }}
             >
               <div className="fav-folder-divider-icon">
-                <Folder size={14} />
+                <Folder size={18} />
               </div>
               <span className="fav-folder-divider-name">{group.folder.file_name}</span>
               {group.files.length > 0 && (

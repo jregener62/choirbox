@@ -1590,8 +1590,8 @@ body {
 .fav-folder-divider {
   display: flex;
   align-items: center;
-  padding: var(--space-2-5) var(--space-4);
-  gap: var(--space-2-5);
+  padding: var(--space-3-5) var(--space-4);
+  gap: var(--space-3-5);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
   cursor: pointer;
@@ -1602,9 +1602,9 @@ body {
 }
 
 .fav-folder-divider-icon {
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-sm);
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-lg);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1615,9 +1615,9 @@ body {
 
 .fav-folder-divider-name {
   flex: 1;
-  font-size: var(--text-caption);
+  font-size: var(--text-body);
   font-weight: 600;
-  color: #60a5fa;
+  color: var(--text-primary);
 }
 
 .fav-folder-divider-count {
