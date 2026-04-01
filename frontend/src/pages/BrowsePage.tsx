@@ -13,7 +13,6 @@ import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
-import { platform } from '@/utils/platform'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -664,7 +663,7 @@ export function BrowsePage() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept={platform.isIOS ? '.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi' : 'audio/*,.mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi'}
+        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi"
         style={{ display: 'none' }}
         onChange={(e) => {
           const files = e.target.files
