@@ -26,6 +26,7 @@ def seed():
         _seed_default_labels(session, choir_id)
         _seed_default_section_presets(session, choir_id)
         _assign_orphans(session, choir_id)
+        _clear_migrated_app_root(session)
 
 
 def _seed_default_choir(session: Session) -> str:
@@ -127,6 +128,21 @@ def _seed_default_section_presets(session: Session, choir_id: str):
         session.add(preset)
     session.commit()
     logger.info("Default section presets created")
+
+
+def _clear_migrated_app_root(session: Session):
+    """Clear AppSettings.dropbox_root_folder if it was already migrated to a Choir."""
+    settings = session.get(AppSettings, 1)
+    if not settings or not settings.dropbox_root_folder:
+        return
+    choir = session.exec(
+        select(Choir).where(Choir.dropbox_root_folder == settings.dropbox_root_folder)
+    ).first()
+    if choir:
+        settings.dropbox_root_folder = None
+        session.add(settings)
+        session.commit()
+        logger.info("Cleared migrated dropbox_root_folder from AppSettings")
 
 
 def _assign_orphans(session: Session, choir_id: str):

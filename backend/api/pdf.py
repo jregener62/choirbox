@@ -5,6 +5,7 @@ from fastapi.responses import FileResponse, Response
 from sqlmodel import Session
 
 from backend.database import get_session
+from backend.models.app_settings import AppSettings
 from backend.models.choir import Choir
 from backend.models.user import User
 from backend.api.auth import require_user, require_role
@@ -17,11 +18,15 @@ router = APIRouter(prefix="/pdf", tags=["pdf"])
 
 def _dropbox_pdf_path(audio_path: str, pdf_name: str, user: User, session: Session) -> str | None:
     """Build the Dropbox path for a PDF in the same folder as the audio file."""
-    root_folder = ""
+    settings = session.get(AppSettings, 1)
+    app_root = (settings.dropbox_root_folder or "").strip("/") if settings else ""
+    choir_root = ""
     if user.choir_id:
         choir = session.get(Choir, user.choir_id)
         if choir:
-            root_folder = (choir.dropbox_root_folder or "").strip("/")
+            choir_root = (choir.dropbox_root_folder or "").strip("/")
+    root_parts = [p for p in [app_root, choir_root] if p]
+    root_folder = "/".join(root_parts)
     folder = audio_path.rsplit("/", 1)[0] if "/" in audio_path else ""
     parts = [p for p in [root_folder, folder.strip("/"), pdf_name] if p]
     return "/" + "/".join(parts) if parts else None

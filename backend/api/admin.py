@@ -111,9 +111,11 @@ def delete_user(
 @router.get("/settings")
 def get_settings(user: User = Depends(require_admin), session: Session = Depends(get_session)):
     choir = session.get(Choir, user.choir_id) if user.choir_id else None
+    settings = session.get(AppSettings, 1)
     return {
         "invite_code": choir.invite_code if choir else None,
         "dropbox_root_folder": choir.dropbox_root_folder if choir else None,
+        "dropbox_app_folder": settings.dropbox_root_folder if settings else None,
     }
 
 
@@ -136,6 +138,17 @@ def update_settings(data: dict, user: User = Depends(require_admin), session: Se
         choir.dropbox_root_folder = data["dropbox_root_folder"].strip() or None
 
     session.add(choir)
+
+    # Global app folder (developer only)
+    if "dropbox_app_folder" in data:
+        from backend.api.auth import ROLE_HIERARCHY
+        if ROLE_HIERARCHY.get(user.role, 0) >= ROLE_HIERARCHY["developer"]:
+            settings = session.get(AppSettings, 1)
+            if not settings:
+                settings = AppSettings(id=1)
+            settings.dropbox_root_folder = data["dropbox_app_folder"].strip() or None
+            session.add(settings)
+
     session.commit()
     return ActionResponse.success()
 
