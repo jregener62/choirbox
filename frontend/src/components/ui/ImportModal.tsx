@@ -137,14 +137,14 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
           )}
 
           {phase === 'idle' && (
-            <button className="recording-upload-btn" onClick={handleUpload}>
+            <button className="btn btn-primary" style={{ gap: 'var(--space-2)', width: '100%' }} onClick={handleUpload}>
               <Upload size={18} />
               Hochladen
             </button>
           )}
 
           {phase === 'done' && (
-            <button className="recording-upload-btn" onClick={handleClose}>
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleClose}>
               Schliessen
             </button>
           )}
