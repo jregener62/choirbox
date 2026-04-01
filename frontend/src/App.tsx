@@ -1,4 +1,4 @@
-import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { LoginPage } from '@/pages/LoginPage.tsx'
@@ -17,7 +17,10 @@ import { FileSettingsPage } from '@/pages/FileSettingsPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
+  const mustChangePw = useAuthStore((s) => s.user?.must_change_password)
+  const location = useLocation()
   if (!token) return <Navigate to="/login" replace />
+  if (mustChangePw && location.pathname !== '/settings') return <Navigate to="/settings" replace />
   return <>{children}</>
 }
 

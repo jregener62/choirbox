@@ -175,19 +175,40 @@ def create_choir(data: dict, user: User = Depends(require_role("developer")), se
     name = data.get("name", "").strip()
     invite_code = data.get("invite_code", "").strip()
     dropbox_root_folder = data.get("dropbox_root_folder", "").strip() or None
+    admin_username = data.get("admin_username", "").strip()
+    admin_password = data.get("admin_password", "").strip()
 
     if not name or not invite_code:
         raise HTTPException(400, "name und invite_code sind erforderlich")
+    if not admin_username or not admin_password:
+        raise HTTPException(400, "Admin-Benutzername und -Passwort sind erforderlich")
 
     existing = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
     if existing:
         raise HTTPException(409, "Einladungscode bereits vergeben")
 
+    existing_user = session.exec(select(User).where(User.username == admin_username)).first()
+    if existing_user:
+        raise HTTPException(409, "Benutzername bereits vergeben")
+
     choir = Choir(name=name, invite_code=invite_code, dropbox_root_folder=dropbox_root_folder)
     session.add(choir)
     session.commit()
     session.refresh(choir)
-    return ActionResponse.success(data={"id": choir.id, "name": choir.name})
+
+    admin_user = User(
+        username=admin_username,
+        display_name=admin_username,
+        role="admin",
+        voice_part="Bass",
+        password_hash=_hash_password(admin_password),
+        choir_id=choir.id,
+        must_change_password=True,
+    )
+    session.add(admin_user)
+    session.commit()
+
+    return ActionResponse.success(data={"id": choir.id, "name": choir.name, "admin_username": admin_username})
 
 
 @router.put("/choirs/{choir_id}")

@@ -35,7 +35,8 @@ export function SettingsPage() {
   const [editVoice, setEditVoice] = useState(user?.voice_part || '')
 
   // Password change state
-  const [changingPw, setChangingPw] = useState(false)
+  const mustChangePw = user?.must_change_password ?? false
+  const [changingPw, setChangingPw] = useState(mustChangePw)
   const [oldPw, setOldPw] = useState('')
   const [newPw, setNewPw] = useState('')
   const [newPwConfirm, setNewPwConfirm] = useState('')
@@ -153,6 +154,11 @@ export function SettingsPage() {
       setNewPw('')
       setNewPwConfirm('')
       setMessage('Passwort geaendert')
+      if (user?.must_change_password) {
+        const updatedUser = { ...user, must_change_password: false }
+        localStorage.setItem('choirbox_user', JSON.stringify(updatedUser))
+        useAuthStore.setState({ user: updatedUser })
+      }
     } catch (err) {
       setMessage(err instanceof Error ? err.message : 'Fehler beim Aendern')
     }
@@ -313,6 +319,11 @@ export function SettingsPage() {
         {/* -- Passwort -- */}
         <section>
           <h3 className="settings-heading"><Lock size={14} /> Passwort</h3>
+          {mustChangePw && (
+            <div style={{ padding: '10px 14px', borderRadius: 8, background: 'var(--bg-tertiary)', fontSize: 13, marginBottom: 12, color: 'var(--warning, #f59e0b)' }}>
+              Bitte aendere dein Standard-Passwort.
+            </div>
+          )}
           {changingPw ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
               <div className="auth-field">
@@ -331,9 +342,11 @@ export function SettingsPage() {
                 <button className="auth-submit" style={{ flex: 1 }} onClick={changePassword}>
                   Passwort aendern
                 </button>
-                <button className="btn btn-secondary" onClick={() => { setChangingPw(false); setOldPw(''); setNewPw(''); setNewPwConfirm('') }}>
-                  <X size={16} />
-                </button>
+                {!mustChangePw && (
+                  <button className="btn btn-secondary" onClick={() => { setChangingPw(false); setOldPw(''); setNewPw(''); setNewPwConfirm('') }}>
+                    <X size={16} />
+                  </button>
+                )}
               </div>
             </div>
           ) : (

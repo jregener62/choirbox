@@ -15,4 +15,5 @@ class User(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
     choir_id: Optional[str] = Field(default=None, foreign_key="choirs.id", index=True)
+    must_change_password: bool = Field(default=False)
     last_login_at: Optional[datetime] = Field(default=None)

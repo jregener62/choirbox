@@ -6,6 +6,7 @@ export interface User {
   voice_part: string
   choir_id: string | null
   choir_name: string | null
+  must_change_password: boolean
 }
 
 export interface LoginResponse {

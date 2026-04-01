@@ -35,6 +35,7 @@ def _migrate(eng):
         ("pdf_files", "page_count", "INTEGER DEFAULT 1"),
         ("favorites", "entry_type", "VARCHAR(10) DEFAULT 'file'"),
         ("users", "choir_id", "VARCHAR(36)"),
+        ("users", "must_change_password", "BOOLEAN DEFAULT 0"),
         ("labels", "choir_id", "VARCHAR(36)"),
         ("section_presets", "choir_id", "VARCHAR(36)"),
     ]

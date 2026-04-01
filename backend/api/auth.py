@@ -145,6 +145,7 @@ def _user_response(user: User, session: Session) -> dict:
         "voice_part": user.voice_part,
         "choir_id": user.choir_id,
         "choir_name": choir_name,
+        "must_change_password": user.must_change_password,
     }
 
 
@@ -205,6 +206,7 @@ def change_password(data: dict, user: User = Depends(require_user), session: Ses
         raise HTTPException(400, "New password must be at least 4 characters")
 
     user.password_hash = _hash_password(new_password)
+    user.must_change_password = False
     user.updated_at = datetime.utcnow()
     session.add(user)
     session.commit()

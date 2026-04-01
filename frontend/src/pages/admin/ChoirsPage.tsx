@@ -19,6 +19,8 @@ export function ChoirsPage() {
   const [name, setName] = useState('')
   const [inviteCode, setInviteCode] = useState('')
   const [rootFolder, setRootFolder] = useState('')
+  const [adminUsername, setAdminUsername] = useState('')
+  const [adminPassword, setAdminPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
   const [editId, setEditId] = useState<string | null>(null)
@@ -47,6 +49,10 @@ export function ChoirsPage() {
       setMessage('Name und Einladungscode sind erforderlich')
       return
     }
+    if (!adminUsername.trim() || !adminPassword.trim()) {
+      setMessage('Admin-Benutzername und -Passwort sind erforderlich')
+      return
+    }
     setSaving(true)
     try {
       await api('/admin/choirs', {
@@ -55,11 +61,15 @@ export function ChoirsPage() {
           name: name.trim(),
           invite_code: inviteCode.trim(),
           dropbox_root_folder: rootFolder.trim() || null,
+          admin_username: adminUsername.trim(),
+          admin_password: adminPassword.trim(),
         },
       })
       setName('')
       setInviteCode('')
       setRootFolder('')
+      setAdminUsername('')
+      setAdminPassword('')
       setShowForm(false)
       setMessage('Chor erstellt')
       loadChoirs()
@@ -163,6 +173,15 @@ export function ChoirsPage() {
           <div className="auth-field">
             <label className="auth-label">Chor-Ordner in der Dropbox</label>
             <input className="auth-input" type="text" value={rootFolder} onChange={(e) => setRootFolder(e.target.value)} placeholder="z.B. Singkreis Harmonie" />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)', margin: '4px 0 -4px' }}>Admin-Account fuer diesen Chor</div>
+          <div className="auth-field">
+            <label className="auth-label">Admin-Benutzername</label>
+            <input className="auth-input" type="text" value={adminUsername} onChange={(e) => setAdminUsername(e.target.value)} placeholder="z.B. admin-harmonie" autoComplete="off" />
+          </div>
+          <div className="auth-field">
+            <label className="auth-label">Admin-Passwort (wird nach Login geaendert)</label>
+            <input className="auth-input" type="text" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Initiales Passwort" autoComplete="off" />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button className="auth-submit" style={{ flex: 1 }} onClick={createChoir} disabled={saving}>
