@@ -166,13 +166,30 @@ export function SettingsPage() {
     }
   }
 
-  const copyInviteLink = () => {
+  const getInviteLink = () =>
+    `${window.location.origin}${window.location.pathname}#/join/${encodeURIComponent(inviteCode)}`
+
+  const copyInviteLink = async () => {
     if (!inviteCode) return
-    const link = `${window.location.origin}${window.location.pathname}#/join/${encodeURIComponent(inviteCode)}`
-    navigator.clipboard.writeText(link).then(() => {
+    const link = getInviteLink()
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = link
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
       setLinkCopied(true)
       setTimeout(() => setLinkCopied(false), 2000)
-    })
+    } catch {
+      setMessage('Link konnte nicht kopiert werden')
+    }
   }
 
   const saveRootFolder = async () => {
@@ -372,14 +389,22 @@ export function SettingsPage() {
               Diesen Link an neue Chormitglieder weitergeben.
             </div>
             {inviteCode && (
-              <button
-                className="btn btn-secondary"
-                style={{ width: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
-                onClick={copyInviteLink}
-              >
-                <Copy size={16} />
-                {linkCopied ? 'Link kopiert!' : 'Einladungslink kopieren'}
-              </button>
+              <>
+                <a
+                  href={getInviteLink()}
+                  style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all', display: 'block', marginBottom: 8 }}
+                >
+                  {getInviteLink()}
+                </a>
+                <button
+                  className="btn btn-secondary"
+                  style={{ width: '100%', marginBottom: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                  onClick={copyInviteLink}
+                >
+                  <Copy size={16} />
+                  {linkCopied ? 'Link kopiert!' : 'Einladungslink kopieren'}
+                </button>
+              </>
             )}
             <div style={{ display: 'flex', gap: 8 }}>
               <input

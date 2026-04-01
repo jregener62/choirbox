@@ -66,12 +66,29 @@ export function ChoirsPage() {
     }
   }
 
-  const copyLink = (choir: Choir) => {
-    const link = `${window.location.origin}${window.location.pathname}#/join/${encodeURIComponent(choir.invite_code)}`
-    navigator.clipboard.writeText(link).then(() => {
+  const getLink = (choir: Choir) =>
+    `${window.location.origin}${window.location.pathname}#/join/${encodeURIComponent(choir.invite_code)}`
+
+  const copyLink = async (choir: Choir) => {
+    const link = getLink(choir)
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(link)
+      } else {
+        const ta = document.createElement('textarea')
+        ta.value = link
+        ta.style.position = 'fixed'
+        ta.style.opacity = '0'
+        document.body.appendChild(ta)
+        ta.select()
+        document.execCommand('copy')
+        document.body.removeChild(ta)
+      }
       setCopiedId(choir.id)
       setTimeout(() => setCopiedId(null), 2000)
-    })
+    } catch {
+      setMessage('Link konnte nicht kopiert werden')
+    }
   }
 
   return (
@@ -142,24 +159,34 @@ export function ChoirsPage() {
 
       <ul className="file-list">
         {choirs.map((c) => (
-          <li key={c.id} className="file-item" style={{ cursor: 'default' }}>
-            <div className="user-avatar">
-              {c.name.charAt(0).toUpperCase()}
-            </div>
-            <div className="file-info">
-              <div className="file-name">{c.name}</div>
-              <div className="file-meta">
-                {c.invite_code}
-                {c.dropbox_root_folder ? ` · ${c.dropbox_root_folder}` : ''}
+          <li key={c.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+              <div className="user-avatar">
+                {c.name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div className="file-name">{c.name}</div>
+                <div className="file-meta">
+                  {c.dropbox_root_folder || 'Kein Stammordner'}
+                </div>
               </div>
             </div>
-            <button
-              className="player-header-btn"
-              title="Einladungslink kopieren"
-              onClick={() => copyLink(c)}
-            >
-              {copiedId === c.id ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Copy size={16} />}
-            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <a
+                href={getLink(c)}
+                style={{ fontSize: 12, color: 'var(--accent)', wordBreak: 'break-all', flex: 1 }}
+              >
+                {getLink(c)}
+              </a>
+              <button
+                className="player-header-btn"
+                title="Einladungslink kopieren"
+                onClick={() => copyLink(c)}
+                style={{ flexShrink: 0 }}
+              >
+                {copiedId === c.id ? <Check size={16} style={{ color: 'var(--success)' }} /> : <Copy size={16} />}
+              </button>
+            </div>
           </li>
         ))}
       </ul>
