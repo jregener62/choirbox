@@ -29,7 +29,7 @@ export function BrowsePage() {
   const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel, assignments } = useLabelsStore()
   const user = useAuthStore((s) => s.user)
-  const canDelete = !!user && ['chorleiter', 'admin'].includes(user.role)
+  const canDelete = hasMinRole(user?.role ?? 'guest', 'chorleiter')
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
   const [entries, setEntries] = useState<DropboxEntry[]>([])
