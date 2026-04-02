@@ -250,18 +250,32 @@ async def dropbox_browse(
 
     # Synthetic Texte entry (only in normal folders, not inside Texte folder)
     if not is_texte_folder:
-        from sqlmodel import select as sql_select
-        from backend.models.document import Document
-        # folder_path for documents is the parent folder (without /Texte)
-        doc_count = len(session.exec(
-            sql_select(Document).where(Document.folder_path == path)
-        ).all())
-        if doc_count > 0 or has_texte_folder:
+        texte_doc_count = 0
+        if has_texte_folder:
+            # Count documents directly from Dropbox — always up-to-date
+            try:
+                texte_path = dropbox_path.rstrip("/") + "/" + TEXTE_SUBFOLDER
+                texte_entries = await dbx.list_folder(texte_path)
+                texte_doc_count = sum(
+                    1 for e in texte_entries
+                    if e.get(".tag") == "file"
+                    and e.get("name", "").lower().endswith(ALL_DOC_EXTENSIONS)
+                )
+            except Exception:
+                pass
+        # Fallback: DB count (e.g. if Dropbox call failed or no Texte folder)
+        if texte_doc_count == 0:
+            from sqlmodel import select as sql_select
+            from backend.models.document import Document
+            texte_doc_count = len(session.exec(
+                sql_select(Document).where(Document.folder_path == path)
+            ).all())
+        if texte_doc_count > 0 or has_texte_folder:
             filtered.append({
                 "name": "Texte",
                 "path": path,
                 "type": "texte",
-                "doc_count": doc_count,
+                "doc_count": texte_doc_count,
             })
 
     # Sort: folders first, then Texte, then documents, then audio files
