@@ -1598,6 +1598,47 @@ body {
   margin-top: 3px;
 }
 
+/* -- Skeleton loading rows -- */
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.skeleton-list {
+  pointer-events: none;
+}
+
+.skeleton-item {
+  cursor: default;
+}
+
+.skeleton-bone {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+
+.skeleton-icon {
+  border-radius: var(--radius-lg);
+}
+
+.skeleton-name {
+  height: var(--text-body);
+  margin-bottom: var(--space-1-5);
+}
+
+.skeleton-meta {
+  height: var(--text-caption);
+  width: 30%;
+}
+
 /* -- Filter bar -- */
 
 .filter-bar {

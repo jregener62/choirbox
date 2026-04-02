@@ -7,6 +7,7 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { formatDisplayName } from '@/utils/formatters.ts'
+import SkeletonList from '@/components/ui/SkeletonList'
 import type { Favorite } from '@/types/index.ts'
 
 interface FolderGroup {
@@ -150,7 +151,7 @@ export function FavoritesPage() {
         </div>
       )}
 
-      {!loaded && <div className="empty-state">Laden...</div>}
+      {!loaded && <SkeletonList />}
 
       {loaded && favorites.length === 0 && (
         <div className="empty-state">

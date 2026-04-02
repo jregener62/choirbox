@@ -187,10 +187,12 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 - Sortierung: Ordner zuerst, dann Dateien, jeweils alphabetisch
 - Dateidetails: Audio-Dauer (gecacht nach erstem Abspielen), Labels
 - Voice-Icons: Farbiges Stimmkuerzel (S, A, T, B, SA, SAT, SATB...) als Datei-Icon statt generischem Noten-Symbol. Einzelstimmen in Stimmfarbe, Mehrfachstimmen in lila. Dateien ohne Stimminfo zeigen Noten-Icon.
+- Skeleton-Loading: Beim Laden eines Ordners werden animierte Platzhalter-Zeilen angezeigt (Shimmer-Animation), die die Struktur der echten Datei-Eintraege imitieren. Verhindert Layout-Spruenge und gibt visuelles Feedback.
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/BrowsePage.tsx` | Browser-UI |
+| `frontend/src/components/ui/SkeletonList.tsx` | Animierte Lade-Platzhalter |
 | `frontend/src/components/ui/VoiceIcon.tsx` | Farbiges Stimmkuerzel-Icon |
 | `frontend/src/utils/voiceColors.ts` | Shared Stimmfarben-Utilities |
 | `frontend/src/stores/appStore.ts` | `browsePath` State |

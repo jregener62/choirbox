@@ -16,6 +16,7 @@ import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
+import SkeletonList from '@/components/ui/SkeletonList'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
@@ -437,9 +438,7 @@ export function BrowsePage() {
       <div className="browse-content">
 
       {/* Loading */}
-      {(loading || searching) && (
-        <div className="empty-state">Laden...</div>
-      )}
+      {(loading || searching) && <SkeletonList />}
 
       {/* Error */}
       {error && !isSearching && (
