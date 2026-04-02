@@ -28,7 +28,7 @@ export function BrowsePage() {
   const setBrowsePath = useAppStore((s) => s.setBrowsePath)
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
+  const { favorites, loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel, assignments } = useLabelsStore()
   const user = useAuthStore((s) => s.user)
   const canDelete = hasMinRole(user?.role ?? 'guest', 'chorleiter')
@@ -313,8 +313,8 @@ export function BrowsePage() {
           <span className="topbar-title">{user?.choir_name || 'Dateien'}</span>
           {!searchOpen && (
             <>
-              <button className="player-header-btn" style={{ marginLeft: 'auto' }} onClick={() => navigate('/favorites')}>
-                <Heart size={18} />
+              <button className="player-header-btn" style={{ marginLeft: 'auto', ...(favorites.length > 0 ? { color: 'var(--accent)' } : {}) }} onClick={() => navigate('/favorites')}>
+                <Heart size={18} fill={favorites.length > 0 ? 'currentColor' : 'none'} />
               </button>
               {hasAnyLabels && labels.length > 0 && (
                 <button
