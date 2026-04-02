@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronLeft } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 
@@ -13,6 +14,7 @@ export function DocViewerPage() {
   const docName = params.get('name') || ''
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const canUpload = hasMinRole(userRole, 'pro-member')
+  const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
 
   const { loadedFolder, load, documents, setActive } = useDocumentsStore()
 
@@ -30,11 +32,16 @@ export function DocViewerPage() {
     }
   }, [docName, documents, setActive])
 
+  // Reset fullscreen on unmount
+  useEffect(() => {
+    return () => { usePlayerStore.getState().setPdfFullscreen(false) }
+  }, [])
+
   const folderName = folder.split('/').filter(Boolean).pop() || 'Dokumente'
 
   return (
     <div className="player-page">
-      <div className="topbar">
+      <div className={`topbar${pdfFullscreen ? ' topbar--hidden' : ''}`}>
         <button className="topbar-back" onClick={() => navigate(-1)}>
           <ChevronLeft size={22} />
         </button>
