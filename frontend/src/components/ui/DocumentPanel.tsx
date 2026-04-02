@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Upload, Trash2, Maximize2, Minimize2, PenLine, FileText, Video, File, Eye, EyeOff } from 'lucide-react'
+import { Download, Upload, Trash2, Maximize2, Minimize2, PenLine, FileText, Video, File, Eye, EyeOff, Plus, Minus } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -44,8 +44,11 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
+  const [textSizeIndex, setTextSizeIndex] = useState(2)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
+
+  const TEXT_FONT_SIZES = [12, 14, 16, 18, 22, 26, 32]
 
   const userVoicePart = useAuthStore((s) => s.user?.voice_part ?? '')
 
@@ -233,6 +236,7 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
   }
 
   const isPdf = activeDoc?.file_type === 'pdf'
+  const isTxt = activeDoc?.file_type === 'txt'
   const pdfUrl = activeDoc ? `/api/documents/${activeDoc.id}/download?token=${token}` : ''
 
   return (
@@ -352,39 +356,64 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
       )}
 
       {activeDoc?.file_type === 'txt' && (
-        <TextViewer docId={activeDoc.id} originalName={activeDoc.original_name} />
+        <TextViewer
+          docId={activeDoc.id}
+          originalName={activeDoc.original_name}
+          fontSize={TEXT_FONT_SIZES[textSizeIndex]}
+          showName={!pdfFullscreen}
+        />
       )}
 
-      {/* FABs (PDF only) */}
+      {/* FABs — PDF: Draw + Fullscreen, TXT: Zoom + Fullscreen */}
       {isPdf && (
-        <>
+        <button
+          className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+          onClick={() => setDrawingMode(!drawingMode)}
+          onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
+          aria-label={drawingMode ? 'Zeichenmodus beenden' : 'Zeichnen'}
+        >
+          <PenLine size={18} />
+        </button>
+      )}
+      {isTxt && pdfFullscreen && (
+        <div className={`text-zoom-fabs${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}>
           <button
-            className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
-            onClick={() => setDrawingMode(!drawingMode)}
-            onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
-            aria-label={drawingMode ? 'Zeichenmodus beenden' : 'Zeichnen'}
+            className="pdf-fab pdf-fab--small"
+            onClick={() => { setTextSizeIndex((i) => Math.min(i + 1, TEXT_FONT_SIZES.length - 1)); resetFadeTimer() }}
+            disabled={textSizeIndex === TEXT_FONT_SIZES.length - 1}
+            aria-label="Schrift groesser"
           >
-            <PenLine size={18} />
+            <Plus size={16} />
           </button>
           <button
-            className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
-            onClick={handleFabClick}
-            onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
-            aria-label={pdfFullscreen ? 'Fullscreen beenden' : 'Fullscreen'}
+            className="pdf-fab pdf-fab--small"
+            onClick={() => { setTextSizeIndex((i) => Math.max(i - 1, 0)); resetFadeTimer() }}
+            disabled={textSizeIndex === 0}
+            aria-label="Schrift kleiner"
           >
-            {pdfFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
-            {pdfFullscreen && (
-              <svg className="pdf-fab-progress" viewBox="0 0 48 48">
-                <circle className="pdf-fab-progress-track" cx="24" cy="24" r="22" />
-                <circle
-                  className="pdf-fab-progress-fill"
-                  cx="24" cy="24" r="22"
-                  style={{ strokeDashoffset: dashOffset }}
-                />
-              </svg>
-            )}
+            <Minus size={16} />
           </button>
-        </>
+        </div>
+      )}
+      {(isPdf || isTxt) && (
+        <button
+          className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+          onClick={handleFabClick}
+          onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
+          aria-label={pdfFullscreen ? 'Fullscreen beenden' : 'Fullscreen'}
+        >
+          {pdfFullscreen ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+          {pdfFullscreen && (
+            <svg className="pdf-fab-progress" viewBox="0 0 48 48">
+              <circle className="pdf-fab-progress-track" cx="24" cy="24" r="22" />
+              <circle
+                className="pdf-fab-progress-fill"
+                cx="24" cy="24" r="22"
+                style={{ strokeDashoffset: dashOffset }}
+              />
+            </svg>
+          )}
+        </button>
       )}
 
       <input
