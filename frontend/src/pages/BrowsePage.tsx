@@ -10,6 +10,7 @@ import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
+import { VideoModal } from '@/components/ui/VideoModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
 import { useAuthStore } from '@/stores/authStore.ts'
@@ -59,6 +60,9 @@ export function BrowsePage() {
   const [renameEntry, setRenameEntry] = useState<DropboxEntry | null>(null)
   const [renameName, setRenameName] = useState('')
   const [renaming, setRenaming] = useState(false)
+
+  // Video modal state
+  const [videoEntry, setVideoEntry] = useState<DropboxEntry | null>(null)
 
   // Kebab menu state
   const [kebabOpen, setKebabOpen] = useState(false)
@@ -197,6 +201,8 @@ export function BrowsePage() {
     } else if (entry.type === 'document') {
       const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
       navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
+    } else if (entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4')) {
+      setVideoEntry(entry)
     } else {
       if (entry.path !== currentPath) {
         usePlayerStore.getState().setTrack(entry.path, entry.name)
@@ -493,6 +499,10 @@ export function BrowsePage() {
                 <div className="file-icon-box file-icon-doc">
                   {docIcon}
                 </div>
+              ) : entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4') ? (
+                <div className="file-icon-box file-icon-doc">
+                  <Video size={18} />
+                </div>
               ) : isActive && isPlaying ? (
                 <div className="file-icon-box file-icon-playing">
                   <div className="playing-bars">
@@ -729,6 +739,14 @@ export function BrowsePage() {
           targetPath={browsePath}
           onClose={() => setRecordingOpen(false)}
           onUploadComplete={() => loadFolder(browsePath)}
+        />
+      )}
+
+      {videoEntry && (
+        <VideoModal
+          path={videoEntry.path}
+          name={videoEntry.name}
+          onClose={() => setVideoEntry(null)}
         />
       )}
 

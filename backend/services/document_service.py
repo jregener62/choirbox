@@ -21,7 +21,7 @@ PAGE_RENDER_DPI = 200
 
 DOCUMENT_EXTENSIONS = {
     "pdf": (".pdf",),
-    "video": (".mp4", ".webm", ".mov"),
+    "video": (".webm", ".mov"),
     "txt": (".txt",),
 }
 

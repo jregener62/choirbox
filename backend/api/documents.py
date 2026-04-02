@@ -14,7 +14,6 @@ from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
 from backend.services import document_service
 from backend.services.dropbox_service import get_dropbox_service
-from backend.services.video_service import MAX_VIDEO_SIZE, process_video
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -190,15 +189,6 @@ async def upload_document(
         raise HTTPException(400, "Nicht unterstuetztes Dateiformat")
 
     content = await file.read()
-
-    # Video: size check + re-encode for smaller size and streaming
-    if file_type == "video":
-        if len(content) > MAX_VIDEO_SIZE:
-            raise HTTPException(400, "Video zu gross (max. 150 MB)")
-        try:
-            content, original_name = await process_video(content, original_name)
-        except RuntimeError as e:
-            raise HTTPException(422, str(e))
 
     # Upload to Dropbox (inside Texte subfolder, auto-created)
     dbx_hash = None

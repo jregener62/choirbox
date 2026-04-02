@@ -46,7 +46,7 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
 
       try {
         const name = entries[i].file.name.toLowerCase()
-        const isDocument = name.endsWith('.pdf') || name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')
+        const isDocument = name.endsWith('.pdf') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')
         const formData = new FormData()
         formData.append('file', entries[i].file, entries[i].file.name)
         if (isDocument) {

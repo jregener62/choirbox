@@ -260,7 +260,8 @@ Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einz
 | Typ | Extensions | Speicherung | Anzeige |
 |-----|-----------|-------------|---------|
 | PDF | `.pdf` | Dropbox + on-demand RAM-Cache | Seitenweise JPEG-Rendering (PyMuPDF) |
-| Video | `.mp4`, `.webm`, `.mov` | Nur Dropbox (beim Upload via ffmpeg komprimiert) | HTML5 Video-Player mit Streaming |
+| Video (`.mp4`) | `.mp4` | Dropbox Hauptordner (beim Upload via ffmpeg komprimiert) | Video-Modal in Browse-Seite |
+| Video (Dokument) | `.webm`, `.mov` | Dropbox `/Texte` Unterordner | HTML5 Video-Player im Texte-Viewer |
 | Text | `.txt` | Nur Dropbox | Monospace-Textansicht |
 
 ### Video-Komprimierung beim Upload
@@ -346,7 +347,8 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 | `frontend/src/components/ui/DocumentPanel.tsx` | Multi-Doc Tabs, Viewer-Dispatch, Hide/Unhide |
 | `frontend/src/components/ui/AnnotatedPage.tsx` | `<img>` + SVG-Overlay pro Seite |
 | `frontend/src/components/ui/AnnotationToolbar.tsx` | Werkzeugleiste: Stift, Textmarker, Radierer |
-| `frontend/src/components/ui/VideoViewer.tsx` | HTML5 Video-Player mit Dropbox-Streaming |
+| `frontend/src/components/ui/VideoViewer.tsx` | HTML5 Video-Player im Texte-Viewer (Dokumente) |
+| `frontend/src/components/ui/VideoModal.tsx` | Video-Modal fuer .mp4 Dateien in der Browse-Seite |
 | `frontend/src/components/ui/TextViewer.tsx` | Monospace-Textansicht |
 | `frontend/src/hooks/useDocuments.ts` | Zustand Store (load/upload/remove/hide/unhide) |
 | `frontend/src/hooks/useAnnotations.ts` | Zustand Store: drawingMode, tool, strokes, API-Calls |

@@ -194,7 +194,7 @@ async def dropbox_browse(
     from backend.api.documents import TEXTE_SUBFOLDER
     from backend.services.document_service import ALL_DOC_EXTENSIONS
     is_texte_folder = path.rstrip("/").endswith("/" + TEXTE_SUBFOLDER) or path == TEXTE_SUBFOLDER
-    audio_exts = (".mp3", ".webm", ".m4a")
+    media_exts = (".mp3", ".webm", ".m4a", ".mp4")
     filtered = []
     has_texte_folder = False
 
@@ -210,7 +210,7 @@ async def dropbox_browse(
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "folder",
             })
-        elif tag == "file" and name.lower().endswith(audio_exts):
+        elif tag == "file" and name.lower().endswith(media_exts):
             filtered.append({
                 "name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
@@ -284,8 +284,8 @@ async def dropbox_search(
         raise HTTPException(500, str(e))
 
     from backend.services.document_service import ALL_DOC_EXTENSIONS
-    audio_exts = (".mp3", ".webm", ".m4a")
-    allowed_exts = audio_exts + ALL_DOC_EXTENSIONS
+    media_exts = (".mp3", ".webm", ".m4a", ".mp4")
+    allowed_exts = media_exts + ALL_DOC_EXTENSIONS
     entries = []
     for e in results:
         tag = e.get(".tag", "")
@@ -338,7 +338,7 @@ async def dropbox_upload(
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
-    """Upload a recording to Dropbox, converting to MP3 first."""
+    """Upload a recording/video to Dropbox. Audio → MP3, Video → compressed MP4."""
     import asyncio
     import tempfile
     import os
@@ -351,20 +351,32 @@ async def dropbox_upload(
 
     filename = file.filename or "recording"
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
-    if ext not in ("webm", "m4a", "mp4", "ogg", "opus", "wav", "mp3", "mid", "midi"):
+    video_exts = ("mp4",)
+    audio_exts = ("webm", "m4a", "ogg", "opus", "wav", "mp3", "mid", "midi")
+    if ext not in video_exts + audio_exts:
         raise HTTPException(400, f"Unsupported file format: .{ext}")
 
     content = await file.read()
-    if len(content) > 20 * 1024 * 1024:
-        raise HTTPException(413, "File too large (max 20 MB)")
 
-    # Convert to MP3 if not already
-    if ext != "mp3":
-        mp3_content = await _convert_to_mp3(content, ext)
-        if mp3_content is None:
-            raise HTTPException(500, "Audio conversion failed")
-        content = mp3_content
-        filename = filename.rsplit(".", 1)[0] + ".mp3"
+    if ext in video_exts:
+        # Video: compress with ffmpeg (larger size limit)
+        from backend.services.video_service import MAX_VIDEO_SIZE, process_video
+        if len(content) > MAX_VIDEO_SIZE:
+            raise HTTPException(413, "Video zu gross (max. 150 MB)")
+        try:
+            content, filename = await process_video(content, filename)
+        except RuntimeError as e:
+            raise HTTPException(422, str(e))
+    else:
+        # Audio: convert to MP3
+        if len(content) > 20 * 1024 * 1024:
+            raise HTTPException(413, "File too large (max 20 MB)")
+        if ext != "mp3":
+            mp3_content = await _convert_to_mp3(content, ext)
+            if mp3_content is None:
+                raise HTTPException(500, "Audio conversion failed")
+            content = mp3_content
+            filename = filename.rsplit(".", 1)[0] + ".mp3"
 
     root_folder = _get_root_folder(user, session)
 
