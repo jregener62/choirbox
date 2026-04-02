@@ -129,6 +129,7 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Nutzer verwalten | ✓ | ✓ | — | — | — | — |
 | Einladungslink + Copy | ✓ | ✓ | — | — | — | — |
 | Chor-Ordner | ✓ | ✓ | — | — | — | — |
+| Dropbox Re-Sync | ✓ | ✓ | — | — | — | — |
 | Dropbox-Verbindung | — | — | — | — | — | — |
 | Dropbox App-Ordner | — | — | — | — | — | — |
 | Choere verwalten | — | — | — | — | — | — |
@@ -304,9 +305,20 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 ### Dropbox-Sync
 
 Beim Laden eines Ordners synchronisiert das Backend automatisch:
-- **Neue Datei in Dropbox** → wird in der DB registriert
+- **Neue Datei in Dropbox** → wird in der DB registriert (inkl. `dropbox_path`)
 - **Datei geaendert** (Dropbox `content_hash` weicht ab) → DB-Eintrag wird aktualisiert, Caches invalidiert
-- **Datei geloescht** → wird beim naechsten Loeschen via App aus der DB entfernt
+- **Datei geloescht in Dropbox** → wird aus der DB entfernt
+
+Der relative Dropbox-Pfad (`dropbox_path`) wird direkt im Document-Model gespeichert. Damit entfaellt die fehleranfaellige Pfad-Rekonstruktion aus `folder_path + /Texte/ + name`.
+
+### Admin Re-Sync (Dropbox ↔ DB)
+
+Vollstaendiger Abgleich aller DB-Records gegen den Dropbox-Inhalt des Chors. Admin-only ueber Settings → Wartung → "Dropbox Re-Sync".
+
+- Rekursives Listing des gesamten Chor-Dropbox-Ordners
+- **Dokumente**: Sync aller Texte-Subordner (neu, geaendert, geloescht)
+- **Verwaiste Records bereinigen**: AudioDurations, Favoriten, Labels, Notizen, Sektionen fuer Dateien/Ordner die in Dropbox nicht mehr existieren
+- Ergebnis-Anzeige: Anzahl synchronisierter Ordner + Aenderungen
 
 ### PDF-Rendering (ohne Disk-Storage)
 
@@ -692,6 +704,7 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Dropbox App-Ordner — globaler Prefix fuer alle Choere (nur Developer)
 - Einladungslink mit Copy-Button und klickbarer URL (nur Admin)
 - Chor-Ordner in der Dropbox (nur Admin)
+- Wartung: Dropbox Re-Sync — vollstaendiger DB-Abgleich (nur Admin, nur bei verbundener Dropbox)
 - Labels verwalten (ab Pro-Mitglied)
 - Sektionsvorlagen verwalten (ab Pro-Mitglied)
 - Choere verwalten (nur Developer)
@@ -896,6 +909,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | POST | `/choirs` | Neuen Chor erstellen (inkl. Admin-User) | Developer |
 | PUT | `/choirs/{id}` | Chor bearbeiten | Developer |
 | POST | `/choirs/{id}/switch` | In Chor wechseln (setzt user.choir_id) | Developer |
+| POST | `/resync` | Vollstaendiger Dropbox ↔ DB Abgleich des Chors | Admin |
 
 ---
 
@@ -995,6 +1009,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `file_size` | Integer | Dateigroesse in Bytes |
 | `page_count` | Integer | Seitenanzahl (nur PDF) |
 | `content_hash` | String (optional) | Dropbox Content-Hash fuer Aenderungserkennung |
+| `dropbox_path` | String (optional) | Relativer Dropbox-Pfad (z.B. "Chormappe/Lied1/Texte/sheet.pdf") |
 | `sort_order` | Integer | Reihenfolge im Ordner |
 | `uploaded_by` | String (FK, optional) | Referenz auf User |
 | `created_at` | DateTime | Erstellungszeitpunkt |
@@ -1074,3 +1089,17 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 |-------|-------|
 | `frontend/src/components/ui/Modal.tsx` | Geteiltes Base-Component |
 | `frontend/src/styles/index.css` | `.modal-overlay`, `.modal-container`, `.modal-header`, `.modal-title`, `.modal-body` |
+
+---
+
+## Behobene Bugs
+
+### Dokumente im Texte-Ordner konnten nicht geloescht werden
+
+Das Frontend berechnete den `folder_path` fuer den DB-Lookup falsch: es entfernte nur den Dateinamen (`Chormappe/Lied1/Texte`), aber die DB speichert ohne `/Texte`-Suffix (`Chormappe/Lied1`). Dadurch fand der Lookup kein Dokument und das Loeschen schlug still fehl.
+
+**Fix:** Browse-Response liefert jetzt `doc_id` direkt mit, Frontend loescht per `DELETE /documents/{id}` ohne Pfad-Berechnung. Zusaetzlich: `dropbox_path` im Document-Model speichert den echten relativen Pfad.
+
+### Cleanup-Service matchte Dokumente falsch
+
+`cleanup_file()` extrahierte den `folder_path` als direkten Parent (`Chormappe/Lied1/Texte` statt `Chormappe/Lied1`). Fix: Primaerer Match per `dropbox_path`, Fallback mit korrektem `/Texte/`-Stripping.
