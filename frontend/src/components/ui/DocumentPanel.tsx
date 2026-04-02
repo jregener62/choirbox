@@ -376,9 +376,9 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
         </button>
       )}
       {isTxt && pdfFullscreen && (
-        <div className={`text-zoom-fabs${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}>
+        <>
           <button
-            className="pdf-fab pdf-fab--small"
+            className={`pdf-fab pdf-fab--small pdf-fab--zoom-in${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
             onClick={() => { setTextSizeIndex((i) => Math.min(i + 1, TEXT_FONT_SIZES.length - 1)); resetFadeTimer() }}
             disabled={textSizeIndex === TEXT_FONT_SIZES.length - 1}
             aria-label="Schrift groesser"
@@ -386,14 +386,14 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
             <Plus size={16} />
           </button>
           <button
-            className="pdf-fab pdf-fab--small"
+            className={`pdf-fab pdf-fab--small pdf-fab--zoom-out${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
             onClick={() => { setTextSizeIndex((i) => Math.max(i - 1, 0)); resetFadeTimer() }}
             disabled={textSizeIndex === 0}
             aria-label="Schrift kleiner"
           >
             <Minus size={16} />
           </button>
-        </div>
+        </>
       )}
       {(isPdf || isTxt) && (
         <button
