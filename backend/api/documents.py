@@ -143,6 +143,17 @@ async def _sync_documents_from_dropbox(
                     session=session,
                     content_hash=dbx_hash,
                 )
+
+        # --- Files removed from Dropbox → delete from DB ---
+        dbx_doc_names = {
+            entry.get("name", "")
+            for entry in entries
+            if entry.get(".tag") == "file" and document_service.detect_file_type(entry.get("name", ""))
+        }
+        for name, doc in existing.items():
+            if name not in dbx_doc_names:
+                document_service.delete_document(doc.id, session)
+
     except Exception:
         pass  # Sync failure must never block listing
 
