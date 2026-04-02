@@ -248,3 +248,65 @@ def switch_choir(choir_id: str, user: User = Depends(require_role("developer")),
 
     from backend.api.auth import _user_response
     return ActionResponse.success(data=_user_response(user, session))
+
+
+# ---------------------------------------------------------------------------
+# Re-Sync Documents from Dropbox
+# ---------------------------------------------------------------------------
+
+@router.post("/resync")
+async def resync_documents(
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Sync all known document folders with Dropbox."""
+    from backend.models.document import Document
+    from backend.api.documents import _sync_documents_from_dropbox
+
+    folder_paths = list(set(
+        d.folder_path for d in session.exec(select(Document)).all()
+    ))
+
+    added = 0
+    updated = 0
+    removed = 0
+    synced = 0
+
+    for fp in folder_paths:
+        # Count before sync
+        before = {
+            d.original_name: d.content_hash
+            for d in session.exec(
+                select(Document).where(Document.folder_path == fp)
+            ).all()
+        }
+        before_count = len(before)
+
+        await _sync_documents_from_dropbox(fp, user, session)
+
+        # Count after sync
+        after = {
+            d.original_name: d.content_hash
+            for d in session.exec(
+                select(Document).where(Document.folder_path == fp)
+            ).all()
+        }
+        after_count = len(after)
+
+        # Calculate changes
+        for name in after:
+            if name not in before:
+                added += 1
+            elif after[name] != before[name]:
+                updated += 1
+        for name in before:
+            if name not in after:
+                removed += 1
+        synced += 1
+
+    return ActionResponse.success(data={
+        "synced_folders": synced,
+        "added": added,
+        "updated": updated,
+        "removed": removed,
+    })

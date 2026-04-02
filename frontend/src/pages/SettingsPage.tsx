@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music, RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -54,6 +54,10 @@ export function SettingsPage() {
   const [appFolder, setAppFolder] = useState('')
   const [appFolderSaving, setAppFolderSaving] = useState(false)
   const [message, setMessage] = useState('')
+
+  // Re-Sync state
+  const [resyncing, setResyncing] = useState(false)
+  const [resyncResult, setResyncResult] = useState('')
 
   // Load Dropbox status
   const loadDropboxStatus = useCallback(async () => {
@@ -543,6 +547,46 @@ export function SettingsPage() {
                   <span>Choere verwalten</span>
                   <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
                 </button>
+              )}
+            </div>
+          </section>
+        )}
+
+        {/* -- Wartung (Admin) -- */}
+        {isAdmin && dbxStatus?.connected && (
+          <section>
+            <h3 className="settings-heading"><RefreshCw size={14} /> Wartung</h3>
+            <div className="settings-group">
+              <button
+                className="settings-nav-item"
+                disabled={resyncing}
+                onClick={async () => {
+                  setResyncing(true)
+                  setResyncResult('')
+                  try {
+                    const data = await api<{ synced_folders: number; added: number; updated: number; removed: number }>('/admin/resync', { method: 'POST' })
+                    const parts = []
+                    if (data.added) parts.push(`${data.added} neu`)
+                    if (data.updated) parts.push(`${data.updated} aktualisiert`)
+                    if (data.removed) parts.push(`${data.removed} entfernt`)
+                    setResyncResult(
+                      `${data.synced_folders} Ordner synchronisiert` +
+                      (parts.length ? ` (${parts.join(', ')})` : ' — alles aktuell')
+                    )
+                  } catch (err) {
+                    setResyncResult(err instanceof Error ? err.message : 'Fehler bei der Synchronisation')
+                  } finally {
+                    setResyncing(false)
+                  }
+                }}
+              >
+                <RefreshCw size={18} className={resyncing ? 'spinning' : ''} />
+                <span>{resyncing ? 'Synchronisiere...' : 'Dropbox Re-Sync'}</span>
+              </button>
+              {resyncResult && (
+                <p style={{ fontSize: 'var(--text-xs)', color: 'var(--text-muted)', padding: '0 var(--space-4)' }}>
+                  {resyncResult}
+                </p>
               )}
             </div>
           </section>

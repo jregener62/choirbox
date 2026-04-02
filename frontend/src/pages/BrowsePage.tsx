@@ -164,14 +164,18 @@ export function BrowsePage() {
     setDeleting(true)
     try {
       if (confirmEntry.type === 'document') {
-        // Documents: find by folder+name and delete via documents API
-        const folderPath = confirmEntry.path.split('/').slice(0, -1).join('/') || ''
-        const listData = await api<{ documents: Array<{ id: number; original_name: string }> }>(
-          `/documents/list?folder=${encodeURIComponent(folderPath)}`
-        )
-        const match = listData.documents.find((d) => d.original_name === confirmEntry.name)
-        if (match) {
-          await api(`/documents/${match.id}`, { method: 'DELETE' })
+        if (confirmEntry.doc_id) {
+          await api(`/documents/${confirmEntry.doc_id}`, { method: 'DELETE' })
+        } else {
+          // Fallback: strip /Texte/<name> to get DB folder_path
+          const folderPath = confirmEntry.path.split('/').slice(0, -2).join('/') || ''
+          const listData = await api<{ documents: Array<{ id: number; original_name: string }> }>(
+            `/documents/list?folder=${encodeURIComponent(folderPath)}`
+          )
+          const match = listData.documents.find((d) => d.original_name === confirmEntry.name)
+          if (match) {
+            await api(`/documents/${match.id}`, { method: 'DELETE' })
+          }
         }
       } else {
         await api(`/dropbox/file?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })

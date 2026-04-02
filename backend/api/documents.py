@@ -40,6 +40,15 @@ def _dropbox_doc_path(folder_path: str, doc_name: str, user: User, session: Sess
     return "/" + "/".join(parts)
 
 
+def _full_dropbox_path(doc, user: User, session: Session) -> str:
+    """Build full Dropbox path from document's stored dropbox_path field."""
+    root = _get_root_folder(user, session)
+    if doc.dropbox_path:
+        parts = [p for p in [root, doc.dropbox_path.strip("/")] if p]
+        return "/" + "/".join(parts)
+    return _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
+
+
 def _dropbox_texte_path(folder_path: str, user: User, session: Session) -> str:
     """Build the full Dropbox path for the Texte subfolder."""
     root = _get_root_folder(user, session)
@@ -110,7 +119,14 @@ async def _sync_documents_from_dropbox(
             dbx_size = entry.get("size", 0)
             doc = existing.get(name)
 
+            rel_path = document_service.build_dropbox_path(folder_path, name)
+
             if doc and doc.content_hash == dbx_hash:
+                # Backfill dropbox_path for existing rows
+                if not doc.dropbox_path:
+                    doc.dropbox_path = rel_path
+                    session.add(doc)
+                    session.commit()
                 continue  # Unchanged
 
             if doc and doc.content_hash != dbx_hash:
@@ -132,6 +148,10 @@ async def _sync_documents_from_dropbox(
                         pass
                 else:
                     document_service.update_document_hash(doc, dbx_hash, dbx_size, session)
+                if not doc.dropbox_path:
+                    doc.dropbox_path = rel_path
+                    session.add(doc)
+                    session.commit()
                 continue
 
             # --- New file → register ---
@@ -148,6 +168,7 @@ async def _sync_documents_from_dropbox(
                         user_id=user.id,
                         session=session,
                         content_hash=dbx_hash,
+                        dropbox_path=rel_path,
                     )
                 except Exception:
                     pass
@@ -160,6 +181,7 @@ async def _sync_documents_from_dropbox(
                     user_id=user.id,
                     session=session,
                     content_hash=dbx_hash,
+                    dropbox_path=rel_path,
                 )
 
         # --- Files removed from Dropbox → delete from DB ---
@@ -206,6 +228,8 @@ async def upload_document(
     except Exception:
         pass
 
+    rel_path = document_service.build_dropbox_path(folder_path, original_name)
+
     if file_type == "pdf":
         try:
             doc = document_service.register_pdf(
@@ -215,6 +239,7 @@ async def upload_document(
                 user_id=user.id,
                 session=session,
                 content_hash=dbx_hash,
+                dropbox_path=rel_path,
             )
         except ValueError as e:
             raise HTTPException(400, str(e))
@@ -229,6 +254,7 @@ async def upload_document(
             user_id=user.id,
             session=session,
             content_hash=dbx_hash,
+            dropbox_path=rel_path,
         )
 
     return ActionResponse.success(data={
@@ -260,7 +286,7 @@ async def document_page(
         dbx = get_dropbox_service(session)
         if not dbx:
             raise HTTPException(400, "Dropbox nicht verbunden")
-        dbx_path = _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
+        dbx_path = _full_dropbox_path(doc, user, session)
         try:
             link = await dbx.get_temporary_link(dbx_path)
             async with httpx.AsyncClient() as client:
@@ -300,7 +326,7 @@ async def download_document(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    dbx_path = _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
+    dbx_path = _full_dropbox_path(doc, user, session)
     try:
         link = await dbx.get_temporary_link(dbx_path)
         return RedirectResponse(url=link)
@@ -323,7 +349,7 @@ async def stream_document(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    dbx_path = _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
+    dbx_path = _full_dropbox_path(doc, user, session)
     try:
         link = await dbx.get_temporary_link(dbx_path)
         return {"link": link}
@@ -346,7 +372,7 @@ async def get_text_content(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    dbx_path = _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
+    dbx_path = _full_dropbox_path(doc, user, session)
     try:
         link = await dbx.get_temporary_link(dbx_path)
         async with httpx.AsyncClient() as client:
@@ -392,6 +418,7 @@ async def rename_document(
 
     # Update DB
     doc.original_name = new_name
+    doc.dropbox_path = document_service.build_dropbox_path(doc.folder_path, new_name)
     session.add(doc)
     session.commit()
 
@@ -416,14 +443,12 @@ async def delete_document(
     if not doc:
         raise HTTPException(404, "Dokument nicht gefunden")
 
-    original_name = doc.original_name
-    folder_path = doc.folder_path
+    dbx_path = _full_dropbox_path(doc, user, session)
     document_service.delete_document(doc_id, session)
 
     try:
         dbx = get_dropbox_service(session)
         if dbx:
-            dbx_path = _dropbox_doc_path(folder_path, original_name, user, session)
             await dbx.delete_file(dbx_path)
     except Exception:
         pass

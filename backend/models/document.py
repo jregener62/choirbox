@@ -15,6 +15,7 @@ class Document(SQLModel, table=True):
     file_size: int = Field(default=0)
     page_count: int = Field(default=0)
     content_hash: Optional[str] = Field(default=None, max_length=64)
+    dropbox_path: Optional[str] = Field(default=None, max_length=1000)
     sort_order: int = Field(default=0)
     uploaded_by: Optional[str] = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)

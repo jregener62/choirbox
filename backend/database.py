@@ -41,6 +41,7 @@ def _migrate(eng):
         ("labels", "choir_id", "VARCHAR(36)"),
         ("section_presets", "choir_id", "VARCHAR(36)"),
         ("documents", "content_hash", "VARCHAR(64)"),
+        ("documents", "dropbox_path", "VARCHAR(1000)"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:
@@ -58,6 +59,9 @@ def _migrate(eng):
 
     # --- Migrate annotations: add document_id ---
     _migrate_annotations_document_id(eng, tables)
+
+    # --- Backfill documents.dropbox_path ---
+    _migrate_documents_dropbox_path(eng, tables)
 
     # --- Drop obsolete tables ---
     _drop_obsolete_tables(eng, tables)
@@ -188,6 +192,18 @@ def _migrate_annotations_document_id(eng, tables):
             conn.execute(text("ALTER TABLE annotations_new RENAME TO annotations"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_annotations_user_id ON annotations(user_id)"))
             conn.execute(text("CREATE INDEX IF NOT EXISTS ix_annotations_document_id ON annotations(document_id)"))
+
+
+def _migrate_documents_dropbox_path(eng, tables):
+    """Backfill dropbox_path for existing documents from folder_path + Texte + name."""
+    from sqlalchemy import text
+    if "documents" not in tables:
+        return
+    with eng.begin() as conn:
+        conn.execute(text(
+            "UPDATE documents SET dropbox_path = folder_path || '/Texte/' || original_name "
+            "WHERE dropbox_path IS NULL"
+        ))
 
 
 def _drop_obsolete_tables(eng, tables):

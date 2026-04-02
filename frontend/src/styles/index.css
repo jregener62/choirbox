@@ -3326,6 +3326,10 @@ body {
   to { transform: rotate(360deg); }
 }
 
+.spinning {
+  animation: spin 1s linear infinite;
+}
+
 .import-progress-text {
   font-size: var(--text-body-sm);
   color: var(--text-muted);

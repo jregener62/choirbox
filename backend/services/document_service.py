@@ -102,6 +102,11 @@ def detect_file_type(filename: str) -> Optional[str]:
 
 # --- PDF registration (no disk storage) ---
 
+def build_dropbox_path(folder_path: str, name: str) -> str:
+    """Build relative Dropbox path: folder_path/Texte/name."""
+    return f"{folder_path.strip('/')}/Texte/{name}"
+
+
 def register_pdf(
     content: bytes,
     folder_path: str,
@@ -109,6 +114,7 @@ def register_pdf(
     user_id: str,
     session: Session,
     content_hash: str | None = None,
+    dropbox_path: str | None = None,
 ) -> Document:
     """Validate a PDF, count pages, and register in DB. No local file storage."""
     if len(content) > MAX_PDF_SIZE:
@@ -128,6 +134,7 @@ def register_pdf(
         file_size=len(content),
         page_count=page_count,
         content_hash=content_hash,
+        dropbox_path=dropbox_path or build_dropbox_path(folder_path, original_name),
         uploaded_by=user_id,
     )
     session.add(document)
@@ -148,6 +155,7 @@ def register_document(
     user_id: str,
     session: Session,
     content_hash: str | None = None,
+    dropbox_path: str | None = None,
 ) -> Document:
     """Register a non-PDF document (video/txt) — metadata only."""
     document = Document(
@@ -156,6 +164,7 @@ def register_document(
         original_name=original_name,
         file_size=file_size,
         content_hash=content_hash,
+        dropbox_path=dropbox_path or build_dropbox_path(folder_path, original_name),
         uploaded_by=user_id,
     )
     session.add(document)

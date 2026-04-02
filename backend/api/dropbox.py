@@ -228,6 +228,26 @@ async def dropbox_browse(
                 "modified": e.get("server_modified", ""),
             })
 
+    # Enrich document entries with doc_id from DB
+    if is_texte_folder:
+        from sqlmodel import select as sql_select
+        from backend.models.document import Document
+        # folder_path in DB = path without /Texte suffix
+        db_folder = path.rstrip("/")
+        if db_folder.endswith("/" + TEXTE_SUBFOLDER):
+            db_folder = db_folder[: -(len(TEXTE_SUBFOLDER) + 1)]
+        elif db_folder == TEXTE_SUBFOLDER:
+            db_folder = ""
+        docs_in_folder = {
+            d.original_name: d.id
+            for d in session.exec(
+                sql_select(Document).where(Document.folder_path == db_folder)
+            ).all()
+        }
+        for entry in filtered:
+            if entry.get("type") == "document":
+                entry["doc_id"] = docs_in_folder.get(entry["name"])
+
     # Synthetic Texte entry (only in normal folders, not inside Texte folder)
     if not is_texte_folder:
         from sqlmodel import select as sql_select

@@ -22,6 +22,7 @@ export interface DropboxEntry {
   modified?: string
   duration?: number
   doc_count?: number
+  doc_id?: number
 }
 
 export interface BrowseResponse {

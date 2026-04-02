@@ -13,15 +13,26 @@ from backend.services import document_service
 
 def cleanup_file(dropbox_path: str, session: Session) -> None:
     """Remove all DB records associated with any file (audio or document)."""
-    # Check if this is a document (by folder_path + original_name)
-    file_name = dropbox_path.rsplit("/", 1)[-1] if "/" in dropbox_path else dropbox_path
-    folder_path = dropbox_path.rsplit("/", 1)[0] if "/" in dropbox_path else ""
+    # Match document by dropbox_path (primary) or folder_path + name (fallback)
     doc = session.exec(
-        select(Document).where(
-            Document.folder_path == folder_path,
-            Document.original_name == file_name,
-        )
+        select(Document).where(Document.dropbox_path == dropbox_path)
     ).first()
+    if not doc:
+        file_name = dropbox_path.rsplit("/", 1)[-1] if "/" in dropbox_path else dropbox_path
+        # Strip /Texte/<name> to get the DB folder_path
+        parts = dropbox_path.rsplit("/", 2)
+        if len(parts) >= 3 and parts[-2] == "Texte":
+            folder_path = parts[-3] if len(parts) > 3 else parts[0]
+            # Reconstruct: everything before /Texte
+            folder_path = dropbox_path.rsplit("/Texte/", 1)[0]
+        else:
+            folder_path = dropbox_path.rsplit("/", 1)[0] if "/" in dropbox_path else ""
+        doc = session.exec(
+            select(Document).where(
+                Document.folder_path == folder_path,
+                Document.original_name == file_name,
+            )
+        ).first()
     if doc:
         document_service.delete_document(doc.id, session)
 
