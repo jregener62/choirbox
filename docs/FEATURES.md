@@ -517,6 +517,7 @@ Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
 - Tap auf Datei oeffnet direkt den Player, Zurueck-Pfeil fuehrt zu Favorites
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
 - Label-Filter auch auf Favoriten-Seite verfuegbar
+- Herz-Icon im Browse-Header zeigt Accent-Farbe + ausgefuelltes Herz wenn Favoriten vorhanden
 
 | Datei | Rolle |
 |-------|-------|
