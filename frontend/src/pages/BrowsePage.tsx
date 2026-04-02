@@ -463,7 +463,7 @@ export function BrowsePage() {
       )}
 
       {/* File list */}
-      <ul className="file-list">
+      {!loading && !searching && <ul className="file-list">
         {!isSearching && !isFiltering && browsePath && (
           <li className="file-item" onClick={navigateUp}>
             <div className="file-icon-box file-icon-folder">
@@ -610,7 +610,7 @@ export function BrowsePage() {
             </li>
           )
         })}
-      </ul>
+      </ul>}
 
       </div>{/* end browse-content */}
 
