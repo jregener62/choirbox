@@ -17,7 +17,7 @@ export interface LoginResponse {
 export interface DropboxEntry {
   name: string
   path: string
-  type: 'folder' | 'file'
+  type: 'folder' | 'file' | 'document'
   size?: number
   modified?: string
   duration?: number
@@ -60,7 +60,7 @@ export interface SectionPreset {
 
 export interface Section {
   id: number
-  dropbox_path: string
+  folder_path: string
   label: string
   color: string
   start_time: number
@@ -78,12 +78,18 @@ export interface Note {
   text: string
 }
 
-export interface PdfInfo {
-  has_pdf: boolean
-  original_name: string | null
-  file_size: number | null
+export interface DocumentItem {
+  id: number
+  file_type: 'pdf' | 'video' | 'txt'
+  original_name: string
+  file_size: number
   page_count: number
-  is_ref: boolean
+  sort_order: number
+  hidden: boolean
+}
+
+export interface DocumentListResponse {
+  documents: DocumentItem[]
 }
 
 export interface Stroke {

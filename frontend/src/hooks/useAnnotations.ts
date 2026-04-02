@@ -7,7 +7,7 @@ interface AnnotationState {
   tool: 'pen' | 'highlighter' | 'eraser'
   color: string
   strokeWidth: number
-  /** strokes per page, keyed by "path::page" */
+  /** strokes per page, keyed by "docId::page" */
   pages: Record<string, Stroke[]>
   /** currently drawing stroke (not yet committed) */
   activeStroke: Stroke | null
@@ -23,28 +23,28 @@ interface AnnotationState {
   eraseStroke: (key: string, strokeId: string) => void
   undo: (key: string) => void
   clearPage: (key: string) => void
-  loadPage: (path: string, page: number) => Promise<void>
-  savePage: (path: string, page: number) => Promise<void>
+  loadPage: (docId: number, page: number) => Promise<void>
+  savePage: (docId: number, page: number) => Promise<void>
   flushAll: () => Promise<void>
 }
 
-function pageKey(path: string, page: number) {
-  return `${path}::${page}`
+function pageKey(docId: number, page: number) {
+  return `${docId}::${page}`
 }
 
-function parseKey(key: string): { path: string; page: number } {
+function parseKey(key: string): { docId: number; page: number } {
   const idx = key.lastIndexOf('::')
-  return { path: key.slice(0, idx), page: parseInt(key.slice(idx + 2)) }
+  return { docId: parseInt(key.slice(0, idx)), page: parseInt(key.slice(idx + 2)) }
 }
 
 const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {}
 
-function debouncedSave(path: string, page: number) {
-  const key = pageKey(path, page)
+function debouncedSave(docId: number, page: number) {
+  const key = pageKey(docId, page)
   if (saveTimers[key]) clearTimeout(saveTimers[key])
   saveTimers[key] = setTimeout(() => {
     delete saveTimers[key]
-    useAnnotationStore.getState().savePage(path, page)
+    useAnnotationStore.getState().savePage(docId, page)
   }, 500)
 }
 
@@ -81,8 +81,8 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       activeStroke: null,
       dirty,
     })
-    const { path, page } = parseKey(key)
-    debouncedSave(path, page)
+    const { docId, page } = parseKey(key)
+    debouncedSave(docId, page)
   },
 
   eraseStroke: (key, strokeId) => {
@@ -95,8 +95,8 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: existing.filter((s) => s.id !== strokeId) },
       dirty,
     })
-    const { path, page } = parseKey(key)
-    debouncedSave(path, page)
+    const { docId, page } = parseKey(key)
+    debouncedSave(docId, page)
   },
 
   undo: (key) => {
@@ -109,8 +109,8 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: existing.slice(0, -1) },
       dirty,
     })
-    const { path, page } = parseKey(key)
-    debouncedSave(path, page)
+    const { docId, page } = parseKey(key)
+    debouncedSave(docId, page)
   },
 
   clearPage: (key) => {
@@ -121,15 +121,15 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: [] },
       dirty,
     })
-    const { path, page } = parseKey(key)
-    debouncedSave(path, page)
+    const { docId, page } = parseKey(key)
+    debouncedSave(docId, page)
   },
 
-  loadPage: async (path, page) => {
-    const key = pageKey(path, page)
+  loadPage: async (docId, page) => {
+    const key = pageKey(docId, page)
     try {
       const data = await api<{ strokes: Stroke[] }>(
-        `/annotations?path=${encodeURIComponent(path)}&page=${page}`,
+        `/annotations?doc_id=${docId}&page=${page}`,
         { silent: true },
       )
       set((state) => ({
@@ -140,8 +140,8 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     }
   },
 
-  savePage: async (path, page) => {
-    const key = pageKey(path, page)
+  savePage: async (docId, page) => {
+    const key = pageKey(docId, page)
     const strokes = get().pages[key] || []
     const dirty = new Set(get().dirty)
     dirty.delete(key)
@@ -149,7 +149,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     try {
       await api('/annotations', {
         method: 'PUT',
-        body: { path, page, strokes },
+        body: { doc_id: docId, page, strokes },
         silent: true,
       })
     } catch {
@@ -168,8 +168,8 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     }
     const { dirty } = get()
     const promises = Array.from(dirty).map((key) => {
-      const { path, page } = parseKey(key)
-      return get().savePage(path, page)
+      const { docId, page } = parseKey(key)
+      return get().savePage(docId, page)
     })
     await Promise.all(promises)
   },

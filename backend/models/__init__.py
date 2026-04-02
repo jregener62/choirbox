@@ -10,7 +10,7 @@ from backend.models.session_token import SessionToken  # noqa: F401
 from backend.models.section import Section  # noqa: F401
 from backend.models.section_preset import SectionPreset  # noqa: F401
 from backend.models.note import Note  # noqa: F401
-from backend.models.file_settings import FileSettings  # noqa: F401
-from backend.models.pdf_file import PdfFile  # noqa: F401
+from backend.models.document import Document  # noqa: F401
+from backend.models.user_hidden_document import UserHiddenDocument  # noqa: F401
 from backend.models.annotation import Annotation  # noqa: F401
 from backend.models.audio_duration import AudioDuration  # noqa: F401

@@ -45,10 +45,17 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
       setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: 'uploading' } : e))
 
       try {
+        const name = entries[i].file.name.toLowerCase()
+        const isDocument = name.endsWith('.pdf') || name.endsWith('.mp4') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')
         const formData = new FormData()
         formData.append('file', entries[i].file, entries[i].file.name)
-        formData.append('target_path', targetPath || '/')
-        await apiUpload('/dropbox/upload', formData)
+        if (isDocument) {
+          formData.append('folder_path', targetPath || '/')
+          await apiUpload('/documents/upload', formData)
+        } else {
+          formData.append('target_path', targetPath || '/')
+          await apiUpload('/dropbox/upload', formData)
+        }
         setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: 'done' } : e))
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'Upload fehlgeschlagen'

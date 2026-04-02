@@ -9,11 +9,11 @@ import { FavoritesPage } from '@/pages/FavoritesPage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
 import { PlayerPage } from '@/pages/PlayerPage.tsx'
 import { SectionEditorPage } from '@/pages/SectionEditorPage.tsx'
+import { DocViewerPage } from '@/pages/DocViewerPage.tsx'
 import { UsersPage } from '@/pages/admin/UsersPage.tsx'
 import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 import { SectionPresetsPage } from '@/pages/admin/SectionPresetsPage.tsx'
 import { ChoirsPage } from '@/pages/admin/ChoirsPage.tsx'
-import { FileSettingsPage } from '@/pages/FileSettingsPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -34,8 +34,8 @@ function AppRoutes() {
       <Route path="/browse" element={<BrowsePage />} />
       <Route path="/favorites" element={<FavoritesPage />} />
       <Route path="/player" element={<PlayerPage />} />
+      <Route path="/doc-viewer" element={<DocViewerPage />} />
       {isBeta && <Route path="/sections" element={<SectionEditorPage />} />}
-      {hasMinRole(userRole, 'pro-member') && <Route path="/file-settings" element={<FileSettingsPage />} />}
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/admin/users" element={<UsersPage />} />
       <Route path="/admin/labels" element={<LabelsPage />} />

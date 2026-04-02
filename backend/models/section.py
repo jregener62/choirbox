@@ -1,4 +1,4 @@
-"""Section model — named time ranges for tracks, with optional lyrics."""
+"""Section model — named time ranges for folders, with optional lyrics."""
 
 from typing import Optional
 from datetime import datetime
@@ -8,7 +8,7 @@ from sqlmodel import SQLModel, Field
 class Section(SQLModel, table=True):
     __tablename__ = "sections"
     id: Optional[int] = Field(default=None, primary_key=True)
-    dropbox_path: str = Field(max_length=1000, index=True)
+    folder_path: str = Field(max_length=1000, index=True)
     label: str = Field(max_length=50)
     color: str = Field(max_length=7)
     start_time: float

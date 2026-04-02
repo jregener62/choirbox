@@ -33,9 +33,11 @@ export function SectionEditorPage() {
   const [startTime, setStartTime] = useState<number | null>(null)
   const [endTime, setEndTime] = useState<number | null>(null)
 
+  const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
+
   useEffect(() => {
-    if (currentPath) load(currentPath)
-  }, [currentPath, load])
+    if (folderPath) load(folderPath)
+  }, [folderPath, load])
 
   useEffect(() => {
     if (!presetsLoaded) loadPresets()
@@ -46,7 +48,6 @@ export function SectionEditorPage() {
     return null
   }
 
-  const folderPath = currentPath.split('/').slice(0, -1).join('/')
   const folderName = folderPath.split('/').filter(Boolean).pop() || ''
   const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
   const timeline = buildTimeline(sections, duration)
@@ -65,7 +66,7 @@ export function SectionEditorPage() {
         sort_order: i,
       }
     })
-    await bulkCreate({ dropbox_path: currentPath!, sections: newSections })
+    await bulkCreate({ folder_path: folderPath, sections: newSections })
     usePlayerStore.getState().clearMarkers()
   }, [markers, presets, currentPath, bulkCreate])
 
@@ -83,7 +84,7 @@ export function SectionEditorPage() {
     if (!canSaveEdit) return
     if (editingGap) {
       await create({
-        dropbox_path: currentPath!,
+        folder_path: folderPath,
         label: label.trim(),
         color,
         start_time: startTime!,

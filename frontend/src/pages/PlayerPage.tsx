@@ -1,14 +1,13 @@
 import { useEffect, useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LayoutList, EllipsisVertical, ChevronLeft, Info, FileUp, Trash2 } from 'lucide-react'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { LayoutList, EllipsisVertical, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
-import { usePdfStore } from '@/hooks/usePdf.ts'
+import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
 import { DotBar } from '@/components/ui/DotBar.tsx'
-import { PdfPanel } from '@/components/ui/PdfPanel.tsx'
+import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { buildTimeline } from '@/utils/buildTimeline'
@@ -20,10 +19,9 @@ import type { TimelineEntry } from '@/utils/buildTimeline'
 export function PlayerPage() {
   const navigate = useNavigate()
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
-  const canEdit = hasMinRole(userRole, 'pro-member')
   const isBeta = hasMinRole(userRole, 'beta-tester')
-  const { sections, loadedPath: sectionsLoadedPath, load: loadSections } = useSectionsStore()
-  const { info: pdfInfo, loadedPath: pdfLoadedPath, load: loadPdf, upload, remove } = usePdfStore()
+  const { sections, loadedFolder: sectionsLoadedFolder, load: loadSections } = useSectionsStore()
+  const { documents, loadedFolder: docsLoadedFolder, load: loadDocs } = useDocumentsStore()
   const {
     currentName, currentPath,
     currentTime, duration,
@@ -35,10 +33,12 @@ export function PlayerPage() {
 
   const [activePanel, setActivePanel] = useState(0)
   const [menuOpen, setMenuOpen] = useState(false)
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [deleting, setDeleting] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Derive folder path from current track
+  const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
+  const folderName = folderPath.split('/').filter(Boolean).pop() || ''
+  const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
 
   useEffect(() => {
     if (!menuOpen) return
@@ -54,19 +54,15 @@ export function PlayerPage() {
     return null
   }
 
-  const folderPath = currentPath.split('/').slice(0, -1).join('/')
-  const folderName = folderPath.split('/').filter(Boolean).pop() || ''
-  const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
+  useEffect(() => {
+    if (isBeta && folderPath && folderPath !== sectionsLoadedFolder) loadSections(folderPath)
+  }, [isBeta, folderPath, sectionsLoadedFolder, loadSections])
 
   useEffect(() => {
-    if (isBeta && currentPath && currentPath !== sectionsLoadedPath) loadSections(currentPath)
-  }, [isBeta, currentPath, sectionsLoadedPath, loadSections])
+    if (folderPath && folderPath !== docsLoadedFolder) loadDocs(folderPath)
+  }, [folderPath, docsLoadedFolder, loadDocs])
 
-  useEffect(() => {
-    if (currentPath && currentPath !== pdfLoadedPath) loadPdf(currentPath)
-  }, [currentPath, pdfLoadedPath, loadPdf])
-
-  // Reset fullscreen on unmount (navigation away)
+  // Reset fullscreen on unmount
   useEffect(() => {
     return () => { usePlayerStore.getState().setPdfFullscreen(false) }
   }, [])
@@ -78,8 +74,8 @@ export function PlayerPage() {
 
   const timeline = isBeta ? buildTimeline(sections, duration) : []
   const hasSections = isBeta && sections.length > 0
-  const showDots = isBeta && (pdfInfo?.has_pdf || canEdit)
-  const hasPdf = pdfInfo?.has_pdf ?? false
+  const hasDocs = documents.some((d) => !d.hidden)
+  const showDots = isBeta && (hasDocs || documents.length > 0)
 
   const handleSectionClick = (entry: TimelineEntry) => {
     const store = usePlayerStore.getState()
@@ -97,27 +93,6 @@ export function PlayerPage() {
       store.setLoopEnd(entry.end_time)
       store.toggleLoop()
       seek(entry.start_time)
-    }
-  }
-
-  const handlePdfSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      await upload(currentPath, file)
-    } catch (err) {
-      alert(err instanceof Error ? err.message : 'Upload fehlgeschlagen')
-    }
-    e.target.value = ''
-  }
-
-  const handleDelete = async () => {
-    setDeleting(true)
-    try {
-      await remove(currentPath)
-    } finally {
-      setDeleting(false)
-      setConfirmDelete(false)
     }
   }
 
@@ -140,7 +115,7 @@ export function PlayerPage() {
             </span>
           )}
         </div>
-        {canEdit && (
+        {isBeta && (
           <div ref={menuRef} style={{ position: 'relative', flexShrink: 0 }}>
             <button
               className="player-header-btn"
@@ -150,37 +125,12 @@ export function PlayerPage() {
             </button>
             {menuOpen && (
               <div className="popup-menu player-topbar-menu">
-                {hasMinRole(userRole, 'beta-tester') && (
-                  <button className="popup-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
-                    <LayoutList size={16} />
-                    Sektionen editieren
-                  </button>
-                )}
-                {hasMinRole(userRole, 'pro-member') && (
-                  <button className="popup-menu-item" onClick={() => { setMenuOpen(false); navigate('/file-settings') }}>
-                    <Info size={16} />
-                    Datei-Einstellungen
-                  </button>
-                )}
-                <button className="popup-menu-item" onClick={() => { setMenuOpen(false); fileInputRef.current?.click() }}>
-                  <FileUp size={16} />
-                  {hasPdf ? 'PDF ersetzen' : 'PDF hochladen'}
+                <button className="popup-menu-item" onClick={() => { setMenuOpen(false); navigate('/sections') }}>
+                  <LayoutList size={16} />
+                  Sektionen editieren
                 </button>
-                {hasPdf && (
-                  <button className="popup-menu-item" style={{ color: 'var(--danger)' }} onClick={() => { setMenuOpen(false); setConfirmDelete(true) }}>
-                    <Trash2 size={16} />
-                    PDF loeschen
-                  </button>
-                )}
               </div>
             )}
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept=".pdf"
-              style={{ display: 'none' }}
-              onChange={handlePdfSelect}
-            />
           </div>
         )}
       </div>
@@ -214,7 +164,7 @@ export function PlayerPage() {
               </div>
             </div>
             <div className="player-content-panel">
-              <PdfPanel dropboxPath={currentPath} canUpload={canEdit} />
+              <DocumentPanel folderPath={folderPath} />
             </div>
           </div>
         </div>
@@ -235,24 +185,11 @@ export function PlayerPage() {
             <EmptySections />
           )}
         </div>
-      ) : (hasPdf || canEdit) ? (
+      ) : (hasDocs || documents.length > 0) ? (
         <div className="player-scroll-content">
-          <PdfPanel dropboxPath={currentPath} canUpload={canEdit} />
+          <DocumentPanel folderPath={folderPath} />
         </div>
       ) : null}
-
-      {confirmDelete && (
-        <ConfirmDialog
-          title="PDF loeschen?"
-          filename={pdfInfo?.original_name}
-          hint="Wird unwiderruflich aus der Dropbox geloescht."
-          onClose={() => setConfirmDelete(false)}
-          confirmLabel="Loeschen"
-          confirmLoadingLabel="Loeschen..."
-          onConfirm={handleDelete}
-          loading={deleting}
-        />
-      )}
     </div>
   )
 }

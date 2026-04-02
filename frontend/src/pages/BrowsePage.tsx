@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Info, Home, Pencil } from 'lucide-react'
+import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -180,6 +180,10 @@ export function BrowsePage() {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
+    } else if (entry.type === 'document') {
+      // Open document viewer with the folder path and document name
+      const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
+      navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
     } else {
       if (entry.path !== currentPath) {
         usePlayerStore.getState().setTrack(entry.path, entry.name)
@@ -452,13 +456,24 @@ export function BrowsePage() {
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
           const isFile = entry.type === 'file'
+          const isDoc = entry.type === 'document'
           const isRevealed = revealedPath === entry.path
+
+          const docIcon = isDoc ? (
+            entry.name.toLowerCase().endsWith('.pdf') ? <FileText size={18} /> :
+            entry.name.toLowerCase().endsWith('.txt') ? <File size={18} /> :
+            <Video size={18} />
+          ) : null
 
           const itemContent = (
             <>
               {entry.type === 'folder' ? (
                 <div className="file-icon-box file-icon-folder">
                   <Folder size={18} />
+                </div>
+              ) : isDoc ? (
+                <div className="file-icon-box file-icon-doc">
+                  {docIcon}
                 </div>
               ) : isActive && isPlaying ? (
                 <div className="file-icon-box file-icon-playing">
@@ -533,14 +548,6 @@ export function BrowsePage() {
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
                   >
                     <Tag size={18} />
-                  </button>
-                )}
-                {isFile && isProMember && (
-                  <button
-                    className="swipe-action-btn swipe-action-info"
-                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); navigate(`/file-settings?path=${encodeURIComponent(entry.path)}`) }}
-                  >
-                    <Info size={18} />
                   </button>
                 )}
                 {isAdmin && (
@@ -674,7 +681,7 @@ export function BrowsePage() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi"
+        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.mp4,.mov,.txt"
         style={{ display: 'none' }}
         onChange={(e) => {
           const files = e.target.files

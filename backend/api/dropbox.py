@@ -190,7 +190,9 @@ async def dropbox_browse(
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
 
-    # Filter: only folders and MP3 files
+    # Filter: folders, audio files, and document files
+    from backend.services.document_service import ALL_DOC_EXTENSIONS
+    audio_exts = (".mp3", ".webm", ".m4a")
     filtered = []
     for e in entries:
         tag = e.get(".tag", "")
@@ -201,7 +203,7 @@ async def dropbox_browse(
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": "folder",
             })
-        elif tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a")):
+        elif tag == "file" and name.lower().endswith(audio_exts):
             filtered.append({
                 "name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
@@ -209,9 +211,18 @@ async def dropbox_browse(
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
             })
+        elif tag == "file" and name.lower().endswith(ALL_DOC_EXTENSIONS):
+            filtered.append({
+                "name": name,
+                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "type": "document",
+                "size": e.get("size", 0),
+                "modified": e.get("server_modified", ""),
+            })
 
-    # Sort: folders first, then files, both alphabetical
-    filtered.sort(key=lambda x: (0 if x["type"] == "folder" else 1, x["name"].lower()))
+    # Sort: folders first, then documents, then audio files — each alphabetical
+    type_order = {"folder": 0, "document": 1, "file": 2}
+    filtered.sort(key=lambda x: (type_order.get(x["type"], 9), x["name"].lower()))
 
     # Attach cached durations
     from backend.services.audio_duration_service import get_durations_for_paths
@@ -248,15 +259,21 @@ async def dropbox_search(
     except RuntimeError as e:
         raise HTTPException(500, str(e))
 
+    from backend.services.document_service import ALL_DOC_EXTENSIONS
+    audio_exts = (".mp3", ".webm", ".m4a")
+    allowed_exts = audio_exts + ALL_DOC_EXTENSIONS
     entries = []
     for e in results:
         tag = e.get(".tag", "")
         name = e.get("name", "")
-        if tag == "folder" or (tag == "file" and name.lower().endswith((".mp3", ".webm", ".m4a"))):
+        if tag == "folder" or (tag == "file" and name.lower().endswith(allowed_exts)):
+            entry_type = "folder" if tag == "folder" else (
+                "document" if name.lower().endswith(ALL_DOC_EXTENSIONS) else "file"
+            )
             entries.append({
                 "name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
-                "type": "folder" if tag == "folder" else "file",
+                "type": entry_type,
                 "size": e.get("size", 0) if tag == "file" else None,
             })
 
@@ -447,6 +464,10 @@ async def dropbox_delete_file(
             raise HTTPException(404, "Datei nicht gefunden")
         raise HTTPException(502, str(e))
 
+    # Cleanup associated DB records
+    from backend.services.cleanup_service import cleanup_audio_file
+    cleanup_audio_file(path, session)
+
     metadata = result.get("metadata", {})
     return ActionResponse.success(data={
         "name": metadata.get("name", ""),
@@ -523,6 +544,10 @@ async def dropbox_delete_folder(
         await dbx.delete_file(dropbox_path)
     except RuntimeError as e:
         raise HTTPException(502, str(e))
+
+    # Cleanup associated DB records (sections, documents, etc.)
+    from backend.services.cleanup_service import cleanup_folder
+    cleanup_folder(path, session)
 
     return ActionResponse.success()
 

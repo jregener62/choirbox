@@ -1,4 +1,4 @@
-"""Annotations API — per-user handwritten annotations on PDF pages."""
+"""Annotations API — per-user handwritten annotations on document pages."""
 
 import json
 from datetime import datetime
@@ -16,7 +16,7 @@ router = APIRouter(prefix="/annotations", tags=["annotations"])
 
 @router.get("")
 def get_annotations(
-    path: str,
+    doc_id: int,
     page: int,
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
@@ -24,7 +24,7 @@ def get_annotations(
     annotation = session.exec(
         select(Annotation).where(
             Annotation.user_id == user.id,
-            Annotation.dropbox_path == path,
+            Annotation.document_id == doc_id,
             Annotation.page_number == page,
         )
     ).first()
@@ -39,16 +39,16 @@ def upsert_annotations(
     user: User = Depends(require_role("member")),
     session: Session = Depends(get_session),
 ):
-    path = data.get("path", "").strip()
+    doc_id = data.get("doc_id")
     page = data.get("page")
     strokes = data.get("strokes")
-    if not path or page is None or strokes is None:
-        raise HTTPException(400, "path, page and strokes are required")
+    if not doc_id or page is None or strokes is None:
+        raise HTTPException(400, "doc_id, page and strokes are required")
 
     annotation = session.exec(
         select(Annotation).where(
             Annotation.user_id == user.id,
-            Annotation.dropbox_path == path,
+            Annotation.document_id == doc_id,
             Annotation.page_number == page,
         )
     ).first()
@@ -56,7 +56,6 @@ def upsert_annotations(
     strokes_json = json.dumps(strokes)
 
     if not strokes:
-        # Empty strokes = delete the record
         if annotation:
             session.delete(annotation)
             session.commit()
@@ -68,7 +67,7 @@ def upsert_annotations(
     else:
         annotation = Annotation(
             user_id=user.id,
-            dropbox_path=path,
+            document_id=doc_id,
             page_number=page,
             strokes_json=strokes_json,
         )
@@ -80,7 +79,7 @@ def upsert_annotations(
 
 @router.delete("")
 def delete_page_annotations(
-    path: str,
+    doc_id: int,
     page: int,
     user: User = Depends(require_role("member")),
     session: Session = Depends(get_session),
@@ -88,7 +87,7 @@ def delete_page_annotations(
     annotation = session.exec(
         select(Annotation).where(
             Annotation.user_id == user.id,
-            Annotation.dropbox_path == path,
+            Annotation.document_id == doc_id,
             Annotation.page_number == page,
         )
     ).first()
@@ -101,14 +100,14 @@ def delete_page_annotations(
 
 @router.delete("/all")
 def delete_all_annotations(
-    path: str,
+    doc_id: int,
     user: User = Depends(require_role("member")),
     session: Session = Depends(get_session),
 ):
     annotations = session.exec(
         select(Annotation).where(
             Annotation.user_id == user.id,
-            Annotation.dropbox_path == path,
+            Annotation.document_id == doc_id,
         )
     ).all()
     for a in annotations:

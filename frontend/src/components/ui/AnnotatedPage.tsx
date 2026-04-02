@@ -9,10 +9,10 @@ interface AnnotatedPageProps {
   alt: string
   scale: number
   loading?: 'eager' | 'lazy'
-  dropboxPath: string
+  docId: number
 }
 
-export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: AnnotatedPageProps) {
+export function AnnotatedPage({ page, src, alt, scale, loading, docId }: AnnotatedPageProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const [viewBoxHeight, setViewBoxHeight] = useState(1414) // A4 default
@@ -23,7 +23,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
   const color = useAnnotationStore((s) => s.color)
   const strokeWidth = useAnnotationStore((s) => s.strokeWidth)
   const activeStroke = useAnnotationStore((s) => s.activeStroke)
-  const key = `${dropboxPath}::${page}`
+  const key = `${docId}::${page}`
   const rawStrokes = useAnnotationStore((s) => s.pages[key])
   const strokes = useMemo(() => rawStrokes || [], [rawStrokes])
 
@@ -34,8 +34,8 @@ export function AnnotatedPage({ page, src, alt, scale, loading, dropboxPath }: A
 
   // Load annotations when component mounts
   useEffect(() => {
-    loadPage(dropboxPath, page)
-  }, [dropboxPath, page, loadPage])
+    loadPage(docId, page)
+  }, [docId, page, loadPage])
 
   // Update viewBox when image loads
   const handleImgLoad = useCallback(() => {

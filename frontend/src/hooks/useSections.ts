@@ -4,12 +4,12 @@ import type { Section } from '@/types/index.ts'
 
 interface SectionsState {
   sections: Section[]
-  loadedPath: string | null
+  loadedFolder: string | null
   loading: boolean
 
-  load: (dropboxPath: string) => Promise<void>
+  load: (folderPath: string) => Promise<void>
   create: (data: {
-    dropbox_path: string
+    folder_path: string
     label: string
     color: string
     start_time: number
@@ -17,7 +17,7 @@ interface SectionsState {
     sort_order: number
   }) => Promise<void>
   bulkCreate: (data: {
-    dropbox_path: string
+    folder_path: string
     sections: Array<{ label: string; color: string; start_time: number; end_time: number; sort_order: number }>
   }) => Promise<void>
   update: (id: number, data: Partial<Section>) => Promise<void>
@@ -28,48 +28,48 @@ interface SectionsState {
 
 export const useSectionsStore = create<SectionsState>((set, get) => ({
   sections: [],
-  loadedPath: null,
+  loadedFolder: null,
   loading: false,
 
-  load: async (dropboxPath: string) => {
+  load: async (folderPath: string) => {
     set({ loading: true })
     try {
-      const data = await api<Section[]>(`/sections?path=${encodeURIComponent(dropboxPath)}`)
-      set({ sections: data, loadedPath: dropboxPath, loading: false })
+      const data = await api<Section[]>(`/sections?folder=${encodeURIComponent(folderPath)}`)
+      set({ sections: data, loadedFolder: folderPath, loading: false })
     } catch {
-      set({ sections: [], loadedPath: dropboxPath, loading: false })
+      set({ sections: [], loadedFolder: folderPath, loading: false })
     }
   },
 
   create: async (data) => {
     await api('/sections', { method: 'POST', body: data })
-    const path = get().loadedPath
-    if (path) await get().load(path)
+    const folder = get().loadedFolder
+    if (folder) await get().load(folder)
   },
 
   bulkCreate: async (data) => {
     await api('/sections/bulk', { method: 'POST', body: data })
-    const path = get().loadedPath
-    if (path) await get().load(path)
+    const folder = get().loadedFolder
+    if (folder) await get().load(folder)
   },
 
   update: async (id, data) => {
     await api(`/sections/${id}`, { method: 'PUT', body: data })
-    const path = get().loadedPath
-    if (path) await get().load(path)
+    const folder = get().loadedFolder
+    if (folder) await get().load(folder)
   },
 
   batchUpdate: async (updates) => {
     await Promise.all(updates.map(u => api(`/sections/${u.id}`, { method: 'PUT', body: u.data })))
-    const path = get().loadedPath
-    if (path) await get().load(path)
+    const folder = get().loadedFolder
+    if (folder) await get().load(folder)
   },
 
   remove: async (id) => {
     await api(`/sections/${id}`, { method: 'DELETE' })
-    const path = get().loadedPath
-    if (path) await get().load(path)
+    const folder = get().loadedFolder
+    if (folder) await get().load(folder)
   },
 
-  clear: () => set({ sections: [], loadedPath: null }),
+  clear: () => set({ sections: [], loadedFolder: null }),
 }))
