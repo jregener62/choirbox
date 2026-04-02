@@ -99,7 +99,7 @@ export function SectionPresetsPage() {
               </div>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button className="auth-submit" style={{ flex: 1 }} onClick={savePreset}>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={savePreset}>
                 {editId ? 'Aktualisieren' : 'Erstellen'}
               </button>
               <button className="btn btn-secondary" onClick={resetForm}>Abbrechen</button>

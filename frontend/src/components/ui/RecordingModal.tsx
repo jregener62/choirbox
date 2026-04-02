@@ -1,9 +1,8 @@
-import { useState, useRef, useMemo, useEffect } from 'react'
-import { Mic, Square, Play, Pause, Upload, X, RotateCcw, Check } from 'lucide-react'
+import { useState, useRef, useMemo } from 'react'
+import { Mic, Square, Play, Pause, Upload, RotateCcw, Check } from 'lucide-react'
 import { useRecorder } from '@/hooks/useRecorder'
 import { apiUpload } from '@/api/client'
-import { useAppStore } from '@/stores/appStore'
-import { usePlayerStore } from '@/stores/playerStore'
+import { Modal } from './Modal'
 import { formatTime } from '@/utils/formatters'
 import { VOICES, SECTIONS, buildFilename } from '@/utils/filename'
 import type { SelectedSection } from '@/utils/filename'
@@ -19,13 +18,6 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     state, error, duration, blob, blobUrl,
     fileExtension, startRecording, stopRecording, reset,
   } = useRecorder()
-
-  const setModalOpen = useAppStore((s) => s.setModalOpen)
-  useEffect(() => {
-    setModalOpen(true)
-    usePlayerStore.getState().setPlaying(false)
-    return () => setModalOpen(false)
-  }, [setModalOpen])
 
   const [uploading, setUploading] = useState(false)
   const [uploadError, setUploadError] = useState<string | null>(null)
@@ -71,7 +63,6 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     setUploading(true)
     setUploadError(null)
 
-    // Upload with original extension so server knows the source format
     const ext = fileExtension
     const uploadFilename = filename.replace(/\.mp3$/, `.${ext}`)
     const formData = new FormData()
@@ -132,161 +123,150 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   }
 
   return (
-    <div className="recording-overlay" onClick={handleClose}>
-      <div className="recording-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="recording-header">
-          <span className="recording-title">Aufnahme</span>
-          <button className="player-header-btn" onClick={handleClose}>
-            <X size={20} />
+    <Modal title="Aufnahme" onClose={handleClose}>
+      <div className="recording-path" style={{ padding: 0 }}>
+        Zielordner: {targetPath || 'Root'}
+      </div>
+
+      {state === 'idle' && !uploadDone && (
+        <>
+          <button className="recording-mic-btn" onClick={startRecording}>
+            <Mic size={32} />
+          </button>
+          <div className="recording-hint">Antippen zum Aufnehmen</div>
+        </>
+      )}
+
+      {state === 'recording' && (
+        <>
+          <div className="recording-indicator">
+            <div className="recording-pulse" />
+            <span className="recording-time">{formatTime(duration)}</span>
+          </div>
+          <button className="recording-stop-btn" onClick={stopRecording}>
+            <Square size={24} fill="currentColor" />
+          </button>
+          <div className="recording-hint">Antippen zum Stoppen</div>
+        </>
+      )}
+
+      {state === 'stopped' && !uploadDone && (
+        <>
+          <div className="recording-preview-info">
+            Aufnahme: {formatTime(duration)}
+          </div>
+
+          {/* Voice selection */}
+          <div className="recording-section">
+            <div className="recording-section-label">Stimme</div>
+            <div className="voice-part-selector">
+              {VOICES.map((v) => (
+                <button
+                  key={v.key}
+                  type="button"
+                  className={`voice-part-btn ${voices.includes(v.key) ? 'selected' : ''}`}
+                  onClick={() => toggleVoice(v.key)}
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Section selection */}
+          <div className="recording-section">
+            <div className="recording-section-label">Abschnitt</div>
+            <div className="section-chips">
+              {SECTIONS.map((s) => {
+                const selected = sections.find((sel) => sel.name === s.name)
+                return (
+                  <div key={s.name} className="section-chip-group">
+                    <button
+                      type="button"
+                      className={`filter-chip ${selected ? 'active' : ''}`}
+                      onClick={() => toggleSection(s.name)}
+                    >
+                      {s.name}
+                    </button>
+                    {selected && s.maxNum > 0 && (
+                      <select
+                        className="section-number-select"
+                        value={selected.num}
+                        onChange={(e) => setSectionNum(s.name, Number(e.target.value))}
+                      >
+                        {Array.from({ length: s.maxNum }, (_, i) => i + 1).map((n) => (
+                          <option key={n} value={n}>{n}</option>
+                        ))}
+                      </select>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+
+          {/* Free text */}
+          <div className="recording-section">
+            <div className="recording-section-label">Notiz (optional)</div>
+            <input
+              className="input"
+              type="text"
+              value={freeText}
+              onChange={(e) => setFreeText(e.target.value)}
+              placeholder="z.B. langsam, Durchlauf3..."
+              style={{ fontSize: 14 }}
+            />
+          </div>
+
+          {/* Filename preview */}
+          <div className="recording-filename-preview">
+            {filename}
+          </div>
+
+          <div className="recording-actions">
+            <button className="btn btn-secondary recording-action-btn" onClick={togglePreview}>
+              {previewPlaying ? <Pause size={18} /> : <Play size={18} />}
+              <span>{previewPlaying ? 'Pause' : 'Anhoeren'}</span>
+            </button>
+            <button className="btn btn-secondary recording-action-btn" onClick={handleReRecord}>
+              <RotateCcw size={18} />
+              <span>Neu</span>
+            </button>
+            <button
+              className="btn btn-primary recording-action-btn"
+              onClick={handleUpload}
+              disabled={uploading}
+            >
+              <Upload size={18} />
+              <span>{uploading ? 'Laedt...' : 'Hochladen'}</span>
+            </button>
+          </div>
+          {uploadError && (
+            <div className="recording-error">{uploadError}</div>
+          )}
+        </>
+      )}
+
+      {uploadDone && (
+        <>
+          <div className="recording-success">
+            <Check size={48} />
+          </div>
+          <div className="recording-hint">Aufnahme hochgeladen!</div>
+          <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleClose}>
+            Schliessen
+          </button>
+        </>
+      )}
+
+      {(state === 'error') && (
+        <div className="recording-error">
+          {error}
+          <button className="btn btn-secondary" style={{ marginTop: 'var(--space-3)' }} onClick={handleReRecord}>
+            Erneut versuchen
           </button>
         </div>
-
-        <div className="recording-path">
-          Zielordner: {targetPath || 'Root'}
-        </div>
-
-        <div className="recording-content">
-          {state === 'idle' && !uploadDone && (
-            <>
-              <button className="recording-mic-btn" onClick={startRecording}>
-                <Mic size={32} />
-              </button>
-              <div className="recording-hint">Antippen zum Aufnehmen</div>
-            </>
-          )}
-
-          {state === 'recording' && (
-            <>
-              <div className="recording-indicator">
-                <div className="recording-pulse" />
-                <span className="recording-time">{formatTime(duration)}</span>
-              </div>
-              <button className="recording-stop-btn" onClick={stopRecording}>
-                <Square size={24} fill="currentColor" />
-              </button>
-              <div className="recording-hint">Antippen zum Stoppen</div>
-            </>
-          )}
-
-          {state === 'stopped' && !uploadDone && (
-            <>
-              <div className="recording-preview-info">
-                Aufnahme: {formatTime(duration)}
-              </div>
-
-              {/* Voice selection */}
-              <div className="recording-section">
-                <div className="recording-section-label">Stimme</div>
-                <div className="voice-part-selector">
-                  {VOICES.map((v) => (
-                    <button
-                      key={v.key}
-                      type="button"
-                      className={`voice-part-btn ${voices.includes(v.key) ? 'selected' : ''}`}
-                      onClick={() => toggleVoice(v.key)}
-                    >
-                      {v.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Section selection */}
-              <div className="recording-section">
-                <div className="recording-section-label">Abschnitt</div>
-                <div className="section-chips">
-                  {SECTIONS.map((s) => {
-                    const selected = sections.find((sel) => sel.name === s.name)
-                    return (
-                      <div key={s.name} className="section-chip-group">
-                        <button
-                          type="button"
-                          className={`filter-chip ${selected ? 'active' : ''}`}
-                          onClick={() => toggleSection(s.name)}
-                        >
-                          {s.name}
-                        </button>
-                        {selected && s.maxNum > 0 && (
-                          <select
-                            className="section-number-select"
-                            value={selected.num}
-                            onChange={(e) => setSectionNum(s.name, Number(e.target.value))}
-                          >
-                            {Array.from({ length: s.maxNum }, (_, i) => i + 1).map((n) => (
-                              <option key={n} value={n}>{n}</option>
-                            ))}
-                          </select>
-                        )}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Free text */}
-              <div className="recording-section">
-                <div className="recording-section-label">Notiz (optional)</div>
-                <input
-                  className="input"
-                  type="text"
-                  value={freeText}
-                  onChange={(e) => setFreeText(e.target.value)}
-                  placeholder="z.B. langsam, Durchlauf3..."
-                  style={{ fontSize: 14 }}
-                />
-              </div>
-
-              {/* Filename preview */}
-              <div className="recording-filename-preview">
-                {filename}
-              </div>
-
-              <div className="recording-actions">
-                <button className="btn btn-secondary recording-action-btn" onClick={togglePreview}>
-                  {previewPlaying ? <Pause size={18} /> : <Play size={18} />}
-                  <span>{previewPlaying ? 'Pause' : 'Anhören'}</span>
-                </button>
-                <button className="btn btn-secondary recording-action-btn" onClick={handleReRecord}>
-                  <RotateCcw size={18} />
-                  <span>Neu</span>
-                </button>
-                <button
-                  className="btn btn-primary recording-action-btn"
-                  onClick={handleUpload}
-                  disabled={uploading}
-                >
-                  <Upload size={18} />
-                  <span>{uploading ? 'Lädt...' : 'Hochladen'}</span>
-                </button>
-              </div>
-              {uploadError && (
-                <div className="recording-error">{uploadError}</div>
-              )}
-            </>
-          )}
-
-          {uploadDone && (
-            <>
-              <div className="recording-success">
-                <Check size={48} />
-              </div>
-              <div className="recording-hint">Aufnahme hochgeladen!</div>
-              <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={handleClose}>
-                Schliessen
-              </button>
-            </>
-          )}
-
-          {(state === 'error') && (
-            <div className="recording-error">
-              {error}
-              <button className="btn btn-secondary" style={{ marginTop: 12 }} onClick={handleReRecord}>
-                Erneut versuchen
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   )
 }

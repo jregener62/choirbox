@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Modal } from './Modal'
 
 interface ConfirmDialogProps {
   title: string
@@ -30,38 +31,33 @@ export function ConfirmDialog({
   cancelLabel = 'Abbrechen',
 }: ConfirmDialogProps) {
   return (
-    <div className="confirm-overlay" onClick={() => !loading && onClose()}>
-      <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
-        <p className="confirm-title">{title}</p>
+    <Modal title={title} onClose={onClose} closeOnOverlay={!loading}>
+      {filename && <p className="confirm-filename">{filename}</p>}
+      {hint && <p className="confirm-hint">{hint}</p>}
+      {children}
 
-        {filename && <p className="confirm-filename">{filename}</p>}
-        {hint && <p className="confirm-hint">{hint}</p>}
-        {children}
-
-        <div className="confirm-actions" style={children ? { marginTop: 12 } : undefined}>
-          {cancelLabel !== null && (
-            <button
-              className="btn btn-secondary"
-              onClick={onClose}
-              disabled={loading}
-            >
-              {cancelLabel}
-            </button>
-          )}
+      <div className="confirm-actions" style={children ? { marginTop: 'var(--space-3)' } : undefined}>
+        {cancelLabel !== null && (
           <button
-            className={
-              variant === 'danger' ? 'btn btn-danger' :
-              variant === 'secondary' ? 'btn btn-secondary' :
-              'auth-submit'
-            }
-            style={variant === 'primary' ? { flex: 1 } : undefined}
-            onClick={onConfirm}
-            disabled={loading || confirmDisabled}
+            className="btn btn-secondary"
+            onClick={onClose}
+            disabled={loading}
           >
-            {loading && confirmLoadingLabel ? confirmLoadingLabel : confirmLabel}
+            {cancelLabel}
           </button>
-        </div>
+        )}
+        <button
+          className={
+            variant === 'danger' ? 'btn btn-danger' :
+            variant === 'secondary' ? 'btn btn-secondary' :
+            'btn btn-primary'
+          }
+          onClick={onConfirm}
+          disabled={loading || confirmDisabled}
+        >
+          {loading && confirmLoadingLabel ? confirmLoadingLabel : confirmLabel}
+        </button>
       </div>
-    </div>
+    </Modal>
   )
 }

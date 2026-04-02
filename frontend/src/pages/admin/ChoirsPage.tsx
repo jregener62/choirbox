@@ -198,7 +198,7 @@ export function ChoirsPage() {
             <input className="auth-input" type="text" value={adminPassword} onChange={(e) => setAdminPassword(e.target.value)} placeholder="Initiales Passwort" autoComplete="off" />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button className="auth-submit" style={{ flex: 1 }} onClick={createChoir} disabled={saving}>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={createChoir} disabled={saving}>
               {saving ? 'Erstellen...' : 'Chor erstellen'}
             </button>
             <button className="btn btn-secondary" onClick={() => setShowForm(false)}>Abbrechen</button>
@@ -226,7 +226,7 @@ export function ChoirsPage() {
                   <input className="auth-input" type="text" value={editRootFolder} onChange={(e) => setEditRootFolder(e.target.value)} />
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
-                  <button className="auth-submit" style={{ flex: 1 }} onClick={saveEdit} disabled={saving}>
+                  <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveEdit} disabled={saving}>
                     <Check size={16} style={{ marginRight: 4 }} /> Speichern
                   </button>
                   <button className="btn btn-secondary" onClick={cancelEdit}><X size={16} /></button>

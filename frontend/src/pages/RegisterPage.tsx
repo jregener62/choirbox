@@ -190,7 +190,7 @@ export function RegisterPage() {
             </div>
           </div>
 
-          <button className="auth-submit" type="submit" disabled={loading}>
+          <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>
             {loading ? 'Wird erstellt...' : 'Konto erstellen'}
           </button>
         </form>

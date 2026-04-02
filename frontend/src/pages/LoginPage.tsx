@@ -72,7 +72,7 @@ export function LoginPage() {
               </button>
             </div>
           </div>
-          <button className="auth-submit" type="submit" disabled={loading}>
+          <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>
             {loading ? 'Anmelden...' : 'Anmelden'}
           </button>
         </form>

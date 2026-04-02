@@ -286,7 +286,7 @@ export function SettingsPage() {
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="auth-submit" style={{ flex: 1 }} onClick={saveProfile}>
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={saveProfile}>
                   <Check size={16} style={{ marginRight: 4 }} /> Speichern
                 </button>
                 <button className="btn btn-secondary" onClick={() => setEditingProfile(false)}>
@@ -345,7 +345,7 @@ export function SettingsPage() {
                 <input className="auth-input" type="password" value={newPwConfirm} onChange={(e) => setNewPwConfirm(e.target.value)} />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="auth-submit" style={{ flex: 1 }} onClick={changePassword}>
+                <button className="btn btn-primary" style={{ flex: 1 }} onClick={changePassword}>
                   Passwort aendern
                 </button>
                 {!mustChangePw && (
@@ -404,7 +404,7 @@ export function SettingsPage() {
                 <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 12 }}>
                   Verbinde den Dropbox-Account, damit Chormitglieder auf die Dateien zugreifen koennen.
                 </div>
-                <button className="auth-submit" onClick={connectDropbox}>
+                <button className="btn btn-primary" style={{ width: '100%' }} onClick={connectDropbox}>
                   Mit Dropbox verbinden
                 </button>
               </div>
@@ -450,7 +450,7 @@ export function SettingsPage() {
                 placeholder="z.B. MeinChor2026"
               />
               <button
-                className="auth-submit"
+                className="btn btn-primary"
                 onClick={saveInviteCode}
                 disabled={inviteCodeSaving}
                 style={{ width: 'auto', padding: '10px 20px' }}
@@ -477,7 +477,7 @@ export function SettingsPage() {
                 placeholder="z.B. choirbox"
               />
               <button
-                className="auth-submit"
+                className="btn btn-primary"
                 onClick={saveAppFolder}
                 disabled={appFolderSaving}
                 style={{ width: 'auto', padding: '10px 20px' }}
@@ -504,7 +504,7 @@ export function SettingsPage() {
                 placeholder="z.B. Mein Chor"
               />
               <button
-                className="auth-submit"
+                className="btn btn-primary"
                 onClick={saveRootFolder}
                 disabled={rootFolderSaving}
                 style={{ width: 'auto', padding: '10px 20px' }}

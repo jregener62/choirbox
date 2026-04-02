@@ -1037,3 +1037,41 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `dropbox_connected_at` | DateTime | Verbindungszeitpunkt |
 | `dropbox_root_folder` | String | Optionaler globaler App-Ordner (Prefix fuer alle Chor-Ordner) |
 | `updated_at` | DateTime | Letzte Aenderung |
+
+---
+
+## UI-Komponenten
+
+### Modal-System (zentralisiert)
+
+Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.tsx`).
+
+**Einheitliches Verhalten:**
+- Overlay: fixiert, dunkler Hintergrund (rgba 0,0,0,0.6), z-index 1000
+- Container: max-width 400px, bg-primary, border-radius 2xl, scrollbar bei Ueberlauf
+- Header: Titel + X-Schliessen-Button (optional)
+- Lifecycle: `setModalOpen(true/false)` + Playback-Stop automatisch verwaltet
+- Primaer-Buttons: einheitlich `btn btn-primary` (--confirm, Blau)
+- Sekundaer-Buttons: `btn btn-secondary`
+- Danger-Buttons: `btn btn-danger`
+
+**Verfuegbare Modals:**
+- `ConfirmDialog` — Bestaetigung/Loeschen/Erstellen mit optionalen Children (z.B. Input-Felder)
+- `ImportModal` — Batch-Upload mit Fortschrittsanzeige
+- `RenameModal` — Datei umbenennen mit Stimme/Abschnitt/Notiz-Auswahl
+- `RecordingModal` — Audio-Aufnahme mit Upload
+
+**Props des Base-Components:**
+
+| Prop | Typ | Default | Beschreibung |
+|------|-----|---------|-------------|
+| `title` | string | — | Titel im Header (ohne → kein Header) |
+| `onClose` | () => void | — | Schliessen-Handler |
+| `closeOnOverlay` | boolean | true | Overlay-Klick schliesst Modal |
+| `showClose` | boolean | true | X-Button anzeigen |
+| `children` | ReactNode | — | Modal-Inhalt |
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/ui/Modal.tsx` | Geteiltes Base-Component |
+| `frontend/src/styles/index.css` | `.modal-overlay`, `.modal-container`, `.modal-header`, `.modal-title`, `.modal-body` |
