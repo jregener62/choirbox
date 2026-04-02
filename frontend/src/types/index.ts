@@ -17,10 +17,11 @@ export interface LoginResponse {
 export interface DropboxEntry {
   name: string
   path: string
-  type: 'folder' | 'file' | 'document'
+  type: 'folder' | 'file' | 'document' | 'texte'
   size?: number
   modified?: string
   duration?: number
+  doc_count?: number
 }
 
 export interface BrowseResponse {

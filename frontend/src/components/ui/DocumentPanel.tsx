@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Upload, Trash2, Maximize2, Minimize2, PenLine, FileText, Video, File, Eye, EyeOff, Plus, Minus } from 'lucide-react'
+import { Download, Upload, Trash2, Maximize2, Minimize2, PenLine, Pencil, FileText, Video, File, Eye, EyeOff, Plus, Minus } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -31,7 +31,7 @@ function getDistance(t1: Touch, t2: Touch) {
 
 export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelProps) {
   const token = useAuthStore((s) => s.token)
-  const { documents, activeDocId, loading, uploading, upload, remove, hide, unhide, setActive } = useDocumentsStore()
+  const { documents, activeDocId, loading, uploading, upload, remove, rename, hide, unhide, setActive } = useDocumentsStore()
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
@@ -41,6 +41,9 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
   const pagesRef = useRef<HTMLDivElement>(null)
   const [confirmDelete, setConfirmDelete] = useState<DocumentItem | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [renameDoc, setRenameDoc] = useState<DocumentItem | null>(null)
+  const [renameName, setRenameName] = useState('')
+  const [renaming, setRenaming] = useState(false)
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [showHidden, setShowHidden] = useState(false)
@@ -282,14 +285,23 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
           </span>
           <div className="pdf-toolbar-actions">
             {canUpload && (
-              <button
-                className="pdf-toolbar-btn"
-                onClick={() => setConfirmDelete(activeDoc)}
-                title="PDF loeschen"
-                style={{ color: 'var(--danger)' }}
-              >
-                <Trash2 size={16} />
-              </button>
+              <>
+                <button
+                  className="pdf-toolbar-btn"
+                  onClick={() => { setRenameName(activeDoc.original_name); setRenameDoc(activeDoc) }}
+                  title="Umbenennen"
+                >
+                  <Pencil size={16} />
+                </button>
+                <button
+                  className="pdf-toolbar-btn"
+                  onClick={() => setConfirmDelete(activeDoc)}
+                  title="Loeschen"
+                  style={{ color: 'var(--danger)' }}
+                >
+                  <Trash2 size={16} />
+                </button>
+              </>
             )}
             <button
               className={`pdf-toolbar-btn${drawingMode ? ' pdf-toolbar-btn--active' : ''}`}
@@ -313,6 +325,13 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
           </span>
           {canUpload && (
             <div className="pdf-toolbar-actions">
+              <button
+                className="pdf-toolbar-btn"
+                onClick={() => { setRenameName(activeDoc.original_name); setRenameDoc(activeDoc) }}
+                title="Umbenennen"
+              >
+                <Pencil size={16} />
+              </button>
               <button
                 className="pdf-toolbar-btn"
                 onClick={() => setConfirmDelete(activeDoc)}
@@ -435,6 +454,39 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
           onConfirm={handleDelete}
           loading={deleting}
         />
+      )}
+
+      {renameDoc && (
+        <ConfirmDialog
+          title="Umbenennen"
+          onClose={() => setRenameDoc(null)}
+          confirmLabel="Speichern"
+          confirmLoadingLabel="Speichern..."
+          onConfirm={async () => {
+            if (!renameName.trim()) return
+            setRenaming(true)
+            try {
+              await rename(renameDoc.id, renameName.trim())
+              setRenameDoc(null)
+            } catch {
+              // Error handled by store
+            } finally {
+              setRenaming(false)
+            }
+          }}
+          loading={renaming}
+          confirmDisabled={!renameName.trim() || renameName.trim() === renameDoc.original_name}
+          variant="primary"
+        >
+          <input
+            className="auth-input"
+            type="text"
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && renameName.trim() && renameName.trim() !== renameDoc.original_name && e.currentTarget.closest('form')?.requestSubmit()}
+          />
+        </ConfirmDialog>
       )}
 
       {showHidden && hiddenDocs.length > 0 && (

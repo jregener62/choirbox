@@ -17,6 +17,8 @@ from backend.services.dropbox_service import get_dropbox_service
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
+TEXTE_SUBFOLDER = "Texte"
+
 
 def _get_root_folder(user: User, session: Session) -> str:
     """Build the Dropbox root folder from app settings + choir."""
@@ -32,9 +34,16 @@ def _get_root_folder(user: User, session: Session) -> str:
 
 
 def _dropbox_doc_path(folder_path: str, doc_name: str, user: User, session: Session) -> str:
-    """Build the full Dropbox path for a document."""
+    """Build the full Dropbox path for a document (inside Texte subfolder)."""
     root = _get_root_folder(user, session)
-    parts = [p for p in [root, folder_path.strip("/"), doc_name] if p]
+    parts = [p for p in [root, folder_path.strip("/"), TEXTE_SUBFOLDER, doc_name] if p]
+    return "/" + "/".join(parts)
+
+
+def _dropbox_texte_path(folder_path: str, user: User, session: Session) -> str:
+    """Build the full Dropbox path for the Texte subfolder."""
+    root = _get_root_folder(user, session)
+    parts = [p for p in [root, folder_path.strip("/"), TEXTE_SUBFOLDER] if p]
     return "/" + "/".join(parts)
 
 
@@ -63,14 +72,54 @@ async def list_documents(
 async def _sync_documents_from_dropbox(
     folder_path: str, user: User, session: Session
 ) -> None:
-    """Sync Dropbox folder with documents DB: register new, update changed (by content_hash)."""
+    """Sync Dropbox Texte subfolder (+ legacy parent) with documents DB."""
     try:
         dbx = get_dropbox_service(session)
         if not dbx:
             return
 
-        dbx_folder = _dropbox_folder_path(folder_path, user, session)
-        entries = await dbx.list_folder(dbx_folder)
+        # Primary: scan Texte subfolder
+        texte_folder = _dropbox_texte_path(folder_path, user, session)
+        texte_entries = []
+        try:
+            texte_entries = await dbx.list_folder(texte_folder)
+        except Exception:
+            pass  # Subfolder may not exist yet
+
+        # Fallback: scan parent folder for legacy document files
+        parent_folder = _dropbox_folder_path(folder_path, user, session)
+        legacy_entries = []
+        try:
+            parent_entries = await dbx.list_folder(parent_folder)
+            for e in parent_entries:
+                if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", "")):
+                    legacy_entries.append(e)
+        except Exception:
+            pass
+
+        # Lazy migration: move legacy docs to Texte subfolder
+        if legacy_entries:
+            try:
+                await dbx.create_folder(texte_folder)
+            except RuntimeError:
+                pass  # Already exists
+            for e in legacy_entries:
+                name = e.get("name", "")
+                try:
+                    old_path = parent_folder.rstrip("/") + "/" + name
+                    new_path = texte_folder.rstrip("/") + "/" + name
+                    await dbx.move_file(old_path, new_path)
+                    # After move, treat as Texte entry
+                    texte_entries.append(e)
+                except Exception:
+                    # Move failed (conflict etc.) — still sync from parent
+                    texte_entries.append(e)
+
+        # Collect all document files from Texte folder
+        entries = [
+            e for e in texte_entries
+            if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", ""))
+        ]
 
         # Build lookup of existing documents by name
         existing = {
@@ -81,8 +130,6 @@ async def _sync_documents_from_dropbox(
         }
 
         for entry in entries:
-            if entry.get(".tag") != "file":
-                continue
             name = entry.get("name", "")
             file_type = document_service.detect_file_type(name)
             if not file_type:
@@ -96,10 +143,10 @@ async def _sync_documents_from_dropbox(
                 continue  # Unchanged
 
             if doc and doc.content_hash != dbx_hash:
-                # --- File changed in Dropbox → update ---
+                # --- File changed → update ---
                 if file_type == "pdf":
                     try:
-                        link = await dbx.get_temporary_link(dbx_folder.rstrip("/") + "/" + name)
+                        link = await dbx.get_temporary_link(texte_folder.rstrip("/") + "/" + name)
                         async with httpx.AsyncClient() as client:
                             resp = await client.get(link)
                             resp.raise_for_status()
@@ -119,7 +166,7 @@ async def _sync_documents_from_dropbox(
             # --- New file → register ---
             if file_type == "pdf":
                 try:
-                    link = await dbx.get_temporary_link(dbx_folder.rstrip("/") + "/" + name)
+                    link = await dbx.get_temporary_link(texte_folder.rstrip("/") + "/" + name)
                     async with httpx.AsyncClient() as client:
                         resp = await client.get(link)
                         resp.raise_for_status()
@@ -145,11 +192,7 @@ async def _sync_documents_from_dropbox(
                 )
 
         # --- Files removed from Dropbox → delete from DB ---
-        dbx_doc_names = {
-            entry.get("name", "")
-            for entry in entries
-            if entry.get(".tag") == "file" and document_service.detect_file_type(entry.get("name", ""))
-        }
+        dbx_doc_names = {e.get("name", "") for e in entries}
         for name, doc in existing.items():
             if name not in dbx_doc_names:
                 document_service.delete_document(doc.id, session)
@@ -176,11 +219,16 @@ async def upload_document(
 
     content = await file.read()
 
-    # Upload to Dropbox first
+    # Upload to Dropbox (inside Texte subfolder, auto-created)
     dbx_hash = None
     try:
         dbx = get_dropbox_service(session)
         if dbx:
+            texte_path = _dropbox_texte_path(folder_path, user, session)
+            try:
+                await dbx.create_folder(texte_path)
+            except RuntimeError:
+                pass  # Folder already exists
             dbx_path = _dropbox_doc_path(folder_path, original_name, user, session)
             result = await dbx.upload_file(content, dbx_path)
             dbx_hash = result.get("content_hash")
@@ -336,6 +384,51 @@ async def get_text_content(
             return {"content": resp.text}
     except RuntimeError as e:
         raise HTTPException(502, str(e))
+
+
+# ---------------------------------------------------------------------------
+# Rename
+# ---------------------------------------------------------------------------
+
+@router.post("/{doc_id}/rename")
+async def rename_document(
+    doc_id: int,
+    data: dict,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    new_name = (data.get("new_name") or "").strip()
+    if not new_name:
+        raise HTTPException(400, "Name ist erforderlich")
+
+    doc = document_service.get_document(doc_id, session)
+    if not doc:
+        raise HTTPException(404, "Dokument nicht gefunden")
+
+    old_name = doc.original_name
+
+    # Rename in Dropbox
+    dbx = get_dropbox_service(session)
+    if dbx:
+        old_path = _dropbox_doc_path(doc.folder_path, old_name, user, session)
+        new_path = _dropbox_doc_path(doc.folder_path, new_name, user, session)
+        try:
+            await dbx.move_file(old_path, new_path)
+        except RuntimeError as e:
+            if "conflict" in str(e):
+                raise HTTPException(409, "Name bereits vergeben")
+            raise HTTPException(502, str(e))
+
+    # Update DB
+    doc.original_name = new_name
+    session.add(doc)
+    session.commit()
+
+    # Invalidate caches
+    document_service._clear_cached_pdf(doc_id)
+    document_service.clear_render_cache()
+
+    return ActionResponse.success()
 
 
 # ---------------------------------------------------------------------------

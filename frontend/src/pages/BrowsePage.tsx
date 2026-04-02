@@ -192,8 +192,9 @@ export function BrowsePage() {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
+    } else if (entry.type === 'texte') {
+      navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path)}`)
     } else if (entry.type === 'document') {
-      // Open document viewer with the folder path and document name
       const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
       navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
     } else {
@@ -469,6 +470,7 @@ export function BrowsePage() {
           const isActive = entry.type === 'file' && entry.path === currentPath
           const isFile = entry.type === 'file'
           const isDoc = entry.type === 'document'
+          const isTexte = entry.type === 'texte'
           const isRevealed = revealedPath === entry.path
 
           const docIcon = isDoc ? (
@@ -482,6 +484,10 @@ export function BrowsePage() {
               {entry.type === 'folder' ? (
                 <div className="file-icon-box file-icon-folder">
                   <Folder size={18} />
+                </div>
+              ) : isTexte ? (
+                <div className="file-icon-box file-icon-doc">
+                  <FileText size={18} />
                 </div>
               ) : isDoc ? (
                 <div className="file-icon-box file-icon-doc">
@@ -500,6 +506,11 @@ export function BrowsePage() {
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {entry.type === 'file' ? formatDisplayName(entry.name) : entry.name}
                 </div>
+                {isTexte && entry.doc_count != null && (
+                  <div className="file-meta">
+                    {entry.doc_count} {entry.doc_count === 1 ? 'Dokument' : 'Dokumente'}
+                  </div>
+                )}
                 {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>
                 )}
@@ -554,7 +565,7 @@ export function BrowsePage() {
                 >
                   <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                 </button>
-                {(isFile || isDoc) && (
+                {(isFile || isDoc) && !isTexte && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
@@ -562,7 +573,7 @@ export function BrowsePage() {
                     <Tag size={18} />
                   </button>
                 )}
-                {isAdmin && (
+                {isAdmin && !isTexte && (
                   <button
                     className="swipe-action-btn swipe-action-info"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setRenameName(entry.name); setRenameEntry(entry) }}
@@ -570,7 +581,7 @@ export function BrowsePage() {
                     <Pencil size={18} />
                   </button>
                 )}
-                {((isFile || isDoc) ? canDelete : isAdmin) && (
+                {((isFile || isDoc) ? canDelete : isAdmin) && !isTexte && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}

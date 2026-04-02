@@ -12,6 +12,7 @@ interface DocumentsState {
   load: (folderPath: string) => Promise<void>
   upload: (folderPath: string, file: File) => Promise<void>
   remove: (docId: number) => Promise<void>
+  rename: (docId: number, newName: string) => Promise<void>
   hide: (docId: number) => Promise<void>
   unhide: (docId: number) => Promise<void>
   setActive: (docId: number) => void
@@ -62,6 +63,12 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
 
   remove: async (docId: number) => {
     await api(`/documents/${docId}`, { method: 'DELETE' })
+    const folder = get().loadedFolder
+    if (folder) await get().load(folder)
+  },
+
+  rename: async (docId: number, newName: string) => {
+    await api(`/documents/${docId}/rename`, { method: 'POST', body: { new_name: newName } })
     const folder = get().loadedFolder
     if (folder) await get().load(folder)
   },
