@@ -98,6 +98,46 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | `backend/api/auth.py` | `ROLE_HIERARCHY`, `require_role()`, `require_admin` |
 | `frontend/src/utils/roles.ts` | `hasMinRole()`, `ROLE_LABELS`, `ALL_ROLES` |
 
+### Berechtigungsmatrix
+
+| Element | beta-tester (5) | admin (4) | chorleiter (3) | pro-member (2) | member (1) | guest (0) |
+|---------|:-:|:-:|:-:|:-:|:-:|:-:|
+| **BrowsePage** | | | | | | |
+| Browse, Play, Stream | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Favoriten (Herz) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Filter (Labels) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Suche | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Label zuweisen (Tag) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Kebab-Menue (⋮) | ✓ | ✓ | ✓ | ✓ | — | — |
+| ↳ Aufnehmen | ✓ | ✓ | ✓ | ✓ | — | — |
+| ↳ Datei hochladen | ✓ | ✓ | ✓ | ✓ | — | — |
+| ↳ Ordner erstellen | ✓ | ✓ | — | — | — | — |
+| Datei-Einstellungen (Info) | ✓ | ✓ | ✓ | ✓ | — | — |
+| Datei loeschen | ✓ | ✓ | ✓ | — | — | — |
+| Umbenennen (Stift) | ✓ | ✓ | — | — | — | — |
+| Ordner loeschen | ✓ | ✓ | — | — | — | — |
+| **PlayerPage** | | | | | | |
+| Wiedergabe + Waveform | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| PDF hochladen/loeschen | ✓ | ✓ | ✓ | ✓ | — | — |
+| Datei-Einstellungen | ✓ | ✓ | ✓ | ✓ | — | — |
+| Notizen/Lyrics bearbeiten | ✓ | ✓ | ✓ | ✓ | — | — |
+| Section-Editor | ✓ | — | — | — | — | — |
+| **SettingsPage** | | | | | | |
+| Profil, Passwort, Theme | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Labels verwalten | ✓ | ✓ | ✓ | ✓ | — | — |
+| Sektionsvorlagen | ✓ | ✓ | ✓ | ✓ | — | — |
+| Nutzer verwalten | ✓ | ✓ | — | — | — | — |
+| Einladungslink + Copy | ✓ | ✓ | — | — | — | — |
+| Chor-Ordner | ✓ | ✓ | — | — | — | — |
+| Dropbox-Verbindung | — | — | — | — | — | — |
+| Dropbox App-Ordner | — | — | — | — | — | — |
+| Choere verwalten | — | — | — | — | — | — |
+| **FileSettingsPage** | | | | | | |
+| Anzeigen (read-only) | ✓ | ✓ | ✓ | ✓ | — | — |
+| Bearbeiten + Speichern | ✓ | ✓ | ✓ | ✓ | — | — |
+
+*Developer (6) hat alle Rechte + Dropbox-Verbindung, App-Ordner, Choere verwalten, Chor-Wechsel.*
+
 ### Logout
 
 - Token wird im Backend invalidiert

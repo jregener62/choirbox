@@ -138,7 +138,7 @@ Danach reicht `python run.py` allein — FastAPI liefert das React-Build aus `st
 ### Standard-Abschluss nach jedem Change
 
 Nach jedem abgeschlossenen Change:
-1. **FEATURES.md aktualisieren** — neue Features dokumentieren, Bugfixes in eigene Bugfix-Sektion
+1. **FEATURES.md aktualisieren** — neue Features dokumentieren, Bugfixes in eigene Bugfix-Sektion. **Berechtigungsmatrix** in der Rollen-Sektion aktualisieren wenn sich Rollen-Anforderungen fuer UI-Elemente geaendert haben.
 2. **Commit** — aussagekraeftige Commit-Message
 3. **Deploy** (`./deploy.sh <Nr>`) — aber **nur bei Code-Aenderungen**. Reine Doku-Updates (FEATURES.md, CLAUDE.md etc.) brauchen **kein Deploy**.
    - Deploy-Ziele: `1` = Dev, `2` = Staging, `3` = Prod (Staging + Produktion), `4` = Alle. Ohne Nummer: nachfragen.
@@ -164,6 +164,14 @@ Nach jedem abgeschlossenen Change:
 - **Layout-Komponenten** (`components/layout/`) fuer AppShell, BottomNav, MiniPlayer.
 - **Zustand Stores** (`stores/`) fuer globalen State: `authStore` (Login/Token), `appStore` (Theme, Requests), `playerStore` (Audio-State).
 - **Custom Hooks** (`hooks/`) fuer wiederverwendbare Logik.
+
+**Frontend — Modal-System (PFLICHT):**
+- Alle Modals muessen das geteilte `<Modal>` Base-Component (`components/ui/Modal.tsx`) nutzen.
+- **Kein eigener Overlay/Container** — `<Modal>` liefert Overlay, Container, Header, X-Button und `setModalOpen`-Lifecycle.
+- **Primaer-Buttons**: immer `btn btn-primary` (nutzt `--confirm`, Blau). Kein `auth-submit`, kein `--accent` fuer Aktions-Buttons.
+- **Sekundaer-Buttons**: `btn btn-secondary`. **Danger-Buttons**: `btn btn-danger`.
+- Props: `title` (Header), `onClose`, `closeOnOverlay` (default true), `showClose` (default true), `children`.
+- Bestehende Modals als Referenz: `ConfirmDialog`, `ImportModal`, `RenameModal`, `RecordingModal`.
 
 **Frontend — Hooks-First-Prinzip:**
 - **Vor jeder neuen Feature-Implementierung pruefen:** Gibt es wiederverwendbare Logik, die als Hook extrahiert werden sollte?
