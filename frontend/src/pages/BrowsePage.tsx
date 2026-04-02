@@ -356,12 +356,16 @@ export function BrowsePage() {
                         borderRadius: 'var(--radius-lg)', padding: 'var(--space-2) 0',
                         minWidth: 200, boxShadow: 'var(--shadow-lg)',
                       }}>
-                        <button className="kebab-item" onClick={() => { setKebabOpen(false); setRecordingOpen(true) }}>
-                          <Mic size={16} /> Aufnehmen
-                        </button>
-                        <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
-                          <Upload size={16} /> Datei(en) hochladen
-                        </button>
+                        {browsePath && (
+                          <button className="kebab-item" onClick={() => { setKebabOpen(false); setRecordingOpen(true) }}>
+                            <Mic size={16} /> Aufnehmen
+                          </button>
+                        )}
+                        {browsePath && (
+                          <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
+                            <Upload size={16} /> Datei(en) hochladen
+                          </button>
+                        )}
                         {isAdmin && (
                           <button className="kebab-item" onClick={() => { setKebabOpen(false); setNewFolderName(''); setCreateFolderOpen(true) }}>
                             <FolderPlus size={16} /> Ordner erstellen
