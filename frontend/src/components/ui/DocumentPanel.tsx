@@ -237,8 +237,8 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
 
   return (
     <div className="pdf-panel">
-      {/* Tab bar for multiple docs */}
-      {visibleDocs.length > 1 && (
+      {/* Tab bar: show when multiple visible docs OR when hidden docs exist */}
+      {(visibleDocs.length > 1 || hiddenDocs.length > 0) && (
         <div className="doc-tabs">
           <div className="doc-tabs-scroll">
             {visibleDocs.map((doc) => (
@@ -249,15 +249,13 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
               >
                 {getDocIcon(doc.file_type)}
                 <span className="doc-tab-name">{doc.original_name}</span>
-                {visibleDocs.length > 1 && (
-                  <button
-                    className="doc-tab-hide"
-                    onClick={(e) => { e.stopPropagation(); hide(doc.id) }}
-                    title="Ausblenden"
-                  >
-                    <EyeOff size={12} />
-                  </button>
-                )}
+                <button
+                  className="doc-tab-hide"
+                  onClick={(e) => { e.stopPropagation(); hide(doc.id) }}
+                  title="Ausblenden"
+                >
+                  <EyeOff size={12} />
+                </button>
               </button>
             ))}
           </div>
