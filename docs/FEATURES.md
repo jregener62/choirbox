@@ -275,8 +275,9 @@ Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einz
 
 - Route: `/#/doc-viewer?folder=<path>&name=<name>`
 - Erreichbar durch Klick auf ein Dokument in der Browse-Seite
-- Gleiche Funktionalitaet wie im Player (Tabs, Annotationen, Fullscreen)
+- Gleiche Funktionalitaet wie im Player (Tabs, Annotationen, Fullscreen inkl. Topbar-Hide)
 - Upload-Funktion fuer pro-member+
+- Fullscreen-Reset beim Verlassen der Seite
 
 ### Dokumente in der Browse-Seite
 
@@ -320,12 +321,13 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 - **Speicherung**: Strokes als JSON in SQLite, pro User + Document-ID + Seitennummer (unique constraint)
 - **Berechtigung**: Lesen fuer alle, Schreiben ab Rolle `member`
 
-### PDF Fullscreen-Modus
+### Fullscreen-Modus (PDF + TXT)
 
 - **FAB** rechts unten: Maximize/Minimize, Progress-Ring im Fullscreen
-- **Auto-Fade**: FAB fadet nach 3s Inaktivitaet. Beruehrung stellt Sichtbarkeit her
-- **Audio laeuft weiter** — nur UI-Elemente werden versteckt
-- **Reset** bei Panel-Wechsel oder Navigation weg vom Player
+- **Auto-Fade**: Alle FABs faden nach 3s Inaktivitaet. Beruehrung stellt Sichtbarkeit her
+- **Audio laeuft weiter** — nur UI-Elemente (Topbar, Tabs, PlayerBar) werden versteckt
+- **Reset** bei Panel-Wechsel oder Navigation weg vom Player/DocViewer
+- **TXT Schriftgroesse**: Im Fullscreen erscheinen +/- Buttons (rechts ueber Fullscreen-FAB) zum Zoomen der Schrift (7 Stufen, 12px–32px). Text bricht bei jeder Groesse sauber um
 
 | Datei | Rolle |
 |-------|-------|
