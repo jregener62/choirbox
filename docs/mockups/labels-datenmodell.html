@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Labels: Datenmodell & Berechtigungen</title>
+
+<script src="/mockups/lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1;
+    --border: #334155;
+    --confirm: #3b82f6;
+    --sopran: #ec4899; --alt: #f97316; --tenor: #3b82f6; --bass: #22c55e;
+    --playback: #a855f7; --gitarre: #eab308;
+    --danger: #ef4444; --success: #22c55e;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text);
+         max-width: 700px; margin: 0 auto; padding: 24px 16px;
+         -webkit-font-smoothing: antialiased; line-height: 1.5; }
+
+  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+  .subtitle { font-size: 14px; color: var(--text2); margin-bottom: 24px; }
+
+  h2 { font-size: 16px; font-weight: 600; margin: 24px 0 12px; padding-top: 16px;
+       border-top: 1px solid var(--border); }
+  h2:first-of-type { border-top: none; padding-top: 0; }
+
+  /* -- Cards -- */
+  .card { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px;
+          padding: 16px; margin-bottom: 12px; }
+  .card-title { font-size: 14px; font-weight: 600; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .card p { font-size: 13px; color: var(--text2); margin-bottom: 6px; }
+  .card code { background: var(--bg3); padding: 2px 6px; border-radius: 4px; font-size: 12px;
+               color: var(--accent); font-family: 'SF Mono', 'Fira Code', monospace; }
+
+  /* -- Comparison Table -- */
+  .compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .compare-col { background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+  .compare-col h3 { font-size: 14px; font-weight: 600; margin-bottom: 10px; }
+  .compare-col.old { border-color: rgba(239,68,68,0.3); }
+  .compare-col.new { border-color: rgba(34,197,94,0.3); }
+
+  /* -- Label Preview -- */
+  .label-preview { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .preview-pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px;
+                  border-radius: 8px; font-size: 12px; font-weight: 600; }
+  .preview-chip { display: inline-flex; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+
+  /* -- Model Fields -- */
+  .fields { margin: 8px 0; }
+  .field { display: flex; gap: 8px; padding: 6px 0; border-bottom: 1px solid rgba(51,65,85,0.3);
+           font-size: 13px; align-items: baseline; }
+  .field:last-child { border-bottom: none; }
+  .field-name { font-weight: 600; color: var(--accent); min-width: 100px; font-family: 'SF Mono', 'Fira Code', monospace;
+                font-size: 12px; }
+  .field-type { color: var(--text3); font-size: 11px; min-width: 80px; }
+  .field-desc { color: var(--text2); flex: 1; }
+  .field-new { background: rgba(34,197,94,0.1); border-radius: 4px; padding: 2px 4px; }
+
+  /* -- Permission Matrix -- */
+  .matrix { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 12px; }
+  .matrix th { text-align: left; padding: 8px; background: var(--bg3); color: var(--text2);
+               font-weight: 500; border-bottom: 1px solid var(--border); }
+  .matrix td { padding: 8px; border-bottom: 1px solid rgba(51,65,85,0.3); color: var(--text2); }
+  .matrix .yes { color: var(--success); font-weight: 600; }
+  .matrix .no { color: var(--text3); }
+  .matrix .role { font-weight: 500; color: var(--text); }
+
+  /* -- Fuzzy Examples -- */
+  .fuzzy-list { list-style: none; }
+  .fuzzy-list li { display: flex; align-items: center; gap: 12px; padding: 6px 0;
+                   border-bottom: 1px solid rgba(51,65,85,0.3); font-size: 13px; }
+  .fuzzy-list li:last-child { border-bottom: none; }
+  .fuzzy-input { color: var(--text3); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 11px;
+                 min-width: 180px; }
+  .fuzzy-arrow { color: var(--text3); flex-shrink: 0; }
+  .fuzzy-result { font-weight: 500; }
+
+  /* -- Flow Diagram -- */
+  .flow { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; }
+  .flow-step { display: flex; align-items: center; gap: 12px; padding: 10px 12px;
+               background: var(--bg); border-radius: 8px; border: 1px solid var(--border); }
+  .flow-num { width: 24px; height: 24px; border-radius: 50%; background: var(--accent);
+              color: white; display: flex; align-items: center; justify-content: center;
+              font-size: 12px; font-weight: 700; flex-shrink: 0; }
+  .flow-text { font-size: 13px; color: var(--text2); }
+  .flow-text strong { color: var(--text); }
+
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px;
+         font-weight: 600; vertical-align: middle; }
+  .tag-new { background: var(--success); color: white; }
+  .tag-change { background: var(--alt); color: white; }
+  .tag-keep { background: var(--text3); color: white; }
+
+  @media (max-width: 500px) {
+    .compare { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<h1>Labels: Datenmodell & Architektur</h1>
+<p class="subtitle">Stimmen/Instrumente als Label-Kategorie statt hardcoded SATB</p>
+
+<!-- ==================== Vorher / Nachher ==================== -->
+<h2>Vorher vs. Nachher</h2>
+
+<div class="compare">
+  <div class="compare-col old">
+    <h3 style="color: var(--danger);">Bisher (hardcoded)</h3>
+    <p>Stimmen fest in <code>filename.ts</code>:</p>
+    <p><code>VOICES = [{key:'S', label:'Sopran'}, ...]</code></p>
+    <p>Icon zeigt nur Buchstabe:</p>
+    <div class="label-preview">
+      <span class="preview-pill" style="background:rgba(236,72,153,0.15);color:var(--sopran);width:36px;height:36px;justify-content:center;border-radius:8px;font-size:15px;">S</span>
+      <span class="preview-pill" style="background:rgba(249,115,22,0.15);color:var(--alt);width:36px;height:36px;justify-content:center;border-radius:8px;font-size:15px;">A</span>
+      <span class="preview-pill" style="background:rgba(59,130,246,0.15);color:var(--tenor);width:36px;height:36px;justify-content:center;border-radius:8px;font-size:15px;">T</span>
+      <span class="preview-pill" style="background:rgba(34,197,94,0.15);color:var(--bass);width:36px;height:36px;justify-content:center;border-radius:8px;font-size:15px;">B</span>
+    </div>
+    <p style="color:var(--text3);font-size:11px;">Kein Playback, Gitarre, Piano moeglich.</p>
+  </div>
+
+  <div class="compare-col new">
+    <h3 style="color: var(--success);">Neu (label-basiert)</h3>
+    <p>Stimmen als Labels mit <code>category="stimme"</code>:</p>
+    <p>Admin definiert frei per Einstellungen</p>
+    <p>Pill zeigt vollen Namen:</p>
+    <div class="label-preview">
+      <span class="preview-pill" style="background:rgba(236,72,153,0.15);color:var(--sopran);">Sopran</span>
+      <span class="preview-pill" style="background:rgba(168,85,247,0.15);color:var(--playback);">Playback</span>
+      <span class="preview-pill" style="background:rgba(234,179,8,0.15);color:var(--gitarre);">Gitarre</span>
+    </div>
+    <p style="color:var(--text3);font-size:11px;">Jede Stimme/jedes Instrument moeglich.</p>
+  </div>
+</div>
+
+<!-- ==================== Label Model ==================== -->
+<h2>Label Model <span class="tag tag-change">erweitert</span></h2>
+
+<div class="card">
+  <div class="card-title">
+    <i data-lucide="database" style="width:16px;height:16px;color:var(--accent)"></i>
+    labels (Tabelle)
+  </div>
+  <div class="fields">
+    <div class="field">
+      <span class="field-name">id</span>
+      <span class="field-type">int PK</span>
+      <span class="field-desc">Primaerschluessel</span>
+    </div>
+    <div class="field">
+      <span class="field-name">name</span>
+      <span class="field-type">str(50)</span>
+      <span class="field-desc">"Sopran", "Gitarre", "Schwierig"</span>
+    </div>
+    <div class="field">
+      <span class="field-name">color</span>
+      <span class="field-type">str(7)</span>
+      <span class="field-desc">Hex-Farbe, z.B. "#ec4899"</span>
+    </div>
+    <div class="field">
+      <span class="field-name">category</span>
+      <span class="field-type">str(50)?</span>
+      <span class="field-desc"><strong>"stimme"</strong> fuer Stimmen/Instrumente, <code>null</code> fuer allgemeine Labels</span>
+    </div>
+    <div class="field field-new">
+      <span class="field-name">shortcode</span>
+      <span class="field-type">str(10)?</span>
+      <span class="field-desc"><span class="tag tag-new">NEU</span> Kuerzel fuer Dateinamen: "S", "A", "Git", "PB". Wird fuer <code>buildFilename()</code> verwendet.</span>
+    </div>
+    <div class="field field-new">
+      <span class="field-name">aliases</span>
+      <span class="field-type">str(200)?</span>
+      <span class="field-desc"><span class="tag tag-new">NEU</span> Komma-getrennte Aliase fuer Fuzzy-Matching: "soprano,sop" fuer Sopran</span>
+    </div>
+    <div class="field">
+      <span class="field-name">choir_id</span>
+      <span class="field-type">FK</span>
+      <span class="field-desc">Gehoert zu welchem Chor</span>
+    </div>
+    <div class="field">
+      <span class="field-name">sort_order</span>
+      <span class="field-type">int</span>
+      <span class="field-desc">Reihenfolge in der Anzeige</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Berechtigungen ==================== -->
+<h2>Berechtigungsmatrix</h2>
+
+<div class="card">
+  <div class="card-title">
+    <i data-lucide="shield" style="width:16px;height:16px;color:var(--accent)"></i>
+    Wer darf was?
+  </div>
+  <table class="matrix">
+    <thead>
+      <tr>
+        <th>Aktion</th>
+        <th>Guest</th>
+        <th>Member</th>
+        <th>Pro</th>
+        <th>Chorleiter</th>
+        <th>Admin</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Stimmen-Labels <strong>sehen</strong></td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+      </tr>
+      <tr>
+        <td>Stimmen-Labels <strong>setzen/entfernen</strong></td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+      </tr>
+      <tr>
+        <td>Stimmen-Labels <strong>erstellen/bearbeiten</strong></td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+      </tr>
+      <tr>
+        <td>Allgemeine Labels <strong>setzen/entfernen</strong></td>
+        <td class="no">&mdash;</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+      </tr>
+      <tr>
+        <td>Allgemeine Labels <strong>erstellen/bearbeiten</strong></td>
+        <td class="no">&mdash;</td>
+        <td class="no">&mdash;</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+        <td class="yes">Ja</td>
+      </tr>
+    </tbody>
+  </table>
+  <p style="font-size:11px;color:var(--text3);margin-top:8px;">
+    <strong>Kern-Unterschied:</strong> Stimmen-Labels (category="stimme") erfordern min. Pro-Member zum Setzen und min. Chorleiter zum Erstellen.
+    Allgemeine Labels brauchen nur Member zum Setzen und Pro-Member zum Erstellen.
+  </p>
+</div>
+
+<!-- ==================== Fuzzy Matching ==================== -->
+<h2>Fuzzy Filename Parsing <span class="tag tag-new">NEU</span></h2>
+
+<div class="card">
+  <div class="card-title">
+    <i data-lucide="search" style="width:16px;height:16px;color:var(--accent)"></i>
+    Automatische Erkennung beim Upload
+  </div>
+  <p>Beim Upload wird der Dateiname gegen alle Stimmen-Labels (name + aliases) des Chors geprueft.</p>
+
+  <ul class="fuzzy-list" style="margin-top: 12px;">
+    <li>
+      <span class="fuzzy-input">S-Africa-Refrain.mp3</span>
+      <span class="fuzzy-arrow">&rarr;</span>
+      <span class="fuzzy-result"><span class="preview-pill" style="background:rgba(236,72,153,0.15);color:var(--sopran);padding:2px 8px;font-size:11px;">Sopran</span></span>
+    </li>
+    <li>
+      <span class="fuzzy-input">sopran-africa.mp3</span>
+      <span class="fuzzy-arrow">&rarr;</span>
+      <span class="fuzzy-result"><span class="preview-pill" style="background:rgba(236,72,153,0.15);color:var(--sopran);padding:2px 8px;font-size:11px;">Sopran</span></span>
+    </li>
+    <li>
+      <span class="fuzzy-input">gitarre_intro.mp3</span>
+      <span class="fuzzy-arrow">&rarr;</span>
+      <span class="fuzzy-result"><span class="preview-pill" style="background:rgba(234,179,8,0.15);color:var(--gitarre);padding:2px 8px;font-size:11px;">Gitarre</span></span>
+    </li>
+    <li>
+      <span class="fuzzy-input">playback-africa.mp3</span>
+      <span class="fuzzy-arrow">&rarr;</span>
+      <span class="fuzzy-result"><span class="preview-pill" style="background:rgba(168,85,247,0.15);color:var(--playback);padding:2px 8px;font-size:11px;">Playback</span></span>
+    </li>
+    <li>
+      <span class="fuzzy-input">SA-Africa.mp3</span>
+      <span class="fuzzy-arrow">&rarr;</span>
+      <span class="fuzzy-result">
+        <span class="preview-pill" style="background:rgba(236,72,153,0.15);color:var(--sopran);padding:2px 8px;font-size:11px;">Sopran</span>
+        <span class="preview-pill" style="background:rgba(249,115,22,0.15);color:var(--alt);padding:2px 8px;font-size:11px;">Alt</span>
+      </span>
+    </li>
+    <li>
+      <span class="fuzzy-input">random-filename.mp3</span>
+      <span class="fuzzy-arrow">&rarr;</span>
+      <span class="fuzzy-result" style="color:var(--text3);font-style:italic;">kein Label</span>
+    </li>
+  </ul>
+
+  <p style="margin-top:12px;">
+    <strong>Match-Strategie:</strong><br>
+    1. Exakter Shortcode-Match am Anfang: <code>"S-..."</code> → Sopran (wenn shortcode="S")<br>
+    2. Name als Prefix/Substring: <code>"sopran-..."</code> → Sopran<br>
+    3. Alias-Match: <code>"soprano-..."</code> → Sopran (wenn aliases="soprano,sop")<br>
+    4. Kombinierte Shortcodes: <code>"SA-..."</code> → Sopran + Alt<br>
+    Case-insensitive. Erster Treffer gewinnt.
+  </p>
+</div>
+
+<!-- ==================== Upload Flow ==================== -->
+<h2>Upload-Flow mit automatischem Labeling</h2>
+
+<div class="flow">
+  <div class="flow-step">
+    <span class="flow-num">1</span>
+    <span class="flow-text"><strong>User waehlt Datei(en)</strong> zum Upload</span>
+  </div>
+  <div class="flow-step">
+    <span class="flow-num">2</span>
+    <span class="flow-text"><strong>Import-Modal</strong> zeigt Dateiliste mit Vorschau</span>
+  </div>
+  <div class="flow-step">
+    <span class="flow-num">3</span>
+    <span class="flow-text"><strong>Fuzzy-Parse</strong> laeuft pro Datei: Stimmen-Labels des Chors werden gegen den Dateinamen geprueft</span>
+  </div>
+  <div class="flow-step">
+    <span class="flow-num">4</span>
+    <span class="flow-text"><strong>Erkannte Labels</strong> werden im Modal angezeigt (User kann aendern/entfernen vor Upload)</span>
+  </div>
+  <div class="flow-step">
+    <span class="flow-num">5</span>
+    <span class="flow-text"><strong>Upload + Label-Zuweisung</strong> — Datei wird hochgeladen, erkannte Labels automatisch gesetzt</span>
+  </div>
+</div>
+
+<!-- ==================== Migration ==================== -->
+<h2>Migrationsstrategie</h2>
+
+<div class="card">
+  <div class="card-title">
+    <i data-lucide="arrow-right-left" style="width:16px;height:16px;color:var(--accent)"></i>
+    Von hardcoded zu label-basiert
+  </div>
+  <div class="flow" style="margin: 8px 0;">
+    <div class="flow-step">
+      <span class="flow-num">1</span>
+      <span class="flow-text"><strong>Seed-Labels erweitern:</strong> Default Stimmen-Labels (Sopran/S, Alt/A, Tenor/T, Bass/B) mit category="stimme" und shortcode beim ersten Start erstellen — wie bisher die allgemeinen Labels.</span>
+    </div>
+    <div class="flow-step">
+      <span class="flow-num">2</span>
+      <span class="flow-text"><strong>Label Model:</strong> Felder <code>shortcode</code> und <code>aliases</code> hinzufuegen (Migration).</span>
+    </div>
+    <div class="flow-step">
+      <span class="flow-num">3</span>
+      <span class="flow-text"><strong>Frontend:</strong> <code>VoiceIcon</code> liest Stimmen-Labels statt hardcoded VOICES. <code>RenameModal</code> zeigt Stimmen-Labels des Chors.</span>
+    </div>
+    <div class="flow-step">
+      <span class="flow-num">4</span>
+      <span class="flow-text"><strong>Fuzzy-Parse:</strong> Neuer Utility <code>matchVoiceLabels(filename, labels[])</code> im Frontend.</span>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== Seed-Konfiguration ==================== -->
+<h2>Default Seed Labels <span class="tag tag-change">erweitert</span></h2>
+
+<div class="card">
+  <div class="card-title">
+    <i data-lucide="sprout" style="width:16px;height:16px;color:var(--accent)"></i>
+    seed.py Default Labels fuer Choere
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+    <div>
+      <p style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">STIMMEN (category="stimme")</p>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <span class="preview-pill" style="background:rgba(236,72,153,0.15);color:var(--sopran);font-size:11px;padding:4px 10px;">Sopran <code style="background:none;color:inherit;font-size:10px;opacity:0.7;">S</code></span>
+        <span class="preview-pill" style="background:rgba(249,115,22,0.15);color:var(--alt);font-size:11px;padding:4px 10px;">Alt <code style="background:none;color:inherit;font-size:10px;opacity:0.7;">A</code></span>
+        <span class="preview-pill" style="background:rgba(59,130,246,0.15);color:var(--tenor);font-size:11px;padding:4px 10px;">Tenor <code style="background:none;color:inherit;font-size:10px;opacity:0.7;">T</code></span>
+        <span class="preview-pill" style="background:rgba(34,197,94,0.15);color:var(--bass);font-size:11px;padding:4px 10px;">Bass <code style="background:none;color:inherit;font-size:10px;opacity:0.7;">B</code></span>
+      </div>
+    </div>
+    <div>
+      <p style="font-size:11px;font-weight:600;color:var(--text3);margin-bottom:6px;">ALLGEMEIN (category=null)</p>
+      <div style="display:flex;flex-direction:column;gap:4px;">
+        <span class="preview-chip" style="background:rgba(239,68,68,0.15);color:#ef4444;font-size:11px;padding:4px 10px;border-radius:6px;">Schwierig</span>
+        <span class="preview-chip" style="background:rgba(34,197,94,0.15);color:#22c55e;font-size:11px;padding:4px 10px;border-radius:6px;">Geubt</span>
+      </div>
+    </div>
+  </div>
+  <p style="margin-top:12px;font-size:11px;color:var(--text3);">
+    Chorleiter kann weitere Stimmen/Instrumente (Playback, Gitarre, Piano, ...) und allgemeine Labels jederzeit in den Einstellungen hinzufuegen.
+  </p>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Dateiliste mit Label-basierter Stimmenanzeige</title>
+
+<script src="/mockups/lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1;
+    --border: #334155;
+    --sopran: #ec4899; --alt: #f97316; --tenor: #3b82f6; --bass: #22c55e;
+    --playback: #a855f7; --gitarre: #eab308;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: var(--bg); color: var(--text);
+         max-width: 390px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column;
+         -webkit-font-smoothing: antialiased; }
+
+  /* -- Topbar -- */
+  .topbar { display: flex; align-items: center; padding: 10px 16px; background: var(--bg2);
+            border-bottom: 1px solid var(--border); min-height: 48px; gap: 8px; }
+  .topbar-title { flex: 1; font-size: 17px; font-weight: 600; }
+  .topbar-icon { background: none; border: none; color: var(--text3); cursor: pointer; padding: 6px; }
+
+  /* -- Breadcrumb -- */
+  .breadcrumb { display: flex; align-items: center; padding: 6px 16px; background: var(--bg2);
+                font-size: 13px; color: var(--text3); gap: 6px; border-bottom: 1px solid var(--border); }
+  .bc-link { color: var(--accent); cursor: pointer; }
+  .bc-current { color: var(--text); font-weight: 500; }
+
+  /* -- Filter Bar -- */
+  .filter-bar { display: flex; gap: 8px; padding: 8px 16px; background: var(--bg2);
+                border-bottom: 1px solid var(--border); overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .filter-chip { display: flex; align-items: center; gap: 6px; padding: 4px 12px; border-radius: 20px;
+                 font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: none;
+                 color: var(--text2); cursor: pointer; white-space: nowrap; font-family: inherit; }
+  .filter-chip.active { background: rgba(129,140,248,0.15); color: var(--accent); border-color: var(--accent); }
+  .filter-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+
+  /* -- File List -- */
+  .file-list { flex: 1; overflow-y: auto; }
+  .file-item { display: flex; align-items: center; padding: 12px 16px; gap: 12px; cursor: pointer;
+               border-bottom: 1px solid rgba(51,65,85,0.5); }
+  .file-item:active { background: var(--bg2); }
+  .file-item--active { background: rgba(129,140,248,0.08); }
+
+  /* -- Voice/Instrument Pill (ersetzt Icon-Box) -- */
+  .voice-pill { display: flex; align-items: center; justify-content: center;
+                padding: 6px 10px; border-radius: 8px; font-size: 11px; font-weight: 600;
+                white-space: nowrap; flex-shrink: 0; min-width: 36px; min-height: 36px;
+                letter-spacing: 0.2px; }
+
+  /* -- Fallback: Music Icon fuer Dateien ohne Stimme -- */
+  .file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+               justify-content: center; flex-shrink: 0; }
+  .file-icon.folder { background: rgba(96,165,250,0.15); color: #60a5fa; }
+  .file-icon.audio { background: rgba(168,85,247,0.15); color: #a855f7; }
+  .file-icon.playing { background: rgba(129,140,248,0.2); color: var(--accent); }
+
+  /* -- File Info -- */
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-name.active { color: var(--accent); font-weight: 600; }
+  .file-meta { font-size: 12px; color: var(--text3); margin-top: 2px; display: flex; align-items: center; gap: 8px; }
+
+  /* -- Section Badge (aus TrackBadges) -- */
+  .section-badge { display: inline-flex; padding: 1px 6px; border-radius: 4px; font-size: 10px;
+                   font-weight: 500; background: rgba(129,140,248,0.15); color: var(--accent); }
+
+  /* -- Label Chips (allgemeine Labels) -- */
+  .file-labels { display: flex; gap: 4px; margin-top: 3px; flex-wrap: wrap; }
+  .label-chip { display: inline-flex; padding: 1px 6px; border-radius: 4px; font-size: 10px; font-weight: 500; }
+
+  /* -- Kebab -- */
+  .file-actions { color: var(--text3); flex-shrink: 0; padding: 4px; background: none; border: none; cursor: pointer; }
+
+  /* -- Playing Animation -- */
+  .playing-bars { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .playing-bars span { width: 3px; background: var(--accent); border-radius: 1px;
+                       animation: bar-bounce 0.8s ease-in-out infinite; }
+  .playing-bars span:nth-child(1) { height: 6px; animation-delay: 0s; }
+  .playing-bars span:nth-child(2) { height: 10px; animation-delay: 0.2s; }
+  .playing-bars span:nth-child(3) { height: 4px; animation-delay: 0.4s; }
+  @keyframes bar-bounce {
+    0%, 100% { transform: scaleY(0.4); }
+    50% { transform: scaleY(1); }
+  }
+
+  /* -- Mini Player -- */
+  .mini-player { background: var(--bg2); border-top: 1px solid var(--border); padding: 8px 16px 4px;
+                 cursor: pointer; position: relative; }
+  .mini-content { display: flex; align-items: center; gap: 12px; padding-bottom: 8px; }
+  .mini-icon { width: 32px; height: 32px; border-radius: 6px; background: rgba(129,140,248,0.15);
+               display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+  .mini-info { flex: 1; min-width: 0; }
+  .mini-title { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .mini-btn { background: none; border: none; color: var(--text); cursor: pointer; padding: 8px; }
+  .mini-progress { position: absolute; bottom: 0; left: 0; right: 0; height: 2px; background: var(--bg3); }
+  .mini-progress-fill { height: 100%; background: var(--accent); width: 35%; }
+
+  /* -- Bottom Nav -- */
+  .bottom-nav { display: flex; justify-content: space-around; padding: 6px 0 10px; background: var(--bg2);
+                border-top: 1px solid var(--border); }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 4px 16px;
+              background: none; border: none; cursor: pointer; color: var(--text3); font-family: inherit; }
+  .nav-item.active { color: var(--accent); }
+  .nav-label { font-size: 10px; font-weight: 500; }
+
+  .concept-label { position: fixed; top: 8px; right: 8px; background: var(--accent); color: white;
+                   padding: 4px 10px; border-radius: 6px; font-size: 10px; font-weight: 600; z-index: 10; }
+
+  /* -- Erklaerungs-Box -- */
+  .explain { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+             padding: 12px 16px; margin: 12px 16px; font-size: 12px; color: var(--text2); line-height: 1.5; }
+  .explain strong { color: var(--text); }
+  .explain-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+</style>
+</head>
+<body>
+
+<div class="concept-label">Labels: Dateiliste</div>
+
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-title">Projektchor</div>
+  <button class="topbar-icon"><i data-lucide="heart" style="width:18px;height:18px"></i></button>
+  <button class="topbar-icon"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+  <button class="topbar-icon"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+  <button class="topbar-icon"><i data-lucide="settings" style="width:18px;height:18px"></i></button>
+</div>
+
+<!-- Breadcrumb -->
+<div class="breadcrumb">
+  <span class="bc-link"><i data-lucide="home" style="width:14px;height:14px"></i></span>
+  <span style="color:var(--text3)"><i data-lucide="chevron-right" style="width:12px;height:12px"></i></span>
+  <span class="bc-current">Be More Kind</span>
+</div>
+
+<!-- Filter Bar (Stimmen + Labels gemischt, aber visuell unterscheidbar) -->
+<div class="filter-bar">
+  <button class="filter-chip active">Alle</button>
+  <button class="filter-chip">
+    <span class="filter-dot" style="background: var(--sopran)"></span>Sopran
+  </button>
+  <button class="filter-chip">
+    <span class="filter-dot" style="background: var(--alt)"></span>Alt
+  </button>
+  <button class="filter-chip">
+    <span class="filter-dot" style="background: var(--tenor)"></span>Tenor
+  </button>
+  <button class="filter-chip">
+    <span class="filter-dot" style="background: #ef4444"></span>Schwierig
+  </button>
+  <button class="filter-chip">
+    <span class="filter-dot" style="background: #22c55e"></span>Geubt
+  </button>
+</div>
+
+<!-- File List -->
+<div class="file-list">
+  <!-- Back -->
+  <div class="file-item">
+    <div class="file-icon folder"><i data-lucide="arrow-left" style="width:18px;height:18px"></i></div>
+  </div>
+
+  <!-- Sopran Track -->
+  <div class="file-item">
+    <div class="voice-pill" style="background: rgba(236,72,153,0.15); color: var(--sopran);">
+      Sopran
+    </div>
+    <div class="file-info">
+      <div class="file-name">Be More Kind</div>
+      <div class="file-meta">
+        <span>1:36</span>
+        <span class="section-badge">Refrain</span>
+      </div>
+      <div class="file-labels">
+        <span class="label-chip" style="background: rgba(239,68,68,0.15); color: #ef4444;">Schwierig</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Alt Track (aktiv/spielend) -->
+  <div class="file-item file-item--active">
+    <div class="file-icon playing">
+      <div class="playing-bars"><span></span><span></span><span></span></div>
+    </div>
+    <div class="file-info">
+      <div class="file-name active">Be More Kind</div>
+      <div class="file-meta">
+        <span style="color:var(--accent)">0:52 / 1:42</span>
+        <span class="section-badge">Strophe 1</span>
+      </div>
+      <div class="file-labels">
+        <span class="label-chip" style="background: rgba(249,115,22,0.15); color: var(--alt);">Alt</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Tenor Track -->
+  <div class="file-item">
+    <div class="voice-pill" style="background: rgba(59,130,246,0.15); color: var(--tenor);">
+      Tenor
+    </div>
+    <div class="file-info">
+      <div class="file-name">Be More Kind</div>
+      <div class="file-meta">
+        <span>1:38</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Bass Track -->
+  <div class="file-item">
+    <div class="voice-pill" style="background: rgba(34,197,94,0.15); color: var(--bass);">
+      Bass
+    </div>
+    <div class="file-info">
+      <div class="file-name">Be More Kind</div>
+      <div class="file-meta">
+        <span>1:35</span>
+        <span class="section-badge">Strophe 1</span>
+      </div>
+      <div class="file-labels">
+        <span class="label-chip" style="background: rgba(34,197,94,0.15); color: #22c55e;">Geubt</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Playback (kein SATB, sondern freies Instrument-Label) -->
+  <div class="file-item">
+    <div class="voice-pill" style="background: rgba(168,85,247,0.15); color: var(--playback);">
+      Playback
+    </div>
+    <div class="file-info">
+      <div class="file-name">Be More Kind</div>
+      <div class="file-meta">
+        <span>3:24</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Gitarre (Instrument-Label) -->
+  <div class="file-item">
+    <div class="voice-pill" style="background: rgba(234,179,8,0.15); color: var(--gitarre);">
+      Gitarre
+    </div>
+    <div class="file-info">
+      <div class="file-name">Be More Kind</div>
+      <div class="file-meta">
+        <span>2:10</span>
+        <span class="section-badge">Intro</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <!-- Datei ohne Stimmen-Label (Fallback: Music-Icon) -->
+  <div class="file-item">
+    <div class="file-icon audio"><i data-lucide="music" style="width:18px;height:18px"></i></div>
+    <div class="file-info">
+      <div class="file-name">Be More Kind Test</div>
+      <div class="file-meta">
+        <span>1:12</span>
+      </div>
+      <div class="file-labels">
+        <span class="label-chip" style="background: rgba(239,68,68,0.15); color: #ef4444;">Schwierig</span>
+      </div>
+    </div>
+    <button class="file-actions"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+</div>
+
+<!-- Erklaerung -->
+<div class="explain">
+  <div class="explain-title">Konzept: Stimme/Instrument als Label</div>
+  <strong>Links:</strong> Farbiger Pill mit ausgeschriebenem Stimmen/Instrument-Label (category=&quot;stimme&quot;).<br>
+  <strong>Unter dem Titel:</strong> Allgemeine Labels als kleine Chips (category=null) — wie bisher.<br>
+  <strong>Fallback:</strong> Ohne Stimmen-Label → generisches Music-Icon.<br>
+  <strong>Beim Abspielen:</strong> Equalizer-Animation ersetzt den Pill (wie bisher).<br>
+  <strong>Fuzzy-Parse:</strong> Beim Upload wird Stimme/Instrument aus dem Dateinamen erkannt und automatisch als Label gesetzt.
+</div>
+
+<!-- Mini Player -->
+<div class="mini-player">
+  <div class="mini-content">
+    <div class="mini-icon"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+    <div class="mini-info">
+      <div class="mini-title">Alt — Be More Kind — Strophe 1</div>
+    </div>
+    <button class="mini-btn"><i data-lucide="pause" style="width:22px;height:22px"></i></button>
+    <button class="mini-btn"><i data-lucide="skip-forward" style="width:18px;height:18px"></i></button>
+  </div>
+  <div class="mini-progress"><div class="mini-progress-fill"></div></div>
+</div>
+
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+  <button class="nav-item active">
+    <i data-lucide="folder-open" style="width:20px;height:20px"></i>
+    <span class="nav-label">Dateien</span>
+  </button>
+  <button class="nav-item">
+    <i data-lucide="heart" style="width:20px;height:20px"></i>
+    <span class="nav-label">Favoriten</span>
+  </button>
+  <button class="nav-item">
+    <i data-lucide="settings" style="width:20px;height:20px"></i>
+    <span class="nav-label">Einstellungen</span>
+  </button>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
