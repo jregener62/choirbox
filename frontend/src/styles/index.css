@@ -972,6 +972,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100%;
+  min-height: 0;
   position: relative;
 }
 .pdf-toolbar {
@@ -1340,7 +1341,8 @@ body {
 .text-viewer {
   display: flex;
   flex-direction: column;
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   position: relative;
 }
 .text-viewer-name {
@@ -1352,6 +1354,7 @@ body {
 }
 .text-viewer-content {
   flex: 1;
+  min-height: 0;
   overflow: auto;
   padding: var(--space-3);
   padding-bottom: var(--space-12);
