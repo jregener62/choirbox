@@ -13,6 +13,7 @@ import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { TrackBadges } from '@/components/ui/TrackBadges'
 import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
@@ -204,7 +205,8 @@ export function BrowsePage() {
     } else if (entry.type === 'texte') {
       navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path)}`)
     } else if (entry.type === 'document') {
-      const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
+      // entry.path is like /SomeSong/Texte/mytext.txt — strip /Texte/<name> to get the DB folder path
+      const folderPath = entry.path.split('/').slice(0, -2).join('/') || ''
       navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
     } else if (entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4')) {
       setVideoEntry(entry)
@@ -763,7 +765,7 @@ export function BrowsePage() {
           targetPath={browsePath}
           isAdmin={isAdmin}
           onClose={() => { setImportOpen(false); setImportedFiles([]) }}
-          onUploadComplete={() => loadFolder(browsePath)}
+          onUploadComplete={() => { loadFolder(browsePath); useDocumentsStore.setState({ loadedFolder: null }) }}
         />
       )}
     </div>
