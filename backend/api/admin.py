@@ -251,62 +251,158 @@ def switch_choir(choir_id: str, user: User = Depends(require_role("developer")),
 
 
 # ---------------------------------------------------------------------------
-# Re-Sync Documents from Dropbox
+# Re-Sync: Full Dropbox ↔ DB reconciliation
 # ---------------------------------------------------------------------------
 
+def _strip_root(display_path: str, root: str) -> str:
+    """Convert absolute Dropbox path to user-visible relative path."""
+    rel = display_path
+    if root:
+        prefix = "/" + root + "/"
+        if rel.lower().startswith(prefix.lower()):
+            rel = rel[len(prefix):]
+        elif rel.lower() == ("/" + root).lower():
+            return ""
+    else:
+        rel = rel.lstrip("/")
+    return rel
+
+
 @router.post("/resync")
-async def resync_documents(
+async def resync_all(
     user: User = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    """Sync all known document folders with Dropbox."""
+    """Full sync: scan the choir's Dropbox recursively and reconcile all DB records."""
     from backend.models.document import Document
-    from backend.api.documents import _sync_documents_from_dropbox
+    from backend.models.audio_duration import AudioDuration
+    from backend.models.favorite import Favorite
+    from backend.models.user_label import UserLabel
+    from backend.models.note import Note
+    from backend.models.section import Section
+    from backend.services import document_service
+    from backend.api.documents import (
+        _sync_documents_from_dropbox, _get_root_folder, TEXTE_SUBFOLDER,
+    )
+    from backend.services.dropbox_service import get_dropbox_service
 
-    folder_paths = list(set(
-        d.folder_path for d in session.exec(select(Document)).all()
-    ))
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox nicht verbunden")
 
-    added = 0
-    updated = 0
-    removed = 0
-    synced = 0
+    # --- Step 1: Recursive listing of entire choir Dropbox ---
+    root = _get_root_folder(user, session)
+    root_path = "/" + root if root else ""
+    try:
+        result = await dbx.api_call("files/list_folder", {
+            "path": root_path or "",
+            "recursive": True,
+        })
+        entries = result.get("entries", [])
+        while result.get("has_more"):
+            result = await dbx.api_call("files/list_folder/continue", {
+                "cursor": result["cursor"],
+            })
+            entries.extend(result.get("entries", []))
+    except Exception:
+        raise HTTPException(502, "Dropbox-Listing fehlgeschlagen")
 
-    for fp in folder_paths:
-        # Count before sync
+    # Build sets of all valid paths (user-visible, relative to root)
+    dbx_file_paths: set[str] = set()
+    dbx_folder_paths: set[str] = set()
+    texte_parent_folders: set[str] = set()
+
+    for e in entries:
+        rel = _strip_root(e.get("path_display", ""), root)
+        tag = e.get(".tag", "")
+        if tag == "file":
+            dbx_file_paths.add(rel)
+        elif tag == "folder":
+            dbx_folder_paths.add(rel)
+            # Track Texte folders → derive parent folder_path for document sync
+            if e.get("name", "") == TEXTE_SUBFOLDER:
+                if rel.endswith("/" + TEXTE_SUBFOLDER):
+                    texte_parent_folders.add(rel[: -(len(TEXTE_SUBFOLDER) + 1)])
+                elif rel == TEXTE_SUBFOLDER:
+                    texte_parent_folders.add("")
+
+    stats = {"synced_folders": 0, "added": 0, "updated": 0, "removed": 0}
+
+    # --- Step 2: Sync documents (Texte subfolders) ---
+    for fp in texte_parent_folders:
         before = {
             d.original_name: d.content_hash
             for d in session.exec(
                 select(Document).where(Document.folder_path == fp)
             ).all()
         }
-        before_count = len(before)
 
         await _sync_documents_from_dropbox(fp, user, session)
 
-        # Count after sync
         after = {
             d.original_name: d.content_hash
             for d in session.exec(
                 select(Document).where(Document.folder_path == fp)
             ).all()
         }
-        after_count = len(after)
 
-        # Calculate changes
         for name in after:
             if name not in before:
-                added += 1
+                stats["added"] += 1
             elif after[name] != before[name]:
-                updated += 1
+                stats["updated"] += 1
         for name in before:
             if name not in after:
-                removed += 1
-        synced += 1
+                stats["removed"] += 1
+        stats["synced_folders"] += 1
 
-    return ActionResponse.success(data={
-        "synced_folders": synced,
-        "added": added,
-        "updated": updated,
-        "removed": removed,
-    })
+    # Clean up documents whose Texte folder no longer exists in Dropbox
+    db_doc_folders = set(
+        d.folder_path for d in session.exec(select(Document)).all()
+    )
+    for fp in db_doc_folders - texte_parent_folders:
+        for doc in session.exec(
+            select(Document).where(Document.folder_path == fp)
+        ).all():
+            document_service.delete_document(doc.id, session)
+            stats["removed"] += 1
+
+    # --- Step 3: Clean up orphaned records for deleted files/folders ---
+    # AudioDurations
+    for dur in session.exec(select(AudioDuration)).all():
+        if dur.dropbox_path not in dbx_file_paths:
+            session.delete(dur)
+            stats["removed"] += 1
+
+    # Favorites
+    for fav in session.exec(select(Favorite)).all():
+        valid = (
+            fav.dropbox_path in dbx_folder_paths
+            if fav.entry_type == "folder"
+            else fav.dropbox_path in dbx_file_paths
+        )
+        if not valid:
+            session.delete(fav)
+            stats["removed"] += 1
+
+    # UserLabels
+    for ul in session.exec(select(UserLabel)).all():
+        if ul.dropbox_path not in dbx_file_paths:
+            session.delete(ul)
+            stats["removed"] += 1
+
+    # Notes
+    for note in session.exec(select(Note)).all():
+        if note.dropbox_path not in dbx_file_paths:
+            session.delete(note)
+            stats["removed"] += 1
+
+    # Sections
+    for sec in session.exec(select(Section)).all():
+        if sec.folder_path not in dbx_folder_paths:
+            session.delete(sec)
+            stats["removed"] += 1
+
+    session.commit()
+
+    return ActionResponse.success(data=stats)
