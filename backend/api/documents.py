@@ -86,35 +86,6 @@ async def _sync_documents_from_dropbox(
         except Exception:
             pass  # Subfolder may not exist yet
 
-        # Fallback: scan parent folder for legacy document files
-        parent_folder = _dropbox_folder_path(folder_path, user, session)
-        legacy_entries = []
-        try:
-            parent_entries = await dbx.list_folder(parent_folder)
-            for e in parent_entries:
-                if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", "")):
-                    legacy_entries.append(e)
-        except Exception:
-            pass
-
-        # Lazy migration: move legacy docs to Texte subfolder
-        if legacy_entries:
-            try:
-                await dbx.create_folder(texte_folder)
-            except RuntimeError:
-                pass  # Already exists
-            for e in legacy_entries:
-                name = e.get("name", "")
-                try:
-                    old_path = parent_folder.rstrip("/") + "/" + name
-                    new_path = texte_folder.rstrip("/") + "/" + name
-                    await dbx.move_file(old_path, new_path)
-                    # After move, treat as Texte entry
-                    texte_entries.append(e)
-                except Exception:
-                    # Move failed (conflict etc.) — still sync from parent
-                    texte_entries.append(e)
-
         # Collect all document files from Texte folder
         entries = [
             e for e in texte_entries
