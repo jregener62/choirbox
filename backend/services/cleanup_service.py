@@ -56,7 +56,7 @@ def cleanup_folder(folder_path: str, session: Session) -> None:
             session.delete(n)
         session.delete(s)
 
-    # Documents (PDFs, videos, TXT) — handles local files + annotations + hidden entries
+    # Documents (PDFs, videos, TXT) — handles annotations + hidden entries
     document_service.delete_documents_for_folder(folder_path, session)
 
     session.commit()

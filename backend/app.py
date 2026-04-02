@@ -94,5 +94,3 @@ def index():
 async def on_startup():
     import backend.models  # noqa: F401
     create_db_and_tables()
-    from backend.services.document_service import ensure_pdf_dir
-    ensure_pdf_dir()

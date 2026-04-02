@@ -40,6 +40,7 @@ def _migrate(eng):
         ("users", "must_change_password", "BOOLEAN DEFAULT 0"),
         ("labels", "choir_id", "VARCHAR(36)"),
         ("section_presets", "choir_id", "VARCHAR(36)"),
+        ("documents", "content_hash", "VARCHAR(64)"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:
@@ -79,21 +80,20 @@ def _migrate_pdf_to_documents(eng, tables):
             conn.execute(text("DROP TABLE IF EXISTS pdf_files"))
             return
 
-        # Migrate each row
+        # Migrate each row (metadata only, no local file reference)
         rows = conn.execute(text(
-            "SELECT id, dropbox_path, filename, original_name, file_size, "
+            "SELECT id, dropbox_path, original_name, file_size, "
             "page_count, uploaded_by, created_at FROM pdf_files"
         )).fetchall()
         for row in rows:
-            old_id, dropbox_path, filename, original_name, file_size, page_count, uploaded_by, created_at = row
-            # Extract folder path from audio file path
+            old_id, dropbox_path, original_name, file_size, page_count, uploaded_by, created_at = row
             folder_path = dropbox_path.rsplit("/", 1)[0] if "/" in dropbox_path else ""
             conn.execute(text(
-                "INSERT INTO documents (id, folder_path, file_type, filename, original_name, "
+                "INSERT INTO documents (id, folder_path, file_type, original_name, "
                 "file_size, page_count, sort_order, uploaded_by, created_at) "
-                "VALUES (:id, :fp, 'pdf', :fn, :on, :fs, :pc, 0, :ub, :ca)"
+                "VALUES (:id, :fp, 'pdf', :on, :fs, :pc, 0, :ub, :ca)"
             ), {
-                "id": old_id, "fp": folder_path, "fn": filename, "on": original_name,
+                "id": old_id, "fp": folder_path, "on": original_name,
                 "fs": file_size, "pc": page_count or 1, "ub": uploaded_by, "ca": created_at,
             })
 
