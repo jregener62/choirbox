@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useAppStore } from '@/stores/appStore'
 import { usePlayerStore } from '@/stores/playerStore'
@@ -26,7 +27,7 @@ export function Modal({
     return () => setModalOpen(false)
   }, [setModalOpen])
 
-  return (
+  return createPortal(
     <div
       className="modal-overlay"
       onClick={closeOnOverlay ? onClose : undefined}
@@ -46,6 +47,7 @@ export function Modal({
           {children}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
