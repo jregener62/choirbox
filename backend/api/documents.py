@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse, Response
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from backend.database import get_session
 from backend.models.app_settings import AppSettings
@@ -32,13 +32,89 @@ def _dropbox_doc_path(folder_path: str, doc_name: str, user: User, session: Sess
 
 
 @router.get("/list")
-def list_documents(
+async def list_documents(
     folder: str,
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
+    # Auto-sync: register Dropbox documents not yet in DB
+    await _sync_documents_from_dropbox(folder, user, session)
+
     docs = document_service.list_documents(folder, user.id, session)
     return {"documents": docs}
+
+
+async def _sync_documents_from_dropbox(
+    folder_path: str, user: User, session: Session
+) -> None:
+    """Check Dropbox for document files and register any missing ones in the DB."""
+    try:
+        dbx = get_dropbox_service(session)
+        if not dbx:
+            return
+
+        settings = session.get(AppSettings, 1)
+        app_root = (settings.dropbox_root_folder or "").strip("/") if settings else ""
+        choir_root = ""
+        if user.choir_id:
+            choir = session.get(Choir, user.choir_id)
+            if choir:
+                choir_root = (choir.dropbox_root_folder or "").strip("/")
+        root_parts = [p for p in [app_root, choir_root] if p]
+        root_folder = "/".join(root_parts)
+        dbx_folder = "/" + "/".join(p for p in [root_folder, folder_path.strip("/")] if p)
+
+        entries = await dbx.list_folder(dbx_folder)
+
+        # Get already registered document names for this folder
+        from backend.models.document import Document
+        existing_names = {
+            d.original_name
+            for d in session.exec(
+                select(Document).where(Document.folder_path == folder_path)
+            ).all()
+        }
+
+        for entry in entries:
+            if entry.get(".tag") != "file":
+                continue
+            name = entry.get("name", "")
+            file_type = document_service.detect_file_type(name)
+            if not file_type or name in existing_names:
+                continue
+
+            # Register missing document
+            if file_type == "pdf":
+                # Download PDF to store locally and count pages
+                try:
+                    link = await dbx.get_temporary_link(
+                        dbx_folder.rstrip("/") + "/" + name
+                    )
+                    import httpx
+                    async with httpx.AsyncClient() as client:
+                        resp = await client.get(link)
+                        resp.raise_for_status()
+                        document_service.save_pdf(
+                            content=resp.content,
+                            folder_path=folder_path,
+                            original_name=name,
+                            user_id=user.id,
+                            session=session,
+                        )
+                except Exception:
+                    pass  # Skip PDFs that can't be downloaded
+            else:
+                # Video/TXT — just register, no local storage needed
+                document_service.save_document(
+                    folder_path=folder_path,
+                    file_type=file_type,
+                    original_name=name,
+                    file_size=entry.get("size", 0),
+                    user_id=user.id,
+                    session=session,
+                )
+    except Exception:
+        pass  # Sync failure should never block document listing
 
 
 @router.post("/upload")
