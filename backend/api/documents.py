@@ -173,8 +173,8 @@ async def stream_document(
         raise HTTPException(500, "Dropbox-Pfad konnte nicht ermittelt werden")
 
     try:
-        result = await dbx.get_temporary_link(dbx_path)
-        return {"link": result["link"]}
+        link = await dbx.get_temporary_link(dbx_path)
+        return {"link": link}
     except RuntimeError as e:
         raise HTTPException(502, str(e))
 
@@ -199,10 +199,10 @@ async def get_text_content(
         raise HTTPException(500, "Dropbox-Pfad konnte nicht ermittelt werden")
 
     try:
-        result = await dbx.get_temporary_link(dbx_path)
+        link = await dbx.get_temporary_link(dbx_path)
         import httpx
         async with httpx.AsyncClient() as client:
-            resp = await client.get(result["link"])
+            resp = await client.get(link)
             resp.raise_for_status()
             return {"content": resp.text}
     except RuntimeError as e:
