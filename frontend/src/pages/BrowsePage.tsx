@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File } from 'lucide-react'
+import { Folder, FolderPlus, FolderOpen, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -565,6 +565,14 @@ export function BrowsePage() {
                 >
                   <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                 </button>
+                {isTexte && isProMember && (
+                  <button
+                    className="swipe-action-btn swipe-action-info"
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); loadFolder(entry.path + '/Texte') }}
+                  >
+                    <FolderOpen size={18} />
+                  </button>
+                )}
                 {(isFile || isDoc) && !isTexte && (
                   <button
                     className="swipe-action-btn swipe-action-label"
@@ -573,7 +581,7 @@ export function BrowsePage() {
                     <Tag size={18} />
                   </button>
                 )}
-                {isAdmin && !isTexte && (
+                {(isAdmin || (isDoc && isProMember)) && !isTexte && (
                   <button
                     className="swipe-action-btn swipe-action-info"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setRenameName(entry.name); setRenameEntry(entry) }}

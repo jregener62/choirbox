@@ -190,18 +190,21 @@ async def dropbox_browse(
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
 
-    # Filter: folders and audio files (documents handled via Texte entry)
+    # Detect if we're inside a Texte subfolder
     from backend.api.documents import TEXTE_SUBFOLDER
+    from backend.services.document_service import ALL_DOC_EXTENSIONS
+    is_texte_folder = path.rstrip("/").endswith("/" + TEXTE_SUBFOLDER) or path == TEXTE_SUBFOLDER
     audio_exts = (".mp3", ".webm", ".m4a")
     filtered = []
     has_texte_folder = False
+
     for e in entries:
         tag = e.get(".tag", "")
         name = e.get("name", "")
         if tag == "folder":
-            if name == TEXTE_SUBFOLDER:
+            if name == TEXTE_SUBFOLDER and not is_texte_folder:
                 has_texte_folder = True
-                continue  # Hide Texte subfolder from listing
+                continue  # Hide Texte subfolder from normal listing
             filtered.append({
                 "name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
@@ -215,24 +218,34 @@ async def dropbox_browse(
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
             })
-        # Document files in the parent folder are ignored (handled by Texte subfolder)
+        elif tag == "file" and name.lower().endswith(ALL_DOC_EXTENSIONS) and is_texte_folder:
+            # Inside Texte folder: show document files as individual entries
+            filtered.append({
+                "name": name,
+                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "type": "document",
+                "size": e.get("size", 0),
+                "modified": e.get("server_modified", ""),
+            })
 
-    # Check if this folder has documents (DB or Texte subfolder)
-    from sqlmodel import select as sql_select
-    from backend.models.document import Document
-    doc_count = len(session.exec(
-        sql_select(Document).where(Document.folder_path == path)
-    ).all())
-    if doc_count > 0 or has_texte_folder:
-        filtered.append({
-            "name": "Texte",
-            "path": path,
-            "type": "texte",
-            "doc_count": doc_count,
-        })
+    # Synthetic Texte entry (only in normal folders, not inside Texte folder)
+    if not is_texte_folder:
+        from sqlmodel import select as sql_select
+        from backend.models.document import Document
+        # folder_path for documents is the parent folder (without /Texte)
+        doc_count = len(session.exec(
+            sql_select(Document).where(Document.folder_path == path)
+        ).all())
+        if doc_count > 0 or has_texte_folder:
+            filtered.append({
+                "name": "Texte",
+                "path": path,
+                "type": "texte",
+                "doc_count": doc_count,
+            })
 
-    # Sort: folders first, then Texte, then audio files
-    type_order = {"folder": 0, "texte": 1, "file": 2}
+    # Sort: folders first, then Texte, then documents, then audio files
+    type_order = {"folder": 0, "texte": 1, "document": 2, "file": 3}
     filtered.sort(key=lambda x: (type_order.get(x["type"], 9), x["name"].lower()))
 
     # Attach cached durations
