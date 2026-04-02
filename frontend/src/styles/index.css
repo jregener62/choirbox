@@ -1371,12 +1371,13 @@ body {
   bottom: calc(var(--space-3) + 48px + var(--space-2));
   right: var(--space-3);
   display: flex;
+  flex-direction: column;
   gap: var(--space-2);
   z-index: 5;
 }
 .pdf-fab--small {
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
 }
 .pdf-fab--small:disabled {
   opacity: 0.3;
