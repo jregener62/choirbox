@@ -95,25 +95,29 @@ export function TextViewer({ docId, originalName }: TextViewerProps) {
         {content}
       </pre>
 
-      {/* Zoom FABs */}
-      <div className={`text-zoom-fabs${fabFadeClass}`}>
-        <button
-          className="pdf-fab pdf-fab--small"
-          onClick={zoomOut}
-          disabled={sizeIndex === 0}
-          aria-label="Schrift kleiner"
-        >
-          <Minus size={16} />
-        </button>
-        <button
-          className="pdf-fab pdf-fab--small"
-          onClick={zoomIn}
-          disabled={sizeIndex === FONT_SIZES.length - 1}
-          aria-label="Schrift groesser"
-        >
-          <Plus size={16} />
-        </button>
-      </div>
+      {/* Zoom FABs — only in fullscreen */}
+      {pdfFullscreen && (
+        <div className={`text-zoom-fabs${fabFadeClass}`}>
+          <button
+            className="pdf-fab pdf-fab--small"
+            onClick={zoomIn}
+            onTouchStart={resetFadeTimer}
+            disabled={sizeIndex === FONT_SIZES.length - 1}
+            aria-label="Schrift groesser"
+          >
+            <Plus size={16} />
+          </button>
+          <button
+            className="pdf-fab pdf-fab--small"
+            onClick={zoomOut}
+            onTouchStart={resetFadeTimer}
+            disabled={sizeIndex === 0}
+            aria-label="Schrift kleiner"
+          >
+            <Minus size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Fullscreen FAB */}
       <button
