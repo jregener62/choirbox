@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Upload, Check, AlertCircle, Loader, FileAudio, Info } from 'lucide-react'
+import { Upload, Check, AlertCircle, Loader, FileAudio, Info, Film } from 'lucide-react'
 import { apiUpload } from '@/api/client'
 import { Modal } from './Modal'
 
@@ -72,9 +72,13 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
     onClose()
   }
 
+  const isVideo = (name: string) => /\.(mp4|webm|mov)$/i.test(name)
+
   const statusIcon = (entry: FileEntry) => {
     switch (entry.status) {
-      case 'pending': return <FileAudio size={16} className="import-icon-pending" />
+      case 'pending': return isVideo(entry.file.name)
+        ? <Film size={16} className="import-icon-pending" />
+        : <FileAudio size={16} className="import-icon-pending" />
       case 'uploading': return <Loader size={16} className="import-icon-uploading" />
       case 'done': return <Check size={16} className="import-icon-done" />
       case 'error': return <AlertCircle size={16} className="import-icon-error" />
@@ -98,7 +102,12 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
             {statusIcon(entry)}
             <span className="import-file-name">{entry.file.name}</span>
             <span className="import-file-meta">
-              {entry.status === 'error' ? entry.error : formatSize(entry.file.size)}
+              {entry.status === 'error'
+                ? entry.error
+                : entry.status === 'uploading' && isVideo(entry.file.name)
+                  ? 'Wird komprimiert\u2026'
+                  : formatSize(entry.file.size)
+              }
             </span>
           </div>
         ))}
@@ -107,7 +116,13 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
       {phase !== 'idle' && (
         <div className="import-progress-text">
           {phase === 'uploading'
-            ? `${doneCount + errorCount} von ${entries.length} hochgeladen\u2026`
+            ? (() => {
+                const current = entries.find((e) => e.status === 'uploading')
+                const videoProcessing = current && isVideo(current.file.name)
+                return videoProcessing
+                  ? `Video wird komprimiert und hochgeladen\u2026`
+                  : `${doneCount + errorCount} von ${entries.length} hochgeladen\u2026`
+              })()
             : errorCount > 0
               ? `${doneCount} von ${entries.length} erfolgreich hochgeladen`
               : `${doneCount} ${doneCount === 1 ? 'Datei' : 'Dateien'} erfolgreich hochgeladen`

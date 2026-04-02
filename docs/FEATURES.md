@@ -260,8 +260,20 @@ Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einz
 | Typ | Extensions | Speicherung | Anzeige |
 |-----|-----------|-------------|---------|
 | PDF | `.pdf` | Dropbox + on-demand RAM-Cache | Seitenweise JPEG-Rendering (PyMuPDF) |
-| Video | `.mp4`, `.webm`, `.mov` | Nur Dropbox | HTML5 Video-Player mit Streaming |
+| Video | `.mp4`, `.webm`, `.mov` | Nur Dropbox (beim Upload via ffmpeg komprimiert) | HTML5 Video-Player mit Streaming |
 | Text | `.txt` | Nur Dropbox | Monospace-Textansicht |
+
+### Video-Komprimierung beim Upload
+
+Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
+
+- **Codec**: H.264 + AAC — universelle Browser-Kompatibilitaet
+- **Qualitaet**: CRF 28 (reduzierte Qualitaet, fuer Handy-Wiedergabe ausreichend)
+- **Aufloesung**: Max. 720p (Hoehe), Seitenverhaeltnis bleibt erhalten
+- **Streaming**: `movflags +faststart` — Moov-Atom am Dateianfang ermoeglicht sofortiges Streaming ohne vollstaendigen Download
+- **Ausgabeformat**: Immer `.mp4`, unabhaengig vom Eingabeformat (.webm, .mov)
+- **Groessenlimit**: Max. 150 MB Rohdatei beim Upload
+- **Fallback**: Ohne ffmpeg auf dem Server wird die Datei unverarbeitet hochgeladen
 
 ### Dokumente im Player
 
@@ -341,6 +353,7 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 | `frontend/src/pages/DocViewerPage.tsx` | Standalone Dokument-Viewer Route |
 | `backend/api/documents.py` | `/api/documents` Endpoints |
 | `backend/services/document_service.py` | Stream-Rendering, RAM-Cache, Sync |
+| `backend/services/video_service.py` | Video-Komprimierung via ffmpeg (Upload-Pipeline) |
 | `backend/models/document.py` | Document-Modell (folder_path, file_type, content_hash) |
 | `backend/models/user_hidden_document.py` | Ausblendungen pro User |
 | `deploy_pdfs.sh` | PDF-Dateien + DB-Eintraege auf Prod deployen |
