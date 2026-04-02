@@ -127,22 +127,29 @@ def _migrate_sections_folder_path(eng, tables):
 
 
 def _migrate_annotations_document_id(eng, tables):
-    """Add document_id to annotations and populate from documents table."""
+    """Recreate annotations table with document_id instead of dropbox_path.
+
+    SQLite can't ALTER NOT NULL constraints, so we recreate the table.
+    This handles both fresh migrations (dropbox_path → document_id) and
+    already-migrated DBs that still have the old dropbox_path NOT NULL column.
+    """
     from sqlalchemy import text, inspect as sa_inspect
     if "annotations" not in tables:
         return
     insp = sa_inspect(eng)
     cols = [c["name"] for c in insp.get_columns("annotations")]
-    if "document_id" in cols:
-        return  # Already migrated
+
+    # Already fully migrated (no dropbox_path column)
+    if "document_id" in cols and "dropbox_path" not in cols:
+        return
 
     with eng.begin() as conn:
-        conn.execute(text("ALTER TABLE annotations ADD COLUMN document_id INTEGER DEFAULT 0"))
-
-        # Try to map existing annotations to documents
-        if "documents" in eng.connect().execute(text(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name='documents'"
-        )).fetchone() or []:
+        # Step 1: If document_id doesn't exist yet, add it and populate
+        if "document_id" not in cols:
+            conn.execute(text(
+                "ALTER TABLE annotations ADD COLUMN document_id INTEGER DEFAULT 0"
+            ))
+            # Map existing annotations to documents by folder path
             rows = conn.execute(text(
                 "SELECT id, dropbox_path FROM annotations"
             )).fetchall()
@@ -156,6 +163,31 @@ def _migrate_annotations_document_id(eng, tables):
                     conn.execute(text(
                         "UPDATE annotations SET document_id = :did WHERE id = :id"
                     ), {"did": doc[0], "id": ann_id})
+
+        # Step 2: Recreate table without dropbox_path (removes NOT NULL constraint)
+        if "dropbox_path" in cols:
+            conn.execute(text("""
+                CREATE TABLE annotations_new (
+                    id INTEGER PRIMARY KEY,
+                    user_id VARCHAR NOT NULL,
+                    document_id INTEGER NOT NULL DEFAULT 0,
+                    page_number INTEGER NOT NULL,
+                    strokes_json TEXT NOT NULL DEFAULT '[]',
+                    created_at DATETIME,
+                    updated_at DATETIME,
+                    UNIQUE(user_id, document_id, page_number)
+                )
+            """))
+            conn.execute(text("""
+                INSERT INTO annotations_new
+                    (id, user_id, document_id, page_number, strokes_json, created_at, updated_at)
+                SELECT id, user_id, document_id, page_number, strokes_json, created_at, updated_at
+                FROM annotations
+            """))
+            conn.execute(text("DROP TABLE annotations"))
+            conn.execute(text("ALTER TABLE annotations_new RENAME TO annotations"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_annotations_user_id ON annotations(user_id)"))
+            conn.execute(text("CREATE INDEX IF NOT EXISTS ix_annotations_document_id ON annotations(document_id)"))
 
 
 def _drop_obsolete_tables(eng, tables):
