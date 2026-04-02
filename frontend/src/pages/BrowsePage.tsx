@@ -158,9 +158,21 @@ export function BrowsePage() {
     if (!confirmEntry || deleting) return
     setDeleting(true)
     try {
-      await api(`/dropbox/file?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })
-      if (confirmEntry.path === currentPath) {
-        usePlayerStore.setState({ currentPath: null, currentName: null, isPlaying: false })
+      if (confirmEntry.type === 'document') {
+        // Documents: find by folder+name and delete via documents API
+        const folderPath = confirmEntry.path.split('/').slice(0, -1).join('/') || ''
+        const listData = await api<{ documents: Array<{ id: number; original_name: string }> }>(
+          `/documents/list?folder=${encodeURIComponent(folderPath)}`
+        )
+        const match = listData.documents.find((d) => d.original_name === confirmEntry.name)
+        if (match) {
+          await api(`/documents/${match.id}`, { method: 'DELETE' })
+        }
+      } else {
+        await api(`/dropbox/file?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })
+        if (confirmEntry.path === currentPath) {
+          usePlayerStore.setState({ currentPath: null, currentName: null, isPlaying: false })
+        }
       }
       setConfirmEntry(null)
       setRevealedPath(null)
@@ -538,11 +550,11 @@ export function BrowsePage() {
               <div className="swipe-actions">
                 <button
                   className="swipe-action-btn swipe-action-fav"
-                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, isFile ? 'file' : 'folder') }}
+                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, entry.type === 'folder' ? 'folder' : 'file') }}
                 >
                   <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                 </button>
-                {isFile && (
+                {(isFile || isDoc) && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
@@ -558,7 +570,7 @@ export function BrowsePage() {
                     <Pencil size={18} />
                   </button>
                 )}
-                {(isFile ? canDelete : isAdmin) && (
+                {((isFile || isDoc) ? canDelete : isAdmin) && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}

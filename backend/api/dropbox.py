@@ -465,8 +465,8 @@ async def dropbox_delete_file(
         raise HTTPException(502, str(e))
 
     # Cleanup associated DB records
-    from backend.services.cleanup_service import cleanup_audio_file
-    cleanup_audio_file(path, session)
+    from backend.services.cleanup_service import cleanup_file
+    cleanup_file(path, session)
 
     metadata = result.get("metadata", {})
     return ActionResponse.success(data={

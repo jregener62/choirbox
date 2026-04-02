@@ -244,51 +244,60 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 
 ---
 
-## Datei-Einstellungen
+## Ordner-basierte Dokumente & Sektionen
 
-Zentrale Stelle fuer dateibezogene Einstellungen. Aktuell: Sektionsreferenz und PDF-Referenz — beide unabhaengig voneinander konfigurierbar.
+Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einzelnen Audiodateien. Alle Dateien im selben Ordner teilen sich automatisch dieselben Dokumente und Sektionen.
 
-### Sektionsreferenz
+### Prinzip
 
-Dateien koennen eine andere Datei als Sektionsquelle referenzieren. Sektionen werden dann von der Referenz-Datei geladen und dort gespeichert — z.B. fuer Stems, wo Sektionen nur einmal definiert, aber bei allen Stimmen angezeigt werden. Standalone-Dateien sind davon nicht betroffen (Standardverhalten: eigene Sektionen).
+- Ein Ordner = ein Stueck (z.B. "Ave Maria/")
+- Dokumente (Noten-PDFs, Texte, Probenvideos) werden fuer den Ordner hochgeladen
+- Sektionen (Intro, Vers, Refrain) gelten fuer alle Audio-Stems im Ordner
+- Kein manuelles Verlinken noetig — alles automatisch ueber den Ordnerpfad
 
-Zwei Wege:
-- **Uebernehmen:** Eine Datei holt sich Sektionen von einer anderen Datei im selben Ordner
-- **Uebertragen:** Eine Datei setzt sich als Sektionsquelle fuer ausgewaehlte andere Dateien im selben Ordner
+### Unterstuetzte Dateitypen
 
-Die Referenz-Aufloesung passiert im Backend — das Frontend muss nicht wissen, ob Sektionen direkt oder via Referenz geladen werden. Beim Erstellen/Bearbeiten von Sektionen wird ebenfalls aufgeloest: Sektionen werden immer gegen die Referenz-Datei gespeichert.
+| Typ | Extensions | Speicherung | Anzeige |
+|-----|-----------|-------------|---------|
+| PDF | `.pdf` | Dropbox + on-demand RAM-Cache | Seitenweise JPEG-Rendering (PyMuPDF) |
+| Video | `.mp4`, `.webm`, `.mov` | Nur Dropbox | HTML5 Video-Player mit Streaming |
+| Text | `.txt` | Nur Dropbox | Monospace-Textansicht |
 
-### PDF-Referenz
+### Dokumente im Player
 
-Dateien koennen eine andere Datei als PDF-Quelle referenzieren. Funktioniert identisch zur Sektionsreferenz — unabhaengig davon. Z.B. koennen alle Stimmlagen auf dieselben Noten verweisen, ohne die Sektionen zu teilen.
+- **Tab-Leiste**: Bei mehreren Dokumenten erscheinen Tabs mit Typ-Icon und Dateiname
+- **Smart Sorting**: Dokumente deren Name zur Stimmlage des Users passt erscheinen zuerst
+- **Ausblenden**: User koennen einzelne Dokumente per Tab-X ausblenden (persistent pro User)
+- **Einblenden**: "+N ausgeblendet" Badge → Overlay zum Wieder-Einblenden
+- Der Player ist reiner Konsument — kein Upload/Loeschen im Player
 
-Gleiche zwei Wege wie bei Sektionen:
-- **Uebernehmen:** Eine Datei zeigt das PDF einer anderen Datei im selben Ordner
-- **Uebertragen:** Eine Datei setzt sich als PDF-Quelle fuer ausgewaehlte andere Dateien im selben Ordner
+### Standalone Dokument-Viewer
 
-Die Referenz-Aufloesung passiert im Backend via `pdf_ref_path` in FileSettings. Im Player zeigt das `is_ref`-Flag an, dass das PDF von einer referenzierten Datei stammt (Loeschen/Ersetzen dann nicht moeglich).
+- Route: `/#/doc-viewer?folder=<path>&name=<name>`
+- Erreichbar durch Klick auf ein Dokument in der Browse-Seite
+- Gleiche Funktionalitaet wie im Player (Tabs, Annotationen, Fullscreen)
+- Upload-Funktion fuer pro-member+
 
-### Zugang (ab pro-member)
+### Dokumente in der Browse-Seite
 
-- **Browse-Page:** Info-Button in den Swipe-Actions jeder Datei (nur pro-member+)
-- **Player-Page:** Kebab-Menue-Eintrag "Datei-Einstellungen" (nur pro-member+)
-- Route: `/#/file-settings?path=<dropbox_path>` (Route nur fuer pro-member+ registriert)
+- Dokumente erscheinen als eigene Eintraege im Ordner (zwischen Ordnern und Audio-Dateien)
+- Typ-spezifische Icons (PDF, Video, Text)
+- Swipe-Actions: Favorisieren, Labels, Umbenennen, Loeschen
+- Upload: Dateien hochladen ueber Kebab-Menue (akzeptiert Audio + Dokument-Formate)
 
-### Berechtigungen
+### Dropbox-Sync
 
-- Lesen: Alle eingeloggten User
-- Aendern: Pro-Mitglied und hoeher
+Beim Laden eines Ordners synchronisiert das Backend automatisch:
+- **Neue Datei in Dropbox** → wird in der DB registriert
+- **Datei geaendert** (Dropbox `content_hash` weicht ab) → DB-Eintrag wird aktualisiert, Caches invalidiert
+- **Datei geloescht** → wird beim naechsten Loeschen via App aus der DB entfernt
 
-### UI-Aufbau
+### PDF-Rendering (ohne Disk-Storage)
 
-Generischer `RefEditor` wird fuer beide Felder (Sektionen, PDF) wiederverwendet:
-- Radio-Auswahl: "Eigene" (Standard) / "Uebernehmen von: [Datei-Dropdown]"
-- Info-Text zeigt Vorschau (Sektionsanzahl bzw. PDF-Name)
-- Propagieren: Checkboxen fuer Geschwister-Dateien + "Uebertragen"-Button
-
-| Datei | Rolle |
-|-------|-------|
-| `frontend/src/pages/FileSettingsPage.tsx` | Einstellungen-UI mit generischem RefEditor |
+PDFs werden **nicht** auf dem Server gespeichert. Stattdessen:
+1. PDF-Bytes von Dropbox on-demand in RAM-Cache (TTL 30 Min, max 20 Dokumente)
+2. Seitenweise Rendering mit PyMuPDF (200 DPI, JPEG Q85) in LRU-Cache (128 Seiten)
+3. Erster Seitenabruf: Dropbox → RAM → Render → JPEG (~1-3s). Weitere: instant
 | `backend/api/file_settings.py` | `GET/PUT /file-settings`, `POST /file-settings/propagate` |
 | `backend/models/file_settings.py` | FileSettings-Modell (`section_ref_path`, `pdf_ref_path`) |
 | `backend/api/sections.py` | Sektions-Referenz-Aufloesung |
@@ -296,109 +305,42 @@ Generischer `RefEditor` wird fuer beide Felder (Sektionen, PDF) wiederverwendet:
 
 ---
 
-## PDF-Dokumente im Player
+## Handschriftliche Annotationen (PDFs)
 
-PDF-Dateien (Noten, Texte, Anweisungen) koennen pro Audio-Datei hochgeladen und direkt im Player angezeigt werden. PDFs werden lokal auf dem Server und als Backup in Dropbox gespeichert. Sie erscheinen nicht im Datei-Browser (Browse-API filtert auf Audio-Dateien).
-
-### Ansicht
-
-- **Dot-Indikatoren** zwischen Player-Controls und Content-Bereich: zwei Punkte (aktiver Punkt als Pille)
-- **Panel-Wechsel** per Tippen auf Dots oder horizontalem Swipe ueber die DotBar
-- Dots nur sichtbar wenn PDF vorhanden oder User pro-member+ ist
-- Ohne PDF und ohne pro-member-Rolle: klassische Sektionsliste ohne Dots
-- **PDF-Rendering**: Server rendert PDF-Seiten on-the-fly als JPEG (PyMuPDF, 200 DPI). Frontend zeigt `<img>`-Tags — natives Pinch-to-Zoom auf iOS und allen Plattformen
-- **Pinch-to-Zoom**: JS-basierter Touch-Handler (1x–5x), aendert Bildbreite dynamisch. Container scrollt nativ bei Zoom. Double-Tap togglet 1x/2.5x
-- **PDF-Toolbar**: Dateiname + Seitenzahl, Upload/Ersetzen/Loeschen-Buttons (pro-member+), Download
-- **Loeschen**: Sicherheitsabfrage (Confirm-Dialog) vor dem Loeschen, identisch zu Audio-Dateien
-- Swipe-Zone nur auf DotBar — kein Konflikt mit Scroll oder Pinch im Content
-
-### PDF Fullscreen-Modus
-
-- **Floating Action Button (FAB)** rechts unten auf dem PDF-Panel: Maximize-Icon zum Aktivieren, Minimize-Icon zum Deaktivieren
-- **Aktivierung**: Tap auf FAB blendet TopBar, DotBar und GlobalPlayerBar mit Slide-Animation (300ms ease) aus — das PDF nutzt den gesamten Bildschirm
-- **Progress-Ring**: Im Fullscreen zeigt ein SVG-Ring um den FAB die aktuelle Abspielposition
-- **Auto-Fade**: FAB fadet nach 3 Sekunden Inaktivitaet auf 30% Opazitaet. Jede Beruehrung der PDF-Flaeche stellt volle Sichtbarkeit wieder her
-- **Audio laeuft weiter** — nur die UI-Elemente werden versteckt
-- **Reset-Logik**: Fullscreen wird automatisch aufgehoben bei Panel-Wechsel (zurueck zu Sektionen) oder Navigation weg vom Player
-
-### Handschriftliche Annotationen
-
-Chormitglieder koennen auf den angezeigten PDF-Seiten handschriftliche Markierungen machen — z.B. Atemzeichen, Dynamik, Einsaetze. Jeder User sieht nur seine eigenen Annotationen.
+Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z.B. Atemzeichen, Dynamik, Einsaetze. Jeder User sieht nur seine eigenen Annotationen.
 
 - **Zeichenmodus-Toggle**: Floating Action Button (Stift-Icon) unten-links auf dem PDF-Panel. Wird blau wenn aktiv
-- **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (ueber Striche streichen loescht sie, Distanz-basierter Hit-Test)
+- **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (Distanz-basierter Hit-Test)
 - **6 Farben**: Rot, Blau, Gruen, Gelb, Lila, Schwarz
 - **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8)
 - **Undo**: Letzter Strich rueckgaengig machen
 - **Seite loeschen**: Alle Annotationen einer Seite entfernen
-- **Technologie**: SVG-Overlay auf jeder `<img>`-Seite + `perfect-freehand` (druckempfindliche Striche). Koordinaten normalisiert (ViewBox 0-1000), skalieren bei jedem Zoom korrekt
-- **Touch-Konflikt**: Im Zeichenmodus sind Scroll, Pinch-to-Zoom und Double-Tap deaktiviert. SVG faengt alle Pointer-Events
-- **Auto-Save**: 500ms Debounce nach jedem Strich → `PUT /api/annotations`. Sofortiger Flush bei Seitenwechsel und `beforeunload`
-- **Speicherung**: Strokes als JSON-Blob in SQLite, pro User + PDF-Pfad + Seitennummer (unique constraint). Leere Strokes loeschen den DB-Eintrag
-- **Berechtigung**: Lesen fuer alle authentifizierten User, Schreiben ab Rolle `member`
+- **Technologie**: SVG-Overlay auf `<img>`-Seiten + `perfect-freehand`. Koordinaten normalisiert (ViewBox 0-1000)
+- **Auto-Save**: 500ms Debounce → `PUT /api/annotations`. Flush bei Seitenwechsel und `beforeunload`
+- **Speicherung**: Strokes als JSON in SQLite, pro User + Document-ID + Seitennummer (unique constraint)
+- **Berechtigung**: Lesen fuer alle, Schreiben ab Rolle `member`
+
+### PDF Fullscreen-Modus
+
+- **FAB** rechts unten: Maximize/Minimize, Progress-Ring im Fullscreen
+- **Auto-Fade**: FAB fadet nach 3s Inaktivitaet. Beruehrung stellt Sichtbarkeit her
+- **Audio laeuft weiter** — nur UI-Elemente werden versteckt
+- **Reset** bei Panel-Wechsel oder Navigation weg vom Player
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/components/ui/AnnotatedPage.tsx` | `<img>` + SVG-Overlay pro Seite, Pointer-Event-Handling |
-| `frontend/src/components/ui/AnnotationToolbar.tsx` | Floating Toolbar: Stift, Textmarker, Radierer, Farben, Breiten, Undo, Loeschen |
-| `frontend/src/hooks/useAnnotations.ts` | Zustand Store: drawingMode, tool, color, strokes, undo, API-Calls |
-| `frontend/src/utils/strokeUtils.ts` | Koordinaten-Normalisierung, SVG-Path-Generierung via perfect-freehand |
-| `backend/api/annotations.py` | `GET/PUT/DELETE /api/annotations` |
-| `backend/models/annotation.py` | Annotation-Modell (user_id, dropbox_path, page_number, strokes_json) |
-
-### Upload
-
-- **Berechtigung**: Pro-Mitglied und hoeher
-- **Wege**: Upload-Button im leeren PDF-Panel, oder "PDF hochladen/ersetzen" im Kebab-Menue des Player-Footers
-- **Validierung**: PDF-Header (`%PDF-`) in den ersten 1024 Bytes, max. 10 MB
-- **Speicherung**: Lokal in `data/pdfs/` mit UUID-Dateinamen + Backup in Dropbox (gleicher Ordner wie Audio-Datei, Originalname)
-- Ein PDF pro Datei (ersetzen ueberschreibt das bestehende)
-- **Loeschen** entfernt lokale Datei und Dropbox-Kopie
-
-### Rendering-Architektur
-
-- **On-the-fly**: Seiten werden bei Abruf gerendert, nicht vorab gespeichert (minimaler Disk-Verbrauch)
-- **LRU-Cache**: 64 Seiten im RAM (kein Re-Render bei erneutem Abruf)
-- **Browser-Cache**: 24h Cache-Control Header fuer Seitenbilder
-- **Lazy Loading**: Ab Seite 3 werden Bilder erst beim Scrollen geladen
-- **PyMuPDF**: Rendert bei 200 DPI, JPEG-Qualitaet 85%
-
-### Referenz-Aufloesung
-
-PDFs nutzen `pdf_ref_path` in FileSettings (unabhaengig von `section_ref_path`):
-1. Direkt zugeordnetes PDF → verwenden
-2. Kein eigenes PDF, aber `pdf_ref_path` gesetzt → PDF der referenzierten Datei verwenden
-3. `is_ref`-Flag im Response signalisiert dem Frontend den Referenz-Status
-
-### Fehlerbehandlung
-
-- Upload-Fehler werden als rote Meldung im PdfPanel angezeigt
-- Upload via Footer-Menu zeigt Fehler als Alert
-
-| Datei | Rolle |
-|-------|-------|
-| `frontend/src/components/ui/DotBar.tsx` | Generische Dot-Indikatoren mit Swipe-Handler |
-| `frontend/src/components/ui/PdfPanel.tsx` | Panel mit 3 Zustaenden (Laden/Upload/Viewer) |
-| `frontend/src/components/ui/PdfViewer.tsx` | Bild-basierter PDF-Viewer mit JS Pinch-to-Zoom und Fullscreen-FAB |
-| `frontend/src/hooks/usePdf.ts` | Zustand Store (load/upload/remove) |
-| `frontend/src/pages/PlayerPage.tsx` | Panel-Layout, DotBar, Footer-Menu-Erweiterung |
-| `backend/api/pdf.py` | `/api/pdf` Endpoints (info/upload/page/download/delete) |
-| `backend/services/pdf_service.py` | On-the-fly Rendering, LRU-Cache, Validierung, Referenz-Aufloesung |
-| `backend/models/pdf_file.py` | PdfFile-Modell (inkl. page_count) |
-
-### Bulk-Import (Script)
-
-PDFs aus einem externen Quell-Ordner koennen per Script den passenden ChoirBox-Ordnern zugeordnet und in die App importiert werden. Das Script simuliert den manuellen Upload-Workflow fuer viele Dateien auf einmal.
-
-- **Matching**: Fuzzy-Name-Matching (SequenceMatcher) zwischen PDF-Dateinamen und Ordnernamen. Suffixe wie `-Foto`, `_MOTW` werden vor dem Vergleich entfernt. Schwellwert: 75% Aehnlichkeit.
-- **Vorschau-Tabelle**: Vor der Ausfuehrung zeigt das Script eine Zuordnungstabelle (PDF → Ordner → Haupt-Track → Anzahl Tracks) zur manuellen Pruefung.
-- **Haupt-Track-Erkennung**: Pro Ordner wird automatisch der "Mix"- oder "Gesamt"-Track erkannt (Keywords: Mix, Komplett, Gesamt, SATB, Chor). Einzelstimmen-Prefixe (S, A, T, B, Sopran, Alt, Tenor, Bass) werden abgewertet.
-- **DB-Import**: PDF wird in `data/pdfs/` mit UUID-Dateiname gespeichert. `PdfFile`-Eintrag fuer den Haupt-Track, `FileSettings.pdf_ref_path` fuer alle weiteren Audio-Dateien im selben Ordner.
-- **Prod-Deploy**: Separates Script (`deploy_pdfs.sh`) synchronisiert `data/pdfs/` per rsync und exportiert SQL-Inserts auf den Prod-Server.
-
-| Datei | Rolle |
-|-------|-------|
-| `copy_texte.py` | Matching, Kopieren, DB-Import (lokal) |
+| `frontend/src/components/ui/DocumentPanel.tsx` | Multi-Doc Tabs, Viewer-Dispatch, Hide/Unhide |
+| `frontend/src/components/ui/AnnotatedPage.tsx` | `<img>` + SVG-Overlay pro Seite |
+| `frontend/src/components/ui/AnnotationToolbar.tsx` | Werkzeugleiste: Stift, Textmarker, Radierer |
+| `frontend/src/components/ui/VideoViewer.tsx` | HTML5 Video-Player mit Dropbox-Streaming |
+| `frontend/src/components/ui/TextViewer.tsx` | Monospace-Textansicht |
+| `frontend/src/hooks/useDocuments.ts` | Zustand Store (load/upload/remove/hide/unhide) |
+| `frontend/src/hooks/useAnnotations.ts` | Zustand Store: drawingMode, tool, strokes, API-Calls |
+| `frontend/src/pages/DocViewerPage.tsx` | Standalone Dokument-Viewer Route |
+| `backend/api/documents.py` | `/api/documents` Endpoints |
+| `backend/services/document_service.py` | Stream-Rendering, RAM-Cache, Sync |
+| `backend/models/document.py` | Document-Modell (folder_path, file_type, content_hash) |
+| `backend/models/user_hidden_document.py` | Ausblendungen pro User |
 | `deploy_pdfs.sh` | PDF-Dateien + DB-Eintraege auf Prod deployen |
 
 ---
@@ -880,31 +822,28 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | PUT | `/lyrics` | Lyrics fuer mehrere Sektionen auf einmal speichern | Pro-Mitglied+ |
 | DELETE | `/{id}` | Sektion loeschen (loescht zugehoerige Notizen) | Pro-Mitglied+ |
 
-### Datei-Einstellungen (`/api/file-settings`)
+### Dokumente (`/api/documents`)
 
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
-| GET | `/?path=<dropbox_path>` | Einstellungen einer Datei laden (oder Default) | User |
-| PUT | `/` | Einstellungen speichern (Sektions-/PDF-Referenz setzen/entfernen) | Pro-Mitglied+ |
-| POST | `/propagate` | Referenz auf mehrere Dateien uebertragen (`field`: `section_ref_path` oder `pdf_ref_path`) | Pro-Mitglied+ |
-
-### PDF-Dokumente (`/api/pdf`)
-
-| Methode | Pfad | Beschreibung | Zugang |
-|---------|------|-------------|--------|
-| GET | `/info?path=<dropbox_path>` | PDF-Info mit Referenz-Aufloesung (`has_pdf`, `original_name`, `file_size`, `is_ref`) | User |
-| POST | `/upload` | PDF hochladen (FormData: `file` + `dropbox_path`, max 10 MB) | Pro-Mitglied+ |
-| GET | `/download?path=<dropbox_path>` | PDF-Datei ausliefern (inline, mit Referenz-Aufloesung) | User |
-| DELETE | `/?path=<dropbox_path>` | Direkt zugeordnetes PDF loeschen | Pro-Mitglied+ |
+| GET | `/list?folder=<path>` | Alle Dokumente eines Ordners (mit hidden-Status, Auto-Sync mit Dropbox) | User |
+| POST | `/upload` | Dokument hochladen (FormData: `file` + `folder_path`) | Pro-Mitglied+ |
+| GET | `/{id}/page/{page}` | PDF-Seite als JPEG rendern (on-demand von Dropbox) | User |
+| GET | `/{id}/download` | Redirect auf Dropbox Temp-Link | User |
+| GET | `/{id}/stream` | Dropbox Temp-Link fuer Video-Streaming | User |
+| GET | `/{id}/content` | TXT-Inhalt als Text | User |
+| DELETE | `/{id}` | Dokument loeschen (DB + Dropbox) | Pro-Mitglied+ |
+| POST | `/{id}/hide` | Dokument fuer aktuellen User ausblenden | User |
+| DELETE | `/{id}/hide` | Dokument wieder einblenden | User |
 
 ### Annotationen (`/api/annotations`)
 
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
-| GET | `/?path=<dropbox_path>&page=<n>` | Strokes fuer User + Seite laden | User |
-| PUT | `/` | Upsert: alle Strokes einer Seite speichern (leere Strokes loeschen Eintrag) | Member+ |
-| DELETE | `/?path=<dropbox_path>&page=<n>` | Annotationen einer Seite loeschen | Member+ |
-| DELETE | `/all?path=<dropbox_path>` | Alle Annotationen eines PDFs loeschen | Member+ |
+| GET | `/?doc_id=<id>&page=<n>` | Strokes fuer User + Dokument + Seite laden | User |
+| PUT | `/` | Upsert: Strokes speichern (`doc_id`, `page`, `strokes`) | Member+ |
+| DELETE | `/?doc_id=<id>&page=<n>` | Annotationen einer Seite loeschen | Member+ |
+| DELETE | `/all?doc_id=<id>` | Alle Annotationen eines Dokuments loeschen | Member+ |
 
 ### Sektionsvorlagen (`/api/section-presets`)
 
@@ -1025,27 +964,27 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `created_at` | DateTime | Erstellungszeitpunkt |
 | `updated_at` | DateTime | Letzte Aenderung |
 
-### FileSettings
-
-| Feld | Typ | Beschreibung |
-|------|-----|-------------|
-| `dropbox_path` | String (max 1000) | Primaerschluessel — Dropbox-Dateipfad |
-| `section_ref_path` | String (optional) | Sektionsquelle (null = eigene Sektionen) |
-| `pdf_ref_path` | String (optional) | PDF-Quelle (null = eigenes PDF), unabhaengig von Sektionsreferenz |
-| `created_at` | DateTime | Erstellungszeitpunkt |
-| `updated_at` | DateTime | Letzte Aenderung |
-
-### PdfFile
+### Document
 
 | Feld | Typ | Beschreibung |
 |------|-----|-------------|
 | `id` | Integer | Primaerschluessel |
-| `dropbox_path` | String (unique, indexed) | Zugeordnete Audio-Datei |
-| `filename` | String | UUID-Dateiname auf Disk (z.B. `a1b2c3d4.pdf`) |
-| `original_name` | String | Originaler Dateiname fuer Download |
+| `folder_path` | String (indexed) | Ordnerpfad (z.B. "/Ave Maria") |
+| `file_type` | String | `'pdf'`, `'video'` oder `'txt'` |
+| `original_name` | String | Originaler Dateiname |
 | `file_size` | Integer | Dateigroesse in Bytes |
-| `uploaded_by` | Integer (FK, optional) | Referenz auf User |
+| `page_count` | Integer | Seitenanzahl (nur PDF) |
+| `content_hash` | String (optional) | Dropbox Content-Hash fuer Aenderungserkennung |
+| `sort_order` | Integer | Reihenfolge im Ordner |
+| `uploaded_by` | String (FK, optional) | Referenz auf User |
 | `created_at` | DateTime | Erstellungszeitpunkt |
+
+### UserHiddenDocument
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `user_id` | String (FK, PK) | Referenz auf User |
+| `document_id` | Integer (FK, PK) | Referenz auf Document |
 
 ### SessionToken
 

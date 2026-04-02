@@ -11,8 +11,21 @@ from backend.models.document import Document
 from backend.services import document_service
 
 
-def cleanup_audio_file(dropbox_path: str, session: Session) -> None:
-    """Remove all DB records associated with an audio file."""
+def cleanup_file(dropbox_path: str, session: Session) -> None:
+    """Remove all DB records associated with any file (audio or document)."""
+    # Check if this is a document (by folder_path + original_name)
+    file_name = dropbox_path.rsplit("/", 1)[-1] if "/" in dropbox_path else dropbox_path
+    folder_path = dropbox_path.rsplit("/", 1)[0] if "/" in dropbox_path else ""
+    doc = session.exec(
+        select(Document).where(
+            Document.folder_path == folder_path,
+            Document.original_name == file_name,
+        )
+    ).first()
+    if doc:
+        document_service.delete_document(doc.id, session)
+
+    # Audio-specific cleanup
     # Audio durations
     duration = session.get(AudioDuration, dropbox_path)
     if duration:

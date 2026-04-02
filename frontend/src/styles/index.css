@@ -1363,6 +1363,7 @@ body {
 
 /* Document icon in browse */
 .file-icon-doc {
+  background: rgba(129,140,248,0.15);
   color: var(--accent);
 }
 
