@@ -1725,6 +1725,11 @@ body {
 
 .file-list--cards .swipe-content {
   background: var(--bg-secondary);
+  z-index: 2;
+}
+
+.file-list--cards .swipe-actions {
+  z-index: 1;
 }
 
 .file-list--cards > .file-item {
