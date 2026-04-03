@@ -178,14 +178,46 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 
 ## Datei-Browser
 
+### Ordnertyp-System
+
+Ordner in der Dropbox tragen Typ-Endungen im Namen, die Anzeige und Verhalten bestimmen:
+
+| Endung | Typ | Beschreibung | Icon |
+|--------|-----|-------------|------|
+| `.song` | Musikstueck | Song-Ordner mit Unter-Ordnern fuer Texte und Audio | Music-Note |
+| `.tx` | Texte | Dokument-Ordner (PDF, Video, TXT) — ersetzt den alten "Texte"-Unterordner | FileText |
+| `.audio` | Audio | Audio-Ordner (MP3, WebM, M4A) | Lautsprecher |
+| *(keine)* | Container | Normaler navigierbarer Ordner (z.B. "Konzert im Juni") | Ordner |
+
+**Hierarchie-Beispiel:**
+```
+Konzert im Juni/           (Container)
+  Fragile.song/            (Song)
+    texte.tx/              (Texte → Dokumente)
+    audio.audio/           (Audio → MP3s)
+```
+
+**Regeln:**
+- Anzeigename wird ohne Endung dargestellt: "Fragile.song" → "Fragile"
+- Innerhalb typisierter Elternordner (.song): nur typisierte Kinder sichtbar, unbekannte Unterordner ausgeblendet
+- `.tx`-Ordner zeigen doc_count Badge (Anzahl Dokumente)
+- Klick auf `.tx`-Ordner oeffnet den Dokument-Viewer direkt
+- Breadcrumbs zeigen gestripte Namen
+- Folder-Type-Registry mit `admin_only`-Flag vorbereitet (erweiterbar fuer zukuenftige Ordnertypen)
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/services/folder_types.py` | Folder-Type-Registry (Typen, Parsing, Sichtbarkeit) |
+| `frontend/src/utils/folderTypes.ts` | Frontend-Utilities (stripFolderExtension, getFolderType) |
+
 ### Ordner-Navigation
 
 - Dropbox-Ordnerstruktur hierarchisch durchsuchbar
 - Header zeigt den Chor-Namen prominent statt "Dateien"
-- Breadcrumb-Navigation mit Home-Icon als Root und klickbaren Pfadteilen
+- Breadcrumb-Navigation mit Home-Icon als Root und klickbaren Pfadteilen (Endungen gestripped)
 - Zurueck-Button (..) fuer uebergeordneten Ordner
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
-- Sortierung: Ordner zuerst, dann Dateien, jeweils alphabetisch
+- Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
 - Dateidetails: Audio-Dauer (gecacht nach erstem Abspielen), Labels
 - Voice-Icons: Farbiges Stimmkuerzel (S, A, T, B, SA, SAT, SATB...) als Datei-Icon statt generischem Noten-Symbol. Einzelstimmen in Stimmfarbe, Mehrfachstimmen in lila. Dateien ohne Stimminfo zeigen Noten-Icon.
 - Skeleton-Loading: Beim Laden eines Ordners werden animierte Platzhalter-Zeilen angezeigt (Shimmer-Animation), die die Struktur der echten Datei-Eintraege imitieren. Verhindert Layout-Spruenge und gibt visuelles Feedback.
@@ -197,7 +229,7 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 | `frontend/src/components/ui/VoiceIcon.tsx` | Farbiges Stimmkuerzel-Icon |
 | `frontend/src/utils/voiceColors.ts` | Shared Stimmfarben-Utilities |
 | `frontend/src/stores/appStore.ts` | `browsePath` State |
-| `backend/api/dropbox.py` | `GET /dropbox/browse` |
+| `backend/api/dropbox.py` | `GET /dropbox/browse` (mit folder_type, display_name) |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
 | `backend/models/audio_duration.py` | Dauer-Cache (SQLModel) |
 | `backend/services/audio_duration_service.py` | Dauer speichern/abfragen |
@@ -264,7 +296,7 @@ Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einz
 |-----|-----------|-------------|---------|
 | PDF | `.pdf` | Dropbox + on-demand RAM-Cache | Seitenweise JPEG-Rendering (PyMuPDF) |
 | Video (`.mp4`) | `.mp4` | Dropbox Hauptordner (beim Upload via ffmpeg komprimiert) | Video-Modal in Browse-Seite |
-| Video (Dokument) | `.webm`, `.mov` | Dropbox `/Texte` Unterordner | HTML5 Video-Player im Texte-Viewer |
+| Video (Dokument) | `.webm`, `.mov` | Dropbox `.tx`-Ordner | HTML5 Video-Player im Texte-Viewer |
 | Text | `.txt` | Nur Dropbox | Monospace-Textansicht |
 
 ### Video-Komprimierung beim Upload
@@ -297,7 +329,7 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 
 ### Dokumente in der Browse-Seite
 
-- Dokumente erscheinen als eigene Eintraege im Ordner (zwischen Ordnern und Audio-Dateien)
+- Dokumente erscheinen als eigene Eintraege innerhalb von `.tx`-Ordnern
 - Typ-spezifische Icons (PDF, Video, Text)
 - Swipe-Actions: Favorisieren, Labels, Umbenennen, Loeschen
 - Upload: Dateien hochladen ueber Kebab-Menue (akzeptiert Audio + Dokument-Formate)
