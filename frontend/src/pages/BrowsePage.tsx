@@ -219,19 +219,6 @@ export function BrowsePage() {
     }
   }
 
-  const browseReturnTo = useAppStore((s) => s.browseReturnTo)
-
-  const navigateUp = () => {
-    if (browseReturnTo) {
-      useAppStore.getState().setBrowseReturnTo(null)
-      navigate(browseReturnTo)
-      return
-    }
-    const parts = browsePath.split('/').filter(Boolean)
-    parts.pop()
-    const parent = parts.length > 0 ? '/' + parts.join('/') : ''
-    loadFolder(parent)
-  }
 
   const pathParts = browsePath.split('/').filter(Boolean)
 
