@@ -667,7 +667,7 @@ export function BrowsePage() {
           variant="secondary"
         >
           <div className="label-picker" style={{ margin: 0 }}>
-            {labels.map((l) => {
+            {labels.filter((l) => l.category !== 'Stimme').map((l) => {
               const assigned = isAssigned(swipeLabelPath, l.id)
               return (
                 <button
