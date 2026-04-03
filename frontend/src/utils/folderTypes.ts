@@ -2,7 +2,6 @@
  * Folder type utilities — mirrors backend/services/folder_types.py
  */
 
-const KNOWN_EXTENSIONS = ['song', 'tx', 'audio'] as const
 const EXT_PATTERN = /\.(song|tx|audio)$/i
 
 export function stripFolderExtension(name: string): string {

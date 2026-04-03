@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, FolderOpen, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File, Music, Volume2 } from 'lucide-react'
+import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File, Music, Volume2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
