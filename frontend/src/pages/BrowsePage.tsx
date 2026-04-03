@@ -552,7 +552,11 @@ export function BrowsePage() {
               ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {entry.type === 'file' ? formatDisplayName(entry.display_name || entry.name) : (entry.display_name || entry.name)}
+                  {isAudioFile && parsed
+                    ? (parsed.freeText.replace(/-/g, ' ') || folderName)
+                    : entry.type === 'file'
+                      ? formatDisplayName(entry.display_name || entry.name)
+                      : (entry.display_name || entry.name)}
                 </div>
                 {isTexteFolder && entry.doc_count != null && (
                   <div className="file-meta">

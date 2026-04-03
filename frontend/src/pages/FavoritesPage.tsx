@@ -8,6 +8,7 @@ import { useAppStore } from '@/stores/appStore.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { formatDisplayName } from '@/utils/formatters.ts'
+import { stripFolderExtension } from '@/utils/folderTypes.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { Favorite } from '@/types/index.ts'
 
@@ -118,7 +119,7 @@ export function FavoritesPage() {
         ) : null}
         <div className="file-info">
           <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-            {formatDisplayName(fav.file_name)}
+            {parsed ? (parsed.freeText.replace(/-/g, ' ') || stripFolderExtension(favFolderName)) : formatDisplayName(fav.file_name)}
           </div>
           {voiceTags.length > 0 && (
             <div className="meta-line1">
