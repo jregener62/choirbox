@@ -131,13 +131,12 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Chor-Ordner | ✓ | ✓ | — | — | — | — |
 | Dropbox Re-Sync | ✓ | ✓ | — | — | — | — |
 | Dropbox-Verbindung | — | — | — | — | — | — |
-| Dropbox App-Ordner | — | — | — | — | — | — |
 | Choere verwalten | — | — | — | — | — | — |
 | **FileSettingsPage** | | | | | | |
 | Anzeigen (read-only) | ✓ | ✓ | ✓ | ✓ | — | — |
 | Bearbeiten + Speichern | ✓ | ✓ | ✓ | ✓ | — | — |
 
-*Developer (6) hat alle Rechte + Dropbox-Verbindung, App-Ordner, Choere verwalten, Chor-Wechsel.*
+*Developer (6) hat alle Rechte + Dropbox-Verbindung, Choere verwalten, Chor-Wechsel.*
 
 ### Logout
 
@@ -151,7 +150,7 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 
 ### Verbindung (nur Developer)
 
-Ein Developer verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle Choere teilen diesen Zugang, jeder Chor hat seinen eigenen Unterordner (`Choir.dropbox_root_folder`). Optional kann ein globaler App-Ordner (`AppSettings.dropbox_root_folder`) als Prefix gesetzt werden — effektiver Pfad: `{app_root}/{choir_root}`.
+Ein Developer verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle Choere teilen diesen Zugang, jeder Chor hat seinen eigenen Unterordner (`Choir.dropbox_root_folder`) direkt im Dropbox-App-Ordner.
 
 - OAuth 2.0 Authorization Code Flow mit Refresh Token
 - Account-E-Mail und ID werden gespeichert
@@ -691,7 +690,6 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 - Bestehende Choere bearbeiten (Name, Einladungscode, Ordner) per Stift-Button
 - Chor-Wechsel: Developer kann per Login-Button in jeden Chor wechseln, aktiver Chor wird mit "Aktiv"-Badge markiert
 - Einladungscodes muessen eindeutig sein
-- Globaler Dropbox App-Ordner konfigurierbar (Prefix fuer alle Choere)
 
 | Datei | Rolle |
 |-------|-------|
@@ -733,7 +731,6 @@ Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Passwort aendern
 - Theme-Toggle
 - Dropbox-Verbindung (nur Developer)
-- Dropbox App-Ordner — globaler Prefix fuer alle Choere (nur Developer)
 - Einladungslink mit Copy-Button und klickbarer URL (nur Admin)
 - Chor-Ordner in der Dropbox (nur Admin)
 - Wartung: Dropbox Re-Sync — vollstaendiger DB-Abgleich (nur Admin, nur bei verbundener Dropbox)
@@ -1081,7 +1078,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `dropbox_account_id` | String | Dropbox Account ID |
 | `dropbox_account_email` | String | Dropbox Account E-Mail |
 | `dropbox_connected_at` | DateTime | Verbindungszeitpunkt |
-| `dropbox_root_folder` | String | Optionaler globaler App-Ordner (Prefix fuer alle Chor-Ordner) |
+| ~~`dropbox_root_folder`~~ | — | Entfernt — Dropbox App-Ordner wird automatisch von der Dropbox-App gesetzt |
 | `updated_at` | DateTime | Letzte Aenderung |
 
 ---

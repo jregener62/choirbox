@@ -5,7 +5,7 @@ Usage (cron):
     0 3 * * * cd /home/choirbox/choirbox && venv/bin/python backup_db.py
 
 Creates a consistent SQLite snapshot (safe with WAL mode),
-uploads it to Dropbox under /backups/, and keeps the last 7 backups.
+uploads it to Dropbox App folder under /backups/, and keeps the last 7 backups.
 """
 
 import asyncio
@@ -26,7 +26,7 @@ load_dotenv(BASE_DIR / ".env")
 DB_PATH = BASE_DIR / "choirbox.db"
 DROPBOX_APP_KEY = os.getenv("DROPBOX_APP_KEY", "")
 DROPBOX_APP_SECRET = os.getenv("DROPBOX_APP_SECRET", "")
-BACKUP_FOLDER = "/Apps/choirbox/backups"
+BACKUP_FOLDER = "/backups"
 KEEP_BACKUPS = 7
 
 logging.basicConfig(

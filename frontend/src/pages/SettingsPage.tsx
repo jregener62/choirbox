@@ -16,7 +16,6 @@ interface DropboxStatus {
 interface AdminSettings {
   invite_code: string | null
   dropbox_root_folder: string | null
-  dropbox_app_folder: string | null
 }
 
 export function SettingsPage() {
@@ -51,8 +50,6 @@ export function SettingsPage() {
   const [linkCopied, setLinkCopied] = useState(false)
   const [rootFolder, setRootFolder] = useState('')
   const [rootFolderSaving, setRootFolderSaving] = useState(false)
-  const [appFolder, setAppFolder] = useState('')
-  const [appFolderSaving, setAppFolderSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   // Re-Sync state
@@ -79,7 +76,6 @@ export function SettingsPage() {
       const settings = await api<AdminSettings>('/admin/settings')
       setInviteCode(settings.invite_code || '')
       setRootFolder(settings.dropbox_root_folder || '')
-      setAppFolder(settings.dropbox_app_folder || '')
     } catch {
       // ignore
     }
@@ -215,18 +211,6 @@ export function SettingsPage() {
       setMessage('Fehler beim Speichern')
     } finally {
       setRootFolderSaving(false)
-    }
-  }
-
-  const saveAppFolder = async () => {
-    setAppFolderSaving(true)
-    try {
-      await api('/admin/settings', { method: 'PUT', body: { dropbox_app_folder: appFolder.trim() || null } })
-      setMessage('App-Ordner gespeichert')
-    } catch {
-      setMessage('Fehler beim Speichern')
-    } finally {
-      setAppFolderSaving(false)
     }
   }
 
@@ -465,39 +449,12 @@ export function SettingsPage() {
           </section>
         )}
 
-        {/* -- Dropbox App-Ordner (Developer) -- */}
-        {isDeveloper && (
-          <section>
-            <h3 className="settings-heading"><Folder size={14} /> Dropbox App-Ordner</h3>
-            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-              Globaler Ordner fuer alle Choere (z.B. "choirbox"). Chor-Ordner werden darunter angelegt.
-            </div>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className="auth-input"
-                type="text"
-                value={appFolder}
-                onChange={(e) => setAppFolder(e.target.value)}
-                placeholder="z.B. choirbox"
-              />
-              <button
-                className="btn btn-primary"
-                onClick={saveAppFolder}
-                disabled={appFolderSaving}
-                style={{ width: 'auto', padding: '10px 20px' }}
-              >
-                {appFolderSaving ? '...' : 'OK'}
-              </button>
-            </div>
-          </section>
-        )}
-
         {/* -- Chor-Ordner (Admin) -- */}
         {isAdmin && (
           <section>
             <h3 className="settings-heading"><Folder size={14} /> Chor-Ordner</h3>
             <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 8 }}>
-              Unterordner dieses Chors{appFolder ? ` in "${appFolder}"` : ''} (z.B. "Mein Chor").
+              Dropbox-Unterordner dieses Chors (z.B. "Mein Chor").
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
               <input

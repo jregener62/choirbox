@@ -22,16 +22,12 @@ _oauth_states: dict[str, str] = {}
 
 
 def _get_root_folder(user: User, session: Session) -> str:
-    """Combine global app root (AppSettings) + choir subfolder (Choir)."""
-    settings = session.get(AppSettings, 1)
-    app_root = (settings.dropbox_root_folder or "").strip("/") if settings else ""
-    choir_root = ""
+    """Get the choir's Dropbox subfolder (relative to Dropbox App folder root)."""
     if user.choir_id:
         choir = session.get(Choir, user.choir_id)
         if choir:
-            choir_root = (choir.dropbox_root_folder or "").strip("/")
-    parts = [p for p in [app_root, choir_root] if p]
-    return "/".join(parts)
+            return (choir.dropbox_root_folder or "").strip("/")
+    return ""
 
 
 def _to_dropbox_path(user_path: str, root_folder: str) -> str:

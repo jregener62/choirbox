@@ -239,9 +239,9 @@ Jede Phase kann als eigener Commit deployed werden.
 
 ---
 
-## Offene Entscheidungen
+## Entscheidungen (geklaert)
 
-1. **User.voice_part Feld**: Behalten (fuer Profil-Anzeige) oder durch Label-Association ersetzen?
-2. **Registrierung**: Stimmenauswahl bei Registrierung behalten oder in Profil verschieben?
-3. **Multi-Stimmen im Dateinamen**: "SA" weiterhin als kombinierter Shortcode unterstuetzen?
-4. **Rueckwaertskompatibilitaet**: Bestehende SATB-Dateinamen weiter parsen oder nur neue Labels?
+1. **User.voice_part Feld**: Wird durch Label-Association ersetzt. Stimme/Instrument ist chor/band-spezifisch, gehoert nicht aufs User-Model.
+2. **Registrierung**: Stimmenauswahl wird aus der Registrierung entfernt und ins Profil (Einstellungen) verschoben.
+3. **Multi-Stimmen im Dateinamen**: "SA" wird geparst und als mehrere einzelne Pills angezeigt (Sopran + Alt), nicht als kombinierter Pill.
+4. **Rueckwaertskompatibilitaet**: Bestehende SATB-Dateinamen werden weiterhin geparst. `parseTrackFilename` bleibt funktional, matcht Shortcodes dynamisch gegen die definierten Labels.
