@@ -38,6 +38,9 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
     .filter((l) => l.shortcode)
     .map((l) => ({ key: l.shortcode!, label: l.name, sort_order: l.sort_order }))
   const presets = useSectionPresetsStore((s) => s.presets)
+  const presetsLoaded = useSectionPresetsStore((s) => s.loaded)
+  const loadPresets = useSectionPresetsStore((s) => s.load)
+  useEffect(() => { if (!presetsLoaded) loadPresets() }, [presetsLoaded, loadPresets])
   const sectionOptions: SectionOption[] = presets.map((p) => ({
     name: p.name, shortcode: p.shortcode || p.name, max_num: p.max_num, sort_order: p.sort_order,
   }))

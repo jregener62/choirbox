@@ -12,7 +12,7 @@ import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { parseTrackFilename } from '@/utils/parseTrackFilename'
-import { voiceColor, voiceFullName } from '@/utils/voiceColors'
+import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
@@ -258,6 +258,16 @@ export function BrowsePage() {
     ? stripFolderExtension(browseSegments[browseSegments.length - 2])
     : stripFolderExtension(lastSegment)
 
+  // Dynamic shortcodes for filename parsing
+  const voiceLabelsAll = useLabelsStore((s) => s.voiceLabels)()
+  const voiceShortcodes = voiceLabelsAll.filter((l) => l.shortcode).map((l) => l.shortcode!)
+  const voiceLookup = Object.fromEntries(voiceLabelsAll.filter((l) => l.shortcode).map((l) => [l.shortcode!, { name: l.name, color: l.color }]))
+  const sectionPresets = useSectionPresetsStore((s) => s.presets)
+  const sectionPresetsLoaded = useSectionPresetsStore((s) => s.loaded)
+  const loadSectionPresets = useSectionPresetsStore((s) => s.load)
+  useEffect(() => { if (!sectionPresetsLoaded) loadSectionPresets() }, [sectionPresetsLoaded, loadSectionPresets])
+  const sectionShortcodes = sectionPresets.filter((p) => p.shortcode).map((p) => p.shortcode!)
+
   // Show filter bar if user has any label assignments at all
   const hasAnyLabels = assignments.length > 0
 
@@ -495,10 +505,13 @@ export function BrowsePage() {
           ) : null
 
           const isAudioFile = isFile && !entry.name.toLowerCase().endsWith('.mp4')
-          const parsed = isAudioFile ? parseTrackFilename(entry.name, folderName) : null
+          const parsed = isAudioFile ? parseTrackFilename(entry.name, folderName, voiceShortcodes, sectionShortcodes) : null
           const voiceTags = parsed
             ? parsed.voices
-                .map((v) => ({ letter: v, name: voiceFullName(v), color: voiceColor(v) }))
+                .map((v) => {
+                  const info = voiceLookup[v]
+                  return { letter: v, name: info?.name || v, color: info?.color || 'var(--accent)' }
+                })
                 .sort((a, b) => a.name.localeCompare(b.name))
             : []
           const sections = parsed && parsed.sectionKey !== 'Gesamt'

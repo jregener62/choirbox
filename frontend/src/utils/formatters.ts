@@ -9,7 +9,8 @@ export function formatTime(seconds: number): string {
 }
 
 const AUDIO_EXT = /\.(mp3|m4a|wav|ogg|flac|aac|webm|mp4)$/i
-const VOICE_PREFIX = /^[SATB]+-/
+// Voice prefix: 1-10 char shortcode followed by hyphen (e.g. "S-", "SA-", "Piano-", "Git-")
+const VOICE_PREFIX = /^[A-Za-z]{1,10}-/
 
 /**
  * Middle-truncate a string: "Alle meine Entchen" → "Alle mei...ntchen"

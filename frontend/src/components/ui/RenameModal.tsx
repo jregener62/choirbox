@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Check, Save } from 'lucide-react'
 import { api } from '@/api/client'
 import { Modal } from './Modal'
@@ -23,6 +23,9 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
     .filter((l) => l.shortcode)
     .map((l) => ({ key: l.shortcode!, label: l.name, sort_order: l.sort_order }))
   const presets = useSectionPresetsStore((s) => s.presets)
+  const presetsLoaded = useSectionPresetsStore((s) => s.loaded)
+  const loadPresets = useSectionPresetsStore((s) => s.load)
+  useEffect(() => { if (!presetsLoaded) loadPresets() }, [presetsLoaded, loadPresets])
   const sectionOptions: SectionOption[] = presets.map((p) => ({
     name: p.name, shortcode: p.shortcode || p.name, max_num: p.max_num, sort_order: p.sort_order,
   }))
