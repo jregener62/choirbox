@@ -17,7 +17,7 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
-import { stripFolderExtension, isReservedName, getFolderType } from '@/utils/folderTypes.ts'
+import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
