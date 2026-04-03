@@ -246,10 +246,13 @@ export function FavoritesPage() {
           const isActive = fav.dropbox_path === currentPath
           const trackLabels = getLabelsForPath(fav.dropbox_path)
           const favFolderName = fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''
-          const parsed = parseTrackFilename(fav.file_name, favFolderName)
+          const parsed = parseTrackFilename(fav.file_name, favFolderName, voiceShortcodes, sectionShortcodes)
           const voiceTags = parsed
             ? parsed.voices
-                .map((v) => ({ letter: v, name: voiceFullName(v), color: voiceColor(v) }))
+                .map((v) => {
+                  const info = voiceLookup[v]
+                  return { letter: v, name: info?.name || v, color: info?.color || 'var(--accent)' }
+                })
                 .sort((a, b) => a.name.localeCompare(b.name))
             : []
           const sections = parsed && parsed.sectionKey !== 'Gesamt'

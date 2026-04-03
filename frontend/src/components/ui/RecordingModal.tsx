@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from 'react'
+import { useState, useRef, useMemo, useEffect } from 'react'
 import { Mic, Square, Play, Pause, Upload, RotateCcw, Check } from 'lucide-react'
 import { useRecorder } from '@/hooks/useRecorder'
 import { apiUpload } from '@/api/client'
