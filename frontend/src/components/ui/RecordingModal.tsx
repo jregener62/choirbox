@@ -7,7 +7,7 @@ import { formatTime } from '@/utils/formatters'
 import { buildFilename } from '@/utils/filename'
 import { useLabelsStore } from '@/hooks/useLabels'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
-import { stripFolderExtension } from '@/utils/folderTypes'
+import { stripFolderExtension, isReservedName } from '@/utils/folderTypes'
 import type { SelectedSection, VoiceOption, SectionOption } from '@/utils/filename'
 
 interface RecordingModalProps {
@@ -32,8 +32,11 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   const [voices, setVoices] = useState<string[]>([])
   const [sections, setSections] = useState<SelectedSection[]>([])
 
-  const rawFolderName = targetPath.split('/').filter(Boolean).pop() || ''
-  const folderName = stripFolderExtension(rawFolderName)
+  const segments = targetPath.split('/').filter(Boolean)
+  const lastSegment = segments[segments.length - 1] || ''
+  const folderName = isReservedName(lastSegment) && segments.length >= 2
+    ? stripFolderExtension(segments[segments.length - 2])
+    : stripFolderExtension(lastSegment)
   const [songName, setSongName] = useState(folderName)
   const allLabels = useLabelsStore((s) => s.labels)
   const labelsLoaded = useLabelsStore((s) => s.loaded)

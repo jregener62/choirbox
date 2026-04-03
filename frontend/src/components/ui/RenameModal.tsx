@@ -5,7 +5,7 @@ import { Modal } from './Modal'
 import { buildFilename } from '@/utils/filename'
 import { useLabelsStore } from '@/hooks/useLabels'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
-import { stripFolderExtension } from '@/utils/folderTypes'
+import { stripFolderExtension, isReservedName } from '@/utils/folderTypes'
 import type { SelectedSection, VoiceOption, SectionOption } from '@/utils/filename'
 
 interface RenameModalProps {
@@ -18,8 +18,11 @@ interface RenameModalProps {
 
 export function RenameModal({ path, currentName, folderPath, onClose, onRenamed }: RenameModalProps) {
   const ext = currentName.split('.').pop() || 'mp3'
-  const rawFolderName = folderPath.split('/').filter(Boolean).pop() || ''
-  const folderName = stripFolderExtension(rawFolderName)
+  const segments = folderPath.split('/').filter(Boolean)
+  const lastSegment = segments[segments.length - 1] || ''
+  const folderName = isReservedName(lastSegment) && segments.length >= 2
+    ? stripFolderExtension(segments[segments.length - 2])
+    : stripFolderExtension(lastSegment)
   const allLabels = useLabelsStore((s) => s.labels)
   const labelsLoaded = useLabelsStore((s) => s.loaded)
   const loadLabels = useLabelsStore((s) => s.load)
