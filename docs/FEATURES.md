@@ -13,7 +13,7 @@ ChoirBox ist eine Smartphone-optimierte Web-App fuer Chormitglieder. Kernfunktio
 Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identifiziert.
 
 - Einladungslink-Format: `/#/join/<invite_code>` — identifiziert den Chor automatisch
-- Pflichtfelder: Benutzername, Anzeigename, Passwort, Stimme (Sopran/Alt/Tenor/Bass)
+- Pflichtfelder: Benutzername, Anzeigename, Passwort, Stimme (dynamisch aus Stimme-Labels des Chors)
 - Passwort mindestens 4 Zeichen
 - Passwort-Hashing: PBKDF2-HMAC-SHA256 (100.000 Iterationen)
 - Benutzername muss eindeutig sein (ueber alle Choere hinweg)
@@ -48,7 +48,7 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 ### Profil bearbeiten
 
 - Anzeigename aendern
-- Stimme wechseln (Sopran/Alt/Tenor/Bass)
+- Stimme wechseln (dynamisch aus Stimme-Labels des Chors)
 - Passwort aendern (altes Passwort muss bestaetigt werden, neues min. 4 Zeichen)
 - Chor-Name wird im Profil angezeigt
 
@@ -217,20 +217,24 @@ Konzert im Juni/           (Container)
 
 - Dropbox-Ordnerstruktur hierarchisch durchsuchbar
 - Header zeigt den Chor-Namen prominent statt "Dateien"
-- Breadcrumb-Navigation mit Home-Icon als Root und klickbaren Pfadteilen (Endungen gestripped)
-- Zurueck-Button (..) fuer uebergeordneten Ordner
+- Breadcrumb-Navigation mit Chor-Name als Root und klickbaren Pfadteilen (Endungen gestripped)
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
-- Dateidetails: Audio-Dauer (gecacht nach erstem Abspielen), Labels
-- Voice-Icons: Farbiges Stimmkuerzel (S, A, T, B, SA, SAT, SATB...) als Datei-Icon statt generischem Noten-Symbol. Einzelstimmen in Stimmfarbe, Mehrfachstimmen in lila. Dateien ohne Stimminfo zeigen Noten-Icon.
-- Skeleton-Loading: Beim Laden eines Ordners werden animierte Platzhalter-Zeilen angezeigt (Shimmer-Animation), die die Struktur der echten Datei-Eintraege imitieren. Verhindert Layout-Spruenge und gibt visuelles Feedback.
+- **Card-Layout**: Jede Audio-Datei wird als Card mit Rahmen und Abstand dargestellt
+- **Dreizeiliges Meta-System** unter dem Dateinamen:
+  - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot (alphabetisch sortiert, Farben aus Labels)
+  - **Zeile 2:** Abschnitte als Accent-Badges (aus SectionPresets dynamisch)
+  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund)
+- Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
+- Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen
+- Skeleton-Loading im Card-Stil beim Laden eines Ordners
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/BrowsePage.tsx` | Browser-UI |
 | `frontend/src/components/ui/SkeletonList.tsx` | Animierte Lade-Platzhalter |
-| `frontend/src/components/ui/VoiceIcon.tsx` | Farbiges Stimmkuerzel-Icon |
-| `frontend/src/utils/voiceColors.ts` | Shared Stimmfarben-Utilities |
+| `frontend/src/hooks/useLabels.ts` | Voice-Labels (Farben, Shortcodes) |
+| `frontend/src/hooks/useSectionPresets.ts` | Section-Presets (Shortcodes, max_num) |
 | `frontend/src/stores/appStore.ts` | `browsePath` State |
 | `backend/api/dropbox.py` | `GET /dropbox/browse` (mit folder_type, display_name) |
 | `backend/services/dropbox_service.py` | `list_folder()` mit Paginierung |
@@ -599,10 +603,12 @@ Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
 
 Labels zum Kategorisieren von Dateien, verwaltbar ab Rolle `pro-member`.
 
-- Pro-Mitglieder+ erstellen Labels mit Name, Farbe (Hex) und optionaler Kategorie
-- Default-Labels beim Seeding: Sopran, Alt, Tenor, Bass (Kategorie "Stimme"), Schwierig, Geubt (Kategorie "Status")
+- Pro-Mitglieder+ erstellen Labels mit Name, Farbe (Hex), optionaler Kategorie, Shortcode und Aliases
+- **Stimme-Labels** (Kategorie "Stimme"): Definieren Stimmen/Instrumente des Chors. Haben `shortcode` (Kuerzel fuer Dateinamen, z.B. "S", "A", "Git") und `aliases` (komma-getrennt fuer Erkennung)
+- Default-Labels beim Seeding: Sopran (S), Alt (A), Tenor (T), Bass (B) als Stimme-Labels; Schwierig, Geubt als Status-Labels
+- Stimmen werden durchgaengig dynamisch geladen: Registrierung, Profil, Rename-Modal, Recording-Modal, Dateiliste
 - User weisen Labels per Datei zu (Mehrfachzuweisung moeglich)
-- Labels als farbige Chips auf Dateien sichtbar
+- Labels als Outline-Badges auf Dateien sichtbar (farbiger Rand, kein Hintergrund)
 - Pro User unabhaengig (jeder User hat eigene Zuweisungen)
 
 | Datei | Rolle |
@@ -610,7 +616,7 @@ Labels zum Kategorisieren von Dateien, verwaltbar ab Rolle `pro-member`.
 | `frontend/src/hooks/useLabels.ts` | Zustand Store + API-Logik |
 | `frontend/src/pages/admin/LabelsPage.tsx` | Admin Label-Verwaltung |
 | `backend/api/labels.py` | CRUD Labels + Zuweisungen |
-| `backend/models/label.py` | Label-Modell (name, color, category, sort_order) |
+| `backend/models/label.py` | Label-Modell (name, color, category, sort_order, shortcode, aliases) |
 | `backend/models/user_label.py` | Zuweisungs-Modell (user_id + dropbox_path + label_id) |
 
 ### Label-Filter
@@ -632,7 +638,7 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 
 - Browser-Mikrofon-Aufnahme (MediaRecorder API)
 - Server-seitige Konvertierung zu MP3 (FFmpeg)
-- Strukturierte Dateibenennung: Stimme-Ordner-Abschnitt-Freitext
+- Strukturierte Dateibenennung: Stimme-Ordner-Abschnitt-Freitext (Stimmen und Abschnitte dynamisch aus Labels/SectionPresets)
 - Upload in aktuellen Dropbox-Ordner
 - Alle authentifizierten User koennen aufnehmen
 
