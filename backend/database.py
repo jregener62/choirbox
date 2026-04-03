@@ -44,6 +44,8 @@ def _migrate(eng):
         ("documents", "dropbox_path", "VARCHAR(1000)"),
         ("labels", "shortcode", "VARCHAR(10)"),
         ("labels", "aliases", "VARCHAR(200)"),
+        ("section_presets", "shortcode", "VARCHAR(20)"),
+        ("section_presets", "max_num", "INTEGER DEFAULT 0"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:
@@ -67,6 +69,9 @@ def _migrate(eng):
 
     # --- Backfill label shortcodes ---
     _backfill_label_shortcodes(eng, tables)
+
+    # --- Backfill section preset shortcodes ---
+    _backfill_section_preset_shortcodes(eng, tables)
 
     # --- Drop obsolete tables ---
     _drop_obsolete_tables(eng, tables)
@@ -209,6 +214,27 @@ def _migrate_documents_dropbox_path(eng, tables):
             "UPDATE documents SET dropbox_path = folder_path || '/' || original_name "
             "WHERE dropbox_path IS NULL"
         ))
+
+
+def _backfill_section_preset_shortcodes(eng, tables):
+    """Set shortcode and max_num on existing section presets that don't have them yet."""
+    if "section_presets" not in tables:
+        return
+    from sqlalchemy import text
+    defaults = {
+        "Intro": ("Intro", 0),
+        "Strophe": ("Strophe", 5),
+        "Refrain": ("Refrain", 4),
+        "Bridge": ("Bridge", 4),
+        "Solo": ("Solo", 0),
+        "Outro": ("Outro", 0),
+    }
+    with eng.begin() as conn:
+        for name, (shortcode, max_num) in defaults.items():
+            conn.execute(text(
+                "UPDATE section_presets SET shortcode = :sc, max_num = :mn "
+                "WHERE name = :name AND shortcode IS NULL"
+            ), {"sc": shortcode, "mn": max_num, "name": name})
 
 
 def _backfill_label_shortcodes(eng, tables):

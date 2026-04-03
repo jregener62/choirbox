@@ -2,9 +2,10 @@ import { useState, useMemo } from 'react'
 import { Check, Save } from 'lucide-react'
 import { api } from '@/api/client'
 import { Modal } from './Modal'
-import { SECTIONS, buildFilename } from '@/utils/filename'
+import { buildFilename } from '@/utils/filename'
 import { useLabelsStore } from '@/hooks/useLabels'
-import type { SelectedSection, VoiceOption } from '@/utils/filename'
+import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
+import type { SelectedSection, VoiceOption, SectionOption } from '@/utils/filename'
 
 interface RenameModalProps {
   path: string
@@ -21,6 +22,10 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
   const voiceOptions: VoiceOption[] = voiceLabels
     .filter((l) => l.shortcode)
     .map((l) => ({ key: l.shortcode!, label: l.name, sort_order: l.sort_order }))
+  const presets = useSectionPresetsStore((s) => s.presets)
+  const sectionOptions: SectionOption[] = presets.map((p) => ({
+    name: p.name, shortcode: p.shortcode || p.name, max_num: p.max_num, sort_order: p.sort_order,
+  }))
 
   const [voices, setVoices] = useState<string[]>([])
   const [sections, setSections] = useState<SelectedSection[]>([])
@@ -38,11 +43,11 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
     setVoices((prev) => prev.includes(key) ? prev.filter((v) => v !== key) : [...prev, key])
   }
 
-  const toggleSection = (name: string) => {
+  const toggleSection = (opt: SectionOption) => {
     setSections((prev) => {
-      const exists = prev.find((s) => s.name === name)
-      if (exists) return prev.filter((s) => s.name !== name)
-      return [...prev, { name, num: 1 }]
+      const exists = prev.find((s) => s.name === opt.name)
+      if (exists) return prev.filter((s) => s.name !== opt.name)
+      return [...prev, { name: opt.name, shortcode: opt.shortcode, num: opt.max_num > 0 ? 1 : 0 }]
     })
   }
 
@@ -112,24 +117,24 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
           <div className="recording-section">
             <div className="recording-section-label">Abschnitt</div>
             <div className="section-chips">
-              {SECTIONS.map((s) => {
+              {sectionOptions.map((s) => {
                 const selected = sections.find((sel) => sel.name === s.name)
                 return (
                   <div key={s.name} className="section-chip-group">
                     <button
                       type="button"
                       className={`filter-chip ${selected ? 'active' : ''}`}
-                      onClick={() => toggleSection(s.name)}
+                      onClick={() => toggleSection(s)}
                     >
                       {s.name}
                     </button>
-                    {selected && s.maxNum > 0 && (
+                    {selected && s.max_num > 0 && (
                       <select
                         className="section-number-select"
                         value={selected.num}
                         onChange={(e) => setSectionNum(s.name, Number(e.target.value))}
                       >
-                        {Array.from({ length: s.maxNum }, (_, i) => i + 1).map((n) => (
+                        {Array.from({ length: s.max_num }, (_, i) => i + 1).map((n) => (
                           <option key={n} value={n}>{n}</option>
                         ))}
                       </select>

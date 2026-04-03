@@ -65,6 +65,8 @@ export interface SectionPreset {
   name: string
   color: string
   sort_order: number
+  shortcode: string | null
+  max_num: number
 }
 
 export interface Section {

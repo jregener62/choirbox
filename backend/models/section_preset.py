@@ -9,3 +9,5 @@ class SectionPreset(SQLModel, table=True):
     color: str = Field(default="#8b5cf6", max_length=7)
     choir_id: Optional[str] = Field(default=None, foreign_key="choirs.id", index=True)
     sort_order: int = Field(default=0)
+    shortcode: Optional[str] = Field(default=None, max_length=20)
+    max_num: int = Field(default=0)

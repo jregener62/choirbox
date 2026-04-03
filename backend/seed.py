@@ -113,12 +113,12 @@ def _seed_default_section_presets(session: Session, choir_id: str):
         return
 
     defaults = [
-        SectionPreset(name="Intro", color="#14b8a6", sort_order=1, choir_id=choir_id),
-        SectionPreset(name="Strophe", color="#ef4444", sort_order=2, choir_id=choir_id),
-        SectionPreset(name="Refrain", color="#8b5cf6", sort_order=3, choir_id=choir_id),
-        SectionPreset(name="Bridge", color="#ec4899", sort_order=4, choir_id=choir_id),
-        SectionPreset(name="Solo", color="#f97316", sort_order=5, choir_id=choir_id),
-        SectionPreset(name="Outro", color="#a855f7", sort_order=6, choir_id=choir_id),
+        SectionPreset(name="Intro", color="#14b8a6", sort_order=1, choir_id=choir_id, shortcode="Intro", max_num=0),
+        SectionPreset(name="Strophe", color="#ef4444", sort_order=2, choir_id=choir_id, shortcode="Strophe", max_num=5),
+        SectionPreset(name="Refrain", color="#8b5cf6", sort_order=3, choir_id=choir_id, shortcode="Refrain", max_num=4),
+        SectionPreset(name="Bridge", color="#ec4899", sort_order=4, choir_id=choir_id, shortcode="Bridge", max_num=4),
+        SectionPreset(name="Solo", color="#f97316", sort_order=5, choir_id=choir_id, shortcode="Solo", max_num=0),
+        SectionPreset(name="Outro", color="#a855f7", sort_order=6, choir_id=choir_id, shortcode="Outro", max_num=0),
     ]
     for preset in defaults:
         session.add(preset)

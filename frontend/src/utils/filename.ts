@@ -1,14 +1,14 @@
-export const SECTIONS = [
-  { name: 'Intro', maxNum: 0 },
-  { name: 'Strophe', maxNum: 5 },
-  { name: 'Refrain', maxNum: 4 },
-  { name: 'Bridge', maxNum: 4 },
-  { name: 'Outro', maxNum: 0 },
-] as const
-
 export interface SelectedSection {
   name: string
+  shortcode: string
   num: number // 0 = no number
+}
+
+export interface SectionOption {
+  name: string
+  shortcode: string
+  max_num: number
+  sort_order: number
 }
 
 export interface VoiceOption {
@@ -40,7 +40,8 @@ export function buildFilename(
   if (folderName) parts.push(folderName)
 
   for (const s of sections) {
-    parts.push(s.num ? `${s.name}${s.num}` : s.name)
+    const code = s.shortcode || s.name
+    parts.push(s.num ? `${code}${s.num}` : code)
   }
 
   const clean = freeText

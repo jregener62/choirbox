@@ -15,7 +15,7 @@ router = APIRouter(prefix="/section-presets", tags=["section-presets"])
 @router.get("")
 def list_presets(user: User = Depends(require_user), session: Session = Depends(get_session)):
     presets = session.exec(select(SectionPreset).where(SectionPreset.choir_id == user.choir_id).order_by(SectionPreset.sort_order)).all()
-    return [{"id": p.id, "name": p.name, "color": p.color, "sort_order": p.sort_order} for p in presets]
+    return [{"id": p.id, "name": p.name, "color": p.color, "sort_order": p.sort_order, "shortcode": p.shortcode, "max_num": p.max_num} for p in presets]
 
 
 @router.post("")
@@ -28,6 +28,8 @@ def create_preset(data: dict, user: User = Depends(require_role("pro-member")), 
         name=name,
         color=data.get("color", "#8b5cf6"),
         sort_order=data.get("sort_order", 0),
+        shortcode=data.get("shortcode", name),
+        max_num=data.get("max_num", 0),
         choir_id=user.choir_id,
     )
     session.add(preset)
@@ -47,7 +49,7 @@ def update_preset(
     if not preset or preset.choir_id != user.choir_id:
         raise HTTPException(404, "Preset not found")
 
-    for field in ["name", "color", "sort_order"]:
+    for field in ["name", "color", "sort_order", "shortcode", "max_num"]:
         if field in data:
             setattr(preset, field, data[field])
 

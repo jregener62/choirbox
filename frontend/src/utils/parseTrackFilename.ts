@@ -19,15 +19,32 @@ export interface ParsedTrack {
   freeText: string   // trailing unrecognized parts
 }
 
-const VOICE_RE = /^[SATB]+$/
-const SECTION_RE = /^(Intro|Strophe|Refrain|Bridge|Outro)(\d[\+\d]*)?$/i
 const AUDIO_EXT_RE = /\.(mp3|m4a|wav|ogg|flac|aac|webm|mp4)$/i
-const VOICE_ORDER = 'SATB'
-const SPECIAL_VOICE_RE = /^(Piano)$/i
+const DEFAULT_SECTION_RE = /^(Intro|Strophe|Refrain|Bridge|Solo|Outro)(\d[\+\d]*)?$/i
+
+function buildSectionRegex(shortcodes: string[]): RegExp {
+  if (shortcodes.length === 0) return DEFAULT_SECTION_RE
+  const escaped = shortcodes.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  return new RegExp(`^(${escaped.join('|')})(\\d[\\+\\d]*)?$`, 'i')
+}
+
+function buildVoiceRegex(shortcodes: string[]): RegExp {
+  if (shortcodes.length === 0) return /^[SATB]+$/
+  const escaped = shortcodes.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+  // Single-char shortcodes can be combined (SA, SAT), multi-char match as whole
+  const singleChars = escaped.filter((s) => s.length === 1)
+  const multiWords = escaped.filter((s) => s.length > 1)
+  const parts: string[] = []
+  if (singleChars.length > 0) parts.push(`[${singleChars.join('')}]+`)
+  for (const w of multiWords) parts.push(w)
+  return new RegExp(`^(${parts.join('|')})$`, singleChars.length > 0 ? '' : 'i')
+}
 
 export function parseTrackFilename(
   filename: string,
   folderName: string,
+  voiceShortcodes?: string[],
+  sectionShortcodes?: string[],
 ): ParsedTrack | null {
   // Strip extension
   const name = filename.replace(AUDIO_EXT_RE, '')
@@ -36,19 +53,22 @@ export function parseTrackFilename(
   const parts = name.split('-').filter(Boolean)
   if (parts.length === 0) return null
 
-  // First part must be voice letters or special voice
+  // First part must be voice shortcode
   const firstPart = parts[0]
+  const voiceRe = buildVoiceRegex(voiceShortcodes || [])
 
-  if (SPECIAL_VOICE_RE.test(firstPart)) {
-    // Piano/instrumental — don't show in grid
-    return null
+  if (!voiceRe.test(firstPart)) return null
+
+  // For single-char shortcodes, split into individual letters; otherwise keep as-is
+  const singleChars = (voiceShortcodes || ['S', 'A', 'T', 'B']).filter((s) => s.length === 1)
+  const voiceOrder = voiceShortcodes || ['S', 'A', 'T', 'B']
+  let voiceLetters: string[]
+  if (singleChars.length > 0 && singleChars.some((c) => firstPart.includes(c))) {
+    voiceLetters = [...new Set(firstPart.split(''))]
+      .sort((a, b) => voiceOrder.indexOf(a) - voiceOrder.indexOf(b))
+  } else {
+    voiceLetters = [firstPart]
   }
-
-  if (!VOICE_RE.test(firstPart)) return null
-
-  // Extract and sort voice letters
-  const voiceLetters = [...new Set(firstPart.split(''))]
-    .sort((a, b) => VOICE_ORDER.indexOf(a) - VOICE_ORDER.indexOf(b))
   const voiceKey = voiceLetters.join('')
 
   // Remaining parts after voice
@@ -75,14 +95,14 @@ export function parseTrackFilename(
   }
 
   // Parse sections from remaining parts
+  const sectionRe = buildSectionRegex(sectionShortcodes || [])
   const sections: string[] = []
   const freeTextParts: string[] = []
 
   for (const part of rest) {
-    const m = part.match(SECTION_RE)
+    const m = part.match(sectionRe)
     if (m) {
-      // Normalize: capitalize first letter
-      const sectionName = m[1].charAt(0).toUpperCase() + m[1].slice(1).toLowerCase()
+      const sectionName = m[1]
       const num = m[2] || ''
       sections.push(sectionName + num)
     } else {

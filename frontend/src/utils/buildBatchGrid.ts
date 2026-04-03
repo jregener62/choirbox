@@ -15,23 +15,18 @@ export interface BatchGridData {
   folders: DropboxEntry[]
 }
 
-const SECTION_ORDER: Record<string, number> = {
-  gesamt: 0,
-  intro: 1,
-  strophe: 2,
-  refrain: 3,
-  bridge: 4,
-  outro: 5,
+function buildSectionOrder(presetSortOrders?: Record<string, number>): Record<string, number> {
+  if (presetSortOrders && Object.keys(presetSortOrders).length > 0) return presetSortOrders
+  return { gesamt: 0, intro: 1, strophe: 2, refrain: 3, bridge: 4, solo: 5, outro: 6 }
 }
 
-function sectionSortKey(sectionKey: string): string {
-  // 'Strophe1+Refrain2' → sort by first section's order + number
+function sectionSortKey(sectionKey: string, sectionOrder: Record<string, number>): string {
   const first = sectionKey.split('+')[0]
   const m = first.match(/^([a-zA-Z]+)(\d*)$/)
   if (!m) return '9_' + sectionKey
   const name = m[1].toLowerCase()
   const num = m[2] || '0'
-  const order = SECTION_ORDER[name] ?? 8
+  const order = sectionOrder[name] ?? 99
   return `${order}_${num.padStart(2, '0')}_${sectionKey}`
 }
 
@@ -47,6 +42,9 @@ function voiceSortKey(voiceKey: string): string {
 export function buildBatchGrid(
   entries: DropboxEntry[],
   folderName: string,
+  voiceShortcodes?: string[],
+  sectionShortcodes?: string[],
+  presetSortOrders?: Record<string, number>,
 ): BatchGridData | null {
   const folders: DropboxEntry[] = []
   const extraFiles: DropboxEntry[] = []
@@ -60,7 +58,7 @@ export function buildBatchGrid(
       continue
     }
 
-    const parsed = parseTrackFilename(entry.name, folderName)
+    const parsed = parseTrackFilename(entry.name, folderName, voiceShortcodes, sectionShortcodes)
     if (!parsed) {
       extraFiles.push(entry)
       continue
@@ -86,8 +84,9 @@ export function buildBatchGrid(
     (a, b) => voiceSortKey(a).localeCompare(voiceSortKey(b)),
   )
 
+  const sectionOrder = buildSectionOrder(presetSortOrders)
   const sectionRows = [...sectionSet].sort(
-    (a, b) => sectionSortKey(a).localeCompare(sectionSortKey(b)),
+    (a, b) => sectionSortKey(a, sectionOrder).localeCompare(sectionSortKey(b, sectionOrder)),
   )
 
   return { voiceColumns, sectionRows, cells, extraFiles, folders }
