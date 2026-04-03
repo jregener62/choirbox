@@ -690,11 +690,12 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 - Bestehende Choere bearbeiten (Name, Einladungscode, Ordner) per Stift-Button
 - Chor-Wechsel: Developer kann per Login-Button in jeden Chor wechseln, aktiver Chor wird mit "Aktiv"-Badge markiert
 - Einladungscodes muessen eindeutig sein
+- Chor loeschen: Entfernt Chor samt aller Nutzer, Labels, Sektionsvorlagen und nutzerbezogener Daten (Favoriten, Annotations, Notes, Sessions). Eigener aktiver Chor kann nicht geloescht werden. Dropbox-Ordner muessen manuell entfernt werden.
 
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/admin/ChoirsPage.tsx` | Chor-Verwaltungs-UI |
-| `backend/api/admin.py` | `GET/POST/PUT /admin/choirs` |
+| `backend/api/admin.py` | `GET/POST/PUT/DELETE /admin/choirs` |
 
 ### Label-Verwaltung
 

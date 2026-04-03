@@ -220,6 +220,50 @@ def update_choir(choir_id: str, data: dict, user: User = Depends(require_role("d
     return ActionResponse.success()
 
 
+@router.delete("/choirs/{choir_id}")
+def delete_choir(choir_id: str, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+    """Delete a choir and ALL associated DB data (users, labels, etc.)."""
+    from backend.models.favorite import Favorite
+    from backend.models.user_label import UserLabel
+    from backend.models.annotation import Annotation
+    from backend.models.note import Note
+    from backend.models.session_token import SessionToken
+    from backend.models.user_hidden_document import UserHiddenDocument
+    from backend.models.label import Label
+    from backend.models.section_preset import SectionPreset
+
+    choir = session.get(Choir, choir_id)
+    if not choir:
+        raise HTTPException(404, "Chor nicht gefunden")
+    if user.choir_id == choir_id:
+        raise HTTPException(400, "Eigenen aktiven Chor kann man nicht loeschen — zuerst Chor wechseln")
+
+    # Collect user IDs of this choir
+    choir_users = session.exec(select(User).where(User.choir_id == choir_id)).all()
+    user_ids = [u.id for u in choir_users]
+
+    # Delete user-dependent records
+    if user_ids:
+        for model in [Favorite, UserLabel, Annotation, Note, SessionToken, UserHiddenDocument]:
+            for row in session.exec(select(model).where(model.user_id.in_(user_ids))).all():
+                session.delete(row)
+
+    # Delete users
+    for u in choir_users:
+        session.delete(u)
+
+    # Delete choir-level records
+    for model in [Label, SectionPreset]:
+        for row in session.exec(select(model).where(model.choir_id == choir_id)).all():
+            session.delete(row)
+
+    # Delete choir
+    session.delete(choir)
+    session.commit()
+
+    return ActionResponse.success(data={"deleted_users": len(user_ids)})
+
+
 @router.post("/choirs/{choir_id}/switch")
 def switch_choir(choir_id: str, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
     """Switch the developer's active choir."""

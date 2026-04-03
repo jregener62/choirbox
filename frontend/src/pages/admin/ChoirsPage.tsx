@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Plus, Copy, Check, Pencil, X, LogIn } from 'lucide-react'
+import { ChevronLeft, Plus, Copy, Check, Pencil, X, LogIn, Trash2 } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog.tsx'
 import type { User } from '@/types/index.ts'
 
 interface Choir {
@@ -26,6 +27,8 @@ export function ChoirsPage() {
   const [adminPassword, setAdminPassword] = useState('')
   const [saving, setSaving] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<Choir | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
   const [editName, setEditName] = useState('')
   const [editInviteCode, setEditInviteCode] = useState('')
@@ -153,6 +156,21 @@ export function ChoirsPage() {
     }
   }
 
+  const deleteChoir = async () => {
+    if (!deleteTarget) return
+    setDeleting(true)
+    try {
+      await api(`/admin/choirs/${deleteTarget.id}`, { method: 'DELETE' })
+      setMessage(`"${deleteTarget.name}" geloescht`)
+      setDeleteTarget(null)
+      loadChoirs()
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : 'Fehler beim Loeschen')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   return (
     <div>
       <div className="topbar">
@@ -243,6 +261,11 @@ export function ChoirsPage() {
                   <button className="player-header-btn" title="Bearbeiten" onClick={() => startEdit(c)}>
                     <Pencil size={16} />
                   </button>
+                  {user?.choir_id !== c.id && (
+                    <button className="player-header-btn" title="Loeschen" onClick={() => setDeleteTarget(c)}>
+                      <Trash2 size={16} style={{ color: 'var(--danger)' }} />
+                    </button>
+                  )}
                   {user?.choir_id === c.id ? (
                     <span style={{ fontSize: 11, color: 'var(--success)', fontWeight: 600, padding: '4px 8px' }}>Aktiv</span>
                   ) : (
@@ -267,6 +290,19 @@ export function ChoirsPage() {
 
       {!loading && choirs.length === 0 && (
         <div className="empty-state">Keine Choere vorhanden</div>
+      )}
+
+      {deleteTarget && (
+        <ConfirmDialog
+          title="Chor loeschen"
+          filename={deleteTarget.name}
+          hint="Alle Nutzer, Labels und Daten dieses Chors werden unwiderruflich geloescht. Dropbox-Ordner muessen manuell entfernt werden."
+          confirmLabel="Endgueltig loeschen"
+          confirmLoadingLabel="Loeschen..."
+          onConfirm={deleteChoir}
+          onClose={() => setDeleteTarget(null)}
+          loading={deleting}
+        />
       )}
     </div>
   )
