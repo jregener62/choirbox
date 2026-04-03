@@ -2,8 +2,9 @@ import { useState, useMemo } from 'react'
 import { Check, Save } from 'lucide-react'
 import { api } from '@/api/client'
 import { Modal } from './Modal'
-import { VOICES, SECTIONS, buildFilename } from '@/utils/filename'
-import type { SelectedSection } from '@/utils/filename'
+import { SECTIONS, buildFilename } from '@/utils/filename'
+import { useLabelsStore } from '@/hooks/useLabels'
+import type { SelectedSection, VoiceOption } from '@/utils/filename'
 
 interface RenameModalProps {
   path: string
@@ -16,6 +17,10 @@ interface RenameModalProps {
 export function RenameModal({ path, currentName, folderPath, onClose, onRenamed }: RenameModalProps) {
   const ext = currentName.split('.').pop() || 'mp3'
   const folderName = folderPath.split('/').filter(Boolean).pop() || ''
+  const voiceLabels = useLabelsStore((s) => s.voiceLabels)()
+  const voiceOptions: VoiceOption[] = voiceLabels
+    .filter((l) => l.shortcode)
+    .map((l) => ({ key: l.shortcode!, label: l.name, sort_order: l.sort_order }))
 
   const [voices, setVoices] = useState<string[]>([])
   const [sections, setSections] = useState<SelectedSection[]>([])
@@ -25,8 +30,8 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
   const [done, setDone] = useState(false)
 
   const filename = useMemo(
-    () => buildFilename(voices, sections, freeText, folderName, ext),
-    [voices, sections, freeText, folderName, ext],
+    () => buildFilename(voices, sections, freeText, folderName, ext, voiceOptions),
+    [voices, sections, freeText, folderName, ext, voiceOptions],
   )
 
   const toggleVoice = (key: string) => {
@@ -90,7 +95,7 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
           <div className="recording-section">
             <div className="recording-section-label">Stimme</div>
             <div className="voice-part-selector">
-              {VOICES.map((v) => (
+              {voiceOptions.map((v) => (
                 <button
                   key={v.key}
                   type="button"

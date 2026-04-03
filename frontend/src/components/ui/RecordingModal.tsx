@@ -4,8 +4,9 @@ import { useRecorder } from '@/hooks/useRecorder'
 import { apiUpload } from '@/api/client'
 import { Modal } from './Modal'
 import { formatTime } from '@/utils/formatters'
-import { VOICES, SECTIONS, buildFilename } from '@/utils/filename'
-import type { SelectedSection } from '@/utils/filename'
+import { SECTIONS, buildFilename } from '@/utils/filename'
+import { useLabelsStore } from '@/hooks/useLabels'
+import type { SelectedSection, VoiceOption } from '@/utils/filename'
 
 interface RecordingModalProps {
   targetPath: string
@@ -31,10 +32,14 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   const [freeText, setFreeText] = useState('')
 
   const folderName = targetPath.split('/').filter(Boolean).pop() || ''
+  const voiceLabels = useLabelsStore((s) => s.voiceLabels)()
+  const voiceOptions: VoiceOption[] = voiceLabels
+    .filter((l) => l.shortcode)
+    .map((l) => ({ key: l.shortcode!, label: l.name, sort_order: l.sort_order }))
 
   const filename = useMemo(
-    () => buildFilename(voices, sections, freeText, folderName, 'mp3'),
-    [voices, sections, freeText, folderName],
+    () => buildFilename(voices, sections, freeText, folderName, 'mp3', voiceOptions),
+    [voices, sections, freeText, folderName, voiceOptions],
   )
 
   const toggleVoice = (key: string) => {
@@ -160,7 +165,7 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
           <div className="recording-section">
             <div className="recording-section-label">Stimme</div>
             <div className="voice-part-selector">
-              {VOICES.map((v) => (
+              {voiceOptions.map((v) => (
                 <button
                   key={v.key}
                   type="button"

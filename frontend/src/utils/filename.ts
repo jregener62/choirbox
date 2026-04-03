@@ -1,10 +1,3 @@
-export const VOICES = [
-  { key: 'S', label: 'Sopran' },
-  { key: 'A', label: 'Alt' },
-  { key: 'T', label: 'Tenor' },
-  { key: 'B', label: 'Bass' },
-] as const
-
 export const SECTIONS = [
   { name: 'Intro', maxNum: 0 },
   { name: 'Strophe', maxNum: 5 },
@@ -18,17 +11,30 @@ export interface SelectedSection {
   num: number // 0 = no number
 }
 
+export interface VoiceOption {
+  key: string    // shortcode, z.B. "S", "A", "Git"
+  label: string  // Anzeigename, z.B. "Sopran", "Gitarre"
+  sort_order: number
+}
+
 export function buildFilename(
-  voices: string[],
+  voiceShortcodes: string[],
   sections: SelectedSection[],
   freeText: string,
   folderName: string,
   ext: string,
+  voiceOptions?: VoiceOption[],
 ): string {
   const parts: string[] = []
 
-  const order = ['S', 'A', 'T', 'B']
-  const voiceStr = order.filter((v) => voices.includes(v)).join('')
+  // Shortcodes nach sort_order sortieren (falls voiceOptions gegeben), sonst alphabetisch
+  const sorted = voiceOptions
+    ? voiceOptions
+        .filter((v) => voiceShortcodes.includes(v.key))
+        .sort((a, b) => a.sort_order - b.sort_order)
+        .map((v) => v.key)
+    : [...voiceShortcodes].sort()
+  const voiceStr = sorted.join('')
   if (voiceStr) parts.push(voiceStr)
 
   if (folderName) parts.push(folderName)
