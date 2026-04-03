@@ -173,8 +173,12 @@ async def dropbox_browse(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    """List files/folders at a Dropbox path. Filters to show only folders and MP3 files."""
+    """List files/folders at a Dropbox path with folder-type awareness."""
     from backend.services.dropbox_service import get_dropbox_service
+    from backend.services.folder_types import (
+        parse_folder_name, get_parent_folder_type, get_visible_types,
+    )
+    from backend.services.document_service import ALL_DOC_EXTENSIONS
 
     dbx = get_dropbox_service(session)
     if not dbx:
@@ -190,97 +194,97 @@ async def dropbox_browse(
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
 
-    # Detect if we're inside a Texte subfolder
-    from backend.api.documents import TEXTE_SUBFOLDER
-    from backend.services.document_service import ALL_DOC_EXTENSIONS
-    is_texte_folder = path.rstrip("/").endswith("/" + TEXTE_SUBFOLDER) or path == TEXTE_SUBFOLDER
+    # Determine context: what type is the current folder?
+    parent_type = get_parent_folder_type(path)
+    is_tx_folder = parent_type == "tx"
+    visible_types = get_visible_types(user.role)
     media_exts = (".mp3", ".webm", ".m4a", ".mp4")
+
     filtered = []
-    has_texte_folder = False
+    tx_folders: list[dict] = []  # .tx folders to enrich with doc_count
 
     for e in entries:
         tag = e.get(".tag", "")
         name = e.get("name", "")
+        user_path = _to_user_path(e.get("path_display", ""), root_folder)
+
         if tag == "folder":
-            if name == TEXTE_SUBFOLDER and not is_texte_folder:
-                has_texte_folder = True
-                continue  # Hide Texte subfolder from normal listing
-            filtered.append({
+            display_name, folder_type = parse_folder_name(name)
+
+            # Inside a typed parent (.song): only show typed children
+            if parent_type is not None and folder_type is None:
+                continue
+
+            # Permission check: hide admin_only types from non-admins
+            if folder_type and folder_type not in visible_types:
+                continue
+
+            entry = {
                 "name": name,
-                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "display_name": display_name,
+                "path": user_path,
                 "type": "folder",
-            })
-        elif tag == "file" and name.lower().endswith(media_exts):
+                "folder_type": folder_type,
+            }
+            filtered.append(entry)
+
+            if folder_type == "tx":
+                tx_folders.append(entry)
+
+        elif tag == "file" and name.lower().endswith(media_exts) and not is_tx_folder:
             filtered.append({
                 "name": name,
-                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "display_name": name,
+                "path": user_path,
                 "type": "file",
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
             })
-        elif tag == "file" and name.lower().endswith(ALL_DOC_EXTENSIONS) and is_texte_folder:
-            # Inside Texte folder: show document files as individual entries
+        elif tag == "file" and name.lower().endswith(ALL_DOC_EXTENSIONS) and is_tx_folder:
             filtered.append({
                 "name": name,
-                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "display_name": name,
+                "path": user_path,
                 "type": "document",
                 "size": e.get("size", 0),
                 "modified": e.get("server_modified", ""),
             })
 
+    # Enrich .tx folders with doc_count
+    for tx_entry in tx_folders:
+        try:
+            tx_dbx_path = _to_dropbox_path(tx_entry["path"], root_folder)
+            tx_entries = await dbx.list_folder(tx_dbx_path)
+            tx_entry["doc_count"] = sum(
+                1 for e in tx_entries
+                if e.get(".tag") == "file"
+                and e.get("name", "").lower().endswith(ALL_DOC_EXTENSIONS)
+            )
+        except Exception:
+            tx_entry["doc_count"] = 0
+
     # Enrich document entries with doc_id from DB
-    if is_texte_folder:
+    if is_tx_folder:
         from sqlmodel import select as sql_select
         from backend.models.document import Document
-        # folder_path in DB = path without /Texte suffix
-        db_folder = path.rstrip("/")
-        if db_folder.endswith("/" + TEXTE_SUBFOLDER):
-            db_folder = db_folder[: -(len(TEXTE_SUBFOLDER) + 1)]
-        elif db_folder == TEXTE_SUBFOLDER:
-            db_folder = ""
         docs_in_folder = {
             d.original_name: d.id
             for d in session.exec(
-                sql_select(Document).where(Document.folder_path == db_folder)
+                sql_select(Document).where(Document.folder_path == path)
             ).all()
         }
         for entry in filtered:
             if entry.get("type") == "document":
                 entry["doc_id"] = docs_in_folder.get(entry["name"])
 
-    # Synthetic Texte entry (only in normal folders, not inside Texte folder)
-    if not is_texte_folder:
-        texte_doc_count = 0
-        if has_texte_folder:
-            # Count documents directly from Dropbox — always up-to-date
-            try:
-                texte_path = dropbox_path.rstrip("/") + "/" + TEXTE_SUBFOLDER
-                texte_entries = await dbx.list_folder(texte_path)
-                texte_doc_count = sum(
-                    1 for e in texte_entries
-                    if e.get(".tag") == "file"
-                    and e.get("name", "").lower().endswith(ALL_DOC_EXTENSIONS)
-                )
-            except Exception:
-                pass
-        # Fallback: DB count (e.g. if Dropbox call failed or no Texte folder)
-        if texte_doc_count == 0:
-            from sqlmodel import select as sql_select
-            from backend.models.document import Document
-            texte_doc_count = len(session.exec(
-                sql_select(Document).where(Document.folder_path == path)
-            ).all())
-        if texte_doc_count > 0 or has_texte_folder:
-            filtered.append({
-                "name": "Texte",
-                "path": path,
-                "type": "texte",
-                "doc_count": texte_doc_count,
-            })
-
-    # Sort: folders first, then Texte, then documents, then audio files
-    type_order = {"folder": 0, "texte": 1, "document": 2, "file": 3}
-    filtered.sort(key=lambda x: (type_order.get(x["type"], 9), x["name"].lower()))
+    # Sort: plain folders, typed folders (song, tx, audio), documents, files
+    type_order = {"folder": 0, "document": 1, "file": 2}
+    folder_type_order = {None: 0, "song": 1, "tx": 2, "audio": 3}
+    filtered.sort(key=lambda x: (
+        type_order.get(x["type"], 9),
+        folder_type_order.get(x.get("folder_type"), 5),
+        (x.get("display_name") or x["name"]).lower(),
+    ))
 
     # Attach cached durations
     from backend.services.audio_duration_service import get_durations_for_paths
@@ -301,6 +305,7 @@ async def dropbox_search(
 ):
     """Search for MP3 files and folders by name."""
     from backend.services.dropbox_service import get_dropbox_service
+    from backend.services.folder_types import parse_folder_name, get_visible_types
 
     if not q or len(q) < 2:
         raise HTTPException(400, "Search query must be at least 2 characters")
@@ -318,21 +323,32 @@ async def dropbox_search(
         raise HTTPException(500, str(e))
 
     from backend.services.document_service import ALL_DOC_EXTENSIONS
+    visible_types = get_visible_types(user.role)
     media_exts = (".mp3", ".webm", ".m4a", ".mp4")
     allowed_exts = media_exts + ALL_DOC_EXTENSIONS
     entries = []
     for e in results:
         tag = e.get(".tag", "")
         name = e.get("name", "")
-        if tag == "folder" or (tag == "file" and name.lower().endswith(allowed_exts)):
-            entry_type = "folder" if tag == "folder" else (
-                "document" if name.lower().endswith(ALL_DOC_EXTENSIONS) else "file"
-            )
+        if tag == "folder":
+            display_name, folder_type = parse_folder_name(name)
+            if folder_type and folder_type not in visible_types:
+                continue
             entries.append({
                 "name": name,
+                "display_name": display_name,
+                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "type": "folder",
+                "folder_type": folder_type,
+            })
+        elif tag == "file" and name.lower().endswith(allowed_exts):
+            entry_type = "document" if name.lower().endswith(ALL_DOC_EXTENSIONS) else "file"
+            entries.append({
+                "name": name,
+                "display_name": name,
                 "path": _to_user_path(e.get("path_display", ""), root_folder),
                 "type": entry_type,
-                "size": e.get("size", 0) if tag == "file" else None,
+                "size": e.get("size", 0),
             })
 
     return {"query": q, "entries": entries}

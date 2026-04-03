@@ -14,10 +14,14 @@ export interface LoginResponse {
   user: User
 }
 
+export type FolderType = 'song' | 'tx' | 'audio'
+
 export interface DropboxEntry {
   name: string
+  display_name?: string
   path: string
-  type: 'folder' | 'file' | 'document' | 'texte'
+  type: 'folder' | 'file' | 'document'
+  folder_type?: FolderType | null
   size?: number
   modified?: string
   duration?: number

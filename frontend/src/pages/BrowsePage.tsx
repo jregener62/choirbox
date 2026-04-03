@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, FolderOpen, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File } from 'lucide-react'
+import { Folder, FolderPlus, FolderOpen, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File, Music, Volume2 } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -17,6 +17,7 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
+import { stripFolderExtension } from '@/utils/folderTypes.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -198,15 +199,15 @@ export function BrowsePage() {
   const handleEntryClick = (entry: DropboxEntry) => {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
-    if (entry.type === 'folder') {
+    if (entry.type === 'folder' && entry.folder_type === 'tx') {
+      navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path)}`)
+    } else if (entry.type === 'folder') {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
-    } else if (entry.type === 'texte') {
-      navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path)}`)
     } else if (entry.type === 'document') {
-      // entry.path is like /SomeSong/Texte/mytext.txt — strip /Texte/<name> to get the DB folder path
-      const folderPath = entry.path.split('/').slice(0, -2).join('/') || ''
+      // entry.path is like /Song.song/texte.tx/mytext.txt — parent is the .tx folder
+      const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
       navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
     } else if (entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4')) {
       setVideoEntry(entry)
@@ -405,13 +406,14 @@ export function BrowsePage() {
               {pathParts.map((part, i) => {
                 const path = '/' + pathParts.slice(0, i + 1).join('/')
                 const isLast = i === pathParts.length - 1
+                const displayPart = stripFolderExtension(part)
                 return (
                   <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                     <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                     {isLast ? (
-                      <span className="breadcrumb-current">{part}</span>
+                      <span className="breadcrumb-current">{displayPart}</span>
                     ) : (
-                      <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{part}</span>
+                      <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{displayPart}</span>
                     )}
                   </span>
                 )
@@ -485,7 +487,7 @@ export function BrowsePage() {
           const isActive = entry.type === 'file' && entry.path === currentPath
           const isFile = entry.type === 'file'
           const isDoc = entry.type === 'document'
-          const isTexte = entry.type === 'texte'
+          const isTxFolder = entry.folder_type === 'tx'
           const isRevealed = revealedPath === entry.path
 
           const docIcon = isDoc ? (
@@ -494,15 +496,18 @@ export function BrowsePage() {
             <Video size={18} />
           ) : null
 
+          const folderIcon = entry.type === 'folder' ? (
+            entry.folder_type === 'song' ? <Music size={18} /> :
+            entry.folder_type === 'tx' ? <FileText size={18} /> :
+            entry.folder_type === 'audio' ? <Volume2 size={18} /> :
+            <Folder size={18} />
+          ) : null
+
           const itemContent = (
             <>
               {entry.type === 'folder' ? (
-                <div className="file-icon-box file-icon-folder">
-                  <Folder size={18} />
-                </div>
-              ) : isTexte ? (
-                <div className="file-icon-box file-icon-doc">
-                  <FileText size={18} />
+                <div className={`file-icon-box ${isTxFolder ? 'file-icon-doc' : 'file-icon-folder'}`}>
+                  {folderIcon}
                 </div>
               ) : isDoc ? (
                 <div className="file-icon-box file-icon-doc">
@@ -523,9 +528,9 @@ export function BrowsePage() {
               )}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {entry.type === 'file' ? formatDisplayName(entry.name) : entry.name}
+                  {entry.type === 'file' ? formatDisplayName(entry.display_name || entry.name) : (entry.display_name || entry.name)}
                 </div>
-                {isTexte && entry.doc_count != null && (
+                {isTxFolder && entry.doc_count != null && (
                   <div className="file-meta">
                     {entry.doc_count} {entry.doc_count === 1 ? 'Dokument' : 'Dokumente'}
                   </div>
@@ -584,15 +589,7 @@ export function BrowsePage() {
                 >
                   <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                 </button>
-                {isTexte && isProMember && (
-                  <button
-                    className="swipe-action-btn swipe-action-info"
-                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); loadFolder(entry.path + '/Texte') }}
-                  >
-                    <FolderOpen size={18} />
-                  </button>
-                )}
-                {(isFile || isDoc) && !isTexte && (
+                {(isFile || isDoc) && !isTxFolder && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
@@ -600,7 +597,7 @@ export function BrowsePage() {
                     <Tag size={18} />
                   </button>
                 )}
-                {(isAdmin || (isDoc && isProMember)) && !isTexte && (
+                {(isAdmin || (isDoc && isProMember)) && !isTxFolder && (
                   <button
                     className="swipe-action-btn swipe-action-info"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setRenameName(entry.name); setRenameEntry(entry) }}
@@ -608,7 +605,7 @@ export function BrowsePage() {
                     <Pencil size={18} />
                   </button>
                 )}
-                {((isFile || isDoc) ? canDelete : isAdmin) && !isTexte && (
+                {((isFile || isDoc) ? canDelete : isAdmin) && !isTxFolder && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
@@ -660,7 +657,7 @@ export function BrowsePage() {
       {confirmEntry && (
         <ConfirmDialog
           title={confirmEntry.type === 'folder' ? 'Ordner loeschen?' : 'Datei loeschen?'}
-          filename={confirmEntry.name}
+          filename={confirmEntry.display_name || confirmEntry.name}
           hint={confirmEntry.type === 'folder'
             ? 'Nur leere Ordner koennen geloescht werden.'
             : 'Wird unwiderruflich aus der Dropbox geloescht.'}

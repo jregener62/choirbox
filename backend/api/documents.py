@@ -17,8 +17,6 @@ from backend.services.dropbox_service import get_dropbox_service
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
-TEXTE_SUBFOLDER = "Texte"
-
 
 def _get_root_folder(user: User, session: Session) -> str:
     """Build the Dropbox root folder from app settings + choir."""
@@ -34,9 +32,12 @@ def _get_root_folder(user: User, session: Session) -> str:
 
 
 def _dropbox_doc_path(folder_path: str, doc_name: str, user: User, session: Session) -> str:
-    """Build the full Dropbox path for a document (inside Texte subfolder)."""
+    """Build the full Dropbox path for a document.
+
+    folder_path is the .tx folder path (e.g. '/Song.song/texte.tx').
+    """
     root = _get_root_folder(user, session)
-    parts = [p for p in [root, folder_path.strip("/"), TEXTE_SUBFOLDER, doc_name] if p]
+    parts = [p for p in [root, folder_path.strip("/"), doc_name] if p]
     return "/" + "/".join(parts)
 
 
@@ -47,13 +48,6 @@ def _full_dropbox_path(doc, user: User, session: Session) -> str:
         parts = [p for p in [root, doc.dropbox_path.strip("/")] if p]
         return "/" + "/".join(parts)
     return _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
-
-
-def _dropbox_texte_path(folder_path: str, user: User, session: Session) -> str:
-    """Build the full Dropbox path for the Texte subfolder."""
-    root = _get_root_folder(user, session)
-    parts = [p for p in [root, folder_path.strip("/"), TEXTE_SUBFOLDER] if p]
-    return "/" + "/".join(parts)
 
 
 def _dropbox_folder_path(folder_path: str, user: User, session: Session) -> str:
@@ -81,19 +75,22 @@ async def list_documents(
 async def _sync_documents_from_dropbox(
     folder_path: str, user: User, session: Session
 ) -> None:
-    """Sync Dropbox Texte subfolder (+ legacy parent) with documents DB."""
+    """Sync Dropbox .tx folder with documents DB.
+
+    folder_path is the .tx folder path (e.g. '/Song.song/texte.tx').
+    """
     try:
         dbx = get_dropbox_service(session)
         if not dbx:
             return
 
-        # Primary: scan Texte subfolder
-        texte_folder = _dropbox_texte_path(folder_path, user, session)
+        # Scan the .tx folder directly
+        tx_folder = _dropbox_folder_path(folder_path, user, session)
         texte_entries = []
         try:
-            texte_entries = await dbx.list_folder(texte_folder)
+            texte_entries = await dbx.list_folder(tx_folder)
         except Exception:
-            pass  # Subfolder may not exist yet
+            pass  # Folder may not exist yet
 
         # Collect all document files from Texte folder
         entries = [
@@ -133,7 +130,7 @@ async def _sync_documents_from_dropbox(
                 # --- File changed → update ---
                 if file_type == "pdf":
                     try:
-                        link = await dbx.get_temporary_link(texte_folder.rstrip("/") + "/" + name)
+                        link = await dbx.get_temporary_link(tx_folder.rstrip("/") + "/" + name)
                         async with httpx.AsyncClient() as client:
                             resp = await client.get(link)
                             resp.raise_for_status()
@@ -212,16 +209,11 @@ async def upload_document(
 
     content = await file.read()
 
-    # Upload to Dropbox (inside Texte subfolder, auto-created)
+    # Upload to Dropbox (directly into the .tx folder)
     dbx_hash = None
     try:
         dbx = get_dropbox_service(session)
         if dbx:
-            texte_path = _dropbox_texte_path(folder_path, user, session)
-            try:
-                await dbx.create_folder(texte_path)
-            except RuntimeError:
-                pass  # Folder already exists
             dbx_path = _dropbox_doc_path(folder_path, original_name, user, session)
             result = await dbx.upload_file(content, dbx_path)
             dbx_hash = result.get("content_hash")

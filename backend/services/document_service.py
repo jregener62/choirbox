@@ -103,8 +103,11 @@ def detect_file_type(filename: str) -> Optional[str]:
 # --- PDF registration (no disk storage) ---
 
 def build_dropbox_path(folder_path: str, name: str) -> str:
-    """Build relative Dropbox path: folder_path/Texte/name."""
-    return f"{folder_path.strip('/')}/Texte/{name}"
+    """Build relative Dropbox path: folder_path/name.
+
+    folder_path is the .tx folder path itself (e.g. '/Song.song/texte.tx').
+    """
+    return f"{folder_path.strip('/')}/{name}"
 
 
 def register_pdf(

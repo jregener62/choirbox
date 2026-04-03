@@ -2,6 +2,7 @@ import { useState, useRef } from 'react'
 import { Upload, Check, AlertCircle, Loader, FileAudio, Info, Film } from 'lucide-react'
 import { apiUpload } from '@/api/client'
 import { Modal } from './Modal'
+import { getFolderType, stripFolderExtension } from '@/utils/folderTypes'
 
 type FileStatus = 'pending' | 'uploading' | 'done' | 'error'
 
@@ -46,7 +47,11 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
 
       try {
         const name = entries[i].file.name.toLowerCase()
-        const isDocument = name.endsWith('.pdf') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')
+        const folderType = getFolderType(targetPath)
+        // In .tx folder: always document upload. In .audio folder: always audio upload.
+        // Otherwise: detect by file extension.
+        const isDocument = folderType === 'tx' ||
+          (folderType !== 'audio' && (name.endsWith('.pdf') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')))
         const formData = new FormData()
         formData.append('file', entries[i].file, entries[i].file.name)
         if (isDocument) {
@@ -93,7 +98,7 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
       showClose={phase !== 'uploading'}
     >
       <div className="recording-path" style={{ padding: 0 }}>
-        Zielordner: {targetPath || 'Root'}
+        Zielordner: {targetPath ? stripFolderExtension(targetPath.split('/').filter(Boolean).pop() || '') : 'Root'}
       </div>
 
       <div className="import-file-list">
