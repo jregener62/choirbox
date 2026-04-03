@@ -266,7 +266,7 @@ export function SettingsPage() {
               <div className="auth-field">
                 <label className="auth-label">Stimmgruppe</label>
                 <div className="voice-part-selector">
-                  {useLabelsStore.getState().voiceLabels().map((l) => (
+                  {useLabelsStore.getState().labels.filter((l) => l.category === 'Stimme').map((l) => (
                     <button key={l.id} type="button"
                       className={`voice-part-btn ${editVoice === l.name ? 'selected' : ''}`}
                       onClick={() => setEditVoice(l.name)}

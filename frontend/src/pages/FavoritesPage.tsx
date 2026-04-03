@@ -39,9 +39,8 @@ export function FavoritesPage() {
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const [activeFilters, setActiveFilters] = useState<number[]>([])
 
-  const voiceLabelsAll = useLabelsStore((s) => s.voiceLabels)()
-  const voiceShortcodes = voiceLabelsAll.filter((l) => l.shortcode).map((l) => l.shortcode!)
-  const voiceLookup = Object.fromEntries(voiceLabelsAll.filter((l) => l.shortcode).map((l) => [l.shortcode!, { name: l.name, color: l.color }]))
+  const voiceShortcodes = labels.filter((l) => l.category === 'Stimme' && l.shortcode).map((l) => l.shortcode!)
+  const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme' && l.shortcode).map((l) => [l.shortcode!, { name: l.name, color: l.color }]))
   const sectionPresets = useSectionPresetsStore((s) => s.presets)
   const sectionPresetsLoaded = useSectionPresetsStore((s) => s.loaded)
   const loadSectionPresets = useSectionPresetsStore((s) => s.load)
