@@ -516,7 +516,18 @@ export function BrowsePage() {
           const sections = parsed && parsed.sectionKey !== 'Gesamt'
             ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
             : []
-          const trackLabels = isAudioFile ? getLabelsForPath(entry.path) : []
+          // Zugewiesene Labels nach Kategorie trennen
+          const allTrackLabels = isAudioFile ? getLabelsForPath(entry.path) : []
+          const assignedVoiceLabels = allTrackLabels.filter((l) => l.category === 'Stimme')
+          const generalLabels = allTrackLabels.filter((l) => l.category !== 'Stimme')
+
+          // Zugewiesene Stimme-Labels in voiceTags mergen (Dateiname + Zuweisung, dedupliziert)
+          for (const vl of assignedVoiceLabels) {
+            if (!voiceTags.some((v) => v.name === vl.name)) {
+              voiceTags.push({ letter: vl.shortcode || vl.name[0], name: vl.name, color: vl.color })
+            }
+          }
+          voiceTags.sort((a, b) => a.name.localeCompare(b.name))
 
           const itemContent = (
             <>
@@ -573,9 +584,9 @@ export function BrowsePage() {
                     ))}
                   </div>
                 )}
-                {isAudioFile && trackLabels.length > 0 && (
+                {isAudioFile && generalLabels.length > 0 && (
                   <div className="meta-line3">
-                    {trackLabels.map((l) => (
+                    {generalLabels.map((l) => (
                       <span key={l.id} className="meta-label" style={{ color: l.color }}>
                         {l.name}
                       </span>

@@ -22,6 +22,7 @@ export function LabelsPage() {
   const [name, setName] = useState('')
   const [color, setColor] = useState(DEFAULT_COLORS[0])
   const [category, setCategory] = useState('')
+  const [shortcode, setShortcode] = useState('')
 
   const loadLabels = useCallback(async () => {
     try {
@@ -36,19 +37,20 @@ export function LabelsPage() {
 
   useEffect(() => { loadLabels() }, [loadLabels])
 
-  const resetForm = () => { setShowForm(false); setEditId(null); setName(''); setColor(DEFAULT_COLORS[0]); setCategory('') }
+  const resetForm = () => { setShowForm(false); setEditId(null); setName(''); setColor(DEFAULT_COLORS[0]); setCategory(''); setShortcode('') }
 
   const startEdit = (label: Label) => {
-    setEditId(label.id); setName(label.name); setColor(label.color); setCategory(label.category || ''); setShowForm(true)
+    setEditId(label.id); setName(label.name); setColor(label.color); setCategory(label.category || ''); setShortcode(label.shortcode || ''); setShowForm(true)
   }
 
   const saveLabel = async () => {
     if (!name.trim()) { setMessage('Name ist erforderlich'); return }
     try {
+      const sc = category === 'Stimme' ? (shortcode.trim() || name.trim()) : null
       if (editId) {
-        await api(`/labels/${editId}`, { method: 'PUT', body: { name: name.trim(), color, category: category.trim() || null } })
+        await api(`/labels/${editId}`, { method: 'PUT', body: { name: name.trim(), color, category: category.trim() || null, shortcode: sc } })
       } else {
-        await api('/labels', { method: 'POST', body: { name: name.trim(), color, category: category.trim() || null } })
+        await api('/labels', { method: 'POST', body: { name: name.trim(), color, category: category.trim() || null, shortcode: sc } })
       }
       resetForm(); loadLabels()
     } catch { setMessage('Fehler beim Speichern') }
@@ -88,8 +90,21 @@ export function LabelsPage() {
             </div>
             <div className="auth-field">
               <label className="auth-label">Kategorie</label>
-              <input className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="z.B. Stimme, Status" />
+              <select className="auth-input" value={category} onChange={(e) => setCategory(e.target.value)}>
+                <option value="">Allgemein</option>
+                <option value="Stimme">Stimme / Instrument</option>
+                <option value="Status">Status</option>
+              </select>
             </div>
+            {category === 'Stimme' && (
+              <div className="auth-field">
+                <label className="auth-label">Kuerzel im Dateinamen</label>
+                <input className="auth-input" value={shortcode} onChange={(e) => setShortcode(e.target.value)} placeholder={name || 'z.B. S, A, Git, Piano'} />
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                  Wird im Dateinamen verwendet (z.B. <strong>{shortcode || name || 'S'}</strong>-Liedname.mp3). Erscheint in Zeile 1 der Dateiliste.
+                </div>
+              </div>
+            )}
             <div className="auth-field">
               <label className="auth-label">Farbe</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -126,6 +141,9 @@ export function LabelsPage() {
                 <div style={{ width: 32, height: 32, borderRadius: 8, background: label.color, flexShrink: 0 }} />
                 <div className="file-info">
                   <div className="file-name">{label.name}</div>
+                  {label.shortcode && label.category === 'Stimme' && (
+                    <div className="file-meta">Kuerzel: {label.shortcode}</div>
+                  )}
                 </div>
                 <button className="player-header-btn" onClick={() => startEdit(label)}>
                   <Pencil size={15} />

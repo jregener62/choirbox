@@ -84,7 +84,9 @@ export function FavoritesPage() {
 
   const renderFileItem = (fav: Favorite) => {
     const isActive = fav.dropbox_path === currentPath
-    const trackLabels = getLabelsForPath(fav.dropbox_path)
+    const allTrackLabels = getLabelsForPath(fav.dropbox_path)
+    const assignedVoiceLabels = allTrackLabels.filter((l) => l.category === 'Stimme')
+    const generalLabels = allTrackLabels.filter((l) => l.category !== 'Stimme')
     const favFolderName = fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''
     const parsed = parseTrackFilename(fav.file_name, favFolderName, voiceShortcodes, sectionShortcodes)
     const voiceTags = parsed
@@ -93,8 +95,13 @@ export function FavoritesPage() {
             const info = voiceLookup[v]
             return { letter: v, name: info?.name || v, color: info?.color || 'var(--accent)' }
           })
-          .sort((a, b) => a.name.localeCompare(b.name))
       : []
+    for (const vl of assignedVoiceLabels) {
+      if (!voiceTags.some((t) => t.name === vl.name)) {
+        voiceTags.push({ letter: vl.shortcode || vl.name[0], name: vl.name, color: vl.color })
+      }
+    }
+    voiceTags.sort((a, b) => a.name.localeCompare(b.name))
     const sections = parsed && parsed.sectionKey !== 'Gesamt'
       ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
       : []
@@ -130,9 +137,9 @@ export function FavoritesPage() {
               ))}
             </div>
           )}
-          {trackLabels.length > 0 && (
+          {generalLabels.length > 0 && (
             <div className="meta-line3">
-              {trackLabels.map((l) => (
+              {generalLabels.map((l) => (
                 <span key={l.id} className="meta-label" style={{ color: l.color }}>
                   {l.name}
                 </span>
