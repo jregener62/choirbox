@@ -62,9 +62,58 @@ async def list_documents(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    await _sync_documents_from_dropbox(folder, user, session)
-    docs = document_service.list_documents(folder, user.id, session)
+    tx_path = await _resolve_tx_folder(folder, user, session)
+    if tx_path:
+        await _sync_documents_from_dropbox(tx_path, user, session)
+        docs = document_service.list_documents(tx_path, user.id, session)
+    else:
+        docs = []
     return {"documents": docs}
+
+
+async def _resolve_tx_folder(
+    folder_path: str, user: User, session: Session
+) -> str | None:
+    """Resolve the .tx folder path from any related path.
+
+    - folder_path IS a .tx folder → return as-is
+    - folder_path is .audio/.multitrack → go up to parent, find .tx sibling
+    - folder_path is .song or plain → look for .tx child
+    """
+    from backend.services.folder_types import get_parent_folder_type, get_folder_type
+
+    folder_type = get_parent_folder_type(folder_path)
+
+    if folder_type == "tx":
+        return folder_path
+
+    if folder_type in ("audio", "multitrack"):
+        parent = folder_path.rsplit("/", 1)[0] if "/" in folder_path else ""
+        return await _find_tx_child(parent, user, session)
+
+    # .song or plain container → look for .tx child
+    return await _find_tx_child(folder_path, user, session)
+
+
+async def _find_tx_child(
+    parent_path: str, user: User, session: Session
+) -> str | None:
+    """Find a .tx subfolder inside the given Dropbox path."""
+    from backend.services.folder_types import get_folder_type
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        return None
+
+    dropbox_path = _dropbox_folder_path(parent_path, user, session)
+    try:
+        entries = await dbx.list_folder(dropbox_path)
+        for e in entries:
+            if e.get(".tag") == "folder" and get_folder_type(e.get("name", "")) == "tx":
+                return parent_path.rstrip("/") + "/" + e.get("name", "")
+    except Exception:
+        pass
+    return None
 
 
 async def _sync_documents_from_dropbox(
@@ -149,7 +198,7 @@ async def _sync_documents_from_dropbox(
             # --- New file → register ---
             if file_type == "pdf":
                 try:
-                    link = await dbx.get_temporary_link(texte_folder.rstrip("/") + "/" + name)
+                    link = await dbx.get_temporary_link(tx_folder.rstrip("/") + "/" + name)
                     async with httpx.AsyncClient() as client:
                         resp = await client.get(link)
                         resp.raise_for_status()
@@ -201,6 +250,12 @@ async def upload_document(
     file_type = document_service.detect_file_type(original_name)
     if not file_type:
         raise HTTPException(400, "Nicht unterstuetztes Dateiformat")
+
+    # Resolve to .tx folder (e.g. if called from Player with .audio path)
+    tx_path = await _resolve_tx_folder(folder_path, user, session)
+    if not tx_path:
+        raise HTTPException(400, "Kein Texte-Ordner (.tx) gefunden")
+    folder_path = tx_path
 
     content = await file.read()
 

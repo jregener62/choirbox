@@ -195,13 +195,13 @@ def _migrate_annotations_document_id(eng, tables):
 
 
 def _migrate_documents_dropbox_path(eng, tables):
-    """Backfill dropbox_path for existing documents from folder_path + Texte + name."""
+    """Backfill dropbox_path for existing documents from folder_path + name."""
     from sqlalchemy import text
     if "documents" not in tables:
         return
     with eng.begin() as conn:
         conn.execute(text(
-            "UPDATE documents SET dropbox_path = folder_path || '/Texte/' || original_name "
+            "UPDATE documents SET dropbox_path = folder_path || '/' || original_name "
             "WHERE dropbox_path IS NULL"
         ))
 
