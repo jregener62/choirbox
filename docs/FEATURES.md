@@ -186,6 +186,7 @@ Ordner in der Dropbox tragen Typ-Endungen im Namen, die Anzeige und Verhalten be
 | `.song` | Musikstueck | Song-Ordner mit Unter-Ordnern fuer Texte und Audio | Music-Note |
 | `.tx` | Texte | Dokument-Ordner (PDF, Video, TXT) — ersetzt den alten "Texte"-Unterordner | FileText |
 | `.audio` | Audio | Audio-Ordner (MP3, WebM, M4A) | Lautsprecher |
+| `.multitrack` | Multitrack | Stems fuer spaeteren Multitrack-Player | Layers |
 | *(keine)* | Container | Normaler navigierbarer Ordner (z.B. "Konzert im Juni") | Ordner |
 
 **Hierarchie-Beispiel:**

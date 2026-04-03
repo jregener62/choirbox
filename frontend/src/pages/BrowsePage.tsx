@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File, Music, Volume2 } from 'lucide-react'
+import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File, Music, Volume2, Layers } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -500,6 +500,7 @@ export function BrowsePage() {
             entry.folder_type === 'song' ? <Music size={18} /> :
             entry.folder_type === 'tx' ? <FileText size={18} /> :
             entry.folder_type === 'audio' ? <Volume2 size={18} /> :
+            entry.folder_type === 'multitrack' ? <Layers size={18} /> :
             <Folder size={18} />
           ) : null
 

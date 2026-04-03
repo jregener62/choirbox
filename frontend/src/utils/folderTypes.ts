@@ -2,7 +2,7 @@
  * Folder type utilities — mirrors backend/services/folder_types.py
  */
 
-const EXT_PATTERN = /\.(song|tx|audio)$/i
+const EXT_PATTERN = /\.(song|tx|audio|multitrack)$/i
 
 export function stripFolderExtension(name: string): string {
   return name.replace(EXT_PATTERN, '')

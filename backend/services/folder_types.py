@@ -10,7 +10,8 @@ from backend.api.auth import ROLE_HIERARCHY
 FOLDER_TYPES: dict[str, dict] = {
     "song":  {"label": "Musikstück", "admin_only": False},
     "tx":    {"label": "Texte",      "admin_only": False},
-    "audio": {"label": "Audio",      "admin_only": False},
+    "audio":      {"label": "Audio",      "admin_only": False},
+    "multitrack": {"label": "Multitrack", "admin_only": False},
 }
 
 FOLDER_TYPE_EXTENSIONS = set(FOLDER_TYPES.keys())
