@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Heart, Trash2, ChevronLeft, Folder } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { parseTrackFilename } from '@/utils/parseTrackFilename'
+import { voiceColor, voiceFullName } from '@/utils/voiceColors'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useAppStore } from '@/stores/appStore.ts'
@@ -76,6 +77,16 @@ export function FavoritesPage() {
   const renderFileItem = (fav: Favorite) => {
     const isActive = fav.dropbox_path === currentPath
     const trackLabels = getLabelsForPath(fav.dropbox_path)
+    const favFolderName = fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''
+    const parsed = parseTrackFilename(fav.file_name, favFolderName)
+    const voiceTags = parsed
+      ? parsed.voices
+          .map((v) => ({ letter: v, name: voiceFullName(v), color: voiceColor(v) }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+      : []
+    const sections = parsed && parsed.sectionKey !== 'Gesamt'
+      ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
+      : []
     return (
       <li
         key={fav.id}
@@ -86,20 +97,32 @@ export function FavoritesPage() {
           <div className="file-icon-box file-icon-playing">
             <div className="playing-bars"><span /><span /><span /></div>
           </div>
-        ) : (
-          <VoiceIcon
-            filename={fav.file_name}
-            folderName={fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''}
-          />
-        )}
+        ) : null}
         <div className="file-info">
           <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
             {formatDisplayName(fav.file_name)}
           </div>
+          {voiceTags.length > 0 && (
+            <div className="meta-line1">
+              {voiceTags.map((v) => (
+                <span key={v.letter} className="meta-voice-tag" style={{ color: v.color }}>
+                  <span className="meta-voice-dot" style={{ background: v.color }} />
+                  {v.name}
+                </span>
+              ))}
+            </div>
+          )}
+          {sections.length > 0 && (
+            <div className="meta-line2">
+              {sections.map((s) => (
+                <span key={s} className="meta-section">{s}</span>
+              ))}
+            </div>
+          )}
           {trackLabels.length > 0 && (
-            <div className="file-labels">
+            <div className="meta-line3">
               {trackLabels.map((l) => (
-                <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
+                <span key={l.id} className="meta-label" style={{ color: l.color }}>
                   {l.name}
                 </span>
               ))}
@@ -210,6 +233,16 @@ export function FavoritesPage() {
         {ungrouped.map((fav) => {
           const isActive = fav.dropbox_path === currentPath
           const trackLabels = getLabelsForPath(fav.dropbox_path)
+          const favFolderName = fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''
+          const parsed = parseTrackFilename(fav.file_name, favFolderName)
+          const voiceTags = parsed
+            ? parsed.voices
+                .map((v) => ({ letter: v, name: voiceFullName(v), color: voiceColor(v) }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+            : []
+          const sections = parsed && parsed.sectionKey !== 'Gesamt'
+            ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
+            : []
           return (
             <li
               key={fav.id}
@@ -220,20 +253,32 @@ export function FavoritesPage() {
                 <div className="file-icon-box file-icon-playing">
                   <div className="playing-bars"><span /><span /><span /></div>
                 </div>
-              ) : (
-                <VoiceIcon
-                  filename={fav.file_name}
-                  folderName={fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''}
-                />
-              )}
+              ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {formatDisplayName(fav.file_name)}
                 </div>
+                {voiceTags.length > 0 && (
+                  <div className="meta-line1">
+                    {voiceTags.map((v) => (
+                      <span key={v.letter} className="meta-voice-tag" style={{ color: v.color }}>
+                        <span className="meta-voice-dot" style={{ background: v.color }} />
+                        {v.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {sections.length > 0 && (
+                  <div className="meta-line2">
+                    {sections.map((s) => (
+                      <span key={s} className="meta-section">{s}</span>
+                    ))}
+                  </div>
+                )}
                 {trackLabels.length > 0 && (
-                  <div className="file-labels">
+                  <div className="meta-line3">
                     {trackLabels.map((l) => (
-                      <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
+                      <span key={l.id} className="meta-label" style={{ color: l.color }}>
                         {l.name}
                       </span>
                     ))}

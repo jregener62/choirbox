@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ArrowLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Home, Pencil, FileText, Video, File, Music, Volume2, Layers } from 'lucide-react'
+import { Folder, FolderPlus, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -11,8 +11,8 @@ import { RecordingModal } from '@/components/ui/RecordingModal'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
-import { TrackBadges } from '@/components/ui/TrackBadges'
-import { VoiceIcon } from '@/components/ui/VoiceIcon'
+import { parseTrackFilename } from '@/utils/parseTrackFilename'
+import { voiceColor, voiceFullName } from '@/utils/voiceColors'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
@@ -328,7 +328,7 @@ export function BrowsePage() {
       <div className="browse-header">
         {/* Topbar: search mode or normal with breadcrumb */}
         <div className="topbar">
-          <span className="topbar-title">{user?.choir_name || 'Dateien'}</span>
+          <span className="topbar-title"></span>
           {!searchOpen && (
             <>
               <button className="player-header-btn" style={{ marginLeft: 'auto', ...(favorites.length > 0 ? { color: 'var(--accent)' } : {}) }} onClick={() => navigate('/favorites')}>
@@ -406,7 +406,7 @@ export function BrowsePage() {
         {!searchOpen && (
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-              <span className="breadcrumb-item" onClick={() => loadFolder('')} style={{ display: 'flex', alignItems: 'center' }}><Home size={14} /></span>
+              <span className="breadcrumb-item" onClick={() => loadFolder('')}>{user?.choir_name || 'Dateien'}</span>
               {pathParts.map((part, i) => {
                 const path = '/' + pathParts.slice(0, i + 1).join('/')
                 const isLast = i === pathParts.length - 1
@@ -454,7 +454,7 @@ export function BrowsePage() {
       <div className="browse-content">
 
       {/* Loading */}
-      {(loading || searching) && <SkeletonList />}
+      {(loading || searching) && <SkeletonList variant="cards" />}
 
       {/* Error */}
       {error && !isSearching && (
@@ -479,14 +479,12 @@ export function BrowsePage() {
       )}
 
       {/* File list */}
-      {!loading && !searching && <ul className="file-list">
-        {!isSearching && !isFiltering && browsePath && (
-          <li className="file-item" onClick={navigateUp}>
-            <div className="file-icon-box file-icon-folder">
-              <ArrowLeft size={18} />
-            </div>
-          </li>
-        )}
+      {!loading && !searching && <ul
+        className="file-list file-list--cards"
+        onClick={(e) => {
+          if (revealedPath && e.target === e.currentTarget) setRevealedPath(null)
+        }}
+      >
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
           const isFile = entry.type === 'file'
@@ -509,6 +507,18 @@ export function BrowsePage() {
             <Folder size={18} />
           ) : null
 
+          const isAudioFile = isFile && !entry.name.toLowerCase().endsWith('.mp4')
+          const parsed = isAudioFile ? parseTrackFilename(entry.name, folderName) : null
+          const voiceTags = parsed
+            ? parsed.voices
+                .map((v) => ({ letter: v, name: voiceFullName(v), color: voiceColor(v) }))
+                .sort((a, b) => a.name.localeCompare(b.name))
+            : []
+          const sections = parsed && parsed.sectionKey !== 'Gesamt'
+            ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
+            : []
+          const trackLabels = isAudioFile ? getLabelsForPath(entry.path) : []
+
           const itemContent = (
             <>
               {entry.type === 'folder' ? (
@@ -529,9 +539,7 @@ export function BrowsePage() {
                     <span /><span /><span />
                   </div>
                 </div>
-              ) : (
-                <VoiceIcon filename={entry.name} folderName={folderName} />
-              )}
+              ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {entry.type === 'file' ? formatDisplayName(entry.display_name || entry.name) : (entry.display_name || entry.name)}
@@ -544,26 +552,37 @@ export function BrowsePage() {
                 {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>
                 )}
-                {entry.type === 'file' && (
-                  <div className="file-meta">
+                {isAudioFile && (entry.duration || voiceTags.length > 0) && (
+                  <div className="meta-line1">
                     {!isSearching && entry.duration && (
-                      <span>{formatTime(entry.duration)}</span>
+                      <span className={`meta-duration${voiceTags.length > 0 ? ' meta-duration--sep' : ''}`}>
+                        {formatTime(entry.duration)}
+                      </span>
                     )}
-                    <TrackBadges filename={entry.name} folderName={folderName} inline />
+                    {voiceTags.map((v) => (
+                      <span key={v.letter} className="meta-voice-tag" style={{ color: v.color }}>
+                        <span className="meta-voice-dot" style={{ background: v.color }} />
+                        {v.name}
+                      </span>
+                    ))}
                   </div>
                 )}
-                {entry.type === 'file' && (() => {
-                  const trackLabels = getLabelsForPath(entry.path)
-                  return trackLabels.length > 0 ? (
-                    <div className="file-labels">
-                      {trackLabels.map((l) => (
-                        <span key={l.id} className="label-chip-sm" style={{ background: l.color + '25', color: l.color }}>
-                          {l.name}
-                        </span>
-                      ))}
-                    </div>
-                  ) : null
-                })()}
+                {isAudioFile && sections.length > 0 && (
+                  <div className="meta-line2">
+                    {sections.map((s) => (
+                      <span key={s} className="meta-section">{s}</span>
+                    ))}
+                  </div>
+                )}
+                {isAudioFile && trackLabels.length > 0 && (
+                  <div className="meta-line3">
+                    {trackLabels.map((l) => (
+                      <span key={l.id} className="meta-label" style={{ color: l.color }}>
+                        {l.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 className="file-actions-btn"

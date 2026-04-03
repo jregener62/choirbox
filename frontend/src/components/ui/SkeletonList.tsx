@@ -6,12 +6,12 @@
 
 const WIDTHS = ['70%', '55%', '80%', '45%', '65%', '75%', '50%', '60%'];
 
-export default function SkeletonList({ rows = 6 }: { rows?: number }) {
+export default function SkeletonList({ rows = 6, variant = 'flat' }: { rows?: number; variant?: 'flat' | 'cards' }) {
   return (
-    <ul className="file-list skeleton-list">
+    <ul className={`file-list skeleton-list${variant === 'cards' ? ' file-list--cards' : ''}`}>
       {Array.from({ length: rows }, (_, i) => (
         <li key={i} className="file-item skeleton-item">
-          <div className="file-icon-box skeleton-bone skeleton-icon" />
+          {variant === 'flat' && <div className="file-icon-box skeleton-bone skeleton-icon" />}
           <div className="file-info">
             <div
               className="skeleton-bone skeleton-name"
