@@ -48,10 +48,11 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
       try {
         const name = entries[i].file.name.toLowerCase()
         const folderType = getFolderType(targetPath)
-        // In .tx folder: always document upload. In .audio folder: always audio upload.
+        // In Texte folder: always document upload. In Audio/Multitrack: always audio upload.
         // Otherwise: detect by file extension.
-        const isDocument = folderType === 'tx' ||
-          (folderType !== 'audio' && (name.endsWith('.pdf') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')))
+        const isDocument = folderType === 'texte' ||
+          (folderType !== 'audio' && folderType !== 'multitrack' &&
+           (name.endsWith('.pdf') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')))
         const formData = new FormData()
         formData.append('file', entries[i].file, entries[i].file.name)
         if (isDocument) {

@@ -6,7 +6,7 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
-import { stripFolderExtension } from '@/utils/folderTypes.ts'
+import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 
 export function DocViewerPage() {
   const navigate = useNavigate()
@@ -38,8 +38,11 @@ export function DocViewerPage() {
     return () => { usePlayerStore.getState().setPdfFullscreen(false) }
   }, [])
 
-  const rawFolderName = folder.split('/').filter(Boolean).pop() || 'Dokumente'
-  const folderName = stripFolderExtension(rawFolderName)
+  const segments = folder.split('/').filter(Boolean)
+  const lastSeg = segments[segments.length - 1] || 'Dokumente'
+  const folderName = isReservedName(lastSeg) && segments.length >= 2
+    ? stripFolderExtension(segments[segments.length - 2])
+    : stripFolderExtension(lastSeg)
 
   return (
     <div className="player-page">

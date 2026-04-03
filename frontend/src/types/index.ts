@@ -14,7 +14,7 @@ export interface LoginResponse {
   user: User
 }
 
-export type FolderType = 'song' | 'tx' | 'audio' | 'multitrack'
+export type FolderType = 'song' | 'texte' | 'audio' | 'videos' | 'multitrack'
 
 export interface DropboxEntry {
   name: string

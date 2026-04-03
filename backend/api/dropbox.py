@@ -172,7 +172,8 @@ async def dropbox_browse(
     """List files/folders at a Dropbox path with folder-type awareness."""
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import (
-        parse_folder_name, get_parent_folder_type, get_visible_types,
+        parse_folder_name, get_parent_folder_type, is_reserved_name,
+        get_visible_reserved_types,
     )
     from backend.services.document_service import ALL_DOC_EXTENSIONS
 
@@ -190,14 +191,15 @@ async def dropbox_browse(
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
 
-    # Determine context: what type is the current folder?
     parent_type = get_parent_folder_type(path)
-    is_tx_folder = parent_type == "tx"
-    visible_types = get_visible_types(user.role)
+    is_inside_reserved = parent_type in ("texte", "audio", "videos", "multitrack")
+    visible_reserved = get_visible_reserved_types(user.role)
     media_exts = (".mp3", ".webm", ".m4a", ".mp4")
+    audio_exts = (".mp3", ".webm", ".m4a", ".ogg", ".wav", ".opus")
+    video_exts = (".mp4", ".mov")
 
     filtered = []
-    tx_folders: list[dict] = []  # .tx folders to enrich with doc_count
+    reserved_found: dict[str, str] = {}  # reserved_name → user_path
 
     for e in entries:
         tag = e.get(".tag", "")
@@ -207,60 +209,76 @@ async def dropbox_browse(
         if tag == "folder":
             display_name, folder_type = parse_folder_name(name)
 
-            # Inside a typed parent (.song): only show typed children
-            if parent_type is not None and folder_type is None:
+            # Reserved folders: hide and collect for synthetic entries
+            if is_reserved_name(name) and not is_inside_reserved:
+                if folder_type in visible_reserved:
+                    reserved_found[name] = user_path
                 continue
 
-            # Permission check: hide admin_only types from non-admins
-            if folder_type and folder_type not in visible_types:
+            # Inside .song: hide non-reserved, non-typed subfolders
+            if parent_type == "song" and folder_type is None:
                 continue
 
-            entry = {
+            filtered.append({
                 "name": name,
                 "display_name": display_name,
                 "path": user_path,
                 "type": "folder",
                 "folder_type": folder_type,
-            }
-            filtered.append(entry)
-
-            if folder_type == "tx":
-                tx_folders.append(entry)
-
-        elif tag == "file" and name.lower().endswith(media_exts) and not is_tx_folder:
-            filtered.append({
-                "name": name,
-                "display_name": name,
-                "path": user_path,
-                "type": "file",
-                "size": e.get("size", 0),
-                "modified": e.get("server_modified", ""),
-            })
-        elif tag == "file" and name.lower().endswith(ALL_DOC_EXTENSIONS) and is_tx_folder:
-            filtered.append({
-                "name": name,
-                "display_name": name,
-                "path": user_path,
-                "type": "document",
-                "size": e.get("size", 0),
-                "modified": e.get("server_modified", ""),
             })
 
-    # Enrich .tx folders with doc_count
-    for tx_entry in tx_folders:
+        elif tag == "file":
+            lower = name.lower()
+            if is_inside_reserved:
+                # Inside reserved folder: show files matching the folder's type
+                if parent_type == "texte" and lower.endswith(ALL_DOC_EXTENSIONS):
+                    filtered.append({
+                        "name": name, "display_name": name, "path": user_path,
+                        "type": "document", "size": e.get("size", 0),
+                        "modified": e.get("server_modified", ""),
+                    })
+                elif parent_type in ("audio", "multitrack") and lower.endswith(audio_exts + media_exts):
+                    filtered.append({
+                        "name": name, "display_name": name, "path": user_path,
+                        "type": "file", "size": e.get("size", 0),
+                        "modified": e.get("server_modified", ""),
+                    })
+                elif parent_type == "videos" and lower.endswith(video_exts):
+                    filtered.append({
+                        "name": name, "display_name": name, "path": user_path,
+                        "type": "file", "size": e.get("size", 0),
+                        "modified": e.get("server_modified", ""),
+                    })
+            elif lower.endswith(media_exts):
+                # Normal context: show media files
+                filtered.append({
+                    "name": name, "display_name": name, "path": user_path,
+                    "type": "file", "size": e.get("size", 0),
+                    "modified": e.get("server_modified", ""),
+                })
+
+    # Create synthetic entries for reserved folders + count their contents
+    for reserved_name, reserved_path in reserved_found.items():
+        _, folder_type = parse_folder_name(reserved_name)
+        count = 0
         try:
-            tx_dbx_path = _to_dropbox_path(tx_entry["path"], root_folder)
-            tx_entries = await dbx.list_folder(tx_dbx_path)
-            tx_entry["doc_count"] = sum(
-                1 for e in tx_entries
-                if e.get(".tag") == "file"
-                and e.get("name", "").lower().endswith(ALL_DOC_EXTENSIONS)
-            )
+            sub_dbx = _to_dropbox_path(reserved_path, root_folder)
+            sub_entries = await dbx.list_folder(sub_dbx)
+            count = sum(1 for e in sub_entries if e.get(".tag") == "file")
         except Exception:
-            tx_entry["doc_count"] = 0
+            pass
+        filtered.append({
+            "name": reserved_name,
+            "display_name": reserved_name,
+            "path": reserved_path,
+            "type": "folder",
+            "folder_type": folder_type,
+            "doc_count": count,
+            "reserved": True,
+        })
 
     # Enrich document entries with doc_id from DB
-    if is_tx_folder:
+    if parent_type == "texte":
         from sqlmodel import select as sql_select
         from backend.models.document import Document
         docs_in_folder = {
@@ -273,9 +291,9 @@ async def dropbox_browse(
             if entry.get("type") == "document":
                 entry["doc_id"] = docs_in_folder.get(entry["name"])
 
-    # Sort: plain folders, typed folders (song, tx, audio), documents, files
+    # Sort: containers, .song folders, reserved (synthetic) entries, documents, files
     type_order = {"folder": 0, "document": 1, "file": 2}
-    folder_type_order = {None: 0, "song": 1, "tx": 2, "audio": 3}
+    folder_type_order = {None: 0, "song": 1, "texte": 2, "audio": 3, "videos": 4, "multitrack": 5}
     filtered.sort(key=lambda x: (
         type_order.get(x["type"], 9),
         folder_type_order.get(x.get("folder_type"), 5),
@@ -301,7 +319,7 @@ async def dropbox_search(
 ):
     """Search for MP3 files and folders by name."""
     from backend.services.dropbox_service import get_dropbox_service
-    from backend.services.folder_types import parse_folder_name, get_visible_types
+    from backend.services.folder_types import parse_folder_name, is_reserved_name
 
     if not q or len(q) < 2:
         raise HTTPException(400, "Search query must be at least 2 characters")
@@ -319,7 +337,6 @@ async def dropbox_search(
         raise HTTPException(500, str(e))
 
     from backend.services.document_service import ALL_DOC_EXTENSIONS
-    visible_types = get_visible_types(user.role)
     media_exts = (".mp3", ".webm", ".m4a", ".mp4")
     allowed_exts = media_exts + ALL_DOC_EXTENSIONS
     entries = []
@@ -327,9 +344,9 @@ async def dropbox_search(
         tag = e.get(".tag", "")
         name = e.get("name", "")
         if tag == "folder":
+            if is_reserved_name(name):
+                continue  # Don't show reserved folders in search results
             display_name, folder_type = parse_folder_name(name)
-            if folder_type and folder_type not in visible_types:
-                continue
             entries.append({
                 "name": name,
                 "display_name": display_name,
@@ -565,11 +582,14 @@ async def dropbox_create_folder(
 ):
     """Create a new folder in Dropbox. Requires Admin role."""
     from backend.services.dropbox_service import get_dropbox_service
+    from backend.services.folder_types import is_reserved_name
 
     name = (data.get("name") or "").strip()
     path = data.get("path", "")
     if not name:
         raise HTTPException(400, "Ordnername ist erforderlich")
+    if is_reserved_name(name):
+        raise HTTPException(400, f"'{name}' ist ein reservierter Ordnername")
 
     dbx = get_dropbox_service(session)
     if not dbx:

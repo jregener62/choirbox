@@ -179,31 +179,34 @@ Scopes werden in der Dropbox App Console konfiguriert, nicht im Code.
 
 ### Ordnertyp-System
 
-Ordner in der Dropbox tragen Typ-Endungen im Namen, die Anzeige und Verhalten bestimmen:
+Song-Ordner tragen eine `.song`-Endung. Innerhalb von Songs gibt es reservierte Unterordner mit festem Namen:
 
-| Endung | Typ | Beschreibung | Icon |
-|--------|-----|-------------|------|
-| `.song` | Musikstueck | Song-Ordner mit Unter-Ordnern fuer Texte und Audio | Music-Note |
-| `.tx` | Texte | Dokument-Ordner (PDF, Video, TXT) — ersetzt den alten "Texte"-Unterordner | FileText |
-| `.audio` | Audio | Audio-Ordner (MP3, WebM, M4A) | Lautsprecher |
-| `.multitrack` | Multitrack | Stems fuer spaeteren Multitrack-Player | Layers |
-| *(keine)* | Container | Normaler navigierbarer Ordner (z.B. "Konzert im Juni") | Ordner |
+| Typ | Erkennung | Beschreibung | Icon |
+|-----|-----------|-------------|------|
+| Song | `.song`-Endung | Musikstueck-Ordner (z.B. "Fragile.song") | Music-Note |
+| Texte | Name `Texte` | Dokumente (PDF, Video, TXT) | FileText |
+| Audio | Name `Audio` | Audio-Dateien (MP3, WebM, M4A) | Lautsprecher |
+| Videos | Name `Videos` | Video-Dateien (MP4, MOV) | Video |
+| Multitrack | Name `Multitrack` | Stems fuer spaeteren Multitrack-Player | Layers |
+| Container | *(keine Endung)* | Normaler navigierbarer Ordner | Ordner |
 
 **Hierarchie-Beispiel:**
 ```
 Konzert im Juni/           (Container)
   Fragile.song/            (Song)
-    texte.tx/              (Texte → Dokumente)
-    audio.audio/           (Audio → MP3s)
+    Texte/                 (reserviert, ausgeblendet → synthetischer Eintrag)
+    Audio/                 (reserviert, ausgeblendet → synthetischer Eintrag)
+    Videos/                (reserviert, ausgeblendet)
+    Multitrack/            (reserviert, ausgeblendet)
 ```
 
 **Regeln:**
-- Anzeigename wird ohne Endung dargestellt: "Fragile.song" → "Fragile"
-- Innerhalb typisierter Elternordner (.song): nur typisierte Kinder sichtbar, unbekannte Unterordner ausgeblendet
-- `.tx`-Ordner zeigen doc_count Badge (Anzahl Dokumente)
-- Klick auf `.tx`-Ordner oeffnet den Dokument-Viewer direkt
-- Breadcrumbs zeigen gestripte Namen
-- Folder-Type-Registry mit `admin_only`-Flag vorbereitet (erweiterbar fuer zukuenftige Ordnertypen)
+- `.song`-Endung wird in der Anzeige gestripped: "Fragile.song" → "Fragile"
+- Reservierte Ordner (Texte, Audio, Videos, Multitrack) sind in der Browse-Ansicht ausgeblendet und werden als synthetische Eintraege mit Datei-Counts dargestellt
+- Innerhalb von `.song`-Ordnern: unbekannte Unterordner werden ausgeblendet
+- Reservierte Namen koennen nicht als manuelle Ordnernamen verwendet werden (blockiert beim Erstellen)
+- Player und DocViewer erkennen reservierte Ordner und leiten Song-Name aus `.song`-Parent ab
+- Folder-Type-Registry mit `admin_only`-Flag vorbereitet (erweiterbar)
 
 | Datei | Rolle |
 |-------|-------|
@@ -296,7 +299,7 @@ Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einz
 |-----|-----------|-------------|---------|
 | PDF | `.pdf` | Dropbox + on-demand RAM-Cache | Seitenweise JPEG-Rendering (PyMuPDF) |
 | Video (`.mp4`) | `.mp4` | Dropbox Hauptordner (beim Upload via ffmpeg komprimiert) | Video-Modal in Browse-Seite |
-| Video (Dokument) | `.webm`, `.mov` | Dropbox `.tx`-Ordner | HTML5 Video-Player im Texte-Viewer |
+| Video (Dokument) | `.webm`, `.mov` | Dropbox `Texte`-Ordner | HTML5 Video-Player im Texte-Viewer |
 | Text | `.txt` | Nur Dropbox | Monospace-Textansicht |
 
 ### Video-Komprimierung beim Upload
@@ -329,7 +332,7 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 
 ### Dokumente in der Browse-Seite
 
-- Dokumente erscheinen als eigene Eintraege innerhalb von `.tx`-Ordnern
+- Dokumente erscheinen als eigene Eintraege innerhalb von `Texte`-Ordnern
 - Typ-spezifische Icons (PDF, Video, Text)
 - Swipe-Actions: Favorisieren, Labels, Umbenennen, Loeschen
 - Upload: Dateien hochladen ueber Kebab-Menue (akzeptiert Audio + Dokument-Formate)

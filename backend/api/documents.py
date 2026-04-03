@@ -29,7 +29,7 @@ def _get_root_folder(user: User, session: Session) -> str:
 def _dropbox_doc_path(folder_path: str, doc_name: str, user: User, session: Session) -> str:
     """Build the full Dropbox path for a document.
 
-    folder_path is the .tx folder path (e.g. '/Song.song/texte.tx').
+    folder_path is the Texte folder path (e.g. '/Song.song/Texte').
     """
     root = _get_root_folder(user, session)
     parts = [p for p in [root, folder_path.strip("/"), doc_name] if p]
@@ -62,44 +62,44 @@ async def list_documents(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    tx_path = await _resolve_tx_folder(folder, user, session)
-    if tx_path:
-        await _sync_documents_from_dropbox(tx_path, user, session)
-        docs = document_service.list_documents(tx_path, user.id, session)
+    texte_path = await _resolve_texte_folder(folder, user, session)
+    if texte_path:
+        await _sync_documents_from_dropbox(texte_path, user, session)
+        docs = document_service.list_documents(texte_path, user.id, session)
     else:
         docs = []
     return {"documents": docs}
 
 
-async def _resolve_tx_folder(
+async def _resolve_texte_folder(
     folder_path: str, user: User, session: Session
 ) -> str | None:
-    """Resolve the .tx folder path from any related path.
+    """Resolve the Texte folder path from any related path.
 
-    - folder_path IS a .tx folder → return as-is
-    - folder_path is .audio/.multitrack → go up to parent, find .tx sibling
-    - folder_path is .song or plain → look for .tx child
+    - folder_path IS the Texte folder → return as-is
+    - folder_path is Audio/Videos/Multitrack → go up to parent, find Texte sibling
+    - folder_path is .song or plain → look for Texte child
     """
-    from backend.services.folder_types import get_parent_folder_type, get_folder_type
+    from backend.services.folder_types import get_parent_folder_type
 
     folder_type = get_parent_folder_type(folder_path)
 
-    if folder_type == "tx":
+    if folder_type == "texte":
         return folder_path
 
-    if folder_type in ("audio", "multitrack"):
+    if folder_type in ("audio", "multitrack", "videos"):
         parent = folder_path.rsplit("/", 1)[0] if "/" in folder_path else ""
-        return await _find_tx_child(parent, user, session)
+        return await _find_reserved_child(parent, "texte", user, session)
 
-    # .song or plain container → look for .tx child
-    return await _find_tx_child(folder_path, user, session)
+    # .song or plain container → look for Texte child
+    return await _find_reserved_child(folder_path, "texte", user, session)
 
 
-async def _find_tx_child(
-    parent_path: str, user: User, session: Session
+async def _find_reserved_child(
+    parent_path: str, reserved_type: str, user: User, session: Session
 ) -> str | None:
-    """Find a .tx subfolder inside the given Dropbox path."""
-    from backend.services.folder_types import get_folder_type
+    """Find a reserved subfolder by type inside the given Dropbox path."""
+    from backend.services.folder_types import get_reserved_type
 
     dbx = get_dropbox_service(session)
     if not dbx:
@@ -109,7 +109,7 @@ async def _find_tx_child(
     try:
         entries = await dbx.list_folder(dropbox_path)
         for e in entries:
-            if e.get(".tag") == "folder" and get_folder_type(e.get("name", "")) == "tx":
+            if e.get(".tag") == "folder" and get_reserved_type(e.get("name", "")) == reserved_type:
                 return parent_path.rstrip("/") + "/" + e.get("name", "")
     except Exception:
         pass
@@ -251,11 +251,11 @@ async def upload_document(
     if not file_type:
         raise HTTPException(400, "Nicht unterstuetztes Dateiformat")
 
-    # Resolve to .tx folder (e.g. if called from Player with .audio path)
-    tx_path = await _resolve_tx_folder(folder_path, user, session)
-    if not tx_path:
-        raise HTTPException(400, "Kein Texte-Ordner (.tx) gefunden")
-    folder_path = tx_path
+    # Resolve to Texte folder (e.g. if called from Player with Audio path)
+    texte_path = await _resolve_texte_folder(folder_path, user, session)
+    if not texte_path:
+        raise HTTPException(400, "Kein Texte-Ordner gefunden")
+    folder_path = texte_path
 
     content = await file.read()
 

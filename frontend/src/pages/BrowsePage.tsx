@@ -17,7 +17,7 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
-import { stripFolderExtension } from '@/utils/folderTypes.ts'
+import { stripFolderExtension, isReservedName, getFolderType } from '@/utils/folderTypes.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -199,14 +199,14 @@ export function BrowsePage() {
   const handleEntryClick = (entry: DropboxEntry) => {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
-    if (entry.type === 'folder' && entry.folder_type === 'tx') {
+    if (entry.type === 'folder' && entry.folder_type === 'texte') {
       navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path)}`)
     } else if (entry.type === 'folder') {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
     } else if (entry.type === 'document') {
-      // entry.path is like /Song.song/texte.tx/mytext.txt — parent is the .tx folder
+      // entry.path is like /Song.song/Texte/mytext.txt — parent is the Texte folder
       const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
       navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
     } else if (entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4')) {
@@ -264,8 +264,12 @@ export function BrowsePage() {
 
   const displayEntries = isSearching ? searchResults : filteredEntries
 
-  // Folder name for parsing track filenames into badges
-  const folderName = browsePath.split('/').filter(Boolean).pop() || ''
+  // Folder name for parsing track filenames — use .song ancestor if inside reserved folder
+  const browseSegments = browsePath.split('/').filter(Boolean)
+  const lastSegment = browseSegments[browseSegments.length - 1] || ''
+  const folderName = isReservedName(lastSegment) && browseSegments.length >= 2
+    ? stripFolderExtension(browseSegments[browseSegments.length - 2])
+    : stripFolderExtension(lastSegment)
 
   // Show filter bar if user has any label assignments at all
   const hasAnyLabels = assignments.length > 0
@@ -487,7 +491,7 @@ export function BrowsePage() {
           const isActive = entry.type === 'file' && entry.path === currentPath
           const isFile = entry.type === 'file'
           const isDoc = entry.type === 'document'
-          const isTxFolder = entry.folder_type === 'tx'
+          const isTexteFolder = entry.folder_type === 'texte'
           const isRevealed = revealedPath === entry.path
 
           const docIcon = isDoc ? (
@@ -498,8 +502,9 @@ export function BrowsePage() {
 
           const folderIcon = entry.type === 'folder' ? (
             entry.folder_type === 'song' ? <Music size={18} /> :
-            entry.folder_type === 'tx' ? <FileText size={18} /> :
+            entry.folder_type === 'texte' ? <FileText size={18} /> :
             entry.folder_type === 'audio' ? <Volume2 size={18} /> :
+            entry.folder_type === 'videos' ? <Video size={18} /> :
             entry.folder_type === 'multitrack' ? <Layers size={18} /> :
             <Folder size={18} />
           ) : null
@@ -507,7 +512,7 @@ export function BrowsePage() {
           const itemContent = (
             <>
               {entry.type === 'folder' ? (
-                <div className={`file-icon-box ${isTxFolder ? 'file-icon-doc' : 'file-icon-folder'}`}>
+                <div className={`file-icon-box ${isTexteFolder ? 'file-icon-doc' : 'file-icon-folder'}`}>
                   {folderIcon}
                 </div>
               ) : isDoc ? (
@@ -531,7 +536,7 @@ export function BrowsePage() {
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {entry.type === 'file' ? formatDisplayName(entry.display_name || entry.name) : (entry.display_name || entry.name)}
                 </div>
-                {isTxFolder && entry.doc_count != null && (
+                {isTexteFolder && entry.doc_count != null && (
                   <div className="file-meta">
                     {entry.doc_count} {entry.doc_count === 1 ? 'Dokument' : 'Dokumente'}
                   </div>
@@ -590,7 +595,7 @@ export function BrowsePage() {
                 >
                   <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                 </button>
-                {(isFile || isDoc) && !isTxFolder && (
+                {(isFile || isDoc) && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
@@ -598,7 +603,7 @@ export function BrowsePage() {
                     <Tag size={18} />
                   </button>
                 )}
-                {(isAdmin || (isDoc && isProMember)) && !isTxFolder && (
+                {(isAdmin || (isDoc && isProMember)) && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-info"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setRenameName(entry.name); setRenameEntry(entry) }}
@@ -606,7 +611,7 @@ export function BrowsePage() {
                     <Pencil size={18} />
                   </button>
                 )}
-                {((isFile || isDoc) ? canDelete : isAdmin) && !isTxFolder && (
+                {((isFile || isDoc) ? canDelete : isAdmin) && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}

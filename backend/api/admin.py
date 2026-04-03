@@ -315,7 +315,7 @@ async def resync_all(
         _sync_documents_from_dropbox, _get_root_folder,
     )
     from backend.services.dropbox_service import get_dropbox_service
-    from backend.services.folder_types import get_folder_type
+    from backend.services.folder_types import get_reserved_type
 
     dbx = get_dropbox_service(session)
     if not dbx:
@@ -341,7 +341,7 @@ async def resync_all(
     # Build sets of all valid paths (user-visible, relative to root)
     dbx_file_paths: set[str] = set()
     dbx_folder_paths: set[str] = set()
-    tx_folder_paths: set[str] = set()
+    texte_folder_paths: set[str] = set()
 
     for e in entries:
         rel = _strip_root(e.get("path_display", ""), root)
@@ -350,14 +350,14 @@ async def resync_all(
             dbx_file_paths.add(rel)
         elif tag == "folder":
             dbx_folder_paths.add(rel)
-            # Track .tx folders for document sync
-            if get_folder_type(e.get("name", "")) == "tx":
-                tx_folder_paths.add(rel)
+            # Track Texte folders for document sync
+            if get_reserved_type(e.get("name", "")) == "texte":
+                texte_folder_paths.add(rel)
 
     stats = {"synced_folders": 0, "added": 0, "updated": 0, "removed": 0}
 
     # --- Step 2: Sync documents (.tx folders) ---
-    for fp in tx_folder_paths:
+    for fp in texte_folder_paths:
         before = {
             d.original_name: d.content_hash
             for d in session.exec(
@@ -388,7 +388,7 @@ async def resync_all(
     db_doc_folders = set(
         d.folder_path for d in session.exec(select(Document)).all()
     )
-    for fp in db_doc_folders - tx_folder_paths:
+    for fp in db_doc_folders - texte_folder_paths:
         for doc in session.exec(
             select(Document).where(Document.folder_path == fp)
         ).all():

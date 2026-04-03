@@ -14,6 +14,7 @@ import { buildTimeline } from '@/utils/buildTimeline'
 import { parseTrackFilename } from '@/utils/parseTrackFilename'
 import { voiceColor, voiceBg, voiceFullName } from '@/utils/voiceColors'
 import { formatDisplayName, middleTruncate } from '@/utils/formatters.ts'
+import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 import type { TimelineEntry } from '@/utils/buildTimeline'
 
 export function PlayerPage() {
@@ -37,7 +38,12 @@ export function PlayerPage() {
 
   // Derive folder path from current track
   const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
-  const folderName = folderPath.split('/').filter(Boolean).pop() || ''
+  // If inside a reserved folder (Audio, Multitrack), use the .song parent name
+  const pathSegments = folderPath.split('/').filter(Boolean)
+  const lastSegment = pathSegments[pathSegments.length - 1] || ''
+  const folderName = isReservedName(lastSegment) && pathSegments.length >= 2
+    ? stripFolderExtension(pathSegments[pathSegments.length - 2])
+    : stripFolderExtension(lastSegment)
   const parsed = currentName ? parseTrackFilename(currentName, folderName) : null
 
   useEffect(() => {
