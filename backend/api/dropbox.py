@@ -446,6 +446,22 @@ async def dropbox_upload(
     if target_path and not target_path.startswith("/"):
         target_path = "/" + target_path
 
+    # Auto-routing: inside a .song folder, route to reserved subfolders
+    from backend.services.folder_types import get_parent_folder_type
+    parent_type = get_parent_folder_type(target_path)
+    if parent_type == "song":
+        out_ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+        if out_ext in ("mp4", "mov"):
+            target_path = target_path.rstrip("/") + "/Videos"
+        else:
+            target_path = target_path.rstrip("/") + "/Audio"
+        # Ensure subfolder exists
+        sub_dbx = _to_dropbox_path(target_path, root_folder)
+        try:
+            await dbx.create_folder(sub_dbx)
+        except RuntimeError:
+            pass  # Already exists
+
     full_target = _to_dropbox_path(target_path, root_folder)
     dropbox_path = f"{full_target}/{filename}".replace("//", "/")
 

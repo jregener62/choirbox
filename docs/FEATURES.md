@@ -299,7 +299,7 @@ Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einz
 |-----|-----------|-------------|---------|
 | PDF | `.pdf` | Dropbox + on-demand RAM-Cache | Seitenweise JPEG-Rendering (PyMuPDF) |
 | Video (`.mp4`) | `.mp4` | Dropbox Hauptordner (beim Upload via ffmpeg komprimiert) | Video-Modal in Browse-Seite |
-| Video (Dokument) | `.webm`, `.mov` | Dropbox `Texte`-Ordner | HTML5 Video-Player im Texte-Viewer |
+| Video (Dokument) | `.webm`, `.mov` | Dropbox `Videos`-Ordner | HTML5 Video-Player im Texte-Viewer |
 | Text | `.txt` | Nur Dropbox | Monospace-Textansicht |
 
 ### Video-Komprimierung beim Upload

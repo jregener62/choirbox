@@ -252,18 +252,29 @@ async def upload_document(
         raise HTTPException(400, "Nicht unterstuetztes Dateiformat")
 
     # Resolve to Texte folder (e.g. if called from Player with Audio path)
+    from backend.services.folder_types import get_parent_folder_type
     texte_path = await _resolve_texte_folder(folder_path, user, session)
     if not texte_path:
-        raise HTTPException(400, "Kein Texte-Ordner gefunden")
+        # Auto-create Texte subfolder if inside a .song folder
+        parent_type = get_parent_folder_type(folder_path)
+        if parent_type == "song":
+            texte_path = folder_path.rstrip("/") + "/Texte"
+        else:
+            raise HTTPException(400, "Kein Texte-Ordner gefunden")
     folder_path = texte_path
 
     content = await file.read()
 
-    # Upload to Dropbox (directly into the .tx folder)
+    # Upload to Dropbox (into the Texte folder, auto-create if needed)
     dbx_hash = None
     try:
         dbx = get_dropbox_service(session)
         if dbx:
+            texte_dbx = _dropbox_folder_path(folder_path, user, session)
+            try:
+                await dbx.create_folder(texte_dbx)
+            except RuntimeError:
+                pass  # Already exists
             dbx_path = _dropbox_doc_path(folder_path, original_name, user, session)
             result = await dbx.upload_file(content, dbx_path)
             dbx_hash = result.get("content_hash")
