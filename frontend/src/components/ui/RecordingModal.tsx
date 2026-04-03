@@ -180,6 +180,13 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
           <div className="recording-section">
             <div className="recording-section-label">Stimme</div>
             <div className="voice-part-selector">
+              <button
+                type="button"
+                className={`voice-part-btn ${voices.length === 0 ? 'selected' : ''}`}
+                onClick={() => setVoices([])}
+              >
+                Keine
+              </button>
               {voiceOptions.map((v) => (
                 <button
                   key={v.key}
@@ -197,6 +204,15 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
           <div className="recording-section">
             <div className="recording-section-label">Abschnitt</div>
             <div className="section-chips">
+              <div className="section-chip-group">
+                <button
+                  type="button"
+                  className={`filter-chip ${sections.length === 0 ? 'active' : ''}`}
+                  onClick={() => setSections([])}
+                >
+                  Keine
+                </button>
+              </div>
               {sectionOptions.map((s) => {
                 const selected = sections.find((sel) => sel.name === s.name)
                 return (
