@@ -21,6 +21,8 @@ export function SectionPresetsPage() {
   const [showForm, setShowForm] = useState(false)
   const [editId, setEditId] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [shortcode, setShortcode] = useState('')
+  const [maxNum, setMaxNum] = useState(0)
   const [color, setColor] = useState(DEFAULT_COLORS[0])
 
   const invalidateStore = useSectionPresetsStore((s) => s.invalidate)
@@ -38,19 +40,20 @@ export function SectionPresetsPage() {
 
   useEffect(() => { loadPresets() }, [loadPresets])
 
-  const resetForm = () => { setShowForm(false); setEditId(null); setName(''); setColor(DEFAULT_COLORS[0]) }
+  const resetForm = () => { setShowForm(false); setEditId(null); setName(''); setShortcode(''); setMaxNum(0); setColor(DEFAULT_COLORS[0]) }
 
   const startEdit = (preset: SectionPreset) => {
-    setEditId(preset.id); setName(preset.name); setColor(preset.color); setShowForm(true)
+    setEditId(preset.id); setName(preset.name); setShortcode(preset.shortcode || ''); setMaxNum(preset.max_num); setColor(preset.color); setShowForm(true)
   }
 
   const savePreset = async () => {
     if (!name.trim()) { setMessage('Name ist erforderlich'); return }
     try {
+      const sc = shortcode.trim() || name.trim()
       if (editId) {
-        await api(`/section-presets/${editId}`, { method: 'PUT', body: { name: name.trim(), color } })
+        await api(`/section-presets/${editId}`, { method: 'PUT', body: { name: name.trim(), color, shortcode: sc, max_num: maxNum } })
       } else {
-        await api('/section-presets', { method: 'POST', body: { name: name.trim(), color, sort_order: presets.length } })
+        await api('/section-presets', { method: 'POST', body: { name: name.trim(), color, shortcode: sc, max_num: maxNum, sort_order: presets.length } })
       }
       resetForm(); loadPresets(); invalidateStore()
     } catch { setMessage('Fehler beim Speichern') }
@@ -87,6 +90,22 @@ export function SectionPresetsPage() {
               <input className="auth-input" value={name} onChange={(e) => setName(e.target.value)} placeholder="z.B. Intro, Refrain" />
             </div>
             <div className="auth-field">
+              <label className="auth-label">Kuerzel im Dateinamen</label>
+              <input className="auth-input" value={shortcode} onChange={(e) => setShortcode(e.target.value)} placeholder={name || 'z.B. Str, Ref, Intro'} />
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+                Wird im Dateinamen verwendet (z.B. S-Lied-<strong>{shortcode || name || 'Intro'}</strong>.mp3)
+              </div>
+            </div>
+            <div className="auth-field">
+              <label className="auth-label">Maximale Nummerierung</label>
+              <select className="auth-input" value={maxNum} onChange={(e) => setMaxNum(Number(e.target.value))} style={{ width: 'auto' }}>
+                <option value={0}>Keine (z.B. Intro)</option>
+                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => (
+                  <option key={n} value={n}>1–{n} (z.B. Strophe1–{n})</option>
+                ))}
+              </select>
+            </div>
+            <div className="auth-field">
               <label className="auth-label">Farbe</label>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 {DEFAULT_COLORS.map((c) => (
@@ -116,6 +135,14 @@ export function SectionPresetsPage() {
             <div style={{ width: 32, height: 32, borderRadius: 8, background: preset.color, flexShrink: 0 }} />
             <div className="file-info">
               <div className="file-name">{preset.name}</div>
+              <div className="file-meta">
+                {preset.shortcode && preset.shortcode !== preset.name && (
+                  <span>Kuerzel: {preset.shortcode}</span>
+                )}
+                {preset.max_num > 0 && (
+                  <span>1–{preset.max_num}</span>
+                )}
+              </div>
             </div>
             <button className="player-header-btn" onClick={() => startEdit(preset)}>
               <Pencil size={15} />
