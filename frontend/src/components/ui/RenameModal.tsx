@@ -5,6 +5,7 @@ import { Modal } from './Modal'
 import { buildFilename } from '@/utils/filename'
 import { useLabelsStore } from '@/hooks/useLabels'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
+import { stripFolderExtension } from '@/utils/folderTypes'
 import type { SelectedSection, VoiceOption, SectionOption } from '@/utils/filename'
 
 interface RenameModalProps {
@@ -17,7 +18,8 @@ interface RenameModalProps {
 
 export function RenameModal({ path, currentName, folderPath, onClose, onRenamed }: RenameModalProps) {
   const ext = currentName.split('.').pop() || 'mp3'
-  const folderName = folderPath.split('/').filter(Boolean).pop() || ''
+  const rawFolderName = folderPath.split('/').filter(Boolean).pop() || ''
+  const folderName = stripFolderExtension(rawFolderName)
   const allLabels = useLabelsStore((s) => s.labels)
   const labelsLoaded = useLabelsStore((s) => s.loaded)
   const loadLabels = useLabelsStore((s) => s.load)
@@ -35,14 +37,14 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
 
   const [voices, setVoices] = useState<string[]>([])
   const [sections, setSections] = useState<SelectedSection[]>([])
-  const [freeText, setFreeText] = useState('')
+  const [songName, setSongName] = useState(folderName)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
 
   const filename = useMemo(
-    () => buildFilename(voices, sections, freeText, folderName, ext, voiceOptions),
-    [voices, sections, freeText, folderName, ext, voiceOptions],
+    () => buildFilename(voices, sections, '', songName, ext, voiceOptions),
+    [voices, sections, songName, ext, voiceOptions],
   )
 
   const toggleVoice = (key: string) => {
@@ -151,15 +153,15 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
             </div>
           </div>
 
-          {/* Free text */}
+          {/* Song name */}
           <div className="recording-section">
-            <div className="recording-section-label">Notiz (optional)</div>
+            <div className="recording-section-label">Liedname</div>
             <input
               className="input"
               type="text"
-              value={freeText}
-              onChange={(e) => setFreeText(e.target.value)}
-              placeholder="z.B. langsam, Durchlauf3..."
+              value={songName}
+              onChange={(e) => setSongName(e.target.value)}
+              placeholder={folderName || 'Liedname'}
               style={{ fontSize: 14 }}
             />
           </div>

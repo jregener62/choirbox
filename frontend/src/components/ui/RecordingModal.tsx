@@ -7,6 +7,7 @@ import { formatTime } from '@/utils/formatters'
 import { buildFilename } from '@/utils/filename'
 import { useLabelsStore } from '@/hooks/useLabels'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
+import { stripFolderExtension } from '@/utils/folderTypes'
 import type { SelectedSection, VoiceOption, SectionOption } from '@/utils/filename'
 
 interface RecordingModalProps {
@@ -30,9 +31,10 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   // Naming state
   const [voices, setVoices] = useState<string[]>([])
   const [sections, setSections] = useState<SelectedSection[]>([])
-  const [freeText, setFreeText] = useState('')
 
-  const folderName = targetPath.split('/').filter(Boolean).pop() || ''
+  const rawFolderName = targetPath.split('/').filter(Boolean).pop() || ''
+  const folderName = stripFolderExtension(rawFolderName)
+  const [songName, setSongName] = useState(folderName)
   const allLabels = useLabelsStore((s) => s.labels)
   const labelsLoaded = useLabelsStore((s) => s.loaded)
   const loadLabels = useLabelsStore((s) => s.load)
@@ -49,8 +51,8 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   }))
 
   const filename = useMemo(
-    () => buildFilename(voices, sections, freeText, folderName, 'mp3', voiceOptions),
-    [voices, sections, freeText, folderName, voiceOptions],
+    () => buildFilename(voices, sections, '', songName, 'mp3', voiceOptions),
+    [voices, sections, songName, voiceOptions],
   )
 
   const toggleVoice = (key: string) => {
@@ -222,13 +224,13 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
 
           {/* Free text */}
           <div className="recording-section">
-            <div className="recording-section-label">Notiz (optional)</div>
+            <div className="recording-section-label">Liedname</div>
             <input
               className="input"
               type="text"
-              value={freeText}
-              onChange={(e) => setFreeText(e.target.value)}
-              placeholder="z.B. langsam, Durchlauf3..."
+              value={songName}
+              onChange={(e) => setSongName(e.target.value)}
+              placeholder={folderName || 'Liedname'}
               style={{ fontSize: 14 }}
             />
           </div>

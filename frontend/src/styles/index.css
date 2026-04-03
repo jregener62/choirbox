@@ -2152,11 +2152,14 @@ body {
 .voice-part-selector {
   display: flex;
   gap: var(--space-2);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-1);
 }
 
 .voice-part-btn {
-  flex: 1;
-  padding: var(--space-2-5) var(--space-1);
+  flex-shrink: 0;
+  padding: var(--space-2-5) var(--space-3);
   border: 2px solid var(--border);
   border-radius: var(--radius-md);
   background: none;
@@ -3337,8 +3340,10 @@ body {
 
 .section-chips {
   display: flex;
-  flex-wrap: wrap;
   gap: var(--space-1-5);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-1);
 }
 
 .section-chip-group {
