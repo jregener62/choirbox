@@ -249,6 +249,8 @@ def _backfill_label_shortcodes(eng, tables):
         "Bass": ("B", "basso,baritone"),
     }
     with eng.begin() as conn:
+        # Normalize 'Stimmen' → 'Stimme'
+        conn.execute(text("UPDATE labels SET category = 'Stimme' WHERE category = 'Stimmen'"))
         for name, (shortcode, aliases) in defaults.items():
             conn.execute(text(
                 "UPDATE labels SET shortcode = :sc, aliases = :al "
