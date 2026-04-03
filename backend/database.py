@@ -42,6 +42,8 @@ def _migrate(eng):
         ("section_presets", "choir_id", "VARCHAR(36)"),
         ("documents", "content_hash", "VARCHAR(64)"),
         ("documents", "dropbox_path", "VARCHAR(1000)"),
+        ("labels", "shortcode", "VARCHAR(10)"),
+        ("labels", "aliases", "VARCHAR(200)"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:
@@ -62,6 +64,9 @@ def _migrate(eng):
 
     # --- Backfill documents.dropbox_path ---
     _migrate_documents_dropbox_path(eng, tables)
+
+    # --- Backfill label shortcodes ---
+    _backfill_label_shortcodes(eng, tables)
 
     # --- Drop obsolete tables ---
     _drop_obsolete_tables(eng, tables)
@@ -204,6 +209,25 @@ def _migrate_documents_dropbox_path(eng, tables):
             "UPDATE documents SET dropbox_path = folder_path || '/' || original_name "
             "WHERE dropbox_path IS NULL"
         ))
+
+
+def _backfill_label_shortcodes(eng, tables):
+    """Set shortcode and aliases on existing Stimme labels that don't have them yet."""
+    if "labels" not in tables:
+        return
+    from sqlalchemy import text
+    defaults = {
+        "Sopran": ("S", "soprano,sop"),
+        "Alt": ("A", "alto"),
+        "Tenor": ("T", "tenore"),
+        "Bass": ("B", "basso,baritone"),
+    }
+    with eng.begin() as conn:
+        for name, (shortcode, aliases) in defaults.items():
+            conn.execute(text(
+                "UPDATE labels SET shortcode = :sc, aliases = :al "
+                "WHERE name = :name AND category = 'Stimme' AND shortcode IS NULL"
+            ), {"sc": shortcode, "al": aliases, "name": name})
 
 
 def _drop_obsolete_tables(eng, tables):

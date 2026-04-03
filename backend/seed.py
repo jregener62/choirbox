@@ -93,10 +93,10 @@ def _seed_default_labels(session: Session, choir_id: str):
         return
 
     defaults = [
-        Label(name="Sopran", color="#ec4899", category="Stimme", sort_order=1, choir_id=choir_id),
-        Label(name="Alt", color="#f97316", category="Stimme", sort_order=2, choir_id=choir_id),
-        Label(name="Tenor", color="#3b82f6", category="Stimme", sort_order=3, choir_id=choir_id),
-        Label(name="Bass", color="#22c55e", category="Stimme", sort_order=4, choir_id=choir_id),
+        Label(name="Sopran", color="#ec4899", category="Stimme", sort_order=1, choir_id=choir_id, shortcode="S", aliases="soprano,sop"),
+        Label(name="Alt", color="#f97316", category="Stimme", sort_order=2, choir_id=choir_id, shortcode="A", aliases="alto"),
+        Label(name="Tenor", color="#3b82f6", category="Stimme", sort_order=3, choir_id=choir_id, shortcode="T", aliases="tenore"),
+        Label(name="Bass", color="#22c55e", category="Stimme", sort_order=4, choir_id=choir_id, shortcode="B", aliases="basso,baritone"),
         Label(name="Schwierig", color="#ef4444", category="Status", sort_order=10, choir_id=choir_id),
         Label(name="Geubt", color="#10b981", category="Status", sort_order=11, choir_id=choir_id),
     ]

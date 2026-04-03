@@ -10,3 +10,5 @@ class Label(SQLModel, table=True):
     category: Optional[str] = Field(default=None, max_length=50)  # e.g. "Stimme", "Status"
     choir_id: Optional[str] = Field(default=None, foreign_key="choirs.id", index=True)
     sort_order: int = Field(default=0)
+    shortcode: Optional[str] = Field(default=None, max_length=10)  # Kuerzel fuer Dateinamen ("S", "A", "Git")
+    aliases: Optional[str] = Field(default=None, max_length=200)  # Komma-getrennt ("soprano,sop")

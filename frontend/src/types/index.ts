@@ -41,6 +41,9 @@ export interface Label {
   name: string
   color: string
   category: string | null
+  shortcode: string | null
+  aliases: string | null
+  sort_order: number
 }
 
 export interface Favorite {

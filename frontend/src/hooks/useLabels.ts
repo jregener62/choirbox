@@ -8,6 +8,10 @@ interface LabelsState {
   loaded: boolean
   load: () => Promise<void>
   getLabelsForPath: (dropboxPath: string) => Label[]
+  getVoiceLabelsForPath: (dropboxPath: string) => Label[]
+  getGeneralLabelsForPath: (dropboxPath: string) => Label[]
+  voiceLabels: () => Label[]
+  generalLabels: () => Label[]
   toggleLabel: (dropboxPath: string, labelId: number) => Promise<void>
   isAssigned: (dropboxPath: string, labelId: number) => boolean
 }
@@ -36,6 +40,18 @@ export const useLabelsStore = create<LabelsState>((set, get) => ({
       .map((a) => a.label_id)
     return labels.filter((l) => assignedIds.includes(l.id))
   },
+
+  getVoiceLabelsForPath: (dropboxPath: string) => {
+    return get().getLabelsForPath(dropboxPath).filter((l) => l.category === 'Stimme')
+  },
+
+  getGeneralLabelsForPath: (dropboxPath: string) => {
+    return get().getLabelsForPath(dropboxPath).filter((l) => l.category !== 'Stimme')
+  },
+
+  voiceLabels: () => get().labels.filter((l) => l.category === 'Stimme'),
+
+  generalLabels: () => get().labels.filter((l) => l.category !== 'Stimme'),
 
   isAssigned: (dropboxPath: string, labelId: number) => {
     return get().assignments.some(

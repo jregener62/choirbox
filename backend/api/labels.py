@@ -22,6 +22,9 @@ def list_labels(user: User = Depends(require_user), session: Session = Depends(g
             "name": l.name,
             "color": l.color,
             "category": l.category,
+            "shortcode": l.shortcode,
+            "aliases": l.aliases,
+            "sort_order": l.sort_order,
         }
         for l in labels
     ]
@@ -38,6 +41,8 @@ def create_label(data: dict, user: User = Depends(require_role("pro-member")), s
         color=data.get("color", "#6366f1"),
         category=data.get("category"),
         sort_order=data.get("sort_order", 0),
+        shortcode=data.get("shortcode"),
+        aliases=data.get("aliases"),
         choir_id=user.choir_id,
     )
     session.add(label)
@@ -57,7 +62,7 @@ def update_label(
     if not label or label.choir_id != user.choir_id:
         raise HTTPException(404, "Label not found")
 
-    for field in ["name", "color", "category", "sort_order"]:
+    for field in ["name", "color", "category", "sort_order", "shortcode", "aliases"]:
         if field in data:
             setattr(label, field, data[field])
 
