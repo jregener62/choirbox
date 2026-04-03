@@ -3328,7 +3328,6 @@ body {
 .recording-section {
   width: 100%;
   min-width: 0;
-  overflow: hidden;
 }
 
 .recording-section-label {

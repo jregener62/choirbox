@@ -40,8 +40,8 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   const loadLabels = useLabelsStore((s) => s.load)
   useEffect(() => { if (!labelsLoaded) loadLabels() }, [labelsLoaded, loadLabels])
   const voiceOptions: VoiceOption[] = allLabels
-    .filter((l) => l.category === 'Stimme' && l.shortcode)
-    .map((l) => ({ key: l.shortcode!, label: l.name, sort_order: l.sort_order }))
+    .filter((l) => l.category === 'Stimme')
+    .map((l) => ({ key: l.shortcode || l.name, label: l.name, sort_order: l.sort_order }))
   const presets = useSectionPresetsStore((s) => s.presets)
   const presetsLoaded = useSectionPresetsStore((s) => s.loaded)
   const loadPresets = useSectionPresetsStore((s) => s.load)

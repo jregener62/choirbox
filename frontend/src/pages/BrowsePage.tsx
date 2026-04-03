@@ -259,8 +259,8 @@ export function BrowsePage() {
     : stripFolderExtension(lastSegment)
 
   // Dynamic shortcodes for filename parsing
-  const voiceShortcodes = labels.filter((l) => l.category === 'Stimme' && l.shortcode).map((l) => l.shortcode!)
-  const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme' && l.shortcode).map((l) => [l.shortcode!, { name: l.name, color: l.color }]))
+  const voiceShortcodes = labels.filter((l) => l.category === 'Stimme').map((l) => l.shortcode || l.name)
+  const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme').map((l) => [l.shortcode || l.name, { name: l.name, color: l.color }]))
   const sectionPresets = useSectionPresetsStore((s) => s.presets)
   const sectionPresetsLoaded = useSectionPresetsStore((s) => s.loaded)
   const loadSectionPresets = useSectionPresetsStore((s) => s.load)
