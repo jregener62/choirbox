@@ -7,8 +7,12 @@ import type { Label } from '@/types/index.ts'
 // Reservierte Farben ausgeschlossen: Orange #f59e0b (Playback), Lime #84cc16 (Marker), Blau #3b82f6 (Confirm)
 // Reserviert/gesperrt: #22d3ee/#06b6d4 (Playback Cyan), #f59e0b (Loop), #84cc16 (Marker)
 const DEFAULT_COLORS = [
-  '#ec4899', '#f97316', '#14b8a6', '#8b5cf6',
-  '#ef4444', '#e879f9', '#a855f7',
+  // Kraeftig (gut fuer Stimmen-Pills)
+  '#ec4899', '#f97316', '#3b82f6', '#22c55e',
+  '#8b5cf6', '#ef4444', '#14b8a6',
+  // Gedeckt (gut fuer Status-Labels)
+  '#78716c', '#6b7280', '#92400e', '#065f46',
+  '#7c3aed', '#9f1239', '#a855f7',
 ]
 
 export function LabelsPage() {
