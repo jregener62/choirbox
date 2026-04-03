@@ -5,6 +5,7 @@ import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
 import { hasMinRole, ROLE_LABELS, type Role } from '@/utils/roles.ts'
+import { useLabelsStore } from '@/hooks/useLabels.ts'
 
 interface DropboxStatus {
   connected: boolean
@@ -265,11 +266,11 @@ export function SettingsPage() {
               <div className="auth-field">
                 <label className="auth-label">Stimmgruppe</label>
                 <div className="voice-part-selector">
-                  {['Sopran', 'Alt', 'Tenor', 'Bass'].map((part) => (
-                    <button key={part} type="button"
-                      className={`voice-part-btn ${editVoice === part ? 'selected' : ''}`}
-                      onClick={() => setEditVoice(part)}
-                    >{part}</button>
+                  {useLabelsStore.getState().voiceLabels().map((l) => (
+                    <button key={l.id} type="button"
+                      className={`voice-part-btn ${editVoice === l.name ? 'selected' : ''}`}
+                      onClick={() => setEditVoice(l.name)}
+                    >{l.name}</button>
                   ))}
                 </div>
               </div>

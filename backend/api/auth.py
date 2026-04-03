@@ -30,7 +30,13 @@ _login_attempts: dict[str, list[float]] = {}
 LOGIN_MAX_ATTEMPTS = 5
 LOGIN_WINDOW = 60  # seconds
 
-VALID_VOICE_PARTS = {"Sopran", "Alt", "Tenor", "Bass"}
+def _valid_voice_parts(session: Session, choir_id: str) -> set[str]:
+    """Load valid voice part names from Stimme labels in DB."""
+    from backend.models.label import Label
+    labels = session.exec(
+        select(Label).where(Label.choir_id == choir_id, Label.category == "Stimme")
+    ).all()
+    return {l.name for l in labels}
 
 
 def _hash_password(password: str) -> str:
@@ -184,7 +190,7 @@ def get_me(user: User = Depends(require_user), session: Session = Depends(get_se
 def update_me(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
     if "display_name" in data:
         user.display_name = data["display_name"]
-    if "voice_part" in data and data["voice_part"] in VALID_VOICE_PARTS:
+    if "voice_part" in data and data["voice_part"]:
         user.voice_part = data["voice_part"]
 
     user.updated_at = datetime.utcnow()
@@ -215,11 +221,21 @@ def change_password(data: dict, user: User = Depends(require_user), session: Ses
 
 @router.get("/choir-info")
 def choir_info(invite_code: str, session: Session = Depends(get_session)):
-    """Public endpoint: resolve invite code to choir name."""
+    """Public endpoint: resolve invite code to choir name and voice labels."""
     choir = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
     if not choir:
         raise HTTPException(404, "Ungueltiger Einladungslink")
-    return {"choir_id": choir.id, "choir_name": choir.name}
+    from backend.models.label import Label
+    voice_labels = session.exec(
+        select(Label)
+        .where(Label.choir_id == choir.id, Label.category == "Stimme")
+        .order_by(Label.sort_order)
+    ).all()
+    return {
+        "choir_id": choir.id,
+        "choir_name": choir.name,
+        "voice_labels": [{"name": l.name, "color": l.color} for l in voice_labels],
+    }
 
 
 @router.post("/register")
@@ -242,9 +258,6 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
         raise HTTPException(400, "Username and password required")
     if len(password) < 4:
         raise HTTPException(400, "Password must be at least 4 characters")
-    if voice_part not in VALID_VOICE_PARTS:
-        raise HTTPException(400, f"Voice part must be one of: {', '.join(sorted(VALID_VOICE_PARTS))}")
-
     # Look up choir by invite code
     choir = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
     if not choir:
@@ -258,6 +271,12 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
         choir = session.exec(select(Choir)).first()
         if not choir:
             raise HTTPException(500, "Kein Chor konfiguriert")
+
+    # Validate voice_part against choir's Stimme labels
+    if voice_part:
+        valid_parts = _valid_voice_parts(session, choir.id)
+        if valid_parts and voice_part not in valid_parts:
+            raise HTTPException(400, f"Stimmgruppe muss eine der folgenden sein: {', '.join(sorted(valid_parts))}")
 
     # Check uniqueness
     existing = session.exec(select(User).where(User.username == username)).first()

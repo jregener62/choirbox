@@ -3,12 +3,11 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Music, Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 
-const VOICE_PARTS = ['Sopran', 'Alt', 'Tenor', 'Bass'] as const
-
 export function RegisterPage() {
   const { inviteCode } = useParams<{ inviteCode: string }>()
   const [choirName, setChoirName] = useState<string | null>(null)
   const [choirError, setChoirError] = useState('')
+  const [voiceParts, setVoiceParts] = useState<string[]>([])  // dynamisch vom Server
   const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -27,7 +26,12 @@ export function RegisterPage() {
         if (!res.ok) throw new Error('Ungueltiger Einladungslink')
         return res.json()
       })
-      .then((data) => setChoirName(data.choir_name))
+      .then((data) => {
+        setChoirName(data.choir_name)
+        if (data.voice_labels?.length > 0) {
+          setVoiceParts(data.voice_labels.map((l: { name: string }) => l.name))
+        }
+      })
       .catch(() => setChoirError('Ungueltiger Einladungslink'))
   }, [inviteCode])
 
@@ -81,7 +85,7 @@ export function RegisterPage() {
       setError('Passwoerter stimmen nicht ueberein')
       return
     }
-    if (!voicePart) {
+    if (voiceParts.length > 0 && !voicePart) {
       setError('Bitte Stimmgruppe waehlen')
       return
     }
@@ -177,7 +181,7 @@ export function RegisterPage() {
           <div className="auth-field">
             <label className="auth-label">Stimmgruppe</label>
             <div className="voice-part-selector">
-              {VOICE_PARTS.map((part) => (
+              {voiceParts.map((part) => (
                 <button
                   key={part}
                   type="button"

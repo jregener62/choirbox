@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.choir import Choir
 from backend.models.user import User
-from backend.api.auth import require_admin, require_role, _hash_password, VALID_VOICE_PARTS, VALID_ROLES
+from backend.api.auth import require_admin, require_role, _hash_password, _valid_voice_parts, VALID_ROLES
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -38,8 +38,9 @@ def create_user(data: dict, user: User = Depends(require_admin), session: Sessio
 
     if not username or not password:
         raise HTTPException(400, "Username and password required")
-    if voice_part not in VALID_VOICE_PARTS:
-        raise HTTPException(400, f"Voice part must be one of: {', '.join(sorted(VALID_VOICE_PARTS))}")
+    valid_parts = _valid_voice_parts(session, user.choir_id)
+    if valid_parts and voice_part not in valid_parts:
+        raise HTTPException(400, f"Stimmgruppe muss eine der folgenden sein: {', '.join(sorted(valid_parts))}")
 
     existing = session.exec(select(User).where(User.username == username)).first()
     if existing:
