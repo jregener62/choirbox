@@ -1,6 +1,5 @@
-import { useMemo, useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Eye, EyeOff, Plus, Minus } from 'lucide-react'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { useRef, useState, useCallback, useEffect } from 'react'
+import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
@@ -14,6 +13,10 @@ import type { DocumentItem } from '@/types/index.ts'
 interface DocumentPanelProps {
   folderPath: string
   canUpload?: boolean
+  /** If provided, show only this document (player mode). Otherwise use documents store. */
+  document?: DocumentItem | null
+  /** Show hint when no document is selected (player mode) */
+  emptyHint?: string
 }
 
 function getDocIcon(type: string, size = 14) {
@@ -29,9 +32,9 @@ function getDistance(t1: Touch, t2: Touch) {
 }
 
 
-export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelProps) {
+export function DocumentPanel({ folderPath, canUpload = false, document: externalDoc, emptyHint }: DocumentPanelProps) {
   const token = useAuthStore((s) => s.token)
-  const { documents, activeDocId, loading, uploading, upload, hide, unhide, setActive } = useDocumentsStore()
+  const { documents, activeDocId, loading, uploading, upload } = useDocumentsStore()
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
@@ -41,23 +44,15 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
   const pagesRef = useRef<HTMLDivElement>(null)
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
-  const [showHidden, setShowHidden] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
 
   const TEXT_FONT_SIZES = [12, 14, 16, 18, 22, 26, 32]
 
-  const userVoicePart = useAuthStore((s) => s.user?.voice_part ?? '')
-
-  // Smart sorting: voice_part match first, then sort_order, then alphabetical
-  const visibleDocs = useMemo(() => {
-    const visible = documents.filter((d) => !d.hidden)
-    return sortDocs(visible, userVoicePart)
-  }, [documents, userVoicePart])
-
-  const hiddenDocs = useMemo(() => documents.filter((d) => d.hidden), [documents])
-  const activeDoc = documents.find((d) => d.id === activeDocId) ?? null
+  // If external document is provided (player mode), use it; otherwise use store
+  const isPlayerMode = externalDoc !== undefined
+  const activeDoc = isPlayerMode ? (externalDoc ?? null) : (documents.find((d) => d.id === activeDocId) ?? null)
 
   // Flush annotations on unmount
   useEffect(() => {
@@ -162,7 +157,7 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
     e.target.value = ''
   }
 
-  if (loading) {
+  if (!isPlayerMode && loading) {
     return (
       <div className="pdf-upload">
         <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Laden...</span>
@@ -170,8 +165,20 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
     )
   }
 
-  // No documents at all
-  if (documents.length === 0) {
+  // Player mode: no selected document
+  if (isPlayerMode && !activeDoc) {
+    return emptyHint ? (
+      <div className="pdf-upload">
+        <div className="pdf-upload-icon">
+          <FileText size={24} />
+        </div>
+        <div className="pdf-upload-text">{emptyHint}</div>
+      </div>
+    ) : null
+  }
+
+  // DocViewer mode: no documents at all
+  if (!isPlayerMode && documents.length === 0) {
     if (!canUpload) return null
     return (
       <div className="pdf-upload">
@@ -201,65 +208,16 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
     )
   }
 
-  // All hidden
-  if (visibleDocs.length === 0) {
-    return (
-      <div className="pdf-upload">
-        <div className="pdf-upload-text">
-          {hiddenDocs.length} {hiddenDocs.length === 1 ? 'Dokument' : 'Dokumente'} ausgeblendet
-        </div>
-        <button
-          className="pdf-upload-btn"
-          onClick={() => setShowHidden(true)}
-        >
-          <Eye size={14} />
-          Alle anzeigen
-        </button>
-        {showHidden && (
-          <HiddenDocsOverlay docs={hiddenDocs} onUnhide={unhide} onClose={() => setShowHidden(false)} />
-        )}
-      </div>
-    )
-  }
+  if (!activeDoc) return null
 
-  const isPdf = activeDoc?.file_type === 'pdf'
-  const isTxt = activeDoc?.file_type === 'txt'
-  const pdfUrl = activeDoc ? `/api/documents/${activeDoc.id}/download?token=${token}` : ''
+  const isPdf = activeDoc.file_type === 'pdf'
+  const isTxt = activeDoc.file_type === 'txt'
+  const pdfUrl = `/api/documents/${activeDoc.id}/download?token=${token}`
 
   return (
     <div className="pdf-panel">
-      {/* Tab bar: show when multiple visible docs OR when hidden docs exist */}
-      {(visibleDocs.length > 1 || hiddenDocs.length > 0) && (
-        <div className="doc-tabs">
-          <div className="doc-tabs-scroll">
-            {visibleDocs.map((doc) => (
-              <button
-                key={doc.id}
-                className={`doc-tab${doc.id === activeDocId ? ' doc-tab--active' : ''}`}
-                onClick={() => setActive(doc.id)}
-              >
-                {getDocIcon(doc.file_type)}
-                <span className="doc-tab-name">{doc.original_name}</span>
-                <button
-                  className="doc-tab-hide"
-                  onClick={(e) => { e.stopPropagation(); hide(doc.id) }}
-                  title="Ausblenden"
-                >
-                  <EyeOff size={12} />
-                </button>
-              </button>
-            ))}
-          </div>
-          {hiddenDocs.length > 0 && (
-            <button className="doc-tabs-hidden-badge" onClick={() => setShowHidden(true)}>
-              +{hiddenDocs.length}
-            </button>
-          )}
-        </div>
-      )}
-
       {/* Toolbar (PDF only) */}
-      {isPdf && activeDoc && (
+      {isPdf && (
         <div className="pdf-toolbar">
           <span className="pdf-toolbar-name">
             {activeDoc.original_name}
@@ -276,7 +234,7 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
       )}
 
       {/* Non-PDF toolbar */}
-      {!isPdf && activeDoc && visibleDocs.length === 1 && (
+      {!isPdf && (
         <div className="pdf-toolbar">
           <span className="pdf-toolbar-name">
             {getDocIcon(activeDoc.file_type)} {activeDoc.original_name}
@@ -284,12 +242,12 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
         </div>
       )}
 
-      {isPdf && drawingMode && activeDoc && (
+      {isPdf && drawingMode && (
         <AnnotationToolbar pageKey={`${activeDoc.id}::1`} />
       )}
 
       {/* Content area */}
-      {activeDoc?.file_type === 'pdf' && (
+      {activeDoc.file_type === 'pdf' && (
         <div
           ref={pagesRef}
           className={`pdf-pages${drawingMode ? ' pdf-pages--drawing' : ''}`}
@@ -309,11 +267,11 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
         </div>
       )}
 
-      {activeDoc?.file_type === 'video' && (
+      {activeDoc.file_type === 'video' && (
         <VideoViewer docId={activeDoc.id} originalName={activeDoc.original_name} />
       )}
 
-      {activeDoc?.file_type === 'txt' && (
+      {activeDoc.file_type === 'txt' && (
         <TextViewer
           docId={activeDoc.id}
           originalName={activeDoc.original_name}
@@ -374,70 +332,15 @@ export function DocumentPanel({ folderPath, canUpload = false }: DocumentPanelPr
         </button>
       )}
 
-      <input
-        ref={fileInputRef}
-        type="file"
-        accept=".pdf,.mp4,.webm,.mov,.txt"
-        style={{ display: 'none' }}
-        onChange={handleFileSelect}
-      />
-
-      {showHidden && hiddenDocs.length > 0 && (
-        <HiddenDocsOverlay docs={hiddenDocs} onUnhide={unhide} onClose={() => setShowHidden(false)} />
+      {canUpload && (
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".pdf,.mp4,.webm,.mov,.txt"
+          style={{ display: 'none' }}
+          onChange={handleFileSelect}
+        />
       )}
     </div>
   )
-}
-
-
-function HiddenDocsOverlay({
-  docs, onUnhide, onClose,
-}: {
-  docs: DocumentItem[]
-  onUnhide: (id: number) => Promise<void>
-  onClose: () => void
-}) {
-  return (
-    <ConfirmDialog
-      title="Ausgeblendete Dokumente"
-      onClose={onClose}
-      confirmLabel="Fertig"
-      onConfirm={onClose}
-      cancelLabel={null}
-      variant="secondary"
-    >
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-        {docs.map((doc) => (
-          <div key={doc.id} style={{
-            display: 'flex', alignItems: 'center', gap: 'var(--space-3)',
-            padding: 'var(--space-2) var(--space-3)',
-            background: 'var(--bg-primary)', borderRadius: 'var(--radius-md)',
-          }}>
-            {getDocIcon(doc.file_type)}
-            <span style={{ flex: 1, fontSize: 'var(--text-body-sm)' }}>{doc.original_name}</span>
-            <button
-              className="btn btn-secondary"
-              style={{ padding: 'var(--space-1) var(--space-3)', fontSize: 'var(--text-sm)' }}
-              onClick={() => onUnhide(doc.id)}
-            >
-              <Eye size={14} /> Zeigen
-            </button>
-          </div>
-        ))}
-      </div>
-    </ConfirmDialog>
-  )
-}
-
-
-/** Sort docs: voice_part match first, then sort_order, then alphabetical */
-function sortDocs(docs: DocumentItem[], userVoicePart: string): DocumentItem[] {
-  const voiceLower = userVoicePart.toLowerCase()
-  return [...docs].sort((a, b) => {
-    const aMatch = voiceLower && a.original_name.toLowerCase().includes(voiceLower) ? 0 : 1
-    const bMatch = voiceLower && b.original_name.toLowerCase().includes(voiceLower) ? 0 : 1
-    if (aMatch !== bMatch) return aMatch - bMatch
-    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
-    return a.original_name.localeCompare(b.original_name)
-  })
 }

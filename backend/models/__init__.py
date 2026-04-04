@@ -15,3 +15,4 @@ from backend.models.user_hidden_document import UserHiddenDocument  # noqa: F401
 from backend.models.annotation import Annotation  # noqa: F401
 from backend.models.audio_duration import AudioDuration  # noqa: F401
 from backend.models.audio_meta import AudioMeta  # noqa: F401
+from backend.models.user_selected_document import UserSelectedDocument  # noqa: F401

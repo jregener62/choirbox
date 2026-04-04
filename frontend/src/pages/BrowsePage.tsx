@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers } from 'lucide-react'
+import { Folder, FolderPlus, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -12,6 +12,7 @@ import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
+import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
@@ -198,7 +199,9 @@ export function BrowsePage() {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
     if (entry.type === 'folder' && entry.folder_type === 'texte') {
-      navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path)}`)
+      closeSearch()
+      useAppStore.getState().setBrowseReturnTo(null)
+      loadFolder(entry.path)
     } else if (entry.type === 'folder') {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
@@ -255,6 +258,20 @@ export function BrowsePage() {
   const folderName = isReservedName(lastSegment) && browseSegments.length >= 2
     ? stripFolderExtension(browseSegments[browseSegments.length - 2])
     : stripFolderExtension(lastSegment)
+
+  // Detect if we're inside a Texte folder
+  const isInTexteFolder = lastSegment.toLowerCase() === 'texte'
+  // Song folder path for selected doc (go up one level from Texte)
+  const songFolderPath = isInTexteFolder && browseSegments.length >= 2
+    ? '/' + browseSegments.slice(0, -1).join('/')
+    : ''
+  const { selectedDoc, loadSelected: loadSelectedDoc, select: selectDoc } = useSelectedDocumentStore()
+
+  useEffect(() => {
+    if (isInTexteFolder && songFolderPath) {
+      loadSelectedDoc(songFolderPath)
+    }
+  }, [isInTexteFolder, songFolderPath, loadSelectedDoc])
 
   // Voice lookup for colors (shortcode → label info)
   const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme').map((l) => [l.shortcode || l.name, { name: l.name, color: l.color }]))
@@ -555,6 +572,9 @@ export function BrowsePage() {
                     : (isFile || isDoc)
                       ? formatDisplayName(entry.display_name || entry.name)
                       : (entry.display_name || entry.name)}
+                  {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
+                    <Check size={14} className="file-name-selected" />
+                  )}
                 </div>
                 {entry.doc_count != null && entry.doc_count > 0 && (
                   <div className="file-meta">
@@ -631,6 +651,14 @@ export function BrowsePage() {
                 >
                   <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                 </button>
+                {isInTexteFolder && isDoc && entry.doc_id && (
+                  <button
+                    className={`swipe-action-btn swipe-action-select${selectedDoc?.id === entry.doc_id ? ' swipe-action-select--active' : ''}`}
+                    onClick={(e) => { e.stopPropagation(); selectDoc(songFolderPath, entry.doc_id!) }}
+                  >
+                    <Check size={18} />
+                  </button>
+                )}
                 {(isFile || isDoc) && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-label"

@@ -533,3 +533,107 @@ def unhide_document(
         raise HTTPException(404, "Dokument nicht gefunden")
     document_service.unhide_document(user.id, doc_id, session)
     return ActionResponse.success()
+
+
+# ---------------------------------------------------------------------------
+# Select / Deselect document for player
+# ---------------------------------------------------------------------------
+
+@router.post("/select")
+def select_document(
+    body: dict,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    folder_path = body.get("folder_path", "").strip()
+    document_id = body.get("document_id")
+    if not folder_path or not document_id:
+        raise HTTPException(400, "folder_path und document_id erforderlich")
+
+    doc = document_service.get_document(document_id, session)
+    if not doc:
+        raise HTTPException(404, "Dokument nicht gefunden")
+
+    from backend.models.user_selected_document import UserSelectedDocument
+    existing = session.exec(
+        select(UserSelectedDocument).where(
+            UserSelectedDocument.user_id == user.id,
+            UserSelectedDocument.folder_path == folder_path,
+        )
+    ).first()
+
+    if existing:
+        existing.document_id = document_id
+        session.add(existing)
+    else:
+        session.add(UserSelectedDocument(
+            user_id=user.id,
+            folder_path=folder_path,
+            document_id=document_id,
+        ))
+    session.commit()
+    return ActionResponse.success()
+
+
+@router.delete("/select")
+def deselect_document(
+    folder: str,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    from backend.models.user_selected_document import UserSelectedDocument
+    existing = session.exec(
+        select(UserSelectedDocument).where(
+            UserSelectedDocument.user_id == user.id,
+            UserSelectedDocument.folder_path == folder,
+        )
+    ).first()
+    if existing:
+        session.delete(existing)
+        session.commit()
+    return ActionResponse.success()
+
+
+@router.get("/selected")
+async def get_selected_document(
+    folder: str,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    from backend.models.user_selected_document import UserSelectedDocument
+    sel = session.exec(
+        select(UserSelectedDocument).where(
+            UserSelectedDocument.user_id == user.id,
+            UserSelectedDocument.folder_path == folder,
+        )
+    ).first()
+
+    if sel:
+        doc = document_service.get_document(sel.document_id, session)
+        if doc:
+            return {"document": _doc_to_dict(doc)}
+        # Selection points to deleted document — clean up
+        session.delete(sel)
+        session.commit()
+
+    # No explicit selection: auto-select if exactly 1 document in folder
+    texte_path = await _resolve_texte_folder(folder, user, session)
+    if texte_path:
+        docs = session.exec(
+            select(Document).where(Document.folder_path == texte_path)
+        ).all()
+        if len(docs) == 1:
+            return {"document": _doc_to_dict(docs[0])}
+
+    return {"document": None}
+
+
+def _doc_to_dict(doc: Document) -> dict:
+    return {
+        "id": doc.id,
+        "file_type": doc.file_type,
+        "original_name": doc.original_name,
+        "file_size": doc.file_size,
+        "page_count": doc.page_count,
+        "sort_order": doc.sort_order,
+    }

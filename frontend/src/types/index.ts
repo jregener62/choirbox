@@ -27,6 +27,7 @@ export interface DropboxEntry {
   duration?: number
   doc_count?: number
   doc_id?: number
+  selected?: boolean
   voice_keys?: string | null
   section_keys?: string | null
   song_name?: string | null
@@ -100,7 +101,6 @@ export interface DocumentItem {
   file_size: number
   page_count: number
   sort_order: number
-  hidden: boolean
 }
 
 export interface DocumentListResponse {

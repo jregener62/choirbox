@@ -13,8 +13,6 @@ interface DocumentsState {
   upload: (folderPath: string, file: File) => Promise<void>
   remove: (docId: number) => Promise<void>
   rename: (docId: number, newName: string) => Promise<void>
-  hide: (docId: number) => Promise<void>
-  unhide: (docId: number) => Promise<void>
   setActive: (docId: number) => void
   clear: () => void
 }
@@ -33,14 +31,12 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
         `/documents/list?folder=${encodeURIComponent(folderPath)}`
       )
       const docs = data.documents
-      // Auto-select first visible doc if no active or active is not in list
       const current = get().activeDocId
-      const visible = docs.filter((d) => !d.hidden)
-      const activeStillValid = visible.some((d) => d.id === current)
+      const activeStillValid = docs.some((d) => d.id === current)
       set({
         documents: docs,
         loadedFolder: folderPath,
-        activeDocId: activeStillValid ? current : (visible[0]?.id ?? null),
+        activeDocId: activeStillValid ? current : (docs[0]?.id ?? null),
         loading: false,
       })
     } catch {
@@ -69,18 +65,6 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
 
   rename: async (docId: number, newName: string) => {
     await api(`/documents/${docId}/rename`, { method: 'POST', body: { new_name: newName } })
-    const folder = get().loadedFolder
-    if (folder) await get().load(folder)
-  },
-
-  hide: async (docId: number) => {
-    await api(`/documents/${docId}/hide`, { method: 'POST' })
-    const folder = get().loadedFolder
-    if (folder) await get().load(folder)
-  },
-
-  unhide: async (docId: number) => {
-    await api(`/documents/${docId}/hide`, { method: 'DELETE' })
     const folder = get().loadedFolder
     if (folder) await get().load(folder)
   },

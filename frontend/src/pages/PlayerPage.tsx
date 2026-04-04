@@ -4,7 +4,7 @@ import { LayoutList, EllipsisVertical, ChevronLeft } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useSectionsStore } from '@/hooks/useSections.ts'
-import { useDocumentsStore } from '@/hooks/useDocuments.ts'
+import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { SectionCards } from '@/components/ui/SectionCards.tsx'
 import { DotBar } from '@/components/ui/DotBar.tsx'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
@@ -22,7 +22,7 @@ export function PlayerPage() {
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const isBeta = hasMinRole(userRole, 'beta-tester')
   const { sections, loadedFolder: sectionsLoadedFolder, load: loadSections } = useSectionsStore()
-  const { documents, loadedFolder: docsLoadedFolder, load: loadDocs } = useDocumentsStore()
+  const { selectedDoc, loadedFolder: selectedLoadedFolder, loadSelected } = useSelectedDocumentStore()
   const {
     currentName, currentPath,
     currentTime, duration,
@@ -64,9 +64,14 @@ export function PlayerPage() {
     if (isBeta && folderPath && folderPath !== sectionsLoadedFolder) loadSections(folderPath)
   }, [isBeta, folderPath, sectionsLoadedFolder, loadSections])
 
+  // Song folder path: if inside reserved folder (Audio etc.), go up to parent
+  const songFolderPath = isReservedName(lastSegment) && pathSegments.length >= 2
+    ? '/' + pathSegments.slice(0, -1).join('/')
+    : folderPath
+
   useEffect(() => {
-    if (folderPath && folderPath !== docsLoadedFolder) loadDocs(folderPath)
-  }, [folderPath, docsLoadedFolder, loadDocs])
+    if (songFolderPath && songFolderPath !== selectedLoadedFolder) loadSelected(songFolderPath)
+  }, [songFolderPath, selectedLoadedFolder, loadSelected])
 
   // Reset fullscreen on unmount
   useEffect(() => {
@@ -80,8 +85,8 @@ export function PlayerPage() {
 
   const timeline = isBeta ? buildTimeline(sections, duration) : []
   const hasSections = isBeta && sections.length > 0
-  const hasDocs = documents.some((d) => !d.hidden)
-  const showDots = isBeta && (hasDocs || documents.length > 0)
+  const hasSelectedDoc = selectedDoc !== null
+  const showDots = isBeta && hasSelectedDoc
 
   const handleSectionClick = (entry: TimelineEntry) => {
     const store = usePlayerStore.getState()
@@ -170,7 +175,7 @@ export function PlayerPage() {
               </div>
             </div>
             <div className="player-content-panel">
-              <DocumentPanel folderPath={folderPath} />
+              <DocumentPanel folderPath={folderPath} document={selectedDoc} emptyHint="Text im Texte-Ordner auswählen" />
             </div>
           </div>
         </div>
@@ -191,9 +196,9 @@ export function PlayerPage() {
             <EmptySections />
           )}
         </div>
-      ) : (hasDocs || documents.length > 0) ? (
+      ) : hasSelectedDoc ? (
         <div className="player-scroll-content">
-          <DocumentPanel folderPath={folderPath} />
+          <DocumentPanel folderPath={folderPath} document={selectedDoc} emptyHint="Text im Texte-Ordner auswählen" />
         </div>
       ) : null}
     </div>

@@ -260,14 +260,87 @@ async def dropbox_browse(
     # Create synthetic entries for reserved folders + count their contents
     for reserved_name, reserved_path in reserved_found.items():
         _, folder_type = parse_folder_name(reserved_name)
-        count = 0
+        sub_files = []
         try:
             sub_dbx = _to_dropbox_path(reserved_path, root_folder)
             sub_entries = await dbx.list_folder(sub_dbx)
-            count = sum(1 for e in sub_entries if e.get(".tag") == "file")
+            sub_files = [e for e in sub_entries if e.get(".tag") == "file"]
         except Exception:
             pass
-        if count > 0:
+        count = len(sub_files)
+
+        if count == 0:
+            # Empty folder: don't show
+            continue
+
+        if folder_type == "texte":
+            from sqlmodel import select as sqlmodel_select
+            from backend.models.document import Document as DocModel
+            from backend.models.user_selected_document import UserSelectedDocument
+
+            if count == 1:
+                # Single document: show document directly instead of folder
+                single = sub_files[0]
+                single_name = single.get("name", "")
+                single_path = _to_user_path(single.get("path_display", ""), root_folder)
+                doc_id = None
+                try:
+                    doc_row = session.exec(
+                        sqlmodel_select(DocModel).where(
+                            DocModel.folder_path == reserved_path,
+                            DocModel.original_name == single_name,
+                        )
+                    ).first()
+                    if doc_row:
+                        doc_id = doc_row.id
+                except Exception:
+                    pass
+                filtered.append({
+                    "name": single_name,
+                    "display_name": single_name,
+                    "path": single_path,
+                    "type": "document",
+                    "folder_type": "texte",
+                    "doc_id": doc_id,
+                    "size": single.get("size", 0),
+                    "selected": True,
+                })
+            else:
+                # 2+ documents: show Texte folder
+                filtered.append({
+                    "name": reserved_name,
+                    "display_name": reserved_name,
+                    "path": reserved_path,
+                    "type": "folder",
+                    "folder_type": folder_type,
+                    "doc_count": count,
+                    "reserved": True,
+                })
+                # Also show selected document directly (if user has one)
+                try:
+                    sel = session.exec(
+                        sqlmodel_select(UserSelectedDocument).where(
+                            UserSelectedDocument.user_id == user.id,
+                            UserSelectedDocument.folder_path == path,
+                        )
+                    ).first()
+                    if sel:
+                        doc = session.get(DocModel, sel.document_id)
+                        if doc:
+                            sel_path = reserved_path.rstrip("/") + "/" + doc.original_name
+                            filtered.append({
+                                "name": doc.original_name,
+                                "display_name": doc.original_name,
+                                "path": sel_path,
+                                "type": "document",
+                                "folder_type": "texte",
+                                "doc_id": doc.id,
+                                "size": doc.file_size,
+                                "selected": True,
+                            })
+                except Exception:
+                    pass
+        else:
             filtered.append({
                 "name": reserved_name,
                 "display_name": reserved_name,
@@ -292,14 +365,19 @@ async def dropbox_browse(
             if entry.get("type") == "document":
                 entry["doc_id"] = docs_in_folder.get(entry["name"])
 
-    # Sort: containers, .song folders, reserved (synthetic) entries, documents, files
-    type_order = {"folder": 0, "document": 1, "file": 2}
-    folder_type_order = {None: 0, "song": 1, "texte": 2, "audio": 3, "videos": 4, "multitrack": 5}
-    filtered.sort(key=lambda x: (
-        type_order.get(x["type"], 9),
-        folder_type_order.get(x.get("folder_type"), 5),
-        (x.get("display_name") or x["name"]).lower(),
-    ))
+    # Sort: containers, .song folders, reserved entries, single texte doc, other documents, files
+    def _sort_key(x):
+        ft = x.get("folder_type")
+        folder_type_order = {None: 0, "song": 1, "texte": 2, "audio": 3, "videos": 4, "multitrack": 5}
+        if x["type"] == "folder":
+            return (0, folder_type_order.get(ft, 5), (x.get("display_name") or x["name"]).lower())
+        if x["type"] == "document" and ft == "texte":
+            # Single texte doc: sort alongside reserved folders
+            return (0, folder_type_order["texte"], (x.get("display_name") or x["name"]).lower())
+        if x["type"] == "document":
+            return (1, 0, (x.get("display_name") or x["name"]).lower())
+        return (2, 0, (x.get("display_name") or x["name"]).lower())
+    filtered.sort(key=_sort_key)
 
     # Attach cached durations
     from backend.services.audio_duration_service import get_durations_for_paths
