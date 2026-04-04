@@ -378,9 +378,9 @@ Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent i
 - **Texte-Ordner** ist ein normaler, navigierbarer Ordner — alle User koennen ihn betreten
 - **Text-Viewer-Button** bei `.song`-Eintraegen: Gruenes FileText-Icon in der Brick-Zeile oeffnet den ausgewaehlten Text direkt im DocViewer. Inaktiv wenn kein Text ausgewaehlt.
 - **0 Texte**: Texte-Ordner und Text-Viewer-Button werden nicht angezeigt
-- **1 Text**: Gilt automatisch als ausgewaehlt (Backend Auto-Selection), Text-Viewer-Button aktiv
+- **1 Text**: Beim Upload automatisch ausgewaehlt (persistent). Kann per Swipe-Action abgewaehlt werden (z.B. bei nicht-musikbezogenen Texten wie Anweisungen, Aufstellung etc.)
 - **2+ Texte**: Texte-Ordner als navigierbarer Ordner, Text-Viewer-Button aktiv wenn ein Text ausgewaehlt
-- **Auswahl im Texte-Ordner**: Swipe-Action (Haken-Icon) auf Dokumenten — grau = nicht ausgewaehlt, gruen = ausgewaehlt
+- **Auswahl im Texte-Ordner**: Swipe-Action (Haken-Icon) auf Dokumenten als Toggle — grau = nicht ausgewaehlt, gruen = ausgewaehlt. Funktioniert auch bei nur einem Dokument
 - **Visueller Indikator**: Gruenes FileText-Icon hinter dem Dateinamen des ausgewaehlten Texts im Texte-Ordner
 - **Viewer**: Zeigt den ausgewaehlten Text. Ohne Auswahl: Hinweis "Kein Dokument ausgewaehlt"
 - **Viewer-Button**: FileText-Icon links im Global Player oeffnet `/viewer`. Aktiv hervorgehoben wenn Viewer-Route aktiv.
