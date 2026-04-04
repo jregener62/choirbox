@@ -166,6 +166,7 @@ async def dropbox_callback(
 @router.get("/browse")
 async def dropbox_browse(
     path: str = "",
+    refresh: bool = False,
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
@@ -184,8 +185,9 @@ async def dropbox_browse(
     root_folder = _get_root_folder(user, session)
     dropbox_path = _to_dropbox_path(path, root_folder)
 
+    use_cache = not refresh
     try:
-        entries = await dbx.list_folder(dropbox_path)
+        entries = await dbx.list_folder(dropbox_path, use_cache=use_cache)
     except RuntimeError as e:
         if "path/not_found" in str(e):
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
@@ -601,6 +603,10 @@ async def dropbox_upload(
     except RuntimeError as e:
         raise HTTPException(502, str(e))
 
+    # Invalidate cache for the target folder and its parent
+    from backend.services.dropbox_cache import folder_cache
+    folder_cache.invalidate_tree(full_target)
+
     return ActionResponse.success(data={
         "name": result.get("name", filename),
         "path": _to_user_path(result.get("path_display", dropbox_path), root_folder),
@@ -710,6 +716,10 @@ async def dropbox_delete_file(
             raise HTTPException(404, "Datei nicht gefunden")
         raise HTTPException(502, str(e))
 
+    # Invalidate cache for the parent folder
+    from backend.services.dropbox_cache import folder_cache
+    folder_cache.invalidate_tree(dropbox_path)
+
     # Cleanup associated DB records
     from backend.services.cleanup_service import cleanup_file
     cleanup_file(path, session)
@@ -753,6 +763,10 @@ async def dropbox_create_folder(
             raise HTTPException(409, "Ordner existiert bereits")
         raise HTTPException(502, str(e))
 
+    # Invalidate cache for the parent folder
+    from backend.services.dropbox_cache import folder_cache
+    folder_cache.invalidate_tree(full_path)
+
     return ActionResponse.success(data={
         "name": result.get("name", name),
         "path": _to_user_path(result.get("path_display", full_path), root_folder),
@@ -794,6 +808,10 @@ async def dropbox_delete_folder(
     except RuntimeError as e:
         raise HTTPException(502, str(e))
 
+    # Invalidate cache for the deleted folder and its parent
+    from backend.services.dropbox_cache import folder_cache
+    folder_cache.invalidate_tree(dropbox_path)
+
     # Cleanup associated DB records (sections, documents, etc.)
     from backend.services.cleanup_service import cleanup_folder
     cleanup_folder(path, session)
@@ -834,6 +852,11 @@ async def dropbox_rename(
         if "path_lookup/not_found" in str(e) or "from_lookup/not_found" in str(e):
             raise HTTPException(404, "Datei/Ordner nicht gefunden")
         raise HTTPException(502, str(e))
+
+    # Invalidate cache for both old and new paths
+    from backend.services.dropbox_cache import folder_cache
+    folder_cache.invalidate_tree(from_dropbox)
+    folder_cache.invalidate_tree(to_dropbox)
 
     # Update audio meta for renamed file
     new_user_path = _to_user_path(result.get("path_display", to_dropbox), root_folder)

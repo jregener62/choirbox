@@ -60,12 +60,33 @@ export const useLabelsStore = create<LabelsState>((set, get) => ({
   },
 
   toggleLabel: async (dropboxPath: string, labelId: number) => {
-    await api('/labels/my/toggle', {
-      method: 'POST',
-      body: { dropbox_path: dropboxPath, label_id: labelId },
-    })
-    // Reload assignments
-    const assignments = await api<UserLabelAssignment[]>('/labels/my')
-    set({ assignments })
+    const wasAssigned = get().isAssigned(dropboxPath, labelId)
+
+    // Optimistic update: immediately update local state
+    if (wasAssigned) {
+      set({
+        assignments: get().assignments.filter(
+          (a) => !(a.dropbox_path === dropboxPath && a.label_id === labelId),
+        ),
+      })
+    } else {
+      const tempAssignment: UserLabelAssignment = {
+        id: -Date.now(),
+        dropbox_path: dropboxPath,
+        label_id: labelId,
+      }
+      set({ assignments: [...get().assignments, tempAssignment] })
+    }
+
+    try {
+      await api('/labels/my/toggle', {
+        method: 'POST',
+        body: { dropbox_path: dropboxPath, label_id: labelId },
+      })
+    } catch {
+      // Rollback on error: reload from server
+      const assignments = await api<UserLabelAssignment[]>('/labels/my')
+      set({ assignments })
+    }
   },
 }))

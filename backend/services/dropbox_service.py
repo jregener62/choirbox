@@ -158,10 +158,23 @@ class DropboxService:
 
     # -- High-level helpers --
 
-    async def list_folder(self, path: str) -> list[dict]:
-        """List files and folders at a Dropbox path with full pagination."""
+    async def list_folder(self, path: str, use_cache: bool = True) -> list[dict]:
+        """List files and folders at a Dropbox path with full pagination.
+
+        Results are cached in-memory with a 2-minute TTL. Pass use_cache=False
+        to bypass the cache (e.g. after mutations or manual refresh).
+        """
+        from backend.services.dropbox_cache import folder_cache
+
+        if use_cache:
+            cached = folder_cache.get(path)
+            if cached is not None:
+                logger.debug("list_folder cache hit: %s", path)
+                return cached[0]  # entries
+
         result = await self.api_call("files/list_folder", {"path": path})
         entries = result.get("entries", [])
+        cursor = result.get("cursor", "")
 
         page = 1
         while result.get("has_more"):
@@ -171,7 +184,9 @@ class DropboxService:
                 "cursor": result["cursor"],
             })
             entries.extend(result.get("entries", []))
+            cursor = result.get("cursor", cursor)
 
+        folder_cache.put(path, entries, cursor)
         return entries
 
     async def search(self, query: str, path: str = "") -> list[dict]:

@@ -3719,7 +3719,7 @@ textarea::placeholder {
   to { transform: rotate(360deg); }
 }
 
-.spinning {
+.spinning, .spin {
   animation: spin 1s linear infinite;
 }
 

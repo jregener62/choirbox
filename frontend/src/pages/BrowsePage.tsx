@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check } from 'lucide-react'
+import { Folder, FolderPlus, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
+import { useBrowseStore } from '@/stores/browseStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { RecordingModal } from '@/components/ui/RecordingModal'
@@ -28,7 +29,6 @@ interface SearchResponse {
 export function BrowsePage() {
   const navigate = useNavigate()
   const browsePath = useAppStore((s) => s.browsePath)
-  const setBrowsePath = useAppStore((s) => s.setBrowsePath)
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { favorites, loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
@@ -37,9 +37,9 @@ export function BrowsePage() {
   const canDelete = hasMinRole(user?.role ?? 'guest', 'chorleiter')
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
-  const [entries, setEntries] = useState<DropboxEntry[]>([])
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
+  const { currentEntries: entries, loading, refreshing, error: browseError, loadFolder: storeLoadFolder } = useBrowseStore()
+  const [mutationError, setMutationError] = useState('')
+  const error = browseError || mutationError
   const [recordingOpen, setRecordingOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [importedFiles, setImportedFiles] = useState<File[]>([])
@@ -81,27 +81,26 @@ export function BrowsePage() {
   const searchRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
 
-  const loadFolder = useCallback(async (path: string) => {
+  const loadFolder = useCallback((path: string, forceRefresh = false) => {
     setRevealedPath(null)
-    setLoading(true)
-    setError('')
-    try {
-      const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(path)}`)
-      setEntries(data.entries)
-      setBrowsePath(data.path)
-      if (data.error) setError(data.error)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Laden')
-    } finally {
-      setLoading(false)
-    }
-  }, [setBrowsePath])
+    storeLoadFolder(path, forceRefresh)
+  }, [storeLoadFolder])
 
   useEffect(() => {
     loadFolder(browsePath)
     if (!favsLoaded) loadFavs()
     if (!labelsLoaded) loadLabels()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Periodic background refresh (every 2 minutes)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        storeLoadFolder(browsePath)
+      }
+    }, 2 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [browsePath, storeLoadFolder])
 
   // Debounced search
   useEffect(() => {
@@ -188,7 +187,7 @@ export function BrowsePage() {
       setRevealedPath(null)
       await loadFolder(browsePath)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Löschen')
+      setMutationError(err instanceof Error ? err.message : 'Fehler beim Löschen')
       setConfirmEntry(null)
     } finally {
       setDeleting(false)
@@ -306,7 +305,7 @@ export function BrowsePage() {
       setCreateFolderOpen(false)
       await loadFolder(browsePath)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Erstellen')
+      setMutationError(err instanceof Error ? err.message : 'Fehler beim Erstellen')
     } finally {
       setCreating(false)
     }
@@ -322,7 +321,7 @@ export function BrowsePage() {
       await loadFolder(browsePath)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Fehler beim Loeschen'
-      setError(msg)
+      setMutationError(msg)
       setConfirmEntry(null)
     } finally {
       setDeleting(false)
@@ -338,7 +337,7 @@ export function BrowsePage() {
       setRevealedPath(null)
       await loadFolder(browsePath)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Fehler beim Umbenennen')
+      setMutationError(err instanceof Error ? err.message : 'Fehler beim Umbenennen')
       setRenameEntry(null)
     } finally {
       setRenaming(false)
@@ -366,6 +365,9 @@ export function BrowsePage() {
                   <SlidersHorizontal size={18} />
                 </button>
               )}
+              <button className="player-header-btn" onClick={() => loadFolder(browsePath, true)}>
+                <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
+              </button>
               <button className="player-header-btn" onClick={openSearch}>
                 <Search size={18} />
               </button>

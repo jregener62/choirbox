@@ -294,6 +294,51 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 
 ---
 
+## Caching & Sync
+
+### Backend Dropbox-Cache
+
+In-Memory TTL-Cache (2 Minuten) fuer Dropbox `list_folder`-Ergebnisse. Reduziert redundante Dropbox-API-Calls drastisch — ein Browse-Request mit 10 Song-Ordnern wuerde sonst 30+ API-Calls ausloesen.
+
+- Cache-Key: Dropbox-Pfad (case-insensitive)
+- Automatische Invalidierung bei Mutations (Upload, Delete, Rename, Folder-Create)
+- `?refresh=true` Parameter umgeht den Cache
+- Max 200 gecachte Pfade (LRU-Eviction)
+
+### Frontend Browse-Cache (Stale-While-Revalidate)
+
+Zustand-Store cached Browse-Ergebnisse pro Pfad. Ermoeglicht sofortige Zurueck-Navigation ohne Loading-Skeleton.
+
+- **Frischer Cache (< 2 Min):** Daten sofort anzeigen, kein API-Call
+- **Staler Cache (> 2 Min):** Daten sofort anzeigen, im Hintergrund neu fetchen
+- **Kein Cache:** Loading-Skeleton, API-Call
+- Max 50 gecachte Pfade (LRU-Eviction)
+
+### Optimistic Updates
+
+Favorites und Labels werden sofort im lokalen State aktualisiert, der API-Call laeuft im Hintergrund. Bei Server-Fehler: automatischer Rollback via Full-Reload.
+
+### Reload-Button
+
+RefreshCw-Button in der BrowsePage-Toolbar. Erzwingt frischen Fetch von Dropbox (umgeht beide Caches). Vorherige Daten bleiben sichtbar waehrend des Reloads (kein Skeleton). Dreh-Animation waehrend des Ladens.
+
+### Auto-Sync
+
+- **Page Visibility API:** Beim Zurueckkommen in den Vordergrund werden Labels, Favorites und der aktuelle Ordner im Hintergrund neu geladen
+- **Periodischer Refresh:** Alle 2 Minuten wird der aktuelle Ordner im Hintergrund aktualisiert (nur wenn Tab sichtbar)
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/services/dropbox_cache.py` | In-Memory TTL-Cache (Singleton) |
+| `backend/services/dropbox_service.py` | `list_folder()` mit Cache-Integration |
+| `frontend/src/stores/browseStore.ts` | Frontend Browse-Cache (Stale-While-Revalidate) |
+| `frontend/src/hooks/useFavorites.ts` | Optimistic Toggle |
+| `frontend/src/hooks/useLabels.ts` | Optimistic Toggle |
+| `frontend/src/components/layout/AppShell.tsx` | Page Visibility Listener |
+| `frontend/src/pages/BrowsePage.tsx` | Reload-Button, periodischer Refresh |
+
+---
+
 ## Ordner-basierte Dokumente & Sektionen
 
 Dokumente (PDF, Video, TXT) und Sektionen gehoeren zum **Ordner**, nicht zu einzelnen Audiodateien. Alle Dateien im selben Ordner teilen sich automatisch dieselben Dokumente und Sektionen.
