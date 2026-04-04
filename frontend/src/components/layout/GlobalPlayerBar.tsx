@@ -3,10 +3,11 @@ import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus, Rewind, FastForward, FileText } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useAppStore } from '@/stores/appStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { formatTime } from '@/utils/formatters.ts'
-import { VoiceBricks } from '@/components/ui/VoiceBricks.tsx'
+// import { VoiceBricks } from '@/components/ui/VoiceBricks.tsx'
 import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
@@ -71,14 +72,20 @@ export function GlobalPlayerBar() {
   }, [])
 
   const location = useLocation()
-  const hiddenRoutes = ['/settings', '/file-settings', '/login', '/register']
-  const isHidden = hiddenRoutes.includes(location.pathname) || location.pathname.startsWith('/admin')
+  const browsePath = useAppStore((s) => s.browsePath)
   const isSections = location.pathname === '/sections'
   const canGenerateSections = isSections && markers.length >= 2
 
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
 
-  if (!currentPath || isHidden) return null
+  // Show only in folders with streamable files (Audio, Multitrack, Videos) or on /viewer
+  const browseFolder = browsePath.split('/').filter(Boolean).pop()?.toLowerCase() || ''
+  const isStreamableFolder = ['audio', 'multitrack', 'videos'].includes(browseFolder)
+  const isViewerRoute = location.pathname === '/viewer'
+  const isSectionsRoute = location.pathname === '/sections'
+  const isVisible = currentPath && (isStreamableFolder || isViewerRoute || isSectionsRoute)
+
+  if (!isVisible) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
   const hasActiveLoop = loopEnabled && hasLoopRange && duration > 0
@@ -123,8 +130,8 @@ export function GlobalPlayerBar() {
 
   return (
     <div className={`global-player${pdfFullscreen ? ' global-player--hidden' : ''}`}>
-      {/* Voice bricks row */}
-      <VoiceBricks />
+      {/* Voice bricks row — temporarily hidden */}
+      {/* <VoiceBricks /> */}
 
       {/* Marker row */}
       {markers.length > 0 && (
