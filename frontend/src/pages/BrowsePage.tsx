@@ -575,13 +575,64 @@ export function BrowsePage() {
                     <Check size={14} className="file-name-selected" />
                   )}
                 </div>
-                {entry.doc_count != null && entry.doc_count > 0 && (
+                {entry.doc_count != null && entry.doc_count > 0 && entry.folder_type !== 'song' && (
                   <div className="file-meta">
                     {entry.doc_count} {entry.doc_count === 1
                       ? (isTexteFolder ? 'Dokument' : 'Datei')
                       : (isTexteFolder ? 'Dokumente' : 'Dateien')}
                   </div>
                 )}
+                {/* .song folder: user labels + brick row */}
+                {entry.folder_type === 'song' && (() => {
+                  const songLabels = getLabelsForPath(entry.path).filter((l) => l.category !== 'Stimme')
+                  return (
+                    <>
+                      {songLabels.length > 0 && (
+                        <div className="meta-line3">
+                          {songLabels.map((l) => (
+                            <span key={l.id} className="meta-label" style={{ color: l.color }}>{l.name}</span>
+                          ))}
+                        </div>
+                      )}
+                      {entry.sub_folders && entry.sub_folders.length > 0 && (
+                        <div className="meta-bricks">
+                          {entry.selected_doc && (
+                            <button
+                              className="meta-brick meta-brick--doc"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path + '/Texte')}&name=${encodeURIComponent(entry.selected_doc!.name)}`)
+                              }}
+                            >
+                              <FileText size={12} />
+                              {entry.selected_doc.name.replace(/\.[^.]+$/, '')}
+                            </button>
+                          )}
+                          {entry.sub_folders.map((sf) => (
+                            <button
+                              key={sf.type}
+                              className="meta-brick"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                if (sf.type === 'texte') {
+                                  navigate(`/doc-viewer?folder=${encodeURIComponent(sf.path)}`)
+                                } else {
+                                  loadFolder(sf.path)
+                                }
+                              }}
+                            >
+                              {sf.type === 'texte' ? <FileText size={12} /> :
+                               sf.type === 'audio' ? <Volume2 size={12} /> :
+                               sf.type === 'videos' ? <Video size={12} /> :
+                               <Layers size={12} />}
+                              {sf.count}
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </>
+                  )
+                })()}
                 {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>
                 )}
@@ -658,7 +709,7 @@ export function BrowsePage() {
                     <Check size={18} />
                   </button>
                 )}
-                {(isFile || isDoc) && !isTexteFolder && (
+                {(isFile || isDoc || entry.folder_type === 'song') && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}

@@ -400,6 +400,42 @@ async def dropbox_browse(
                 e["song_name"] = meta.song_name
                 e["free_text"] = meta.free_text
 
+    # Attach sub_folders + selected_doc to .song folder entries
+    from backend.models.user_selected_document import UserSelectedDocument
+    from backend.models.document import Document as DocModel
+    song_entries = [e for e in filtered if e.get("folder_type") == "song" and e["type"] == "folder"]
+    for song in song_entries:
+        sub_folders = []
+        selected_doc = None
+        song_dbx = _to_dropbox_path(song["path"], root_folder)
+        for reserved_type, reserved_name in [("texte", "Texte"), ("audio", "Audio"), ("videos", "Videos"), ("multitrack", "Multitrack")]:
+            sub_path = f"{song_dbx}/{reserved_name}"
+            try:
+                sub_entries = await dbx.list_folder(sub_path)
+                count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+                if count > 0:
+                    user_sub_path = f"{song['path']}/{reserved_name}"
+                    sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
+            except Exception:
+                pass
+        # Selected document
+        try:
+            texte_path = f"{song['path']}/Texte"
+            sel = session.exec(
+                sql_select(UserSelectedDocument).where(
+                    UserSelectedDocument.user_id == user.id,
+                    UserSelectedDocument.folder_path == song["path"],
+                )
+            ).first()
+            if sel:
+                doc = session.get(DocModel, sel.document_id)
+                if doc:
+                    selected_doc = {"name": doc.original_name, "path": f"{texte_path}/{doc.original_name}", "doc_id": doc.id}
+        except Exception:
+            pass
+        song["sub_folders"] = sub_folders
+        song["selected_doc"] = selected_doc
+
     return {"path": path, "entries": filtered, "root_name": root_folder or None}
 
 

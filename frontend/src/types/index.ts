@@ -16,6 +16,13 @@ export interface LoginResponse {
 
 export type FolderType = 'song' | 'texte' | 'audio' | 'videos' | 'multitrack'
 
+export interface SubFolderInfo {
+  type: FolderType
+  name: string
+  path: string
+  count: number
+}
+
 export interface DropboxEntry {
   name: string
   display_name?: string
@@ -32,6 +39,8 @@ export interface DropboxEntry {
   section_keys?: string | null
   song_name?: string | null
   free_text?: string | null
+  sub_folders?: SubFolderInfo[]
+  selected_doc?: { name: string; path: string; doc_id: number } | null
 }
 
 export interface BrowseResponse {

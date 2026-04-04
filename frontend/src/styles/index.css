@@ -1850,6 +1850,41 @@ textarea::placeholder {
   font-style: italic;
 }
 
+.meta-bricks {
+  margin-top: var(--space-1-5);
+  display: flex;
+  gap: var(--space-1);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: var(--space-0-5);
+}
+
+.meta-brick {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  font-weight: 500;
+  background: var(--bg-tertiary);
+  color: var(--text-secondary);
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-family: inherit;
+}
+
+.meta-brick:active {
+  background: var(--bg-elevated);
+}
+
+.meta-brick--doc {
+  background: rgba(129,140,248,0.12);
+  color: var(--accent);
+}
+
 .meta-label {
   display: inline-flex;
   align-items: center;
