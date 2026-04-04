@@ -1,14 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Heart, Trash2, ChevronLeft, Folder } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { parseTrackFilename } from '@/utils/parseTrackFilename'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
-import { useSectionPresetsStore } from '@/hooks/useSectionPresets.ts'
 import { formatDisplayName } from '@/utils/formatters.ts'
-import { stripFolderExtension } from '@/utils/folderTypes.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { Favorite } from '@/types/index.ts'
 
@@ -40,18 +37,12 @@ export function FavoritesPage() {
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const [activeFilters, setActiveFilters] = useState<number[]>([])
 
-  const voiceShortcodes = labels.filter((l) => l.category === 'Stimme').map((l) => l.shortcode || l.name)
   const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme').map((l) => [l.shortcode || l.name, { name: l.name, color: l.color }]))
-  const sectionPresets = useSectionPresetsStore((s) => s.presets)
-  const sectionPresetsLoaded = useSectionPresetsStore((s) => s.loaded)
-  const loadSectionPresets = useSectionPresetsStore((s) => s.load)
-  const sectionShortcodes = sectionPresets.filter((p) => p.shortcode).map((p) => p.shortcode!)
 
   useEffect(() => {
     if (!loaded) load()
     if (!labelsLoaded) loadLabels()
-    if (!sectionPresetsLoaded) loadSectionPresets()
-  }, [loaded, load, labelsLoaded, loadLabels, sectionPresetsLoaded, loadSectionPresets])
+  }, [loaded, load, labelsLoaded, loadLabels])
 
   const handlePlay = (dropboxPath: string, fileName: string) => {
     if (dropboxPath !== currentPath) {
@@ -88,24 +79,26 @@ export function FavoritesPage() {
     const allTrackLabels = getLabelsForPath(fav.dropbox_path)
     const assignedVoiceLabels = allTrackLabels.filter((l) => l.category === 'Stimme')
     const generalLabels = allTrackLabels.filter((l) => l.category !== 'Stimme')
-    const favFolderName = fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''
-    const parsed = parseTrackFilename(fav.file_name, favFolderName, voiceShortcodes, sectionShortcodes)
-    const voiceTags = parsed
-      ? parsed.voices
-          .map((v) => {
-            const info = voiceLookup[v]
-            return { letter: v, name: info?.name || v, color: info?.color || 'var(--accent)' }
-          })
-      : []
+
+    // Voice tags from backend metadata
+    const voiceTags: { letter: string; name: string; color: string }[] = []
+    if (fav.voice_keys) {
+      for (const key of fav.voice_keys.split(',')) {
+        const info = voiceLookup[key]
+        voiceTags.push({ letter: key, name: info?.name || key, color: info?.color || 'var(--accent)' })
+      }
+    }
     for (const vl of assignedVoiceLabels) {
       if (!voiceTags.some((t) => t.name === vl.name)) {
         voiceTags.push({ letter: vl.shortcode || vl.name[0], name: vl.name, color: vl.color })
       }
     }
     voiceTags.sort((a, b) => a.name.localeCompare(b.name))
-    const sections = parsed && parsed.sectionKey !== 'Gesamt'
-      ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
+    const sections = fav.section_keys
+      ? fav.section_keys.split(',').map((s) => s.replace(/(\d)/, ' $1'))
       : []
+    const freeText = fav.free_text || ''
+
     return (
       <li
         key={fav.id}
@@ -119,7 +112,7 @@ export function FavoritesPage() {
         ) : null}
         <div className="file-info">
           <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-            {parsed ? stripFolderExtension(favFolderName) : formatDisplayName(fav.file_name)}
+            {fav.song_name || formatDisplayName(fav.file_name)}
           </div>
           {voiceTags.length > 0 && (
             <div className="meta-line1">
@@ -147,8 +140,8 @@ export function FavoritesPage() {
               ))}
             </div>
           )}
-          {parsed && parsed.freeText && (
-            <div className="meta-line4">{parsed.freeText.replace(/-/g, ' ')}</div>
+          {freeText && (
+            <div className="meta-line4">{freeText.replace(/-/g, ' ')}</div>
           )}
         </div>
         <button
@@ -254,20 +247,26 @@ export function FavoritesPage() {
         )}
         {ungrouped.map((fav) => {
           const isActive = fav.dropbox_path === currentPath
-          const trackLabels = getLabelsForPath(fav.dropbox_path)
-          const favFolderName = fav.dropbox_path.split('/').filter(Boolean).slice(-2, -1)[0] || ''
-          const parsed = parseTrackFilename(fav.file_name, favFolderName, voiceShortcodes, sectionShortcodes)
-          const voiceTags = parsed
-            ? parsed.voices
-                .map((v) => {
-                  const info = voiceLookup[v]
-                  return { letter: v, name: info?.name || v, color: info?.color || 'var(--accent)' }
-                })
-                .sort((a, b) => a.name.localeCompare(b.name))
+          const allTrackLabels = getLabelsForPath(fav.dropbox_path)
+          const assignedVoiceLabels = allTrackLabels.filter((l) => l.category === 'Stimme')
+          const generalLabels = allTrackLabels.filter((l) => l.category !== 'Stimme')
+          const voiceTags: { letter: string; name: string; color: string }[] = []
+          if (fav.voice_keys) {
+            for (const key of fav.voice_keys.split(',')) {
+              const info = voiceLookup[key]
+              voiceTags.push({ letter: key, name: info?.name || key, color: info?.color || 'var(--accent)' })
+            }
+          }
+          for (const vl of assignedVoiceLabels) {
+            if (!voiceTags.some((t) => t.name === vl.name)) {
+              voiceTags.push({ letter: vl.shortcode || vl.name[0], name: vl.name, color: vl.color })
+            }
+          }
+          voiceTags.sort((a, b) => a.name.localeCompare(b.name))
+          const sections = fav.section_keys
+            ? fav.section_keys.split(',').map((s) => s.replace(/(\d)/, ' $1'))
             : []
-          const sections = parsed && parsed.sectionKey !== 'Gesamt'
-            ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
-            : []
+          const freeText = fav.free_text || ''
           return (
             <li
               key={fav.id}
@@ -281,7 +280,7 @@ export function FavoritesPage() {
               ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {formatDisplayName(fav.file_name)}
+                  {fav.song_name || formatDisplayName(fav.file_name)}
                 </div>
                 {voiceTags.length > 0 && (
                   <div className="meta-line1">
@@ -300,14 +299,17 @@ export function FavoritesPage() {
                     ))}
                   </div>
                 )}
-                {trackLabels.length > 0 && (
+                {generalLabels.length > 0 && (
                   <div className="meta-line3">
-                    {trackLabels.map((l) => (
+                    {generalLabels.map((l) => (
                       <span key={l.id} className="meta-label" style={{ color: l.color }}>
                         {l.name}
                       </span>
                     ))}
                   </div>
+                )}
+                {freeText && (
+                  <div className="meta-line4">{freeText.replace(/-/g, ' ')}</div>
                 )}
               </div>
               <button

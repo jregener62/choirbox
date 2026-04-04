@@ -57,6 +57,10 @@ export interface Favorite {
   file_name: string
   entry_type: 'file' | 'folder'
   created_at: string
+  voice_keys?: string | null
+  section_keys?: string | null
+  song_name?: string | null
+  free_text?: string | null
 }
 
 export interface UserLabelAssignment {

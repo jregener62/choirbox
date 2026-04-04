@@ -512,8 +512,7 @@ export function BrowsePage() {
             <Folder size={18} />
           ) : null
 
-          const isAudioFile = isFile && !entry.name.toLowerCase().endsWith('.mp4')
-          const isMediaEntry = isAudioFile || isDoc
+          const isMediaEntry = isFile || isDoc
 
           // Voice tags from backend-parsed metadata
           const voiceTags: { letter: string; name: string; color: string }[] = []

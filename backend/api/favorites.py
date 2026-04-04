@@ -18,6 +18,12 @@ def list_favorites(user: User = Depends(require_user), session: Session = Depend
     favorites = session.exec(
         select(Favorite).where(Favorite.user_id == user.id).order_by(Favorite.created_at.desc())
     ).all()
+
+    # Attach parsed file metadata
+    from backend.services.audio_meta_service import get_meta_for_paths
+    file_paths = [f.dropbox_path for f in favorites if (f.entry_type or "file") != "folder"]
+    metas = get_meta_for_paths(session, file_paths)
+
     return [
         {
             "id": f.id,
@@ -25,6 +31,8 @@ def list_favorites(user: User = Depends(require_user), session: Session = Depend
             "file_name": f.file_name,
             "entry_type": f.entry_type or "file",
             "created_at": f.created_at.isoformat(),
+            **({"voice_keys": m.voice_keys, "section_keys": m.section_keys, "song_name": m.song_name, "free_text": m.free_text}
+               if (m := metas.get(f.dropbox_path)) else {}),
         }
         for f in favorites
     ]
