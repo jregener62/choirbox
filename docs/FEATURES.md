@@ -219,7 +219,7 @@ Konzert im Juni/           (Container)
 
 - Dropbox-Ordnerstruktur hierarchisch durchsuchbar
 - Header zeigt den Chor-Namen prominent statt "Dateien"
-- Breadcrumb-Navigation mit Chor-Name als Root und klickbaren Pfadteilen (Endungen gestripped)
+- Breadcrumb-Navigation mit Chor-Name als Root und klickbaren Pfadteilen (Endungen gestripped). Innerhalb von `.song`-Ordnern: Member (< Pro) sehen Zurueck-Button + aktuellen Unterordner-Namen (z.B. `< MySong > Texte`)
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
 - **Card-Layout**: Alle Dateien und .song-Ordner werden als Cards mit Rahmen und Abstand dargestellt

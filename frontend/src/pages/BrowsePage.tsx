@@ -449,6 +449,12 @@ export function BrowsePage() {
                   <ChevronLeft size={16} />
                   {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
                 </span>
+                {browseSegments.length > songAncestorIdx + 1 && (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    <span className="breadcrumb-current">{browseSegments[browseSegments.length - 1]}</span>
+                  </span>
+                )}
               </div>
             ) : (
               /* Pro-member+ or outside .song: full breadcrumb */
