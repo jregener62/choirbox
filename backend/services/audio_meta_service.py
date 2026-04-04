@@ -1,4 +1,4 @@
-"""Audio metadata service — parse filenames and store/retrieve results."""
+"""File metadata service — parse filenames and store/retrieve results for all file types."""
 
 from datetime import datetime
 from sqlmodel import Session, select
@@ -8,7 +8,7 @@ from backend.models.label import Label
 from backend.models.section_preset import SectionPreset
 from backend.services.filename_parser import parse_audio_filename
 
-AUDIO_EXTENSIONS = ('.mp3', '.m4a', '.wav', '.ogg', '.flac', '.aac', '.webm', '.mp4')
+MEDIA_EXTENSIONS = ('.mp3', '.m4a', '.wav', '.ogg', '.flac', '.aac', '.webm', '.mp4', '.pdf', '.txt', '.mov')
 
 
 def _load_shortcodes(session: Session, choir_id: str) -> tuple[list[str], list[str]]:
@@ -38,7 +38,7 @@ def sync_audio_meta(
     count = 0
 
     for path in file_paths:
-        if not any(path.lower().endswith(ext) for ext in AUDIO_EXTENSIONS):
+        if not any(path.lower().endswith(ext) for ext in MEDIA_EXTENSIONS):
             continue
 
         filename = path.rsplit('/', 1)[-1] if '/' in path else path
@@ -84,7 +84,7 @@ def ensure_meta_for_paths(
 ) -> dict[str, AudioMeta]:
     """Get meta for paths, lazy-parsing any that don't exist yet."""
     existing = get_meta_for_paths(session, paths)
-    missing = [p for p in paths if p not in existing and any(p.lower().endswith(ext) for ext in AUDIO_EXTENSIONS)]
+    missing = [p for p in paths if p not in existing and any(p.lower().endswith(ext) for ext in MEDIA_EXTENSIONS)]
 
     if missing:
         sync_audio_meta(session, choir_id, missing)

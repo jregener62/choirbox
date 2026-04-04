@@ -309,10 +309,11 @@ async def dropbox_browse(
         if e["type"] == "file" and e["path"] in durations:
             e["duration"] = durations[e["path"]]
 
-    # Attach parsed audio metadata (lazy: parses on first access)
+    # Attach parsed file metadata (lazy: parses on first access)
     from backend.services.audio_meta_service import ensure_meta_for_paths
-    if file_paths:
-        metas = ensure_meta_for_paths(session, user.choir_id, file_paths)
+    all_file_paths = [e["path"] for e in filtered if e["type"] in ("file", "document")]
+    if all_file_paths:
+        metas = ensure_meta_for_paths(session, user.choir_id, all_file_paths)
         for e in filtered:
             meta = metas.get(e.get("path"))
             if meta:

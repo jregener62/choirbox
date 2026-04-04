@@ -496,25 +496,26 @@ export function BrowsePage() {
           ) : null
 
           const isAudioFile = isFile && !entry.name.toLowerCase().endsWith('.mp4')
+          const isMediaEntry = isAudioFile || isDoc
 
           // Voice tags from backend-parsed metadata
           const voiceTags: { letter: string; name: string; color: string }[] = []
-          if (isAudioFile && entry.voice_keys) {
+          if (isMediaEntry && entry.voice_keys) {
             for (const key of entry.voice_keys.split(',')) {
               const info = voiceLookup[key]
               voiceTags.push({ letter: key, name: info?.name || key, color: info?.color || 'var(--accent)' })
             }
           }
           // Sections from backend metadata
-          const sections = isAudioFile && entry.section_keys
+          const sections = isMediaEntry && entry.section_keys
             ? entry.section_keys.split(',').map((s) => s.replace(/(\d)/, ' $1'))
             : []
           // Song name and free text from backend
-          const songName = isAudioFile ? (entry.song_name || folderName) : ''
-          const freeText = isAudioFile ? (entry.free_text || '') : ''
+          const songName = isMediaEntry ? (entry.song_name || folderName) : ''
+          const freeText = isMediaEntry ? (entry.free_text || '') : ''
 
           // Zugewiesene Labels nach Kategorie trennen
-          const allTrackLabels = isAudioFile ? getLabelsForPath(entry.path) : []
+          const allTrackLabels = isMediaEntry ? getLabelsForPath(entry.path) : []
           const assignedVoiceLabels = allTrackLabels.filter((l) => l.category === 'Stimme')
           const generalLabels = allTrackLabels.filter((l) => l.category !== 'Stimme')
 
@@ -549,9 +550,9 @@ export function BrowsePage() {
               ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {isAudioFile && entry.song_name
+                  {isMediaEntry && entry.song_name
                     ? songName
-                    : entry.type === 'file'
+                    : (isFile || isDoc)
                       ? formatDisplayName(entry.display_name || entry.name)
                       : (entry.display_name || entry.name)}
                 </div>
@@ -565,7 +566,7 @@ export function BrowsePage() {
                 {(isSearching || isFiltering) && (
                   <div className="file-meta">{entry.path}</div>
                 )}
-                {isAudioFile && (entry.duration || voiceTags.length > 0) && (
+                {isMediaEntry && (entry.duration || voiceTags.length > 0) && (
                   <div className="meta-line1">
                     {!isSearching && entry.duration && (
                       <span className={`meta-duration${voiceTags.length > 0 ? ' meta-duration--sep' : ''}`}>
@@ -580,14 +581,14 @@ export function BrowsePage() {
                     ))}
                   </div>
                 )}
-                {isAudioFile && sections.length > 0 && (
+                {isMediaEntry && sections.length > 0 && (
                   <div className="meta-line2">
                     {sections.map((s) => (
                       <span key={s} className="meta-section">{s}</span>
                     ))}
                   </div>
                 )}
-                {isAudioFile && generalLabels.length > 0 && (
+                {isMediaEntry && generalLabels.length > 0 && (
                   <div className="meta-line3">
                     {generalLabels.map((l) => (
                       <span key={l.id} className="meta-label" style={{ color: l.color }}>
@@ -596,7 +597,7 @@ export function BrowsePage() {
                     ))}
                   </div>
                 )}
-                {isAudioFile && freeText && (
+                {isMediaEntry && freeText && (
                   <div className="meta-line4">{freeText.replace(/-/g, ' ')}</div>
                 )}
               </div>
@@ -755,7 +756,7 @@ export function BrowsePage() {
         </ConfirmDialog>
       )}
 
-      {renameEntry && renameEntry.type === 'file' && (
+      {renameEntry && (renameEntry.type === 'file' || renameEntry.type === 'document') && (
         <RenameModal
           path={renameEntry.path}
           currentName={renameEntry.name}
