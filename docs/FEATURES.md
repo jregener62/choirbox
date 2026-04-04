@@ -202,7 +202,7 @@ Konzert im Juni/           (Container)
 
 **Regeln:**
 - `.song`-Endung wird in der Anzeige gestripped: "Fragile.song" → "Fragile"
-- Reservierte Ordner (Texte, Audio, Videos, Multitrack) sind in der Browse-Ansicht ausgeblendet und werden als synthetische Eintraege mit Datei-Counts dargestellt
+- Reservierte Ordner (Texte, Audio, Videos, Multitrack) sind in der Browse-Ansicht ausgeblendet und werden als synthetische Eintraege mit Datei-Counts dargestellt. Leere reservierte Ordner werden komplett ausgeblendet. Dateianzahl: "X Dokument(e)" fuer Texte, "X Datei(en)" fuer Audio/Videos/Multitrack
 - Innerhalb von `.song`-Ordnern: unbekannte Unterordner werden ausgeblendet
 - Reservierte Namen koennen nicht als manuelle Ordnernamen verwendet werden (blockiert beim Erstellen)
 - Player und DocViewer erkennen reservierte Ordner und leiten Song-Name aus `.song`-Parent ab
