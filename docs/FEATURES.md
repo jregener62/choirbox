@@ -116,10 +116,12 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Datei loeschen | ✓ | ✓ | ✓ | — | — | — |
 | Umbenennen (Stift) | ✓ | ✓ | — | — | — | — |
 | Ordner loeschen | ✓ | ✓ | — | — | — | — |
-| **PlayerPage** | | | | | | |
-| Wiedergabe + Waveform | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **GlobalPlayer** | | | | | | |
+| Wiedergabe + Voice Bricks | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Viewer-Button | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| **ViewerPage** | | | | | | |
+| Dokument anzeigen | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | PDF hochladen/loeschen | ✓ | ✓ | ✓ | ✓ | — | — |
-| Datei-Einstellungen | ✓ | ✓ | ✓ | ✓ | — | — |
 | Notizen/Lyrics bearbeiten | ✓ | ✓ | ✓ | ✓ | — | — |
 | Section-Editor | ✓ | — | — | — | — | — |
 | **SettingsPage** | | | | | | |
@@ -324,17 +326,31 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 - **Groessenlimit**: Max. 150 MB Rohdatei beim Upload
 - **Fallback**: Ohne ffmpeg auf dem Server wird die Datei unverarbeitet hochgeladen
 
-### Text-Auswahl fuer den Player
+### Text-Auswahl fuer den Viewer
 
-Jeder User kann pro Song **einen** Text fuer den Player auswaehlen (persistent in DB).
+Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent in DB).
 
 - **Texte-Ordner** ist ein normaler, navigierbarer Ordner — alle User koennen ihn betreten
+- **Texte-Button** bei `.song`-Eintraegen oeffnet immer den Texte-Ordner (nicht den Viewer direkt)
 - **0 Texte**: Texte-Ordner wird nicht angezeigt
 - **1 Text**: Wird direkt im .song-Ordner angezeigt (statt des Ordners), gilt automatisch als ausgewählt
 - **2+ Texte**: Texte-Ordner als navigierbarer Ordner + ausgewaehlter Text direkt im .song-Ordner
 - **Auswahl im Texte-Ordner**: Swipe-Action (Haken-Icon) auf Dokumenten — grau = nicht ausgewaehlt, gruen = ausgewaehlt
 - **Visueller Indikator**: Gruener Haken hinter dem Dateinamen des ausgewaehlten Texts
-- **Player**: Zeigt nur den ausgewaehlten Text. Ohne Auswahl: Hinweis "Text im Texte-Ordner auswaehlen"
+- **Viewer**: Zeigt den ausgewaehlten Text. Ohne Auswahl: Hinweis "Kein Dokument ausgewaehlt"
+- **Viewer-Button**: FileText-Icon links im Global Player oeffnet `/viewer`. Aktiv hervorgehoben wenn Viewer-Route aktiv.
+
+### Viewer-Seite
+
+- Route: `/#/viewer` — zeigt das ausgewaehlte Dokument des aktuellen Songs
+- Erreichbar ueber den Viewer-Button (FileText-Icon) im Global Player
+- Leitet Song-Ordner automatisch aus dem aktuellen Track-Pfad ab (geht ueber reservierte Ordner wie Audio/ hinauf)
+- Funktionalitaet: Annotationen, Fullscreen inkl. Topbar-Hide
+- Fullscreen-Reset beim Verlassen der Seite
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/ViewerPage.tsx` | Viewer-UI (Dokument-Anzeige) |
 
 ### Standalone Dokument-Viewer
 
@@ -428,19 +444,44 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 ## Audio-Player
 
-### Wiedergabe
+### Floating Global Player
 
-- Play/Pause (kein Autoplay beim Oeffnen des Players)
-- Seek per Waveform-Klick oder Zeitanzeige
-- Aktuelle Position und Gesamtdauer
-- Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
-- Globaler Audio-Singleton (ein Track gleichzeitig)
-- Vor-/Zurueckspringen: einstellbar (5s/10s/15s), Doppeltipp auf Skip-Button wechselt das Intervall
-- Track-Header: Farbiges Voice-Icon neben dem Dateinamen (gleiche Darstellung wie in der Dateiliste)
+Der Audio-Player ist ein schwebendes, abgerundetes Overlay-Element (`position: fixed`), das ueber der aktuellen Seite liegt. Kein eigener `/player`-Endpoint mehr — der Player erscheint auf Browse, Viewer und Favorites.
+
+- **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist. Ausgeblendet auf Login, Settings, Admin-Seiten und im PDF-Fullscreen-Modus.
+- **Design**: Abgerundeter Container (`border-radius: 16px`), eigene Hintergrundfarbe (`#252D40`), dezenter Schatten. Outline-Style fuer Play/Skip-Buttons.
+- **Klick auf .song-Eintrag**: Laedt alle Audio-Dateien aus dem `/Audio`-Unterordner, setzt den ersten Track (ohne Autoplay), Player erscheint mit Voice Bricks.
+- **Aktiver .song**: Bekommt Indigo-Rahmen und statisches Lautsprecher-Icon vor dem Titel in der Browse-Liste.
+
+### Voice Bricks
+
+Klickbare Stimmen-Chips oben im Floating Player. Zeigen alle Audio-Dateien des aktuellen `.song/Audio`-Ordners.
+
+- Jeder Brick zeigt Voice-Label (Sopran, Alt, etc.) in der Stimmen-Farbe + optionale Dauer
+- Aktiver Brick: Hervorgehoben mit Rahmen + statischem Lautsprecher-Icon
+- Klick auf Brick: Wechselt den Track und startet Wiedergabe
+- Dot-Indikatoren unterhalb zeigen Anzahl und aktive Position
+- Horizontal scrollbar bei vielen Bricks
+- Fuer Dateien ohne Voice-Tag: Display-Name mit neutraler Farbe
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/PlayerPage.tsx` | Player-UI |
+| `frontend/src/components/ui/VoiceBricks.tsx` | Voice-Brick-Row Komponente |
+| `frontend/src/hooks/useSiblingTracks.ts` | Hook: Audio-Dateien im Song-Ordner laden |
+
+### Wiedergabe
+
+- Play/Pause (kein Autoplay beim Oeffnen des Players)
+- Seek per Fortschrittsbalken-Klick
+- Aktuelle Position und Gesamtdauer
+- Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
+- Globaler Audio-Singleton (ein Track gleichzeitig)
+- Vor-/Zurueckspringen: Rewind/FastForward-Icons, Skip-Zeit als klickbares Label rechts neben Forward (1s/5s/10s/15s waehlbar)
+- Viewer-Button (FileText-Icon) links im Player oeffnet `/viewer` mit ausgewaehltem Dokument
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/layout/GlobalPlayerBar.tsx` | Floating Player UI |
 | `frontend/src/hooks/useAudioPlayer.ts` | Audio-Steuerung (Singleton) |
 | `frontend/src/stores/playerStore.ts` | Playback-State |
 | `backend/api/dropbox.py` | `GET /dropbox/stream` |
@@ -575,8 +616,8 @@ Kompakte Wiedergabe-Steuerung unterhalb des Seiten-Headers auf Browse-Seiten.
 - Zeigt aktuelle Position und Gesamtdauer
 - Play/Pause und Skip-Buttons
 - Fortschrittsbalken
-- Mini-Variante: Antippen oeffnet den vollen Player
-- Full-Variante: Auf Player- und Sektionen-Seite
+- Mini-Variante: Kompakte Darstellung
+- Full-Variante: Auf Sektionen-Seite
 
 | Datei | Rolle |
 |-------|-------|
@@ -594,7 +635,7 @@ Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
   - Zugehoerige favorisierte Dateien eingerueckt darunter
   - Einzelne Dateien ohne Folder-Favorit unter "Einzelne Dateien"
 - Tap auf Folder-Divider navigiert zum Ordner im Browser, Zurueck-Pfeil fuehrt zu Favorites
-- Tap auf Datei oeffnet direkt den Player, Zurueck-Pfeil fuehrt zu Favorites
+- Tap auf Datei startet Wiedergabe im Floating Player, Zurueck-Pfeil fuehrt zu Favorites
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
 - Label-Filter auch auf Favoriten-Seite verfuegbar
 - Herz-Icon im Browse-Header zeigt Accent-Farbe + ausgefuelltes Herz wenn Favoriten vorhanden
@@ -835,7 +876,7 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 | `/join/:inviteCode` | Registrierung mit Chor-Kontext | Oeffentlich |
 | `/browse` | Datei-Browser | Authentifiziert |
 | `/favorites` | Favoriten | Authentifiziert |
-| `/player` | Audio-Player | Authentifiziert |
+| `/viewer` | Dokument-Viewer | Authentifiziert |
 | `/settings` | Einstellungen | Authentifiziert |
 | `/sections` | Section-Editor | Pro-Mitglied+ |
 | `/admin/users` | Nutzerverwaltung | Admin |
@@ -1164,6 +1205,10 @@ Das Frontend berechnete den `folder_path` fuer den DB-Lookup falsch: es entfernt
 ### Swipe-Actions bei aktiver Datei sichtbar aber nicht bedienbar
 
 Die aktuell spielende Datei hatte `background: rgba(129,140,248,0.08)` — 92% transparent. Die Swipe-Action-Buttons (z-index 1) hinter dem swipe-content (z-index 2) schimmerten durch, waren aber nicht klickbar. Tippen oeffnete stattdessen den Player. Fix: Opake Hintergrundfarbe via `color-mix(in srgb, ...)` statt transparentem rgba.
+
+### doc_id im Texte-Ordner nicht angereichert
+
+Im Texte-Ordner fehlte die `doc_id` fuer Dokument-Eintraege, wodurch der Select-Button (Haken) nicht angezeigt wurde. Ursache: Die DB speichert `folder_path` ohne fuehrenden Slash (`Bring Me Little Water.song/Texte`), die Browse-API suchte mit Slash (`/Bring Me Little Water.song/Texte`). Fix: Query matcht jetzt beide Varianten (mit und ohne fuehrenden Slash).
 
 ### Placeholder-Text nicht als solcher erkennbar
 
