@@ -1737,7 +1737,7 @@ body {
 }
 
 .file-list--cards .file-item--active {
-  background: rgba(129,140,248,0.08);
+  background: color-mix(in srgb, rgb(129,140,248) 8%, var(--bg-secondary));
 }
 
 .file-list--cards > li:has(.file-item--active) {
