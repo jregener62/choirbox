@@ -220,14 +220,17 @@ Konzert im Juni/           (Container)
 - Breadcrumb-Navigation mit Chor-Name als Root und klickbaren Pfadteilen (Endungen gestripped)
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
-- **Card-Layout**: Jede Audio-Datei wird als Card mit Rahmen und Abstand dargestellt
-- **Titel**: Songname (aus .song-Ordner abgeleitet). Voice-Prefix, Sections und Songname werden nicht im Titel wiederholt, da sie als eigene Zeilen sichtbar sind.
-- **Vierzeiliges Meta-System** unter dem Dateinamen:
-  - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot (alphabetisch sortiert, Farben aus Labels). Quellen: Dateinamen-Parsing + zugewiesene Stimme-Labels (gemerged, dedupliziert)
+- **Card-Layout**: Alle Dateien und .song-Ordner werden als Cards mit Rahmen und Abstand dargestellt
+- **Einheitliches Meta-System** fuer alle Dateitypen (Audio, Video, PDF, TXT):
+  - **Titel**: Songname (aus .song-Ordner abgeleitet). Voice-Prefix, Sections und Songname werden nicht im Titel wiederholt.
+  - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot. Quellen: Backend-Parsing + zugewiesene Stimme-Labels (gemerged)
   - **Zeile 2:** Abschnitte als Accent-Badges (aus SectionPresets dynamisch)
-  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund). Nur Nicht-Stimme-Labels (Status etc.)
-  - **Zeile 4:** Kommentar (kursiv, gedaempft) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
-- Alle Meta-Zeilen sind gegenueber dem Titel eingerueckt (ca. 2 Zeichen) fuer bessere visuelle Hierarchie
+  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund). Nur Nicht-Stimme-Labels
+  - **Zeile 4:** Kommentar (kursiv) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
+- **Backend Filename-Parsing**: Metadaten (voice_keys, section_keys, song_name, free_text) werden im Backend geparst und in `audio_meta`-Tabelle gecacht. Lazy Parsing beim Browse, Batch-Parsing beim Re-Sync. Invalidierung bei Label/Preset-Aenderungen.
+- **.song Ordner bekommen zusaetzlich:**
+  - **Brick-Zeile:** Klickbare Bricks mit farbigem Rand fuer Schnellzugriff auf Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo) und ausgewaehlten Text. Bricks zeigen Icon + Dateianzahl.
+  - **Labels:** Persoenliche Labels (Schwierig, Ueben etc.) per Swipe zuweisbar
 - Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
 - Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen
 - Skeleton-Loading im Card-Stil beim Laden eines Ordners
