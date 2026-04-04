@@ -73,7 +73,11 @@ def parse_audio_filename(
     if name == filename and not AUDIO_EXT_RE.search(filename):
         return {"voice_keys": "", "section_keys": "", "song_name": song_name, "free_text": ""}
 
-    parts = [p for p in name.split('-') if p]
+    # Split on hyphens; if no hyphens, split on spaces
+    if '-' in name:
+        parts = [p for p in name.split('-') if p]
+    else:
+        parts = [p for p in name.split(' ') if p]
     if not parts:
         return {"voice_keys": "", "section_keys": "", "song_name": song_name, "free_text": ""}
 
@@ -113,9 +117,10 @@ def parse_audio_filename(
         else:
             free_text_parts.append(part)
 
+    separator = "-" if "-" in name else " "
     return {
         "voice_keys": voice_keys,
         "section_keys": ",".join(sections),
         "song_name": song_name,
-        "free_text": "-".join(free_text_parts),
+        "free_text": separator.join(free_text_parts),
     }
