@@ -27,6 +27,10 @@ export interface DropboxEntry {
   duration?: number
   doc_count?: number
   doc_id?: number
+  voice_keys?: string | null
+  section_keys?: string | null
+  song_name?: string | null
+  free_text?: string | null
 }
 
 export interface BrowseResponse {

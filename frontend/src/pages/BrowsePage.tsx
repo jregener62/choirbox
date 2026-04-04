@@ -11,8 +11,6 @@ import { RecordingModal } from '@/components/ui/RecordingModal'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
-import { parseTrackFilename } from '@/utils/parseTrackFilename'
-import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
@@ -258,14 +256,8 @@ export function BrowsePage() {
     ? stripFolderExtension(browseSegments[browseSegments.length - 2])
     : stripFolderExtension(lastSegment)
 
-  // Dynamic shortcodes for filename parsing
-  const voiceShortcodes = labels.filter((l) => l.category === 'Stimme').map((l) => l.shortcode || l.name)
+  // Voice lookup for colors (shortcode → label info)
   const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme').map((l) => [l.shortcode || l.name, { name: l.name, color: l.color }]))
-  const sectionPresets = useSectionPresetsStore((s) => s.presets)
-  const sectionPresetsLoaded = useSectionPresetsStore((s) => s.loaded)
-  const loadSectionPresets = useSectionPresetsStore((s) => s.load)
-  useEffect(() => { if (!sectionPresetsLoaded) loadSectionPresets() }, [sectionPresetsLoaded, loadSectionPresets])
-  const sectionShortcodes = sectionPresets.filter((p) => p.shortcode).map((p) => p.shortcode!)
 
   // Show filter bar if user has any label assignments at all
   const hasAnyLabels = assignments.length > 0
@@ -504,24 +496,29 @@ export function BrowsePage() {
           ) : null
 
           const isAudioFile = isFile && !entry.name.toLowerCase().endsWith('.mp4')
-          const parsed = isAudioFile ? parseTrackFilename(entry.name, folderName, voiceShortcodes, sectionShortcodes) : null
-          const voiceTags = parsed
-            ? parsed.voices
-                .map((v) => {
-                  const info = voiceLookup[v]
-                  return { letter: v, name: info?.name || v, color: info?.color || 'var(--accent)' }
-                })
-                .sort((a, b) => a.name.localeCompare(b.name))
+
+          // Voice tags from backend-parsed metadata
+          const voiceTags: { letter: string; name: string; color: string }[] = []
+          if (isAudioFile && entry.voice_keys) {
+            for (const key of entry.voice_keys.split(',')) {
+              const info = voiceLookup[key]
+              voiceTags.push({ letter: key, name: info?.name || key, color: info?.color || 'var(--accent)' })
+            }
+          }
+          // Sections from backend metadata
+          const sections = isAudioFile && entry.section_keys
+            ? entry.section_keys.split(',').map((s) => s.replace(/(\d)/, ' $1'))
             : []
-          const sections = parsed && parsed.sectionKey !== 'Gesamt'
-            ? parsed.sections.map((s) => s.replace(/(\d)/, ' $1'))
-            : []
+          // Song name and free text from backend
+          const songName = isAudioFile ? (entry.song_name || folderName) : ''
+          const freeText = isAudioFile ? (entry.free_text || '') : ''
+
           // Zugewiesene Labels nach Kategorie trennen
           const allTrackLabels = isAudioFile ? getLabelsForPath(entry.path) : []
           const assignedVoiceLabels = allTrackLabels.filter((l) => l.category === 'Stimme')
           const generalLabels = allTrackLabels.filter((l) => l.category !== 'Stimme')
 
-          // Zugewiesene Stimme-Labels in voiceTags mergen (Dateiname + Zuweisung, dedupliziert)
+          // Zugewiesene Stimme-Labels in voiceTags mergen (dedupliziert)
           for (const vl of assignedVoiceLabels) {
             if (!voiceTags.some((v) => v.name === vl.name)) {
               voiceTags.push({ letter: vl.shortcode || vl.name[0], name: vl.name, color: vl.color })
@@ -552,15 +549,17 @@ export function BrowsePage() {
               ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {isAudioFile && parsed
-                    ? folderName
+                  {isAudioFile && entry.voice_keys != null
+                    ? songName
                     : entry.type === 'file'
                       ? formatDisplayName(entry.display_name || entry.name)
                       : (entry.display_name || entry.name)}
                 </div>
-                {isTexteFolder && entry.doc_count != null && (
+                {entry.doc_count != null && entry.doc_count > 0 && (
                   <div className="file-meta">
-                    {entry.doc_count} {entry.doc_count === 1 ? 'Dokument' : 'Dokumente'}
+                    {entry.doc_count} {entry.doc_count === 1
+                      ? (isTexteFolder ? 'Dokument' : 'Datei')
+                      : (isTexteFolder ? 'Dokumente' : 'Dateien')}
                   </div>
                 )}
                 {(isSearching || isFiltering) && (
@@ -597,8 +596,8 @@ export function BrowsePage() {
                     ))}
                   </div>
                 )}
-                {isAudioFile && parsed && parsed.freeText && (
-                  <div className="meta-line4">{parsed.freeText.replace(/-/g, ' ')}</div>
+                {isAudioFile && freeText && (
+                  <div className="meta-line4">{freeText.replace(/-/g, ' ')}</div>
                 )}
               </div>
               <button

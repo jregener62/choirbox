@@ -62,12 +62,19 @@ def update_label(
     if not label or label.choir_id != user.choir_id:
         raise HTTPException(404, "Label not found")
 
+    was_stimme = label.category == "Stimme"
     for field in ["name", "color", "category", "sort_order", "shortcode", "aliases"]:
         if field in data:
             setattr(label, field, data[field])
 
     session.add(label)
     session.commit()
+
+    # Invalidate audio meta if voice label changed
+    if was_stimme or label.category == "Stimme":
+        from backend.services.audio_meta_service import invalidate_choir_meta
+        invalidate_choir_meta(session, user.choir_id)
+
     return ActionResponse.success()
 
 

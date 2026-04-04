@@ -55,6 +55,10 @@ def update_preset(
 
     session.add(preset)
     session.commit()
+
+    from backend.services.audio_meta_service import invalidate_choir_meta
+    invalidate_choir_meta(session, user.choir_id)
+
     return ActionResponse.success()
 
 
@@ -70,4 +74,7 @@ def delete_preset(
 
     session.delete(preset)
     session.commit()
+
+    from backend.services.audio_meta_service import invalidate_choir_meta
+    invalidate_choir_meta(session, user.choir_id)
     return ActionResponse.success()

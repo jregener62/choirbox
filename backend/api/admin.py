@@ -396,7 +396,20 @@ async def resync_all(
             document_service.delete_document(doc.id, session)
             stats["removed"] += 1
 
-    # --- Step 3: Clean up orphaned records for deleted files/folders ---
+    # --- Step 3: Parse audio file metadata ---
+    from backend.models.audio_meta import AudioMeta
+    from backend.services.audio_meta_service import sync_audio_meta
+    audio_paths = [p for p in dbx_file_paths if any(p.lower().endswith(ext) for ext in ('.mp3', '.m4a', '.wav', '.ogg', '.webm', '.mp4'))]
+    meta_count = sync_audio_meta(session, user.choir_id, audio_paths)
+    stats["meta_synced"] = meta_count
+
+    # --- Step 4: Clean up orphaned records for deleted files/folders ---
+    # AudioMeta
+    for meta in session.exec(select(AudioMeta)).all():
+        if meta.dropbox_path not in dbx_file_paths:
+            session.delete(meta)
+            stats["removed"] += 1
+
     # AudioDurations
     for dur in session.exec(select(AudioDuration)).all():
         if dur.dropbox_path not in dbx_file_paths:

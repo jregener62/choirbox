@@ -267,15 +267,16 @@ async def dropbox_browse(
             count = sum(1 for e in sub_entries if e.get(".tag") == "file")
         except Exception:
             pass
-        filtered.append({
-            "name": reserved_name,
-            "display_name": reserved_name,
-            "path": reserved_path,
-            "type": "folder",
-            "folder_type": folder_type,
-            "doc_count": count,
-            "reserved": True,
-        })
+        if count > 0:
+            filtered.append({
+                "name": reserved_name,
+                "display_name": reserved_name,
+                "path": reserved_path,
+                "type": "folder",
+                "folder_type": folder_type,
+                "doc_count": count,
+                "reserved": True,
+            })
 
     # Enrich document entries with doc_id from DB
     if parent_type == "texte":
@@ -307,6 +308,18 @@ async def dropbox_browse(
     for e in filtered:
         if e["type"] == "file" and e["path"] in durations:
             e["duration"] = durations[e["path"]]
+
+    # Attach parsed audio metadata (lazy: parses on first access)
+    from backend.services.audio_meta_service import ensure_meta_for_paths
+    if file_paths:
+        metas = ensure_meta_for_paths(session, user.choir_id, file_paths)
+        for e in filtered:
+            meta = metas.get(e.get("path"))
+            if meta:
+                e["voice_keys"] = meta.voice_keys
+                e["section_keys"] = meta.section_keys
+                e["song_name"] = meta.song_name
+                e["free_text"] = meta.free_text
 
     return {"path": path, "entries": filtered, "root_name": root_folder or None}
 
@@ -704,9 +717,19 @@ async def dropbox_rename(
             raise HTTPException(404, "Datei/Ordner nicht gefunden")
         raise HTTPException(502, str(e))
 
+    # Update audio meta for renamed file
+    new_user_path = _to_user_path(result.get("path_display", to_dropbox), root_folder)
+    from backend.models.audio_meta import AudioMeta
+    old_meta = session.get(AudioMeta, path)
+    if old_meta:
+        session.delete(old_meta)
+        session.commit()
+    from backend.services.audio_meta_service import sync_audio_meta
+    sync_audio_meta(session, user.choir_id, [new_user_path])
+
     return ActionResponse.success(data={
         "name": result.get("name", new_name),
-        "path": _to_user_path(result.get("path_display", to_dropbox), root_folder),
+        "path": new_user_path,
     })
 
 
