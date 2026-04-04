@@ -1143,3 +1143,11 @@ Das Frontend berechnete den `folder_path` fuer den DB-Lookup falsch: es entfernt
 ### Cleanup-Service matchte Dokumente falsch
 
 `cleanup_file()` extrahierte den `folder_path` als direkten Parent (`Chormappe/Lied1/Texte` statt `Chormappe/Lied1`). Fix: Primaerer Match per `dropbox_path`, Fallback mit korrektem `/Texte/`-Stripping.
+
+### Swipe-Actions bei aktiver Datei sichtbar aber nicht bedienbar
+
+Die aktuell spielende Datei hatte `background: rgba(129,140,248,0.08)` — 92% transparent. Die Swipe-Action-Buttons (z-index 1) hinter dem swipe-content (z-index 2) schimmerten durch, waren aber nicht klickbar. Tippen oeffnete stattdessen den Player. Fix: Opake Hintergrundfarbe via `color-mix(in srgb, ...)` statt transparentem rgba.
+
+### Placeholder-Text nicht als solcher erkennbar
+
+Placeholder-Texte in Input-Feldern sahen aus wie eingegebener Text (gleiche Farbe, nicht kursiv). Betroffen: Login, Settings, Admin-Seiten, Modals, Suche, Lyrics-Editor. Fix: Globale `::placeholder`-Regel mit `color: var(--text-muted)` + `font-style: italic`. Zwei redundante klassenspezifische Regeln entfernt.

@@ -24,6 +24,13 @@ body {
   touch-action: manipulation;
 }
 
+/* === Placeholder (global) === */
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 /* === Popup Menu (shared) === */
 .popup-menu {
   position: absolute;
@@ -2102,9 +2109,6 @@ body {
   min-height: 40px;
 }
 
-.search-input::placeholder {
-  color: var(--text-muted);
-}
 
 /* -- Breadcrumb -- */
 
@@ -3808,9 +3812,6 @@ body {
   resize: vertical;
 }
 
-.player-edit-area::placeholder {
-  color: var(--text-muted);
-}
 
 .player-edit-area:focus {
   outline: none;
