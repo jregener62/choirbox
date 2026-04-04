@@ -195,16 +195,21 @@ export function BrowsePage() {
   }
 
   const handleSongClick = async (entry: DropboxEntry) => {
+    const audioRe = /\.(mp3|m4a|wav|ogg|flac|aac|webm)$/i
     try {
-      const audioPath = `${entry.path}/Audio`
-      const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(audioPath)}`)
-      const audioFiles = data.entries.filter((e) => e.type === 'file' && /\.(mp3|m4a|wav|ogg|flac|aac|webm)$/i.test(e.name))
+      const results = await Promise.all(
+        ['Audio', 'Multitrack'].map((sub) =>
+          api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(`${entry.path}/${sub}`)}`)
+            .then((d) => d.entries.filter((e) => e.type === 'file' && audioRe.test(e.name)))
+            .catch(() => [] as DropboxEntry[])
+        )
+      )
+      const audioFiles = results.flat()
       if (audioFiles.length > 0) {
         const first = audioFiles[0]
         usePlayerStore.getState().setTrack(first.path, first.name)
       }
     } catch {
-      // Fallback: open folder normally
       closeSearch()
       loadFolder(entry.path)
     }
@@ -496,8 +501,14 @@ export function BrowsePage() {
       {/* Scrollable content */}
       <div className="browse-content">
 
-      {/* Loading */}
-      {(loading || searching) && <SkeletonList variant="cards" />}
+      {/* Loading: sync spinner for browse, skeleton for search */}
+      {loading && !searching && (
+        <div className="empty-state">
+          <RefreshCw size={48} className="spin" style={{ opacity: 0.4 }} />
+          <div style={{ marginTop: 'var(--space-3)', color: 'var(--text-muted)' }}>Synchronisiere...</div>
+        </div>
+      )}
+      {searching && <SkeletonList variant="cards" />}
 
       {/* Error */}
       {error && !isSearching && (
