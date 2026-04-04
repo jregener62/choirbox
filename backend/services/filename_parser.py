@@ -3,7 +3,7 @@
 import re
 from typing import Optional
 
-AUDIO_EXT_RE = re.compile(r'\.(mp3|m4a|wav|ogg|flac|aac|webm|mp4|pdf|txt|mov)$', re.IGNORECASE)
+AUDIO_EXT_RE = re.compile(r'\.(mp3|m4a|wav|ogg|flac|aac|opus|webm|mp4|pdf|txt|mov)$', re.IGNORECASE)
 DEFAULT_SECTION_RE = re.compile(r'^(Intro|Strophe|Refrain|Bridge|Solo|Outro)(\d[\+\d]*)?$', re.IGNORECASE)
 
 
