@@ -231,7 +231,7 @@ Konzert im Juni/           (Container)
   - **Zeile 4:** Kommentar (kursiv) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
 - **Backend Filename-Parsing**: Metadaten (voice_keys, section_keys, song_name, free_text) werden im Backend geparst und in `audio_meta`-Tabelle gecacht. Lazy Parsing beim Browse, Batch-Parsing beim Re-Sync. Invalidierung bei Label/Preset-Aenderungen.
 - **.song Ordner bekommen zusaetzlich:**
-  - **Brick-Zeile:** Klickbare Bricks mit farbigem Rand fuer Schnellzugriff auf Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo) und ausgewaehlten Text. Bricks zeigen Icon + Dateianzahl.
+  - **Brick-Zeile:** Klickbare Bricks mit farbigem Rand fuer Schnellzugriff auf Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo). Bricks zeigen Icon + Dateianzahl. Gruener Text-Viewer-Button (FileText-Icon) ganz links oeffnet den ausgewaehlten Text direkt im DocViewer. Inaktiv/gedimmt wenn kein Text ausgewaehlt.
   - **Labels:** Persoenliche Labels (Schwierig, Ueben etc.) per Swipe zuweisbar
 - Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
 - Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen
@@ -376,12 +376,12 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent in DB).
 
 - **Texte-Ordner** ist ein normaler, navigierbarer Ordner — alle User koennen ihn betreten
-- **Texte-Button** bei `.song`-Eintraegen oeffnet immer den Texte-Ordner (nicht den Viewer direkt)
-- **0 Texte**: Texte-Ordner wird nicht angezeigt
-- **1 Text**: Wird direkt im .song-Ordner angezeigt (statt des Ordners), gilt automatisch als ausgewählt
-- **2+ Texte**: Texte-Ordner als navigierbarer Ordner + ausgewaehlter Text direkt im .song-Ordner
+- **Text-Viewer-Button** bei `.song`-Eintraegen: Gruenes FileText-Icon in der Brick-Zeile oeffnet den ausgewaehlten Text direkt im DocViewer. Inaktiv wenn kein Text ausgewaehlt.
+- **0 Texte**: Texte-Ordner und Text-Viewer-Button werden nicht angezeigt
+- **1 Text**: Gilt automatisch als ausgewaehlt (Backend Auto-Selection), Text-Viewer-Button aktiv
+- **2+ Texte**: Texte-Ordner als navigierbarer Ordner, Text-Viewer-Button aktiv wenn ein Text ausgewaehlt
 - **Auswahl im Texte-Ordner**: Swipe-Action (Haken-Icon) auf Dokumenten — grau = nicht ausgewaehlt, gruen = ausgewaehlt
-- **Visueller Indikator**: Gruener Haken hinter dem Dateinamen des ausgewaehlten Texts
+- **Visueller Indikator**: Gruenes FileText-Icon hinter dem Dateinamen des ausgewaehlten Texts im Texte-Ordner
 - **Viewer**: Zeigt den ausgewaehlten Text. Ohne Auswahl: Hinweis "Kein Dokument ausgewaehlt"
 - **Viewer-Button**: FileText-Icon links im Global Player oeffnet `/viewer`. Aktiv hervorgehoben wenn Viewer-Route aktiv.
 
