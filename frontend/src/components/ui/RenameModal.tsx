@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { Check, Save } from 'lucide-react'
 import { api } from '@/api/client'
 import { Modal } from './Modal'
-import { buildFilename } from '@/utils/filename'
+import { buildFilename, parseFilename } from '@/utils/filename'
 import { useLabelsStore } from '@/hooks/useLabels'
 import { useSectionPresetsStore } from '@/hooks/useSectionPresets'
 import { stripFolderExtension, isReservedName } from '@/utils/folderTypes'
@@ -38,12 +38,31 @@ export function RenameModal({ path, currentName, folderPath, onClose, onRenamed 
     name: p.name, shortcode: p.shortcode || p.name, max_num: p.max_num, sort_order: p.sort_order,
   }))
 
+  // Parse current filename to initialize state
+  const parsed = useMemo(
+    () => (labelsLoaded && presetsLoaded)
+      ? parseFilename(currentName, folderName, voiceOptions, sectionOptions)
+      : null,
+    [currentName, folderName, voiceOptions, sectionOptions, labelsLoaded, presetsLoaded],
+  )
+
   const [voices, setVoices] = useState<string[]>([])
   const [sections, setSections] = useState<SelectedSection[]>([])
   const [songName, setSongName] = useState(folderName)
+  const [initialized, setInitialized] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [done, setDone] = useState(false)
+
+  // Initialize state from parsed filename once labels/presets are loaded
+  useEffect(() => {
+    if (parsed && !initialized) {
+      setVoices(parsed.voices)
+      setSections(parsed.sections)
+      setSongName(parsed.songName)
+      setInitialized(true)
+    }
+  }, [parsed, initialized])
 
   const filename = useMemo(
     () => buildFilename(voices, sections, '', songName, ext, voiceOptions),

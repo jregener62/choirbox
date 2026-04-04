@@ -1120,7 +1120,7 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 **Verfuegbare Modals:**
 - `ConfirmDialog` — Bestaetigung/Loeschen/Erstellen mit optionalen Children (z.B. Input-Felder)
 - `ImportModal` — Batch-Upload mit Fortschrittsanzeige
-- `RenameModal` — Datei umbenennen mit Stimme/Abschnitt/Notiz-Auswahl
+- `RenameModal` — Datei umbenennen mit Stimme/Abschnitt/Notiz-Auswahl. Felder werden aus dem aktuellen Dateinamen vorbelegt (Filename-Parsing).
 - `RecordingModal` — Audio-Aufnahme mit Upload
 
 **Props des Base-Components:**
