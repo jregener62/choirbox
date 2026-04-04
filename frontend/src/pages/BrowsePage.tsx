@@ -546,7 +546,7 @@ export function BrowsePage() {
           const itemContent = (
             <>
               {entry.type === 'folder' ? (
-                <div className={`file-icon-box ${isTexteFolder ? 'file-icon-doc' : 'file-icon-folder'}`}>
+                <div className={`file-icon-box ${isTexteFolder ? 'file-icon-doc' : 'file-icon-folder'}${entry.folder_type === 'audio' ? ' folder-audio' : ''}${entry.folder_type === 'videos' ? ' folder-videos' : ''}${entry.folder_type === 'multitrack' ? ' folder-multitrack' : ''}`}>
                   {folderIcon}
                 </div>
               ) : isDoc ? (
@@ -582,19 +582,12 @@ export function BrowsePage() {
                       : (isTexteFolder ? 'Dokumente' : 'Dateien')}
                   </div>
                 )}
-                {/* .song folder: user labels + brick row */}
+                {/* .song folder: brick row (first sub-line) + user labels */}
                 {entry.folder_type === 'song' && (() => {
                   const songLabels = getLabelsForPath(entry.path).filter((l) => l.category !== 'Stimme')
                   return (
                     <>
-                      {songLabels.length > 0 && (
-                        <div className="meta-line3">
-                          {songLabels.map((l) => (
-                            <span key={l.id} className="meta-label" style={{ color: l.color }}>{l.name}</span>
-                          ))}
-                        </div>
-                      )}
-                      {entry.sub_folders && entry.sub_folders.length > 0 && (
+                      {(entry.sub_folders?.length || entry.selected_doc) && (
                         <div className="meta-bricks">
                           {entry.selected_doc && (
                             <button
@@ -604,14 +597,14 @@ export function BrowsePage() {
                                 navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path + '/Texte')}&name=${encodeURIComponent(entry.selected_doc!.name)}`)
                               }}
                             >
-                              <FileText size={12} />
+                              <FileText size={14} />
                               {entry.selected_doc.name.replace(/\.[^.]+$/, '')}
                             </button>
                           )}
-                          {entry.sub_folders.map((sf) => (
+                          {entry.sub_folders?.map((sf) => (
                             <button
                               key={sf.type}
-                              className="meta-brick"
+                              className={`meta-brick meta-brick--${sf.type}`}
                               onClick={(e) => {
                                 e.stopPropagation()
                                 if (sf.type === 'texte') {
@@ -621,12 +614,19 @@ export function BrowsePage() {
                                 }
                               }}
                             >
-                              {sf.type === 'texte' ? <FileText size={12} /> :
-                               sf.type === 'audio' ? <Volume2 size={12} /> :
-                               sf.type === 'videos' ? <Video size={12} /> :
-                               <Layers size={12} />}
+                              {sf.type === 'texte' ? <FileText size={14} /> :
+                               sf.type === 'audio' ? <Volume2 size={14} /> :
+                               sf.type === 'videos' ? <Video size={14} /> :
+                               <Layers size={14} />}
                               {sf.count}
                             </button>
+                          ))}
+                        </div>
+                      )}
+                      {songLabels.length > 0 && (
+                        <div className="meta-line3">
+                          {songLabels.map((l) => (
+                            <span key={l.id} className="meta-label" style={{ color: l.color }}>{l.name}</span>
                           ))}
                         </div>
                       )}
