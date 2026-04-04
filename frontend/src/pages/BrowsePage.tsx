@@ -646,16 +646,13 @@ export function BrowsePage() {
                     <>
                       {(entry.sub_folders?.length || entry.selected_doc) && (
                         <div className="meta-bricks">
-                          {(entry.selected_doc || entry.sub_folders?.some(sf => sf.type === 'texte')) && (
+                          {entry.selected_doc && (
                             <button
-                              className={`meta-brick meta-brick--text-viewer${entry.selected_doc ? ' meta-brick--text-viewer-active' : ''}`}
-                              disabled={!entry.selected_doc}
+                              className="meta-brick meta-brick--text-viewer meta-brick--text-viewer-active"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (entry.selected_doc) {
-                                  const docFolder = entry.selected_doc.path.split('/').slice(0, -1).join('/')
-                                  navigate(`/doc-viewer?folder=${encodeURIComponent(docFolder)}&name=${encodeURIComponent(entry.selected_doc.name)}`)
-                                }
+                                const docFolder = entry.selected_doc!.path.split('/').slice(0, -1).join('/')
+                                navigate(`/doc-viewer?folder=${encodeURIComponent(docFolder)}&name=${encodeURIComponent(entry.selected_doc!.name)}`)
                               }}
                             >
                               <FileText size={14} />

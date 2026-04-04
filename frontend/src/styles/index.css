@@ -2025,18 +2025,11 @@ textarea::placeholder {
 .meta-brick--text-viewer {
   background: transparent;
   border-color: transparent;
-  color: var(--text-tertiary);
   padding: 2px var(--space-1-5);
-  opacity: 0.35;
 }
 
 .meta-brick--text-viewer-active {
   color: #22c55e;
-  opacity: 1;
-}
-
-.meta-brick--text-viewer:disabled {
-  cursor: default;
 }
 
 .meta-brick--texte {
