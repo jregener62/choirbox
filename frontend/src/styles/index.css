@@ -1765,6 +1765,13 @@ textarea::placeholder {
 
 /* -- Track meta lines -- */
 
+.meta-line1,
+.meta-line2,
+.meta-line3,
+.meta-line4 {
+  padding-left: var(--space-4);
+}
+
 .meta-line1 {
   font-size: var(--text-sm);
   color: var(--text-secondary);

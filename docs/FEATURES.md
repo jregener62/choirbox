@@ -227,6 +227,7 @@ Konzert im Juni/           (Container)
   - **Zeile 2:** Abschnitte als Accent-Badges (aus SectionPresets dynamisch)
   - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund). Nur Nicht-Stimme-Labels (Status etc.)
   - **Zeile 4:** Kommentar (kursiv, gedaempft) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
+- Alle Meta-Zeilen sind gegenueber dem Titel eingerueckt (ca. 2 Zeichen) fuer bessere visuelle Hierarchie
 - Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
 - Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen
 - Skeleton-Loading im Card-Stil beim Laden eines Ordners
