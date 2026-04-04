@@ -321,19 +321,23 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 - **Groessenlimit**: Max. 150 MB Rohdatei beim Upload
 - **Fallback**: Ohne ffmpeg auf dem Server wird die Datei unverarbeitet hochgeladen
 
-### Dokumente im Player
+### Text-Auswahl fuer den Player
 
-- **Tab-Leiste**: Bei mehreren Dokumenten erscheinen Tabs mit Typ-Icon und Dateiname
-- **Smart Sorting**: Dokumente deren Name zur Stimmlage des Users passt erscheinen zuerst
-- **Ausblenden**: User koennen einzelne Dokumente per Tab-X ausblenden (persistent pro User)
-- **Einblenden**: "+N ausgeblendet" Badge → Overlay zum Wieder-Einblenden
-- Der Player ist reiner Konsument — kein Upload/Loeschen im Player
+Jeder User kann pro Song **einen** Text fuer den Player auswaehlen (persistent in DB).
+
+- **Texte-Ordner** ist ein normaler, navigierbarer Ordner — alle User koennen ihn betreten
+- **0 Texte**: Texte-Ordner wird nicht angezeigt
+- **1 Text**: Wird direkt im .song-Ordner angezeigt (statt des Ordners), gilt automatisch als ausgewählt
+- **2+ Texte**: Texte-Ordner als navigierbarer Ordner + ausgewaehlter Text direkt im .song-Ordner
+- **Auswahl im Texte-Ordner**: Swipe-Action (Haken-Icon) auf Dokumenten — grau = nicht ausgewaehlt, gruen = ausgewaehlt
+- **Visueller Indikator**: Gruener Haken hinter dem Dateinamen des ausgewaehlten Texts
+- **Player**: Zeigt nur den ausgewaehlten Text. Ohne Auswahl: Hinweis "Text im Texte-Ordner auswaehlen"
 
 ### Standalone Dokument-Viewer
 
 - Route: `/#/doc-viewer?folder=<path>&name=<name>`
 - Erreichbar durch Klick auf ein Dokument in der Browse-Seite
-- Gleiche Funktionalitaet wie im Player (Tabs, Annotationen, Fullscreen inkl. Topbar-Hide)
+- Funktionalitaet: Annotationen, Fullscreen inkl. Topbar-Hide
 - Upload-Funktion fuer pro-member+
 - Fullscreen-Reset beim Verlassen der Seite
 
@@ -341,7 +345,7 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 
 - Dokumente erscheinen als eigene Eintraege innerhalb von `Texte`-Ordnern
 - Typ-spezifische Icons (PDF, Video, Text)
-- Swipe-Actions: Favorisieren, Labels, Umbenennen, Loeschen
+- Swipe-Actions: Favorisieren, Fuer Player auswaehlen (im Texte-Ordner)
 - Upload: Dateien hochladen ueber Kebab-Menue (akzeptiert Audio + Dokument-Formate)
 
 ### Dropbox-Sync
@@ -400,20 +404,21 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/components/ui/DocumentPanel.tsx` | Multi-Doc Tabs, Viewer-Dispatch, Hide/Unhide |
+| `frontend/src/components/ui/DocumentPanel.tsx` | Einzeldokument-Viewer (Player- und DocViewer-Modus) |
 | `frontend/src/components/ui/AnnotatedPage.tsx` | `<img>` + SVG-Overlay pro Seite |
 | `frontend/src/components/ui/AnnotationToolbar.tsx` | Werkzeugleiste: Stift, Textmarker, Radierer |
 | `frontend/src/components/ui/VideoViewer.tsx` | HTML5 Video-Player im Texte-Viewer (Dokumente) |
 | `frontend/src/components/ui/VideoModal.tsx` | Video-Modal fuer .mp4 Dateien in der Browse-Seite |
 | `frontend/src/components/ui/TextViewer.tsx` | Monospace-Textansicht |
-| `frontend/src/hooks/useDocuments.ts` | Zustand Store (load/upload/remove/hide/unhide) |
+| `frontend/src/hooks/useDocuments.ts` | Zustand Store (load/upload/remove) |
+| `frontend/src/hooks/useSelectedDocument.ts` | Zustand Store: Text-Auswahl fuer Player (select/deselect/load) |
 | `frontend/src/hooks/useAnnotations.ts` | Zustand Store: drawingMode, tool, strokes, API-Calls |
 | `frontend/src/pages/DocViewerPage.tsx` | Standalone Dokument-Viewer Route |
 | `backend/api/documents.py` | `/api/documents` Endpoints |
 | `backend/services/document_service.py` | Stream-Rendering, RAM-Cache, Sync |
 | `backend/services/video_service.py` | Video-Komprimierung via ffmpeg (Upload-Pipeline) |
 | `backend/models/document.py` | Document-Modell (folder_path, file_type, content_hash) |
-| `backend/models/user_hidden_document.py` | Ausblendungen pro User |
+| `backend/models/user_selected_document.py` | Ausgewaehlter Text pro User pro Song |
 | `deploy_pdfs.sh` | PDF-Dateien + DB-Eintraege auf Prod deployen |
 
 ---
@@ -903,15 +908,16 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
-| GET | `/list?folder=<path>` | Alle Dokumente eines Ordners (mit hidden-Status, Auto-Sync mit Dropbox) | User |
+| GET | `/list?folder=<path>` | Alle Dokumente eines Ordners (Auto-Sync mit Dropbox) | User |
 | POST | `/upload` | Dokument hochladen (FormData: `file` + `folder_path`) | Pro-Mitglied+ |
 | GET | `/{id}/page/{page}` | PDF-Seite als JPEG rendern (on-demand von Dropbox) | User |
 | GET | `/{id}/download` | Redirect auf Dropbox Temp-Link | User |
 | GET | `/{id}/stream` | Dropbox Temp-Link fuer Video-Streaming | User |
 | GET | `/{id}/content` | TXT-Inhalt als Text | User |
 | DELETE | `/{id}` | Dokument loeschen (DB + Dropbox) | Pro-Mitglied+ |
-| POST | `/{id}/hide` | Dokument fuer aktuellen User ausblenden | User |
-| DELETE | `/{id}/hide` | Dokument wieder einblenden | User |
+| POST | `/select` | Text fuer Player auswaehlen (`folder_path`, `document_id`) | User |
+| DELETE | `/select?folder=<path>` | Text-Auswahl entfernen | User |
+| GET | `/selected?folder=<path>` | Ausgewaehlten Text abfragen (auto-select bei 1 Dokument) | User |
 
 ### Annotationen (`/api/annotations`)
 
