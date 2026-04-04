@@ -629,7 +629,7 @@ export function BrowsePage() {
                       ? formatDisplayName(entry.display_name || entry.name)
                       : (entry.display_name || entry.name)}
                   {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
-                    <Check size={14} className="file-name-selected" />
+                    <FileText size={14} className="file-name-selected" />
                   )}
                 </div>
                 {entry.doc_count != null && entry.doc_count > 0 && entry.folder_type !== 'song' && (
@@ -646,17 +646,19 @@ export function BrowsePage() {
                     <>
                       {(entry.sub_folders?.length || entry.selected_doc) && (
                         <div className="meta-bricks">
-                          {entry.selected_doc && (
+                          {(entry.selected_doc || entry.sub_folders?.some(sf => sf.type === 'texte')) && (
                             <button
-                              className="meta-brick meta-brick--doc"
+                              className={`meta-brick meta-brick--text-viewer${entry.selected_doc ? ' meta-brick--text-viewer-active' : ''}`}
+                              disabled={!entry.selected_doc}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                const textePath = entry.path + '/Texte'
-                                loadFolder(textePath)
+                                if (entry.selected_doc) {
+                                  const docFolder = entry.selected_doc.path.split('/').slice(0, -1).join('/')
+                                  navigate(`/doc-viewer?folder=${encodeURIComponent(docFolder)}&name=${encodeURIComponent(entry.selected_doc.name)}`)
+                                }
                               }}
                             >
                               <FileText size={14} />
-                              {entry.selected_doc.name.replace(/\.[^.]+$/, '')}
                             </button>
                           )}
                           {entry.sub_folders?.map((sf) => (
