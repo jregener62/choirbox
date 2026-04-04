@@ -583,6 +583,12 @@ def select_document(
         )
     ).first()
 
+    if existing and existing.document_id == document_id:
+        # Toggle: same document again → deselect
+        session.delete(existing)
+        session.commit()
+        return ActionResponse.success(data={"deselected": True})
+
     if existing:
         existing.document_id = document_id
         session.add(existing)

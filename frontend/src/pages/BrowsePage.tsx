@@ -294,7 +294,7 @@ export function BrowsePage() {
   const songFolderPath = isInTexteFolder && browseSegments.length >= 2
     ? '/' + browseSegments.slice(0, -1).join('/')
     : ''
-  const { selectedDoc, loadSelected: loadSelectedDoc, select: selectDoc, deselect: deselectDoc } = useSelectedDocumentStore()
+  const { selectedDoc, loadSelected: loadSelectedDoc, select: selectDoc } = useSelectedDocumentStore()
 
   useEffect(() => {
     if (isInTexteFolder && songFolderPath) {
@@ -757,7 +757,7 @@ export function BrowsePage() {
                 {isInTexteFolder && isDoc && entry.doc_id && (
                   <button
                     className={`swipe-action-btn swipe-action-select${selectedDoc?.id === entry.doc_id ? ' swipe-action-select--active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); selectedDoc?.id === entry.doc_id ? deselectDoc(songFolderPath) : selectDoc(songFolderPath, entry.doc_id!) }}
+                    onClick={(e) => { e.stopPropagation(); selectDoc(songFolderPath, entry.doc_id!) }}
                   >
                     <Check size={18} />
                   </button>
