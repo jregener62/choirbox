@@ -1,3 +1,4 @@
+import { useRef, useState, useEffect, useCallback } from 'react'
 import { Volume2 } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useSiblingTracks } from '@/hooks/useSiblingTracks.ts'
@@ -7,6 +8,22 @@ import { formatTime, formatDisplayName } from '@/utils/formatters.ts'
 export function VoiceBricks() {
   const currentPath = usePlayerStore((s) => s.currentPath)
   const tracks = useSiblingTracks()
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const [overflows, setOverflows] = useState(false)
+
+  const checkOverflow = useCallback(() => {
+    const el = scrollRef.current
+    if (el) setOverflows(el.scrollWidth > el.clientWidth)
+  }, [])
+
+  useEffect(() => {
+    const el = scrollRef.current
+    if (!el) return
+    checkOverflow()
+    const ro = new ResizeObserver(checkOverflow)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [checkOverflow, tracks.length])
 
   if (tracks.length <= 1) return null
 
@@ -21,7 +38,7 @@ export function VoiceBricks() {
 
   return (
     <div className="voice-bricks-wrap">
-      <div className="voice-bricks">
+      <div className="voice-bricks" ref={scrollRef}>
         {tracks.map((track) => {
           const isActive = track.path === currentPath
           const vk = track.voiceKey
@@ -51,11 +68,13 @@ export function VoiceBricks() {
           )
         })}
       </div>
-      <div className="voice-bricks-dots">
-        {tracks.map((_, i) => (
-          <span key={i} className={`voice-bricks-dot${i === activeIndex ? ' voice-bricks-dot--active' : ''}`} />
-        ))}
-      </div>
+      {overflows && (
+        <div className="voice-bricks-dots">
+          {tracks.map((_, i) => (
+            <span key={i} className={`voice-bricks-dot${i === activeIndex ? ' voice-bricks-dot--active' : ''}`} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }
