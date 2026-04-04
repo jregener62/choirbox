@@ -77,14 +77,13 @@ def parse_audio_filename(
     if not parts:
         return {"voice_keys": "", "section_keys": "", "song_name": song_name, "free_text": ""}
 
-    # First part: voice shortcode
+    # First part: voice shortcode (optional)
     voice_re = _build_voice_regex(voice_shortcodes)
     voice_keys = ""
     if voice_re.match(parts[0]):
         first = parts[0]
         single_chars = [s for s in voice_shortcodes if len(s) == 1]
         if single_chars and any(c in first for c in single_chars):
-            # Split combined single-char shortcodes: "SA" → ["S", "A"]
             seen = set()
             letters = []
             for ch in first:
@@ -95,8 +94,6 @@ def parse_audio_filename(
         else:
             voice_keys = first
         parts = parts[1:]
-    else:
-        return {"voice_keys": "", "section_keys": "", "song_name": song_name, "free_text": ""}
 
     # Skip folder name parts
     folder_parts = [p for p in re.sub(r'[^a-zA-Z0-9äöüÄÖÜß-]', '-', song_name).replace('--', '-').strip('-').split('-') if p]

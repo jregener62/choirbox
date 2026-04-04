@@ -549,7 +549,7 @@ export function BrowsePage() {
               ) : null}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {isAudioFile && entry.voice_keys != null
+                  {isAudioFile && entry.song_name
                     ? songName
                     : entry.type === 'file'
                       ? formatDisplayName(entry.display_name || entry.name)
