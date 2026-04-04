@@ -1527,7 +1527,7 @@ textarea::placeholder {
 }
 
 .file-item--active {
-  background: rgba(129,140,248,0.08);
+  background: color-mix(in srgb, rgb(129,140,248) 8%, var(--bg-primary));
 }
 
 .file-icon-box {
@@ -1968,6 +1968,7 @@ textarea::placeholder {
   top: 0;
   bottom: 0;
   display: flex;
+  visibility: hidden;
 }
 
 .swipe-revealed .swipe-content {
@@ -1976,6 +1977,10 @@ textarea::placeholder {
 
 .swipe-revealed:has(.swipe-action-delete) .swipe-content {
   transform: translateX(-192px);
+}
+
+.swipe-revealed .swipe-actions {
+  visibility: visible;
 }
 
 .swipe-action-btn {
