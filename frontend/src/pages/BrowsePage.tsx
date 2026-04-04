@@ -553,7 +553,7 @@ export function BrowsePage() {
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {isAudioFile && parsed
-                    ? (parsed.freeText.replace(/-/g, ' ') || folderName)
+                    ? folderName
                     : entry.type === 'file'
                       ? formatDisplayName(entry.display_name || entry.name)
                       : (entry.display_name || entry.name)}
@@ -596,6 +596,9 @@ export function BrowsePage() {
                       </span>
                     ))}
                   </div>
+                )}
+                {isAudioFile && parsed && parsed.freeText && (
+                  <div className="meta-line4">{parsed.freeText.replace(/-/g, ' ')}</div>
                 )}
               </div>
               <button

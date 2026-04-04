@@ -119,7 +119,7 @@ export function FavoritesPage() {
         ) : null}
         <div className="file-info">
           <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-            {parsed ? (parsed.freeText.replace(/-/g, ' ') || stripFolderExtension(favFolderName)) : formatDisplayName(fav.file_name)}
+            {parsed ? stripFolderExtension(favFolderName) : formatDisplayName(fav.file_name)}
           </div>
           {voiceTags.length > 0 && (
             <div className="meta-line1">
@@ -146,6 +146,9 @@ export function FavoritesPage() {
                 </span>
               ))}
             </div>
+          )}
+          {parsed && parsed.freeText && (
+            <div className="meta-line4">{parsed.freeText.replace(/-/g, ' ')}</div>
           )}
         </div>
         <button

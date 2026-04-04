@@ -1829,6 +1829,13 @@ textarea::placeholder {
   flex-wrap: wrap;
 }
 
+.meta-line4 {
+  margin-top: var(--space-1);
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-style: italic;
+}
+
 .meta-label {
   display: inline-flex;
   align-items: center;
