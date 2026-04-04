@@ -310,6 +310,27 @@ async def upload_document(
             dropbox_path=rel_path,
         )
 
+    # Auto-select first document in folder
+    doc_count = len(session.exec(
+        select(Document).where(Document.folder_path == folder_path)
+    ).all())
+    if doc_count == 1:
+        from backend.models.user_selected_document import UserSelectedDocument
+        song_path = folder_path.rsplit("/", 1)[0]
+        existing_sel = session.exec(
+            select(UserSelectedDocument).where(
+                UserSelectedDocument.user_id == user.id,
+                UserSelectedDocument.folder_path == song_path,
+            )
+        ).first()
+        if not existing_sel:
+            session.add(UserSelectedDocument(
+                user_id=user.id,
+                folder_path=song_path,
+                document_id=doc.id,
+            ))
+            session.commit()
+
     return ActionResponse.success(data={
         "id": doc.id,
         "original_name": doc.original_name,
@@ -615,15 +636,6 @@ async def get_selected_document(
         # Selection points to deleted document — clean up
         session.delete(sel)
         session.commit()
-
-    # No explicit selection: auto-select if exactly 1 document in folder
-    texte_path = await _resolve_texte_folder(folder, user, session)
-    if texte_path:
-        docs = session.exec(
-            select(Document).where(Document.folder_path == texte_path)
-        ).all()
-        if len(docs) == 1:
-            return {"document": _doc_to_dict(docs[0])}
 
     return {"document": None}
 

@@ -436,15 +436,8 @@ async def dropbox_browse(
                 doc = session.get(DocModel, sel.document_id)
                 if doc:
                     selected_doc = {"name": doc.original_name, "path": f"{texte_path}/{doc.original_name}", "doc_id": doc.id}
-            if not selected_doc:
-                # Auto-select when exactly 1 document in Texte folder
-                texte_sf = next((sf for sf in sub_folders if sf["type"] == "texte" and sf["count"] == 1), None)
-                if texte_sf:
-                    single_doc = session.exec(
-                        sql_select(DocModel).where(DocModel.folder_path == texte_path)
-                    ).first()
-                    if single_doc:
-                        selected_doc = {"name": single_doc.original_name, "path": f"{texte_path}/{single_doc.original_name}", "doc_id": single_doc.id}
+            # Query-time auto-select removed — selection is now set
+            # explicitly at upload time or by user action
         except Exception:
             pass
         song["sub_folders"] = sub_folders
