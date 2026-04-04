@@ -545,7 +545,7 @@ export function BrowsePage() {
 
           const itemContent = (
             <>
-              {entry.type === 'folder' ? (
+              {entry.type === 'folder' && entry.folder_type !== 'song' ? (
                 <div className={`file-icon-box ${isTexteFolder ? 'file-icon-doc' : 'file-icon-folder'}${entry.folder_type === 'audio' ? ' folder-audio' : ''}${entry.folder_type === 'videos' ? ' folder-videos' : ''}${entry.folder_type === 'multitrack' ? ' folder-multitrack' : ''}`}>
                   {folderIcon}
                 </div>
