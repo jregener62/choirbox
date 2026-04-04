@@ -233,7 +233,7 @@ export function SectionEditorPage() {
     <div className="player-page">
       {/* Page header — same as PlayerPage */}
       <div className="topbar">
-        <button className="topbar-back" onClick={() => navigate('/player')}>
+        <button className="topbar-back" onClick={() => navigate(-1)}>
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Sektionen</span>

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Player Farbvorschlaege</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #1E2538; --bg2: #2A3348; --bg3: #354050; --bg-elevated: #303A50;
+    --text: #E4E8EE; --text2: #9AA4B4; --text3: #6A7484;
+    --accent: #818cf8; --border: rgba(148,163,184,0.10);
+    --playback: #22d3ee;
+    --sopran: #ec4899; --alt: #f97316; --tenor: #3b82f6; --bass: #22c55e;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    max-width: 420px; margin: 0 auto; padding: 16px 12px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  h1 { font-size: 18px; margin-bottom: 4px; }
+  .subtitle { font-size: 13px; color: var(--text3); margin-bottom: 20px; }
+
+  .variant { margin-bottom: 24px; }
+  .variant-header {
+    display: flex; align-items: center; gap: 8px; margin-bottom: 8px;
+  }
+  .variant-label { font-size: 14px; font-weight: 600; }
+  .variant-tag {
+    padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700;
+  }
+
+  /* Mini player mockup */
+  .player {
+    border-radius: 16px;
+    overflow: hidden;
+    border: 1px solid rgba(148,163,184,0.08);
+  }
+
+  /* Voice bricks */
+  .bricks {
+    display: flex; gap: 6px; padding: 8px 10px 6px;
+    overflow-x: auto; scrollbar-width: none;
+  }
+  .bricks::-webkit-scrollbar { display: none; }
+  .brick {
+    display: flex; align-items: center; gap: 6px;
+    padding: 5px 10px; border-radius: 8px;
+    font-size: 11px; font-weight: 600; white-space: nowrap;
+    flex-shrink: 0; position: relative; border: 1.5px solid transparent;
+  }
+  .brick::before {
+    content: ''; position: absolute; left: 0; top: 5px; bottom: 5px;
+    width: 3px; border-radius: 2px; background: currentColor;
+  }
+  .brick-inner { padding-left: 5px; }
+  .brick-dur { font-size: 9px; opacity: 0.5; }
+  .brick--s { background: rgba(236,72,153,0.15); color: var(--sopran); border-color: var(--sopran); }
+  .brick--a { background: rgba(249,115,22,0.12); color: var(--alt); }
+  .brick--t { background: rgba(59,130,246,0.12); color: var(--tenor); }
+  .brick--b { background: rgba(34,197,94,0.12); color: var(--bass); }
+
+  /* Seek */
+  .seek { padding: 8px 12px 0; }
+  .seek-track { height: 3px; background: rgba(148,163,184,0.25); border-radius: 2px; position: relative; }
+  .seek-fill { height: 100%; width: 35%; border-radius: 2px; }
+  .seek-thumb {
+    position: absolute; top: 50%; left: 35%;
+    width: 10px; height: 10px; border-radius: 50%;
+    transform: translate(-50%, -50%);
+  }
+  .seek-times { display: flex; justify-content: space-between; padding: 3px 0 1px; font-size: 10px; font-variant-numeric: tabular-nums; }
+
+  /* Controls */
+  .controls {
+    display: flex; align-items: center; justify-content: center;
+    padding: 2px 12px 10px; gap: 2px;
+  }
+  .ctrl-side { flex: 1; display: flex; align-items: center; }
+  .ctrl-side--l { justify-content: flex-end; padding-right: 6px; }
+  .ctrl-side--r { justify-content: flex-start; padding-left: 10px; }
+  .ctrl {
+    width: 40px; height: 40px; border: none; background: none;
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 18px; cursor: pointer;
+  }
+  .ctrl-play {
+    width: 44px; height: 44px; border: none; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px; cursor: pointer;
+  }
+  .ctrl-skip { font-size: 16px; }
+
+  .divider { height: 1px; margin: 0 12px; }
+</style>
+</head>
+<body>
+
+<h1>Player Farbvorschlaege</h1>
+<p class="subtitle">Dark Theme — Hintergrund + Button-Farben</p>
+
+<!-- VARIANT 1 -->
+<div class="variant">
+  <div class="variant-header">
+    <span class="variant-label">1. Elevated Dark</span>
+    <span class="variant-tag" style="background:#303A50;color:#E4E8EE;border:1px solid rgba(148,163,184,0.15);">bg-elevated</span>
+  </div>
+  <div class="player" style="background:#303A50; box-shadow: 0 6px 24px rgba(0,0,0,0.3);">
+    <div class="bricks">
+      <div class="brick brick--s"><div class="brick-inner">Sopran<br><span class="brick-dur">3:45</span></div></div>
+      <div class="brick brick--a"><div class="brick-inner">Alt<br><span class="brick-dur">3:42</span></div></div>
+      <div class="brick brick--t"><div class="brick-inner">Tenor<br><span class="brick-dur">3:41</span></div></div>
+      <div class="brick brick--b"><div class="brick-inner">Bass<br><span class="brick-dur">3:43</span></div></div>
+    </div>
+    <div class="seek">
+      <div class="seek-track"><div class="seek-fill" style="background:#22d3ee;"></div><div class="seek-thumb" style="background:#22d3ee;"></div></div>
+      <div class="seek-times" style="color:#6A7484;"><span>1:23</span><span>3:45</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--l"><div class="ctrl" style="color:#9AA4B4;">&#8634;</div></div>
+      <div class="ctrl ctrl-skip" style="color:#E4E8EE;">&#9664;&#9664;</div>
+      <div class="ctrl-play" style="background:#E4E8EE; color:#303A50;">&#9654;</div>
+      <div class="ctrl ctrl-skip" style="color:#E4E8EE;">&#9654;&#9654;</div>
+      <div class="ctrl-side ctrl-side--r"><div class="ctrl" style="color:#9AA4B4;">&#128205;</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#6A7484;margin-top:4px;">Player: #303A50 — Buttons: weiss — Seek: cyan</div>
+</div>
+
+<!-- VARIANT 2 -->
+<div class="variant">
+  <div class="variant-header">
+    <span class="variant-label">2. Deep Slate</span>
+    <span class="variant-tag" style="background:#1a2235;color:#E4E8EE;border:1px solid rgba(148,163,184,0.15);">dunkler</span>
+  </div>
+  <div class="player" style="background:#1a2235; box-shadow: 0 6px 24px rgba(0,0,0,0.4); border-color: rgba(148,163,184,0.12);">
+    <div class="bricks">
+      <div class="brick brick--s"><div class="brick-inner">Sopran<br><span class="brick-dur">3:45</span></div></div>
+      <div class="brick brick--a"><div class="brick-inner">Alt<br><span class="brick-dur">3:42</span></div></div>
+      <div class="brick brick--t"><div class="brick-inner">Tenor<br><span class="brick-dur">3:41</span></div></div>
+      <div class="brick brick--b"><div class="brick-inner">Bass<br><span class="brick-dur">3:43</span></div></div>
+    </div>
+    <div class="seek">
+      <div class="seek-track"><div class="seek-fill" style="background:#818cf8;"></div><div class="seek-thumb" style="background:#818cf8;"></div></div>
+      <div class="seek-times" style="color:#6A7484;"><span>1:23</span><span>3:45</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--l"><div class="ctrl" style="color:#6A7484;">&#8634;</div></div>
+      <div class="ctrl ctrl-skip" style="color:#E4E8EE;">&#9664;&#9664;</div>
+      <div class="ctrl-play" style="background:#818cf8; color:#1a2235;">&#9654;</div>
+      <div class="ctrl ctrl-skip" style="color:#E4E8EE;">&#9654;&#9654;</div>
+      <div class="ctrl-side ctrl-side--r"><div class="ctrl" style="color:#6A7484;">&#128205;</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#6A7484;margin-top:4px;">Player: #1a2235 (dunkler als Page) — Buttons: accent indigo — Skip: weiss</div>
+</div>
+
+<!-- VARIANT 3 -->
+<div class="variant">
+  <div class="variant-header">
+    <span class="variant-label">3. Tertiary Warm</span>
+    <span class="variant-tag" style="background:#354050;color:#E4E8EE;border:1px solid rgba(148,163,184,0.15);">bg-tertiary</span>
+  </div>
+  <div class="player" style="background:#354050; box-shadow: 0 6px 24px rgba(0,0,0,0.25);">
+    <div class="bricks">
+      <div class="brick brick--s"><div class="brick-inner">Sopran<br><span class="brick-dur">3:45</span></div></div>
+      <div class="brick brick--a"><div class="brick-inner">Alt<br><span class="brick-dur">3:42</span></div></div>
+      <div class="brick brick--t"><div class="brick-inner">Tenor<br><span class="brick-dur">3:41</span></div></div>
+      <div class="brick brick--b"><div class="brick-inner">Bass<br><span class="brick-dur">3:43</span></div></div>
+    </div>
+    <div class="seek">
+      <div class="seek-track"><div class="seek-fill" style="background:#22d3ee;"></div><div class="seek-thumb" style="background:#22d3ee;"></div></div>
+      <div class="seek-times" style="color:#9AA4B4;"><span>1:23</span><span>3:45</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--l"><div class="ctrl" style="color:#9AA4B4;">&#8634;</div></div>
+      <div class="ctrl ctrl-skip" style="color:#22d3ee;">&#9664;&#9664;</div>
+      <div class="ctrl-play" style="background:#22d3ee; color:#354050;">&#9654;</div>
+      <div class="ctrl ctrl-skip" style="color:#22d3ee;">&#9654;&#9654;</div>
+      <div class="ctrl-side ctrl-side--r"><div class="ctrl" style="color:#9AA4B4;">&#128205;</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#6A7484;margin-top:4px;">Player: #354050 (heller, warm) — Buttons: cyan (playback) — Skip: cyan</div>
+</div>
+
+<!-- VARIANT 4 -->
+<div class="variant">
+  <div class="variant-header">
+    <span class="variant-label">4. Glassmorphism</span>
+    <span class="variant-tag" style="background:rgba(42,51,72,0.85);color:#E4E8EE;border:1px solid rgba(148,163,184,0.15);backdrop-filter:blur(4px);">transparent</span>
+  </div>
+  <div class="player" style="background:rgba(42,51,72,0.85); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px); box-shadow: 0 6px 24px rgba(0,0,0,0.3); border-color: rgba(148,163,184,0.15);">
+    <div class="bricks">
+      <div class="brick brick--s"><div class="brick-inner">Sopran<br><span class="brick-dur">3:45</span></div></div>
+      <div class="brick brick--a"><div class="brick-inner">Alt<br><span class="brick-dur">3:42</span></div></div>
+      <div class="brick brick--t"><div class="brick-inner">Tenor<br><span class="brick-dur">3:41</span></div></div>
+      <div class="brick brick--b"><div class="brick-inner">Bass<br><span class="brick-dur">3:43</span></div></div>
+    </div>
+    <div class="seek">
+      <div class="seek-track"><div class="seek-fill" style="background:#E4E8EE;"></div><div class="seek-thumb" style="background:#E4E8EE;"></div></div>
+      <div class="seek-times" style="color:#9AA4B4;"><span>1:23</span><span>3:45</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--l"><div class="ctrl" style="color:#9AA4B4;">&#8634;</div></div>
+      <div class="ctrl ctrl-skip" style="color:rgba(255,255,255,0.9);">&#9664;&#9664;</div>
+      <div class="ctrl-play" style="background:rgba(255,255,255,0.15); color:#E4E8EE; border: 1px solid rgba(255,255,255,0.2);">&#9654;</div>
+      <div class="ctrl ctrl-skip" style="color:rgba(255,255,255,0.9);">&#9654;&#9654;</div>
+      <div class="ctrl-side ctrl-side--r"><div class="ctrl" style="color:#9AA4B4;">&#128205;</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#6A7484;margin-top:4px;">Player: halbtransparent + Blur — Buttons: ghost-white — Skip: weiss</div>
+</div>
+
+<!-- VARIANT 5 -->
+<div class="variant">
+  <div class="variant-header">
+    <span class="variant-label">5. Accent Pop</span>
+    <span class="variant-tag" style="background:#2A3348;color:#818cf8;border:1px solid rgba(129,140,248,0.3);">accent</span>
+  </div>
+  <div class="player" style="background:#2A3348; box-shadow: 0 6px 24px rgba(0,0,0,0.35); border-color: rgba(129,140,248,0.15);">
+    <div class="bricks">
+      <div class="brick brick--s"><div class="brick-inner">Sopran<br><span class="brick-dur">3:45</span></div></div>
+      <div class="brick brick--a"><div class="brick-inner">Alt<br><span class="brick-dur">3:42</span></div></div>
+      <div class="brick brick--t"><div class="brick-inner">Tenor<br><span class="brick-dur">3:41</span></div></div>
+      <div class="brick brick--b"><div class="brick-inner">Bass<br><span class="brick-dur">3:43</span></div></div>
+    </div>
+    <div class="seek">
+      <div class="seek-track"><div class="seek-fill" style="background:#818cf8;"></div><div class="seek-thumb" style="background:#818cf8;"></div></div>
+      <div class="seek-times" style="color:#6A7484;"><span>1:23</span><span>3:45</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--l"><div class="ctrl" style="color:#6A7484;">&#8634;</div></div>
+      <div class="ctrl ctrl-skip" style="color:#818cf8;">&#9664;&#9664;</div>
+      <div class="ctrl-play" style="background:#818cf8; color:#1E2538;">&#9654;</div>
+      <div class="ctrl ctrl-skip" style="color:#818cf8;">&#9654;&#9654;</div>
+      <div class="ctrl-side ctrl-side--r"><div class="ctrl" style="color:#6A7484;">&#128205;</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#6A7484;margin-top:4px;">Player: #2A3348 (bg-secondary) — Buttons: indigo accent — Seek: indigo — Border: accent-tint</div>
+</div>
+
+<!-- VARIANT 6 -->
+<div class="variant">
+  <div class="variant-header">
+    <span class="variant-label">6. Minimal Light-on-Dark</span>
+    <span class="variant-tag" style="background:#252D40;color:#E4E8EE;border:1px solid rgba(148,163,184,0.12);">subtle</span>
+  </div>
+  <div class="player" style="background:#252D40; box-shadow: 0 4px 16px rgba(0,0,0,0.3); border-color: rgba(148,163,184,0.08);">
+    <div class="bricks">
+      <div class="brick brick--s"><div class="brick-inner">Sopran<br><span class="brick-dur">3:45</span></div></div>
+      <div class="brick brick--a"><div class="brick-inner">Alt<br><span class="brick-dur">3:42</span></div></div>
+      <div class="brick brick--t"><div class="brick-inner">Tenor<br><span class="brick-dur">3:41</span></div></div>
+      <div class="brick brick--b"><div class="brick-inner">Bass<br><span class="brick-dur">3:43</span></div></div>
+    </div>
+    <div class="seek">
+      <div class="seek-track"><div class="seek-fill" style="background:rgba(228,232,238,0.5);"></div><div class="seek-thumb" style="background:#E4E8EE;"></div></div>
+      <div class="seek-times" style="color:#6A7484;"><span>1:23</span><span>3:45</span></div>
+    </div>
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--l"><div class="ctrl" style="color:#6A7484;">&#8634;</div></div>
+      <div class="ctrl ctrl-skip" style="color:rgba(228,232,238,0.8);">&#9664;&#9664;</div>
+      <div class="ctrl-play" style="background:transparent; color:#E4E8EE; border: 2px solid rgba(228,232,238,0.4);">&#9654;</div>
+      <div class="ctrl ctrl-skip" style="color:rgba(228,232,238,0.8);">&#9654;&#9654;</div>
+      <div class="ctrl-side ctrl-side--r"><div class="ctrl" style="color:#6A7484;">&#128205;</div></div>
+    </div>
+  </div>
+  <div style="font-size:11px;color:#6A7484;margin-top:4px;">Player: #252D40 (zwischen primary/secondary) — Buttons: outline-only — Seek: gedimmt weiss</div>
+</div>
+
+</body>
+</html>

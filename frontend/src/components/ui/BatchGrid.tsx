@@ -1,4 +1,3 @@
-import { useNavigate } from 'react-router-dom'
 import { Music, Play, ArrowLeft, Folder, ChevronRight } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore'
 import type { DropboxEntry } from '@/types/index'
@@ -17,17 +16,12 @@ interface BatchGridProps {
 }
 
 export function BatchGrid({ gridData, onFileClick, onNavigateUp, browsePath }: BatchGridProps) {
-  const navigate = useNavigate()
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { voiceColumns, sectionRows, cells, extraFiles, folders } = gridData
 
   const handleCellClick = (entry: DropboxEntry) => {
-    if (entry.path === currentPath) {
-      navigate('/player')
-    } else {
-      onFileClick(entry)
-    }
+    onFileClick(entry)
   }
 
   return (

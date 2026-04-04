@@ -355,10 +355,13 @@ async def dropbox_browse(
     if parent_type == "texte":
         from sqlmodel import select as sql_select
         from backend.models.document import Document
+        folder_path_stripped = path.lstrip("/")
         docs_in_folder = {
             d.original_name: d.id
             for d in session.exec(
-                sql_select(Document).where(Document.folder_path == path)
+                sql_select(Document).where(
+                    (Document.folder_path == path) | (Document.folder_path == folder_path_stripped)
+                )
             ).all()
         }
         for entry in filtered:

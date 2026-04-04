@@ -99,6 +99,12 @@ export function useAudioPlayer() {
         if (currentLoadedPath !== currentPath) return
         audio.src = link
         audio.load()
+        // If play was requested before src was ready, start now
+        if (usePlayerStore.getState().isPlaying) {
+          audio.play().catch(() => {
+            usePlayerStore.getState().setPlaying(false)
+          })
+        }
       } catch (err) {
         console.error('Audio load error:', err)
       }

@@ -1,30 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
-import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus, Rewind, FastForward, FileText } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { formatTime } from '@/utils/formatters.ts'
+import { VoiceBricks } from '@/components/ui/VoiceBricks.tsx'
 import type { Marker } from '@/stores/playerStore'
 
 const SKIP_OPTIONS = [1, 5, 10, 15] as const
 
-function SkipIcon({ seconds, direction }: { seconds: number; direction: 'back' | 'fwd' }) {
-  const flip = direction === 'back'
-  return (
-    <svg width={36} height={36} viewBox="0 0 24 24" fill="none" style={flip ? { transform: 'scaleX(-1)' } : undefined}>
-      <path
-        d="M12 5V1l5 4-5 4V5c-3.86 0-7 3.14-7 7s3.14 7 7 7 7-3.14 7-7h2c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9z"
-        fill="currentColor"
-      />
-      <text x="12" y="14.5" textAnchor="middle" fontSize={seconds >= 10 ? '7' : '8.5'} fontWeight="700" fill="currentColor" fontFamily="system-ui, sans-serif">
-        {seconds}
-      </text>
-    </svg>
-  )
-}
-
 export function GlobalPlayerBar() {
+  const navigate = useNavigate()
   const {
     currentPath,
     isPlaying, currentTime, duration,
@@ -83,8 +71,8 @@ export function GlobalPlayerBar() {
   }, [])
 
   const location = useLocation()
-  const hiddenRoutes = ['/', '/browse', '/favorites', '/settings', '/file-settings']
-  const isHidden = hiddenRoutes.includes(location.pathname)
+  const hiddenRoutes = ['/settings', '/file-settings', '/login', '/register']
+  const isHidden = hiddenRoutes.includes(location.pathname) || location.pathname.startsWith('/admin')
   const isSections = location.pathname === '/sections'
   const canGenerateSections = isSections && markers.length >= 2
 
@@ -135,6 +123,9 @@ export function GlobalPlayerBar() {
 
   return (
     <div className={`global-player${pdfFullscreen ? ' global-player--hidden' : ''}`}>
+      {/* Voice bricks row */}
+      <VoiceBricks />
+
       {/* Marker row */}
       {markers.length > 0 && (
         <div className="global-player-markers">
@@ -202,6 +193,19 @@ export function GlobalPlayerBar() {
       {/* Controls — pure flex, no absolute positioning */}
       <div className="global-player-controls">
         <div className="gpc-side gpc-side--left">
+          <button
+            className={`gpc-btn${location.pathname === '/viewer' ? ' gpc-btn--active' : ''}`}
+            onClick={() => {
+              if (location.pathname === '/viewer') {
+                navigate(-1)
+              } else {
+                navigate('/viewer')
+              }
+            }}
+            aria-label="Viewer"
+          >
+            <FileText size={22} />
+          </button>
           {isSections && (
             <button
               className="gpc-btn"
@@ -224,46 +228,41 @@ export function GlobalPlayerBar() {
 
         <div className="gpc-center">
           <button className="gpc-btn gpc-btn-skip" onClick={() => skip(-skipInterval)}>
-            <SkipIcon seconds={skipInterval} direction="back" />
+            <Rewind size={22} />
           </button>
           <button className="gpc-btn-play" onClick={togglePlay}>
             {isPlaying ? <Pause size={24} /> : <Play size={24} style={{ marginLeft: 2 }} />}
           </button>
           <button className="gpc-btn gpc-btn-skip" onClick={() => skip(skipInterval)}>
-            <SkipIcon seconds={skipInterval} direction="fwd" />
+            <FastForward size={22} />
           </button>
         </div>
 
         <div className="gpc-side gpc-side--right">
-          <button className="gpc-btn" onClick={addMarker} disabled={markers.length >= 5} aria-label="Marker setzen">
+          <div className="gpc-skip-menu" ref={menuRef}>
+            <button className="gpc-skip-label" onClick={() => setMenuOpen(!menuOpen)}>
+              {skipInterval}s
+            </button>
+            {menuOpen && (
+              <div className="popup-menu gpc-menu-popup">
+                {SKIP_OPTIONS.map((s) => (
+                  <button
+                    key={s}
+                    className={`popup-menu-item gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
+                    onClick={() => {
+                      usePlayerStore.getState().setSkipInterval(s)
+                      setMenuOpen(false)
+                    }}
+                  >
+                    {s}s
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <button className="gpc-btn gpc-btn-marker" onClick={addMarker} disabled={markers.length >= 5} aria-label="Marker setzen">
             <MapPin size={32} />
           </button>
-        </div>
-
-        <div className="gpc-menu" ref={menuRef}>
-          <button
-            className="gpc-btn gpc-btn-menu"
-            onClick={() => setMenuOpen(!menuOpen)}
-            aria-label="Skip-Zeit aendern"
-          >
-            <MoreVertical size={18} />
-          </button>
-          {menuOpen && (
-            <div className="popup-menu gpc-menu-popup">
-              {SKIP_OPTIONS.map((s) => (
-                <button
-                  key={s}
-                  className={`popup-menu-item gpc-menu-item ${s === skipInterval ? 'active' : ''}`}
-                  onClick={() => {
-                    usePlayerStore.getState().setSkipInterval(s)
-                    setMenuOpen(false)
-                  }}
-                >
-                  {s}s
-                </button>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

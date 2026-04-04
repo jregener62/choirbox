@@ -1,5 +1,4 @@
 import { useState, useRef, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Play, Pause, MoreVertical, Repeat } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
@@ -36,7 +35,6 @@ interface TopPlayerBarProps {
 }
 
 export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, markers, onSeek }: TopPlayerBarProps) {
-  const navigate = useNavigate()
   const {
     currentName,
     isPlaying, currentTime, duration,
@@ -69,7 +67,7 @@ export function TopPlayerBar({ variant, peaks, loopStart, loopEnd, loopEnabled, 
   return (
     <div
       className={`top-player-bar ${isFull ? 'top-player-bar--full' : ''}`}
-      onClick={!isFull ? () => navigate('/player') : undefined}
+      onClick={undefined}
     >
       {/* Loop toggle + Time + Controls */}
       <button

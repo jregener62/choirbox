@@ -16,7 +16,7 @@ import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
-import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
+import { stripFolderExtension, isReservedName, isSongFolder } from '@/utils/folderTypes.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -195,10 +195,28 @@ export function BrowsePage() {
     }
   }
 
+  const handleSongClick = async (entry: DropboxEntry) => {
+    try {
+      const audioPath = `${entry.path}/Audio`
+      const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(audioPath)}`)
+      const audioFiles = data.entries.filter((e) => e.type === 'file' && /\.(mp3|m4a|wav|ogg|flac|aac|webm)$/i.test(e.name))
+      if (audioFiles.length > 0) {
+        const first = audioFiles[0]
+        usePlayerStore.getState().setTrack(first.path, first.name)
+      }
+    } catch {
+      // Fallback: open folder normally
+      closeSearch()
+      loadFolder(entry.path)
+    }
+  }
+
   const handleEntryClick = (entry: DropboxEntry) => {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
-    if (entry.type === 'folder' && entry.folder_type === 'texte') {
+    if (entry.type === 'folder' && isSongFolder(entry.name)) {
+      handleSongClick(entry)
+    } else if (entry.type === 'folder' && entry.folder_type === 'texte') {
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
@@ -216,7 +234,7 @@ export function BrowsePage() {
       if (entry.path !== currentPath) {
         usePlayerStore.getState().setTrack(entry.path, entry.name)
       }
-      navigate('/player')
+      usePlayerStore.getState().setPlaying(true)
     }
   }
 
@@ -492,6 +510,7 @@ export function BrowsePage() {
       >
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
+          const isSongActive = entry.folder_type === 'song' && currentPath != null && currentPath.startsWith(entry.path + '/')
           const isFile = entry.type === 'file'
           const isDoc = entry.type === 'document'
           const isTexteFolder = entry.folder_type === 'texte'
@@ -565,7 +584,8 @@ export function BrowsePage() {
                 </div>
               ) : null}
               <div className="file-info">
-                <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
+                <div className={`file-name ${isActive || isSongActive ? 'file-name--active' : ''}`}>
+                  {isSongActive && <Volume2 size={14} style={{ flexShrink: 0, marginRight: 4 }} />}
                   {isMediaEntry && entry.song_name
                     ? songName
                     : (isFile || isDoc)
@@ -594,7 +614,8 @@ export function BrowsePage() {
                               className="meta-brick meta-brick--doc"
                               onClick={(e) => {
                                 e.stopPropagation()
-                                navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path + '/Texte')}&name=${encodeURIComponent(entry.selected_doc!.name)}`)
+                                const textePath = entry.path + '/Texte'
+                                loadFolder(textePath)
                               }}
                             >
                               <FileText size={14} />
@@ -607,11 +628,7 @@ export function BrowsePage() {
                               className={`meta-brick meta-brick--${sf.type}`}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (sf.type === 'texte') {
-                                  navigate(`/doc-viewer?folder=${encodeURIComponent(sf.path)}`)
-                                } else {
-                                  loadFolder(sf.path)
-                                }
+                                loadFolder(sf.path)
                               }}
                             >
                               {sf.type === 'texte' ? <FileText size={14} /> :
@@ -687,7 +704,7 @@ export function BrowsePage() {
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
-                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}`}
+                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongActive ? ' file-item--song-active' : ''}`}
                 onClick={() => handleEntryClick(entry)}
                 onTouchStart={handleSwipeStart}
                 onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}

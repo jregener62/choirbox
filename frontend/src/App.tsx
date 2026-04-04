@@ -7,7 +7,7 @@ import { AppShell } from '@/components/layout/AppShell.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { FavoritesPage } from '@/pages/FavoritesPage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
-import { PlayerPage } from '@/pages/PlayerPage.tsx'
+import { ViewerPage } from '@/pages/ViewerPage.tsx'
 import { SectionEditorPage } from '@/pages/SectionEditorPage.tsx'
 import { DocViewerPage } from '@/pages/DocViewerPage.tsx'
 import { UsersPage } from '@/pages/admin/UsersPage.tsx'
@@ -33,7 +33,7 @@ function AppRoutes() {
       <Route path="/" element={<BrowsePage />} />
       <Route path="/browse" element={<BrowsePage />} />
       <Route path="/favorites" element={<FavoritesPage />} />
-      <Route path="/player" element={<PlayerPage />} />
+      <Route path="/viewer" element={<ViewerPage />} />
       <Route path="/doc-viewer" element={<DocViewerPage />} />
       {isBeta && <Route path="/sections" element={<SectionEditorPage />} />}
       <Route path="/settings" element={<SettingsPage />} />

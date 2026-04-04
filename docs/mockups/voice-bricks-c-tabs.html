@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Voice Bricks C: Tabs</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #1E2538; --bg2: #2A3348; --bg3: #354050; --bg-elevated: #303A50;
+    --text: #E4E8EE; --text2: #9AA4B4; --text3: #6A7484;
+    --accent: #818cf8; --border: rgba(148,163,184,0.10);
+    --player-bg: #2A3348; --player-text: #E4E8EE;
+    --player-body: #252D40;
+    --sopran: #ec4899; --alt: #f97316; --tenor: #3b82f6; --bass: #22c55e;
+    --satb: #8b5cf6; --piano: #a78bfa;
+    --playback: #22d3ee;
+  }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); color: var(--text);
+    max-width: 420px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column;
+    -webkit-font-smoothing: antialiased; position: relative; overflow: hidden;
+  }
+
+  /* -- Simulated Browse Page -- */
+  .topbar {
+    display: flex; align-items: center; padding: 10px 16px; background: var(--bg2);
+    border-bottom: 1px solid var(--border); min-height: 48px; gap: 8px;
+  }
+  .topbar-title { flex: 1; font-size: 17px; font-weight: 600; }
+
+  .breadcrumb {
+    display: flex; align-items: center; padding: 6px 16px; background: var(--bg2);
+    font-size: 13px; color: var(--text3); gap: 6px; border-bottom: 1px solid var(--border);
+  }
+  .bc-link { color: var(--accent); }
+  .bc-sep { color: var(--text3); }
+
+  .file-list { flex: 1; overflow-y: auto; padding-bottom: 220px; }
+  .file-item {
+    display: flex; align-items: center; padding: 12px 16px; gap: 12px;
+    border-bottom: 1px solid rgba(148,163,184,0.06);
+  }
+  .file-icon {
+    width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+    justify-content: center; flex-shrink: 0; font-size: 18px;
+  }
+  .file-icon--song { background: rgba(129,140,248,0.15); color: var(--accent); }
+  .file-icon--folder { background: rgba(148,163,184,0.1); color: var(--text3); }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .meta-bricks { display: flex; gap: 6px; margin-top: 4px; }
+  .meta-brick {
+    display: flex; align-items: center; gap: 4px;
+    padding: 2px 8px; border-radius: 6px; font-size: 10px; font-weight: 600;
+    background: rgba(148,163,184,0.08); border: 1px solid rgba(148,163,184,0.15);
+    color: var(--text2);
+  }
+  .meta-brick--audio { border-color: rgba(34,211,238,0.3); color: var(--playback); }
+
+  /* ===== FLOATING PLAYER ===== */
+  .floating-player {
+    position: fixed;
+    bottom: 8px; left: 8px; right: 8px;
+    max-width: 404px; margin: 0 auto;
+    border-radius: 16px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.4), 0 2px 8px rgba(0,0,0,0.3);
+    color: var(--player-text);
+    overflow: hidden;
+    border: 1px solid rgba(148,163,184,0.08);
+  }
+
+  /* -- Voice Bricks Row: Tab Style -- */
+  .voice-bricks {
+    display: flex;
+    gap: 0;
+    padding: 0 4px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    background: var(--player-bg);
+    border-radius: 16px 16px 0 0;
+  }
+  .voice-bricks::-webkit-scrollbar { display: none; }
+
+  .voice-brick {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    padding: 9px 14px 7px;
+    font-size: 12px; font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    border: none;
+    transition: all 0.15s ease;
+    flex-shrink: 0;
+    position: relative;
+    background: transparent;
+    border-radius: 10px 10px 0 0;
+  }
+
+  .voice-brick--sopran { color: var(--sopran); }
+  .voice-brick--alt { color: var(--alt); }
+  .voice-brick--tenor { color: var(--tenor); }
+  .voice-brick--bass { color: var(--bass); }
+  .voice-brick--piano { color: var(--piano); }
+
+  /* Inactive: dimmed */
+  .voice-brick:not(.voice-brick--active) {
+    opacity: 0.5;
+  }
+  .voice-brick:not(.voice-brick--active):hover {
+    opacity: 0.8;
+  }
+
+  /* Active tab: colored bottom border + elevated background */
+  .voice-brick--active {
+    background: var(--player-body);
+    opacity: 1;
+  }
+  .voice-brick--active::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 8px; right: 8px;
+    height: 2.5px; border-radius: 2px;
+    background: currentColor;
+  }
+
+  /* Tab-Dot */
+  .voice-brick-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: currentColor; flex-shrink: 0;
+  }
+
+  /* Player body: slightly different shade to connect with active tab */
+  .player-body {
+    background: var(--player-body);
+    border-radius: 0 0 16px 16px;
+  }
+
+  /* -- Track Info Row (shows which file is active) -- */
+  .track-info {
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 6px 14px 2px;
+    font-size: 12px; color: var(--text2);
+  }
+  .track-info-name { font-weight: 500; }
+  .track-info-badge {
+    display: inline-flex; align-items: center; gap: 4px;
+    padding: 1px 8px; border-radius: 9999px; font-size: 10px; font-weight: 600;
+  }
+
+  /* -- Seek Bar -- */
+  .seek-area { padding: 8px 14px 0; }
+  .seek-track {
+    position: relative; height: 3px; background: rgba(148,163,184,0.3); border-radius: 2px;
+  }
+  .seek-played { height: 100%; width: 35%; background: var(--playback); border-radius: 2px; }
+  .seek-thumb {
+    position: absolute; top: 50%; left: 35%;
+    width: 12px; height: 12px; border-radius: 50%;
+    background: var(--playback); transform: translate(-50%, -50%);
+  }
+  .seek-times {
+    display: flex; justify-content: space-between; padding: 4px 0 2px;
+    font-size: 11px; color: var(--text3); font-variant-numeric: tabular-nums;
+  }
+
+  /* -- Controls -- */
+  .controls {
+    display: flex; align-items: center; justify-content: center;
+    padding: 4px 16px 14px; gap: 4px;
+  }
+  .ctrl-side { flex: 1; display: flex; align-items: center; }
+  .ctrl-side--left { justify-content: flex-end; padding-right: 8px; }
+  .ctrl-side--right { justify-content: flex-start; padding-left: 12px; }
+  .ctrl-btn {
+    width: 44px; height: 44px; border: none; background: none; color: var(--text2);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; font-size: 20px;
+  }
+  .ctrl-btn--play {
+    width: 48px; height: 48px; background: var(--playback); color: var(--bg);
+    border: none; border-radius: 50%; font-size: 22px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .ctrl-btn--active { color: #f59e0b; }
+  .ctrl-btn--skip { color: var(--playback); }
+
+  /* -- Concept Label -- */
+  .concept-badge {
+    position: fixed; top: 12px; right: 12px;
+    background: #22c55e; color: white; padding: 4px 10px;
+    border-radius: 6px; font-size: 11px; font-weight: 700; z-index: 100;
+  }
+</style>
+</head>
+<body>
+
+<div class="concept-badge">Konzept C: Tabs</div>
+
+<!-- Simulated Browse Page -->
+<div class="topbar">
+  <span class="topbar-title">ChoirBox</span>
+</div>
+<div class="breadcrumb">
+  <span class="bc-link">Songs</span>
+  <span class="bc-sep">/</span>
+  <span>Weihnachten 2026</span>
+</div>
+
+<div class="file-list">
+  <div class="file-item">
+    <div class="file-icon file-icon--song">&#9835;</div>
+    <div class="file-info">
+      <div class="file-name">Amazing Grace</div>
+      <div class="meta-bricks">
+        <span class="meta-brick">&#128196; 2</span>
+        <span class="meta-brick meta-brick--audio">&#128266; 4</span>
+      </div>
+    </div>
+  </div>
+  <div class="file-item" style="background: rgba(129,140,248,0.06);">
+    <div class="file-icon file-icon--song">&#9835;</div>
+    <div class="file-info">
+      <div class="file-name" style="color: var(--accent); font-weight: 600;">Bring Me Little Water</div>
+      <div class="meta-bricks">
+        <span class="meta-brick">&#128196; 1</span>
+        <span class="meta-brick meta-brick--audio">&#128266; 5</span>
+        <span class="meta-brick">&#127909; 1</span>
+      </div>
+    </div>
+  </div>
+  <div class="file-item">
+    <div class="file-icon file-icon--song">&#9835;</div>
+    <div class="file-info">
+      <div class="file-name">O Holy Night</div>
+      <div class="meta-bricks">
+        <span class="meta-brick">&#128196; 3</span>
+        <span class="meta-brick meta-brick--audio">&#128266; 6</span>
+      </div>
+    </div>
+  </div>
+  <div class="file-item">
+    <div class="file-icon file-icon--song">&#9835;</div>
+    <div class="file-info">
+      <div class="file-name">Silent Night</div>
+      <div class="meta-bricks">
+        <span class="meta-brick meta-brick--audio">&#128266; 4</span>
+      </div>
+    </div>
+  </div>
+  <div class="file-item">
+    <div class="file-icon file-icon--folder">&#128193;</div>
+    <div class="file-info">
+      <div class="file-name">Warm-Ups</div>
+      <div class="file-meta">3 Dateien</div>
+    </div>
+  </div>
+</div>
+
+<!-- Floating Player -->
+<div class="floating-player">
+  <!-- Voice Bricks: Tab Style -->
+  <div class="voice-bricks">
+    <div class="voice-brick voice-brick--sopran voice-brick--active">
+      <span class="voice-brick-dot"></span>
+      Sopran
+    </div>
+    <div class="voice-brick voice-brick--alt">
+      <span class="voice-brick-dot"></span>
+      Alt
+    </div>
+    <div class="voice-brick voice-brick--tenor">
+      <span class="voice-brick-dot"></span>
+      Tenor
+    </div>
+    <div class="voice-brick voice-brick--bass">
+      <span class="voice-brick-dot"></span>
+      Bass
+    </div>
+    <div class="voice-brick voice-brick--piano">
+      <span class="voice-brick-dot"></span>
+      Piano
+    </div>
+  </div>
+
+  <!-- Player Body (connected to active tab) -->
+  <div class="player-body">
+    <!-- Track Info -->
+    <div class="track-info">
+      <span class="track-info-name">S-Bring Me Little Water.mp3</span>
+    </div>
+
+    <!-- Seek Bar -->
+    <div class="seek-area">
+      <div class="seek-track">
+        <div class="seek-played"></div>
+        <div class="seek-thumb"></div>
+      </div>
+      <div class="seek-times">
+        <span>1:23</span>
+        <span>3:45</span>
+      </div>
+    </div>
+
+    <!-- Controls -->
+    <div class="controls">
+      <div class="ctrl-side ctrl-side--left">
+        <button class="ctrl-btn ctrl-btn--active" title="Loop">&#8634;</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <button class="ctrl-btn ctrl-btn--skip" title="Zurueck">&#9664;&#9664;</button>
+        <button class="ctrl-btn ctrl-btn--play" title="Play">&#9654;</button>
+        <button class="ctrl-btn ctrl-btn--skip" title="Vor">&#9654;&#9654;</button>
+      </div>
+      <div class="ctrl-side ctrl-side--right">
+        <button class="ctrl-btn" title="Marker">&#128205;</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
