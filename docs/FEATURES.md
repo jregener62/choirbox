@@ -221,10 +221,12 @@ Konzert im Juni/           (Container)
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
 - **Card-Layout**: Jede Audio-Datei wird als Card mit Rahmen und Abstand dargestellt
-- **Dreizeiliges Meta-System** unter dem Dateinamen:
-  - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot (alphabetisch sortiert, Farben aus Labels)
+- **Titel**: Songname (aus .song-Ordner abgeleitet). Voice-Prefix, Sections und Songname werden nicht im Titel wiederholt, da sie als eigene Zeilen sichtbar sind.
+- **Vierzeiliges Meta-System** unter dem Dateinamen:
+  - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot (alphabetisch sortiert, Farben aus Labels). Quellen: Dateinamen-Parsing + zugewiesene Stimme-Labels (gemerged, dedupliziert)
   - **Zeile 2:** Abschnitte als Accent-Badges (aus SectionPresets dynamisch)
-  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund)
+  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund). Nur Nicht-Stimme-Labels (Status etc.)
+  - **Zeile 4:** Kommentar (kursiv, gedaempft) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
 - Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
 - Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen
 - Skeleton-Loading im Card-Stil beim Laden eines Ordners
@@ -520,8 +522,9 @@ Benannte Zeitbereiche (Intro, Strophe, Refrain...) pro Track. Alle User sehen di
   2. Sektionen generieren ("Erstelle Sektion(en)"-Button, aktiv ab 2+ Markern) — erstellt automatisch Sektionen aus Marker-Paaren (M1→M2 = Sektion 1, M2→M3 = Sektion 2, ...), nutzt dabei zyklisch die Sektionsvorlagen (Name + Farbe), loescht Marker danach
   3. Einzelne Sektionen bearbeiten: Tap auf Section-Brick in der SectionLane selektiert und oeffnet den Edit-Bereich. Im Edit-Modus stehen grosse farbige Preset-Bricks zur Auswahl (kein Freitext, keine Farbpalette). Start/Ende per Playhead anpassbar. Loeschen-Button (Papierkorb) neben Start/Ende. "Sektion aktualisieren" und "Abbrechen" nebeneinander.
 - Hinweis "Waehle eine Sektion, um sie zu editieren" wenn Sektionen vorhanden aber keine selektiert
-- **Sektionsvorlagen** (Route `/admin/section-presets`, ab Pro-Mitglied): Wiederverwendbare Name/Farbe-Kombinationen (z.B. Intro, Strophe, Refrain), die im Section-Editor als Auswahl-Bricks erscheinen. Verwaltung unter Einstellungen > Sektionsvorlagen.
-- Default-Vorlagen beim Seeding: Intro, Strophe, Refrain, Bridge, Solo, Outro
+- **Sektionsvorlagen** (Route `/admin/section-presets`, ab Pro-Mitglied): Wiederverwendbare Name/Farbe-Kombinationen (z.B. Intro, Strophe, Refrain), die im Section-Editor als Auswahl-Bricks und in Rename/Recording-Modals als Abschnitt-Auswahl erscheinen. Verwaltung unter Einstellungen > Sektionsvorlagen.
+- Jede Vorlage hat `shortcode` (Kuerzel im Dateinamen, z.B. "Str", "Ref") und `max_num` (maximale Nummerierung, z.B. 5 fuer Strophe1-5)
+- Default-Vorlagen beim Seeding: Intro, Strophe (1-5), Refrain (1-4), Bridge (1-4), Solo, Outro
 
 | Datei | Rolle |
 |-------|-------|
@@ -638,7 +641,7 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 
 - Browser-Mikrofon-Aufnahme (MediaRecorder API)
 - Server-seitige Konvertierung zu MP3 (FFmpeg)
-- Strukturierte Dateibenennung: Stimme-Ordner-Abschnitt-Freitext (Stimmen und Abschnitte dynamisch aus Labels/SectionPresets)
+- Strukturierte Dateibenennung: `{Stimme}-{Liedname}-{Abschnitt}.mp3` — Stimmen aus Labels (category=Stimme), Abschnitte aus SectionPresets, Liedname per Default aus .song-Ordnername. "Keine"-Button zum Abwaehlen aller Stimmen/Abschnitte. Stimmen und Abschnitte seitlich scrollbar.
 - Upload in aktuellen Dropbox-Ordner
 - Alle authentifizierten User koennen aufnehmen
 
@@ -989,8 +992,10 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `id` | Integer | Primaerschluessel |
 | `name` | String (max 50) | Label-Name |
 | `color` | String | Hex-Farbe (z.B. `#6366f1`) |
-| `category` | String (max 50) | Optionale Kategorie (z.B. "Stimme") |
+| `category` | String (max 50) | Kategorie: "Stimme" (Zeile 1), "Status" oder null (Zeile 3) |
 | `sort_order` | Integer | Sortierung |
+| `shortcode` | String (max 10) | Kuerzel im Dateinamen (z.B. "S", "A", "Piano") |
+| `aliases` | String (max 200) | Komma-getrennte Aliase (z.B. "soprano,sop") |
 
 ### UserLabel (Zuweisung)
 
@@ -1009,6 +1014,8 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `name` | String (max 50) | Vorlagenname (z.B. "Intro", "Refrain") |
 | `color` | String (max 7) | Hex-Farbe |
 | `sort_order` | Integer | Sortierung |
+| `shortcode` | String (max 20) | Kuerzel im Dateinamen (z.B. "Str", "Ref") |
+| `max_num` | Integer | Maximale Nummerierung (0 = keine) |
 
 ### Section
 
