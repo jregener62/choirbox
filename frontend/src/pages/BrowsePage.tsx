@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check, RefreshCw } from 'lucide-react'
+import { Folder, FolderPlus, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -276,6 +276,13 @@ export function BrowsePage() {
     ? stripFolderExtension(browseSegments[browseSegments.length - 2])
     : stripFolderExtension(lastSegment)
 
+  // Detect if we're inside a .song folder (or its reserved subfolder)
+  const songAncestorIdx = browseSegments.findIndex((s) => isSongFolder(s))
+  const isInsideSong = songAncestorIdx >= 0
+  const songParentPath = isInsideSong && songAncestorIdx > 0
+    ? '/' + browseSegments.slice(0, songAncestorIdx).join('/')
+    : ''
+
   // Detect if we're inside a Texte folder
   const isInTexteFolder = lastSegment.toLowerCase() === 'texte'
   // Song folder path for selected doc (go up one level from Texte)
@@ -430,24 +437,35 @@ export function BrowsePage() {
         </div>
         {!searchOpen && (
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
-            <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-              <span className="breadcrumb-item" onClick={() => loadFolder('')}>{user?.choir_name || 'Dateien'}</span>
-              {pathParts.map((part, i) => {
-                const path = '/' + pathParts.slice(0, i + 1).join('/')
-                const isLast = i === pathParts.length - 1
-                const displayPart = stripFolderExtension(part)
-                return (
-                  <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    {isLast ? (
-                      <span className="breadcrumb-current">{displayPart}</span>
-                    ) : (
-                      <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{displayPart}</span>
-                    )}
-                  </span>
-                )
-              })}
-            </div>
+            {isInsideSong && !isProMember ? (
+              /* Member inside .song: back button to parent folder */
+              <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
+                <span className="breadcrumb-item" onClick={() => loadFolder(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <ChevronLeft size={16} />
+                  {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
+                </span>
+              </div>
+            ) : (
+              /* Pro-member+ or outside .song: full breadcrumb */
+              <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
+                <span className="breadcrumb-item" onClick={() => loadFolder('')}>{user?.choir_name || 'Dateien'}</span>
+                {pathParts.map((part, i) => {
+                  const path = '/' + pathParts.slice(0, i + 1).join('/')
+                  const isLast = i === pathParts.length - 1
+                  const displayPart = stripFolderExtension(part)
+                  return (
+                    <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                      <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                      {isLast ? (
+                        <span className="breadcrumb-current">{displayPart}</span>
+                      ) : (
+                        <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{displayPart}</span>
+                      )}
+                    </span>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
