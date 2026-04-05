@@ -547,7 +547,6 @@ export function BrowsePage() {
       >
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
-          const isSongActive = entry.folder_type === 'song' && currentPath != null && currentPath.startsWith(entry.path + '/')
           const isFile = entry.type === 'file'
           const isDoc = entry.type === 'document'
           const isTexteFolder = entry.folder_type === 'texte'
@@ -621,8 +620,7 @@ export function BrowsePage() {
                 </div>
               ) : null}
               <div className="file-info">
-                <div className={`file-name ${isActive || isSongActive ? 'file-name--active' : ''}`}>
-                  {isSongActive && <Volume2 size={14} style={{ flexShrink: 0, marginRight: 4 }} />}
+                <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {isMediaEntry && entry.song_name
                     ? songName
                     : (isFile || isDoc)
@@ -740,7 +738,7 @@ export function BrowsePage() {
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
-                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongActive ? ' file-item--song-active' : ''}`}
+                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}`}
                 onClick={() => handleEntryClick(entry)}
                 onTouchStart={handleSwipeStart}
                 onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}
@@ -748,12 +746,14 @@ export function BrowsePage() {
                 {itemContent}
               </div>
               <div className="swipe-actions">
-                <button
-                  className="swipe-action-btn swipe-action-fav"
-                  onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, entry.type === 'folder' ? 'folder' : 'file') }}
-                >
-                  <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
-                </button>
+                {entry.folder_type === 'song' && (
+                  <button
+                    className="swipe-action-btn swipe-action-fav"
+                    onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, 'folder') }}
+                  >
+                    <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
+                  </button>
+                )}
                 {isInTexteFolder && isDoc && entry.doc_id && (
                   <button
                     className={`swipe-action-btn swipe-action-select${selectedDoc?.id === entry.doc_id ? ' swipe-action-select--active' : ''}`}

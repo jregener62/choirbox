@@ -196,7 +196,7 @@ export function FavoritesPage() {
           <Heart size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
           <div>Noch keine Favoriten</div>
           <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-            Markiere Dateien oder Ordner mit dem Herz-Symbol
+            Markiere Songs mit dem Herz-Symbol
           </div>
         </div>
       )}
