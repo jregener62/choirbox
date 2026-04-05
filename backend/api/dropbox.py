@@ -187,7 +187,7 @@ async def dropbox_browse(
 
     use_cache = not refresh
     try:
-        entries = await dbx.list_folder(dropbox_path, use_cache=use_cache)
+        entries = await dbx.list_folder_recursive(dropbox_path, use_cache=use_cache)
     except RuntimeError as e:
         if "path/not_found" in str(e):
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
@@ -607,7 +607,7 @@ async def dropbox_upload(
 
     # Invalidate cache for the target folder and its parent
     from backend.services.dropbox_cache import folder_cache
-    folder_cache.invalidate_tree(full_target)
+    folder_cache.invalidate_subtree(full_target)
 
     return ActionResponse.success(data={
         "name": result.get("name", filename),
@@ -720,7 +720,7 @@ async def dropbox_delete_file(
 
     # Invalidate cache for the parent folder
     from backend.services.dropbox_cache import folder_cache
-    folder_cache.invalidate_tree(dropbox_path)
+    folder_cache.invalidate_subtree(dropbox_path)
 
     # Cleanup associated DB records
     from backend.services.cleanup_service import cleanup_file
@@ -767,7 +767,7 @@ async def dropbox_create_folder(
 
     # Invalidate cache for the parent folder
     from backend.services.dropbox_cache import folder_cache
-    folder_cache.invalidate_tree(full_path)
+    folder_cache.invalidate_subtree(full_path)
 
     return ActionResponse.success(data={
         "name": result.get("name", name),
@@ -812,7 +812,7 @@ async def dropbox_delete_folder(
 
     # Invalidate cache for the deleted folder and its parent
     from backend.services.dropbox_cache import folder_cache
-    folder_cache.invalidate_tree(dropbox_path)
+    folder_cache.invalidate_subtree(dropbox_path)
 
     # Cleanup associated DB records (sections, documents, etc.)
     from backend.services.cleanup_service import cleanup_folder
@@ -857,8 +857,8 @@ async def dropbox_rename(
 
     # Invalidate cache for both old and new paths
     from backend.services.dropbox_cache import folder_cache
-    folder_cache.invalidate_tree(from_dropbox)
-    folder_cache.invalidate_tree(to_dropbox)
+    folder_cache.invalidate_subtree(from_dropbox)
+    folder_cache.invalidate_subtree(to_dropbox)
 
     # Update audio meta for renamed file
     new_user_path = _to_user_path(result.get("path_display", to_dropbox), root_folder)

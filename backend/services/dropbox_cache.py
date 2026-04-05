@@ -12,11 +12,11 @@ from typing import Optional
 
 logger = logging.getLogger(__name__)
 
-# Default TTL: 2 minutes
-DEFAULT_TTL = 120
+# Default TTL: 5 minutes (mutations invalidate immediately, manual refresh bypasses)
+DEFAULT_TTL = 300
 
-# Max cached paths to prevent unbounded memory growth
-MAX_ENTRIES = 200
+# Max cached paths — high enough for recursive listing (50 songs × 4 sub-folders + overhead)
+MAX_ENTRIES = 1000
 
 
 class _CacheEntry:
@@ -78,6 +78,19 @@ class DropboxCache:
         parent = path.rsplit("/", 1)[0] if "/" in path.lstrip("/") else ""
         if parent or path != "":
             self.invalidate(parent)
+
+    def invalidate_subtree(self, path: str) -> None:
+        """Remove a path, its parent, and ALL children from cache.
+
+        Used after mutations when children were pre-populated by recursive listing.
+        """
+        self.invalidate_tree(path)
+        prefix = self._normalize_key(path)
+        children = [k for k in self._store if k.startswith(prefix + "/")]
+        for k in children:
+            del self._store[k]
+        if children:
+            logger.debug("Cache subtree invalidated: %s (%d children)", path, len(children))
 
     def clear(self) -> None:
         """Clear entire cache."""

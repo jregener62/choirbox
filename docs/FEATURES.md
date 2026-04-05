@@ -298,20 +298,23 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 
 ### Backend Dropbox-Cache
 
-In-Memory TTL-Cache (2 Minuten) fuer Dropbox `list_folder`-Ergebnisse. Reduziert redundante Dropbox-API-Calls drastisch — ein Browse-Request mit 10 Song-Ordnern wuerde sonst 30+ API-Calls ausloesen.
+In-Memory TTL-Cache (5 Minuten) fuer Dropbox `list_folder`-Ergebnisse. Beim Browsen wird ein **rekursives Listing** (`recursive=true`) genutzt, das in einem einzigen API-Call die gesamte Unterordner-Struktur laedt und den Cache fuer alle Sub-Ordner vorwaermt. Dadurch sind Folge-Navigationen in Song-Ordner instant (Cache-Hit statt API-Call).
 
 - Cache-Key: Dropbox-Pfad (case-insensitive)
-- Automatische Invalidierung bei Mutations (Upload, Delete, Rename, Folder-Create)
+- **Rekursives Listing** beim Browse: 1 API-Call statt N+1 (bei 50 Songs vorher ~200 Calls)
+- **Negative Caching**: Nicht-existierende Ordner werden als leer gecacht (kein wiederholtes Abfragen)
+- Automatische Invalidierung bei Mutations (Upload, Delete, Rename, Folder-Create) inkl. aller Sub-Pfade (`invalidate_subtree`)
 - `?refresh=true` Parameter umgeht den Cache
-- Max 200 gecachte Pfade (LRU-Eviction)
+- Max 1000 gecachte Pfade (LRU-Eviction)
 
 ### Frontend Browse-Cache (Stale-While-Revalidate)
 
 Zustand-Store cached Browse-Ergebnisse pro Pfad. Ermoeglicht sofortige Zurueck-Navigation ohne Loading-Skeleton.
 
-- **Frischer Cache (< 2 Min):** Daten sofort anzeigen, kein API-Call
-- **Staler Cache (> 2 Min):** Daten sofort anzeigen, im Hintergrund neu fetchen
+- **Frischer Cache (< 5 Min):** Daten sofort anzeigen, kein API-Call
+- **Staler Cache (> 5 Min):** Daten sofort anzeigen, im Hintergrund neu fetchen
 - **Kein Cache:** Loading-Skeleton, API-Call
+- **Request-Deduplication:** Doppelte Requests fuer denselben Pfad werden zusammengefuehrt
 - Max 50 gecachte Pfade (LRU-Eviction)
 
 ### Optimistic Updates
@@ -330,7 +333,7 @@ RefreshCw-Button in der BrowsePage-Toolbar. Erzwingt frischen Fetch von Dropbox 
 | Datei | Rolle |
 |-------|-------|
 | `backend/services/dropbox_cache.py` | In-Memory TTL-Cache (Singleton) |
-| `backend/services/dropbox_service.py` | `list_folder()` mit Cache-Integration |
+| `backend/services/dropbox_service.py` | `list_folder()` + `list_folder_recursive()` mit Cache-Integration |
 | `frontend/src/stores/browseStore.ts` | Frontend Browse-Cache (Stale-While-Revalidate) |
 | `frontend/src/hooks/useFavorites.ts` | Optimistic Toggle |
 | `frontend/src/hooks/useLabels.ts` | Optimistic Toggle |

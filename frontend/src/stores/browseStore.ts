@@ -3,8 +3,11 @@ import { api } from '@/api/client.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
-const CACHE_TTL = 2 * 60 * 1000 // 2 minutes
+const CACHE_TTL = 5 * 60 * 1000 // 5 minutes (mutations invalidate immediately)
 const MAX_CACHE_ENTRIES = 50
+
+// Request deduplication: prevent duplicate concurrent fetches for the same path
+const inflight = new Map<string, Promise<void>>()
 
 interface CacheEntry {
   entries: DropboxEntry[]
@@ -57,43 +60,59 @@ export const useBrowseStore = create<BrowseStore>((set, get) => ({
       }
     }
 
-    try {
-      const refreshParam = forceRefresh ? '&refresh=true' : ''
-      const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(path)}${refreshParam}`)
+    // Deduplicate: if a request for this path is already in flight, await it
+    const dedupeKey = `${path}:${forceRefresh}`
+    const existing = inflight.get(dedupeKey)
+    if (existing) {
+      return existing
+    }
 
-      // Update cache (LRU eviction)
-      const newCache = { ...get().cache }
-      newCache[path] = { entries: data.entries, timestamp: Date.now() }
+    const promise = (async () => {
+      try {
+        const refreshParam = forceRefresh ? '&refresh=true' : ''
+        const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(path)}${refreshParam}`)
 
-      // Evict oldest if over limit
-      const keys = Object.keys(newCache)
-      if (keys.length > MAX_CACHE_ENTRIES) {
-        let oldestKey = keys[0]
-        let oldestTime = newCache[oldestKey].timestamp
-        for (const k of keys) {
-          if (newCache[k].timestamp < oldestTime) {
-            oldestKey = k
-            oldestTime = newCache[k].timestamp
+        // Update cache (LRU eviction)
+        const newCache = { ...get().cache }
+        newCache[path] = { entries: data.entries, timestamp: Date.now() }
+
+        // Evict oldest if over limit
+        const keys = Object.keys(newCache)
+        if (keys.length > MAX_CACHE_ENTRIES) {
+          let oldestKey = keys[0]
+          let oldestTime = newCache[oldestKey].timestamp
+          for (const k of keys) {
+            if (newCache[k].timestamp < oldestTime) {
+              oldestKey = k
+              oldestTime = newCache[k].timestamp
+            }
           }
+          delete newCache[oldestKey]
         }
-        delete newCache[oldestKey]
-      }
 
-      set({
-        cache: newCache,
-        currentPath: data.path,
-        currentEntries: data.entries,
-        loading: false,
-        refreshing: false,
-        error: data.error || '',
-      })
-      useAppStore.getState().setBrowsePath(data.path)
-    } catch (err) {
-      set({
-        loading: false,
-        refreshing: false,
-        error: err instanceof Error ? err.message : 'Fehler beim Laden',
-      })
+        set({
+          cache: newCache,
+          currentPath: data.path,
+          currentEntries: data.entries,
+          loading: false,
+          refreshing: false,
+          error: data.error || '',
+        })
+        useAppStore.getState().setBrowsePath(data.path)
+      } catch (err) {
+        set({
+          loading: false,
+          refreshing: false,
+          error: err instanceof Error ? err.message : 'Fehler beim Laden',
+        })
+      }
+    })()
+
+    inflight.set(dedupeKey, promise)
+    try {
+      await promise
+    } finally {
+      inflight.delete(dedupeKey)
     }
   },
 

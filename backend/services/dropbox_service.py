@@ -172,7 +172,13 @@ class DropboxService:
                 logger.debug("list_folder cache hit: %s", path)
                 return cached[0]  # entries
 
-        result = await self.api_call("files/list_folder", {"path": path})
+        try:
+            result = await self.api_call("files/list_folder", {"path": path})
+        except RuntimeError as e:
+            if "path/not_found" in str(e):
+                folder_cache.put(path, [])
+                return []
+            raise
         entries = result.get("entries", [])
         cursor = result.get("cursor", "")
 
@@ -188,6 +194,64 @@ class DropboxService:
 
         folder_cache.put(path, entries, cursor)
         return entries
+
+    async def list_folder_recursive(self, path: str, use_cache: bool = True) -> list[dict]:
+        """Recursively list all entries under a Dropbox path and pre-populate the per-folder cache.
+
+        Makes a single Dropbox API call with recursive=True (plus pagination),
+        then splits entries by parent directory and stores each group in folder_cache.
+        Returns the top-level entries (direct children of path) for immediate use.
+        """
+        from backend.services.dropbox_cache import folder_cache
+        from collections import defaultdict
+
+        # If top-level path is already cached, skip the recursive call
+        if use_cache:
+            cached = folder_cache.get(path)
+            if cached is not None:
+                logger.debug("list_folder_recursive cache hit (top-level): %s", path)
+                return cached[0]
+
+        result = await self.api_call("files/list_folder", {
+            "path": path,
+            "recursive": True,
+        })
+        all_entries = result.get("entries", [])
+
+        page = 1
+        while result.get("has_more"):
+            page += 1
+            logger.info("list_folder_recursive %s: fetching page %d", path, page)
+            result = await self.api_call("files/list_folder/continue", {
+                "cursor": result["cursor"],
+            })
+            all_entries.extend(result.get("entries", []))
+
+        # Group entries by parent directory, track all folder paths
+        by_parent: dict[str, list[dict]] = defaultdict(list)
+        folder_paths: set[str] = set()
+        for entry in all_entries:
+            entry_path = entry.get("path_lower", "")
+            if "/" in entry_path.lstrip("/"):
+                parent = entry_path.rsplit("/", 1)[0]
+            else:
+                parent = ""
+            by_parent[parent].append(entry)
+            if entry.get(".tag") == "folder":
+                folder_paths.add(entry_path)
+
+        # Populate per-folder cache
+        for parent_path, entries in by_parent.items():
+            folder_cache.put(parent_path, entries)
+
+        # Pre-populate empty cache entries for leaf folders (no children)
+        for folder_path in folder_paths:
+            if folder_path not in by_parent:
+                folder_cache.put(folder_path, [])
+
+        # Return top-level entries
+        normalized = path.lower().rstrip("/") or ""
+        return by_parent.get(normalized, [])
 
     async def search(self, query: str, path: str = "") -> list[dict]:
         """Search for files by name."""
