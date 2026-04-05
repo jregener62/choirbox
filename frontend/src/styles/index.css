@@ -1650,7 +1650,7 @@ textarea::placeholder {
   background: color-mix(in srgb, rgb(129,140,248) 8%, var(--bg-primary));
 }
 
-.file-item--song-active {
+.file-item--song-selected {
   outline: 1.5px solid rgba(129,140,248,0.35);
   outline-offset: -1.5px;
   border-radius: var(--radius-lg);

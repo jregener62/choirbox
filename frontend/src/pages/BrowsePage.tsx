@@ -66,6 +66,9 @@ export function BrowsePage() {
   // Video modal state
   const [videoEntry, setVideoEntry] = useState<DropboxEntry | null>(null)
 
+  // Track which .song folder was last visited
+  const lastSongPathRef = useRef<string | null>(null)
+
   // Kebab menu state
   const [kebabOpen, setKebabOpen] = useState(false)
 
@@ -287,6 +290,11 @@ export function BrowsePage() {
   const songParentPath = isInsideSong && songAncestorIdx > 0
     ? '/' + browseSegments.slice(0, songAncestorIdx).join('/')
     : ''
+
+  // Remember the last visited .song folder path
+  if (isInsideSong) {
+    lastSongPathRef.current = '/' + browseSegments.slice(0, songAncestorIdx + 1).join('/')
+  }
 
   // Detect if we're inside a Texte folder
   const isInTexteFolder = lastSegment.toLowerCase() === 'texte'
@@ -547,6 +555,7 @@ export function BrowsePage() {
       >
         {displayEntries.map((entry) => {
           const isActive = entry.type === 'file' && entry.path === currentPath
+          const isSongSelected = entry.folder_type === 'song' && entry.path === lastSongPathRef.current
           const isFile = entry.type === 'file'
           const isDoc = entry.type === 'document'
           const isTexteFolder = entry.folder_type === 'texte'
@@ -738,7 +747,7 @@ export function BrowsePage() {
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
-                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}`}
+                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongSelected ? ' file-item--song-selected' : ''}`}
                 onClick={() => handleEntryClick(entry)}
                 onTouchStart={handleSwipeStart}
                 onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}
