@@ -377,93 +377,80 @@ export function BrowsePage() {
               <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
             </button>
             <span style={{ flex: 1 }} />
-            {isProMember && (
-              <button className="player-header-btn" onClick={() => {
-                const songFolder = deriveSongFolderPath(browsePath)
-                if (songFolder) {
-                  useRecordingStore.getState().startSession(songFolder)
-                } else {
-                  useRecordingStore.getState().startRootSession(browsePath || '/')
-                }
-              }}>
-                <Mic size={18} />
-              </button>
-            )}
-            {isProMember && (
-              <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-                <Upload size={18} />
-              </button>
-            )}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              {isProMember && (
+                <button className="player-header-btn" onClick={() => {
+                  const songFolder = deriveSongFolderPath(browsePath)
+                  if (songFolder) {
+                    useRecordingStore.getState().startSession(songFolder)
+                  } else {
+                    useRecordingStore.getState().startRootSession(browsePath || '/')
+                  }
+                }}>
+                  <Mic size={18} />
+                </button>
+              )}
+              {isProMember && (
+                <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+                  <Upload size={18} />
+                </button>
+              )}
+            </div>
           </div>
         ) : (
-          /* Outside .song: full header with all actions */
+          /* Outside .song: sync+settings left, favs+search+filter center, mic+upload right */
           <div className="topbar">
-            <span className="topbar-title"></span>
-            {!searchOpen && (
+            {!searchOpen ? (
               <>
-                <button className="player-header-btn" style={{ marginLeft: 'auto', ...(favorites.length > 0 ? { color: 'var(--accent)' } : {}) }} onClick={() => navigate('/favorites')}>
-                  <Heart size={18} fill={favorites.length > 0 ? 'currentColor' : 'none'} />
-                </button>
-                {hasAnyLabels && labels.length > 0 && (
-                  <button
-                    className="player-header-btn"
-                    onClick={() => setFilterOpen(!filterOpen)}
-                    style={activeFilters.length > 0 ? { color: 'var(--accent)' } : undefined}
-                  >
-                    <SlidersHorizontal size={18} />
+                {/* Left group */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <button className="player-header-btn" onClick={() => loadFolder(browsePath, true)}>
+                    <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
                   </button>
-                )}
-                <button className="player-header-btn" onClick={() => loadFolder(browsePath, true)}>
-                  <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
-                </button>
-                <button className="player-header-btn" onClick={openSearch}>
-                  <Search size={18} />
-                </button>
-                <button className="player-header-btn" onClick={() => navigate('/settings')}>
-                  <Settings size={18} />
-                </button>
-                {isProMember && (
-                  <button className="player-header-btn" onClick={() => {
-                    const songFolder = deriveSongFolderPath(browsePath)
-                    if (songFolder) {
-                      useRecordingStore.getState().startSession(songFolder)
-                    } else {
-                      useRecordingStore.getState().startRootSession(browsePath || '/')
-                    }
-                  }}>
-                    <Mic size={18} />
+                  <button className="player-header-btn" onClick={() => navigate('/settings')}>
+                    <Settings size={18} />
                   </button>
-                )}
-                {isProMember && (
-                  <div style={{ position: 'relative' }}>
-                    <button className="player-header-btn" onClick={() => setKebabOpen(!kebabOpen)}>
-                      <EllipsisVertical size={18} />
+                </div>
+                {/* Center group */}
+                <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
+                  <button className="player-header-btn" style={favorites.length > 0 ? { color: 'var(--accent)' } : undefined} onClick={() => navigate('/favorites')}>
+                    <Heart size={18} fill={favorites.length > 0 ? 'currentColor' : 'none'} />
+                  </button>
+                  <button className="player-header-btn" onClick={openSearch}>
+                    <Search size={18} />
+                  </button>
+                  {hasAnyLabels && labels.length > 0 && (
+                    <button
+                      className="player-header-btn"
+                      onClick={() => setFilterOpen(!filterOpen)}
+                      style={activeFilters.length > 0 ? { color: 'var(--accent)' } : undefined}
+                    >
+                      <SlidersHorizontal size={18} />
                     </button>
-                    {kebabOpen && (
-                      <>
-                        <div style={{ position: 'fixed', inset: 0, zIndex: 99 }} onClick={() => setKebabOpen(false)} />
-                        <div style={{
-                          position: 'absolute', right: 0, top: '100%', marginTop: 4, zIndex: 100,
-                          background: 'var(--bg-secondary)', border: '1px solid var(--border)',
-                          borderRadius: 'var(--radius-lg)', padding: 'var(--space-2) 0',
-                          minWidth: 200, boxShadow: 'var(--shadow-lg)',
-                        }}>
-                          <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
-                            <Upload size={16} /> Datei(en) hochladen
-                          </button>
-                          {isAdmin && (
-                            <button className="kebab-item" onClick={() => { setKebabOpen(false); setNewFolderName(''); setCreateFolderOpen(true) }}>
-                              <FolderPlus size={16} /> Ordner erstellen
-                            </button>
-                          )}
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
+                  )}
+                </div>
+                {/* Right group */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  {isProMember && (
+                    <button className="player-header-btn" onClick={() => {
+                      const songFolder = deriveSongFolderPath(browsePath)
+                      if (songFolder) {
+                        useRecordingStore.getState().startSession(songFolder)
+                      } else {
+                        useRecordingStore.getState().startRootSession(browsePath || '/')
+                      }
+                    }}>
+                      <Mic size={18} />
+                    </button>
+                  )}
+                  {isProMember && (
+                    <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+                      <Upload size={18} />
+                    </button>
+                  )}
+                </div>
               </>
-            )}
-            {searchOpen && (
+            ) : (
               <div className="search-bar" style={{ flex: 1 }}>
                 <Search size={18} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
                 <input
