@@ -295,6 +295,14 @@ export function BrowsePage() {
     : null
   const showSegmentedControl = isInsideSong && songSubFolders && songSubFolders.length > 0
 
+  // Stop player when leaving .song folder
+  useEffect(() => {
+    if (!isInsideSong && usePlayerStore.getState().currentPath) {
+      usePlayerStore.getState().setPlaying(false)
+      usePlayerStore.setState({ currentPath: null, currentName: null })
+    }
+  }, [isInsideSong])
+
   // Detect if we're inside a Texte folder
   const isInTexteFolder = lastSegment.toLowerCase() === 'texte'
   // Song folder path for selected doc (go up one level from Texte)
