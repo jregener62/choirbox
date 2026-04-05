@@ -123,7 +123,7 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
         useBrowseStore.getState().invalidate(rootPath)
         useAppStore.getState().setHighlightPath(newSongPath)
         useBrowseStore.getState().loadFolder(rootPath, true)
-        navigate('/')
+        if (window.location.hash === '#/' || window.location.hash === '') navigate('/')
       } else {
         // Song mode: upload into existing .song, switch to Audio tab
         let existingFiles: string[] = []
@@ -150,7 +150,7 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
         useBrowseStore.getState().invalidate(songFolderPath!)
         useAppStore.getState().setHighlightPath(result?.path || null)
         useBrowseStore.getState().loadFolder(audioPath, true)
-        navigate('/')
+        if (window.location.hash === '#/' || window.location.hash === '') navigate('/')
       }
 
       setPhase('done')
