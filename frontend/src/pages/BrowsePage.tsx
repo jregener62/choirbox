@@ -799,7 +799,7 @@ export function BrowsePage() {
                 {entry.folder_type === 'song' && (
                   <button
                     className="swipe-action-btn swipe-action-fav"
-                    onClick={(e) => { e.stopPropagation(); toggleFav(entry.path, 'folder') }}
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); toggleFav(entry.path, 'folder') }}
                   >
                     <Heart size={18} fill={fav ? 'currentColor' : 'none'} />
                   </button>
@@ -807,7 +807,7 @@ export function BrowsePage() {
                 {isInTexteFolder && isDoc && entry.doc_id && (
                   <button
                     className={`swipe-action-btn swipe-action-select${selectedDoc?.id === entry.doc_id ? ' swipe-action-select--active' : ''}`}
-                    onClick={(e) => { e.stopPropagation(); selectDoc(songFolderPath, entry.doc_id!) }}
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); selectDoc(songFolderPath, entry.doc_id!) }}
                   >
                     <Check size={18} />
                   </button>
@@ -815,7 +815,7 @@ export function BrowsePage() {
                 {(isFile || isDoc || entry.folder_type === 'song') && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-label"
-                    onClick={(e) => { e.stopPropagation(); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}
                   >
                     <Tag size={18} />
                   </button>
@@ -851,7 +851,7 @@ export function BrowsePage() {
                 {((isFile || isDoc) ? canDelete : isAdmin) && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
-                    onClick={(e) => { e.stopPropagation(); setConfirmEntry(entry) }}
+                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setConfirmEntry(entry) }}
                   >
                     <Trash2 size={18} />
                   </button>
