@@ -105,13 +105,11 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
     try {
       let uploadFilename: string
 
-      let targetSongFolder: string
-
       if (isRootMode) {
-        // Root mode: create .song folder via song_folder_name parameter
+        // Root mode: create .song folder, stay in root, highlight new folder
         const timestampName = generateTimestampSongName()
         uploadFilename = `${timestampName}-Aufnahme 1.${fileExtension}`
-        targetSongFolder = `${(basePath || '').replace(/\/$/, '')}/${timestampName}.song`
+        const newSongPath = `${(basePath || '').replace(/\/$/, '')}/${timestampName}.song`
 
         const formData = new FormData()
         formData.append('file', blob, uploadFilename)
@@ -120,10 +118,14 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
 
         await apiUpload('/dropbox/upload', formData)
 
-        useBrowseStore.getState().invalidate(basePath || '/')
+        // Reload root and highlight the new .song folder
+        const rootPath = basePath || '/'
+        useBrowseStore.getState().invalidate(rootPath)
+        useAppStore.getState().setHighlightPath(newSongPath)
+        useBrowseStore.getState().loadFolder(rootPath, true)
+        navigate('/')
       } else {
-        // Song mode: upload into existing .song folder
-        targetSongFolder = songFolderPath!
+        // Song mode: upload into existing .song, switch to Audio tab
         let existingFiles: string[] = []
         try {
           const audioPath = `${songFolderPath}/Audio`
@@ -140,16 +142,16 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
         formData.append('file', blob, uploadFilename)
         formData.append('target_path', songFolderPath!)
 
-        await apiUpload('/dropbox/upload', formData)
+        const result = await apiUpload<{ name: string; path: string }>('/dropbox/upload', formData)
 
-        useBrowseStore.getState().invalidate(`${songFolderPath}/Audio`)
+        // Switch to Audio tab and highlight the new file
+        const audioPath = `${songFolderPath}/Audio`
+        useBrowseStore.getState().invalidate(audioPath)
         useBrowseStore.getState().invalidate(songFolderPath!)
+        useAppStore.getState().setHighlightPath(result?.path || null)
+        useBrowseStore.getState().loadFolder(audioPath, true)
+        navigate('/')
       }
-
-      // Navigate to the .song folder (shows Audio files)
-      useAppStore.getState().setBrowsePath(targetSongFolder)
-      useBrowseStore.getState().loadFolder(targetSongFolder, true)
-      navigate('/')
 
       setPhase('done')
       setTimeout(() => {

@@ -33,6 +33,7 @@ interface SearchResponse {
 export function BrowsePage() {
   const navigate = useNavigate()
   const browsePath = useAppStore((s) => s.browsePath)
+  const highlightPath = useAppStore((s) => s.highlightPath)
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
   const { favorites, loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
@@ -310,6 +311,24 @@ export function BrowsePage() {
       loadSelectedDoc(songFolderPath)
     }
   }, [isInTexteFolder, songFolderPath, loadSelectedDoc])
+
+  // Scroll to and highlight a specific entry after upload
+  useEffect(() => {
+    if (!highlightPath || loading) return
+    const match = entries.find((e) => e.path === highlightPath)
+    if (!match) return
+    // Clear highlight after processing
+    useAppStore.getState().setHighlightPath(null)
+    // Scroll to element after DOM update
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-path="${CSS.escape(highlightPath)}"]`)
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+        el.classList.add('file-item--highlight')
+        setTimeout(() => el.classList.remove('file-item--highlight'), 2000)
+      }
+    })
+  }, [highlightPath, entries, loading])
 
   // Voice lookup for colors (shortcode → label info)
   const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme').map((l) => [l.shortcode || l.name, { name: l.name, color: l.color }]))
@@ -767,6 +786,7 @@ export function BrowsePage() {
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
                 className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongSelected ? ' file-item--song-selected' : ''}`}
+                data-path={entry.path}
                 onClick={() => handleEntryClick(entry)}
                 onTouchStart={handleSwipeStart}
                 onTouchEnd={(e) => handleSwipeEnd(entry.path, e)}
@@ -963,13 +983,24 @@ export function BrowsePage() {
             onUploadComplete={() => {
               useDocumentsStore.setState({ loadedFolder: null })
               if (importSongName) {
-                // Navigate to the newly created .song folder
-                const newPath = `${browsePath.replace(/\/$/, '')}/${importSongName}.song`
-                loadFolder(newPath)
+                // Root mode: stay in root, highlight new .song folder
+                const newSongPath = `${browsePath.replace(/\/$/, '')}/${importSongName}.song`
+                useAppStore.getState().setHighlightPath(newSongPath)
+                loadFolder(browsePath, true)
               } else {
-                // Stay in current .song folder and reload
+                // Song mode: switch to the tab matching the file type, highlight file
                 const songFolder = deriveSongFolderPath(browsePath)
-                loadFolder(songFolder || browsePath)
+                if (songFolder && importedFiles[0]) {
+                  const ext = importedFiles[0].name.split('.').pop()?.toLowerCase() || ''
+                  const isDoc = ['pdf', 'txt'].includes(ext)
+                  const isVideo = ['mp4', 'mov'].includes(ext)
+                  const subFolder = isDoc ? 'Texte' : isVideo ? 'Videos' : 'Audio'
+                  const tabPath = `${songFolder}/${subFolder}`
+                  useBrowseStore.getState().invalidate(tabPath)
+                  loadFolder(tabPath, true)
+                } else {
+                  loadFolder(browsePath, true)
+                }
               }
             }}
           />

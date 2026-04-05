@@ -1675,6 +1675,15 @@ textarea::placeholder {
   background: color-mix(in srgb, rgb(129,140,248) 6%, var(--bg-primary));
 }
 
+.file-item--highlight {
+  animation: highlight-flash 2s ease-out;
+}
+
+@keyframes highlight-flash {
+  0% { background: color-mix(in srgb, var(--accent) 25%, var(--bg-primary)); }
+  100% { background: transparent; }
+}
+
 .file-icon-box {
   width: 40px;
   height: 40px;
