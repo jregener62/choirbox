@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, FolderPlus, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check, RefreshCw } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Check, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -10,7 +10,6 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { deriveSongFolderPath } from '@/utils/folderTypes'
-import { generateTimestampSongName, detectFileTypePrefix } from '@/utils/filename'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
@@ -23,7 +22,7 @@ import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import { stripFolderExtension, isReservedName, isSongFolder } from '@/utils/folderTypes.ts'
 import { getFolderTypeConfig } from '@/utils/folderTypeConfig'
 import SkeletonList from '@/components/ui/SkeletonList'
-import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
+import type { DropboxEntry } from '@/types/index.ts'
 
 interface SearchResponse {
   query: string
@@ -73,9 +72,6 @@ export function BrowsePage() {
 
   // Track which .song folder was last visited
   const lastSongPathRef = useRef<string | null>(null)
-
-  // Kebab menu state
-  const [kebabOpen, setKebabOpen] = useState(false)
 
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
