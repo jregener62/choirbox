@@ -65,6 +65,7 @@ export function BrowsePage() {
   // Rename state
   const [renameEntry, setRenameEntry] = useState<DropboxEntry | null>(null)
   const [renameName, setRenameName] = useState('')
+  const [renameExt, setRenameExt] = useState<string | null>(null)
   const [renaming, setRenaming] = useState(false)
 
   // Video modal state
@@ -372,7 +373,8 @@ export function BrowsePage() {
     if (!renameEntry || !renameName.trim() || renaming) return
     setRenaming(true)
     try {
-      await api('/dropbox/rename', { method: 'POST', body: { path: renameEntry.path, new_name: renameName.trim() } })
+      const fullName = renameExt ? renameName.trim() + renameExt : renameName.trim()
+      await api('/dropbox/rename', { method: 'POST', body: { path: renameEntry.path, new_name: fullName } })
       setRenameEntry(null)
       setRevealedPath(null)
       await loadFolder(browsePath)
@@ -821,7 +823,27 @@ export function BrowsePage() {
                 {(isAdmin || (isDoc && isProMember)) && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-info"
-                    onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setRenameName(entry.name); setRenameEntry(entry) }}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setRevealedPath(null)
+                      if (entry.folder_type === 'song') {
+                        setRenameName(entry.name.replace(/\.song$/i, ''))
+                        setRenameExt('.song')
+                      } else if (isInTexteFolder && (isFile || isDoc)) {
+                        const dotIdx = entry.name.lastIndexOf('.')
+                        if (dotIdx > 0) {
+                          setRenameName(entry.name.slice(0, dotIdx))
+                          setRenameExt(entry.name.slice(dotIdx))
+                        } else {
+                          setRenameName(entry.name)
+                          setRenameExt(null)
+                        }
+                      } else {
+                        setRenameName(entry.name)
+                        setRenameExt(null)
+                      }
+                      setRenameEntry(entry)
+                    }}
                   >
                     <Pencil size={18} />
                   </button>
@@ -932,10 +954,40 @@ export function BrowsePage() {
             autoFocus
             onKeyDown={(e) => e.key === 'Enter' && handleRename()}
           />
+          {renameExt && (
+            <div className="recording-filename-preview">
+              {renameName.trim()}{renameExt}
+            </div>
+          )}
         </ConfirmDialog>
       )}
 
-      {renameEntry && (renameEntry.type === 'file' || renameEntry.type === 'document') && (
+      {renameEntry && (renameEntry.type === 'file' || renameEntry.type === 'document') && renameExt !== null && (
+        <ConfirmDialog
+          title="Datei umbenennen"
+          onClose={() => setRenameEntry(null)}
+          confirmLabel="Speichern"
+          confirmLoadingLabel="Speichern..."
+          onConfirm={handleRename}
+          loading={renaming}
+          confirmDisabled={!renameName.trim()}
+          variant="primary"
+        >
+          <input
+            className="auth-input"
+            type="text"
+            value={renameName}
+            onChange={(e) => setRenameName(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => e.key === 'Enter' && handleRename()}
+          />
+          <div className="recording-filename-preview">
+            {renameName.trim()}{renameExt}
+          </div>
+        </ConfirmDialog>
+      )}
+
+      {renameEntry && (renameEntry.type === 'file' || renameEntry.type === 'document') && renameExt === null && (
         <RenameModal
           path={renameEntry.path}
           currentName={renameEntry.name}
