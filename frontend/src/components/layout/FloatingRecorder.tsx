@@ -7,7 +7,7 @@ import { useBrowseStore } from '@/stores/browseStore'
 import { apiUpload } from '@/api/client'
 import { api } from '@/api/client'
 import { formatTime } from '@/utils/formatters'
-import { buildAutoRecordingName } from '@/utils/filename'
+import { buildAutoRecordingName, generateTimestampSongName } from '@/utils/filename'
 import type { BrowseResponse } from '@/types/index'
 
 type Phase = 'idle' | 'recording' | 'stopped' | 'uploading' | 'done' | 'error'
@@ -15,14 +15,20 @@ type Phase = 'idle' | 'recording' | 'stopped' | 'uploading' | 'done' | 'error'
 export function FloatingRecorder() {
   const songFolderPath = useRecordingStore((s) => s.songFolderPath)
   const songFolderName = useRecordingStore((s) => s.songFolderName)
+  const basePath = useRecordingStore((s) => s.basePath)
   const endSession = useRecordingStore((s) => s.endSession)
 
-  if (!songFolderPath || !songFolderName) return null
+  const isRootMode = !songFolderPath && !!basePath
+  const isActive = !!songFolderPath || !!basePath
+
+  if (!isActive) return null
 
   return createPortal(
     <FloatingRecorderInner
       songFolderPath={songFolderPath}
       songFolderName={songFolderName}
+      basePath={basePath}
+      isRootMode={isRootMode}
       onClose={endSession}
     />,
     document.body,
@@ -30,12 +36,14 @@ export function FloatingRecorder() {
 }
 
 interface InnerProps {
-  songFolderPath: string
-  songFolderName: string
+  songFolderPath: string | null
+  songFolderName: string | null
+  basePath: string | null
+  isRootMode: boolean
   onClose: () => void
 }
 
-function FloatingRecorderInner({ songFolderPath, songFolderName, onClose }: InnerProps) {
+function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRootMode, onClose }: InnerProps) {
   const {
     state: recState, error: recError, duration, blob,
     blobUrl, fileExtension, startRecording, stopRecording, reset,
@@ -92,28 +100,48 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, onClose }: Inne
     setUploadError(null)
 
     try {
-      // Fetch existing files in /Audio to determine next number
-      let existingFiles: string[] = []
-      try {
-        const audioPath = `${songFolderPath}/Audio`
-        const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(audioPath)}`)
-        existingFiles = data.entries.map((e) => e.name)
-      } catch {
-        // /Audio folder may not exist yet — that's fine, start at 1
+      let uploadFilename: string
+
+      if (isRootMode) {
+        // Root mode: create .song folder via song_folder_name parameter
+        const timestampName = generateTimestampSongName()
+        uploadFilename = `${timestampName}-Aufnahme 1.${fileExtension}`
+
+        const formData = new FormData()
+        formData.append('file', blob, uploadFilename)
+        formData.append('target_path', basePath || '/')
+        formData.append('song_folder_name', timestampName)
+
+        await apiUpload('/dropbox/upload', formData)
+
+        // Invalidate and reload browse cache for the base path
+        const path = basePath || '/'
+        useBrowseStore.getState().invalidate(path)
+        useBrowseStore.getState().loadFolder(path, true)
+      } else {
+        // Song mode: upload into existing .song folder
+        let existingFiles: string[] = []
+        try {
+          const audioPath = `${songFolderPath}/Audio`
+          const data = await api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(audioPath)}`)
+          existingFiles = data.entries.map((e) => e.name)
+        } catch {
+          // /Audio folder may not exist yet
+        }
+
+        const baseName = buildAutoRecordingName(songFolderName!, existingFiles)
+        uploadFilename = `${baseName}.${fileExtension}`
+
+        const formData = new FormData()
+        formData.append('file', blob, uploadFilename)
+        formData.append('target_path', songFolderPath!)
+
+        await apiUpload('/dropbox/upload', formData)
+
+        useBrowseStore.getState().invalidate(`${songFolderPath}/Audio`)
+        useBrowseStore.getState().invalidate(songFolderPath!)
+        useBrowseStore.getState().loadFolder(songFolderPath!, true)
       }
-
-      const baseName = buildAutoRecordingName(songFolderName, existingFiles)
-      const uploadFilename = `${baseName}.${fileExtension}`
-
-      const formData = new FormData()
-      formData.append('file', blob, uploadFilename)
-      formData.append('target_path', songFolderPath)
-
-      await apiUpload('/dropbox/upload', formData)
-
-      // Invalidate browse cache
-      useBrowseStore.getState().invalidate(`${songFolderPath}/Audio`)
-      useBrowseStore.getState().invalidate(songFolderPath)
 
       setPhase('done')
       setTimeout(() => {
@@ -136,11 +164,13 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, onClose }: Inne
     }
   }
 
+  const displayName = isRootMode ? 'Neue Aufnahme' : songFolderName
+
   return (
     <div className="floating-recorder">
       {/* Header row: song name + close */}
       <div className="floating-recorder__header">
-        <span className="floating-recorder__name">{songFolderName}</span>
+        <span className="floating-recorder__name">{displayName}</span>
         {phase !== 'uploading' && phase !== 'done' && (
           <button className="floating-recorder__close" onClick={handleClose}>
             <X size={16} />

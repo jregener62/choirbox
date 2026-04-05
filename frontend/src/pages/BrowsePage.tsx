@@ -10,6 +10,7 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { deriveSongFolderPath } from '@/utils/folderTypes'
+import { generateTimestampSongName } from '@/utils/filename'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
@@ -395,6 +396,18 @@ export function BrowsePage() {
                 <Settings size={18} />
               </button>
               {isProMember && (
+                <button className="player-header-btn" onClick={() => {
+                  const songFolder = deriveSongFolderPath(browsePath)
+                  if (songFolder) {
+                    useRecordingStore.getState().startSession(songFolder)
+                  } else {
+                    useRecordingStore.getState().startRootSession(browsePath || '/')
+                  }
+                }}>
+                  <Mic size={18} />
+                </button>
+              )}
+              {isProMember && (
                 <div style={{ position: 'relative' }}>
                   <button className="player-header-btn" onClick={() => setKebabOpen(!kebabOpen)}>
                     <EllipsisVertical size={18} />
@@ -408,16 +421,9 @@ export function BrowsePage() {
                         borderRadius: 'var(--radius-lg)', padding: 'var(--space-2) 0',
                         minWidth: 200, boxShadow: 'var(--shadow-lg)',
                       }}>
-                        {isProMember && deriveSongFolderPath(browsePath) && (
-                          <button className="kebab-item" onClick={() => { setKebabOpen(false); useRecordingStore.getState().startSession(deriveSongFolderPath(browsePath)!) }}>
-                            <Mic size={16} /> Aufnehmen
-                          </button>
-                        )}
-                        {browsePath && (
-                          <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
-                            <Upload size={16} /> Datei(en) hochladen
-                          </button>
-                        )}
+                        <button className="kebab-item" onClick={() => { setKebabOpen(false); fileInputRef.current?.click() }}>
+                          <Upload size={16} /> Datei(en) hochladen
+                        </button>
                         {isAdmin && (
                           <button className="kebab-item" onClick={() => { setKebabOpen(false); setNewFolderName(''); setCreateFolderOpen(true) }}>
                             <FolderPlus size={16} /> Ordner erstellen
@@ -935,6 +941,7 @@ export function BrowsePage() {
           files={importedFiles}
           targetPath={browsePath}
           isAdmin={isAdmin}
+          songFolderName={!deriveSongFolderPath(browsePath) ? generateTimestampSongName() : undefined}
           onClose={() => { setImportOpen(false); setImportedFiles([]) }}
           onUploadComplete={() => { loadFolder(browsePath); useDocumentsStore.setState({ loadedFolder: null }) }}
         />

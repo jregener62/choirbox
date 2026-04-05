@@ -108,8 +108,8 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Filter (Labels) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Suche | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Label zuweisen (Tag) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Aufnehmen (Mic-Icon) | ✓ | ✓ | ✓ | ✓ | — | — |
 | Kebab-Menue (⋮) | ✓ | ✓ | ✓ | ✓ | — | — |
-| ↳ Aufnehmen | ✓ | ✓ | ✓ | ✓ | — | — |
 | ↳ Datei hochladen | ✓ | ✓ | ✓ | ✓ | — | — |
 | ↳ Ordner erstellen | ✓ | ✓ | — | — | — | — |
 | Datei-Einstellungen (Info) | ✓ | ✓ | ✓ | ✓ | — | — |
@@ -265,8 +265,12 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
 - **Loeschen** (Papierkorb): Nur Admin (Level 4+). Nur leere Ordner koennen geloescht werden.
 
+**Aufnahme-Button (Mic-Icon im Header):**
+- Ab Pro-Mitglied sichtbar. Oeffnet den Floating Recorder.
+- Innerhalb von `.song`-Ordnern: Song-Modus. Auf Chor-Ebene: Root-Modus (erstellt neuen `.song`-Ordner).
+
 **Kebab-Menue (Drei-Punkte im Header):**
-- Ab Pro-Mitglied sichtbar. Enthaelt: Aufnehmen, Datei hochladen, Ordner erstellen (Admin).
+- Ab Pro-Mitglied sichtbar. Enthaelt: Datei hochladen, Ordner erstellen (Admin).
 - Member sehen kein Kebab-Menue (nur Favoriten, Filter, Suche, Settings im Header).
 
 - Tippen auf ein anderes Element oder erneutes Tippen auf die drei Punkte schliesst das Menue
@@ -740,20 +744,23 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 ### Aufnahme (Floating Recorder)
 
 - **Schwebender Mini-Recorder** am oberen Bildschirmrand — erlaubt gleichzeitiges Lesen von Texten/Noten waehrend der Aufnahme
-- Erreichbar von **mehreren Views**: Browse (Kebab-Menu), Favoriten (Mic-Icon pro Ordner), Viewer (Topbar-Button)
-- Browser-Mikrofon-Aufnahme (MediaRecorder API)
+- Erreichbar von **mehreren Views**: Browse (Mic-Icon in Topbar), Favoriten (Mic-Icon pro Ordner), Viewer (Topbar-Button)
+- **Zwei Modi**:
+  - **Song-Modus**: Aufnahme innerhalb eines `.song`-Ordners — Auto-Benennung `{SongName}-Aufnahme {n}`
+  - **Root-Modus**: Aufnahme auf Chor-Ebene (ausserhalb `.song`) — erstellt automatisch neuen `.song`-Ordner mit Zeitstempel-Namen (z.B. `Aufnahme 2026-04-05 14-30.song`)
+- Browser-Mikrofon-Aufnahme (MediaRecorder API, ohne Voice-Processing fuer bessere Audioqualitaet)
 - Server-seitige Konvertierung zu MP3 (FFmpeg)
-- **Auto-Benennung**: `{SongName}-Aufnahme {n}` — fortlaufende Nummerierung basierend auf vorhandenen Aufnahmen im /Audio-Ordner
-- Aufnahmen landen automatisch im `/Audio`-Unterordner des zugehoerigen `.song`-Ordners (wird bei Bedarf erstellt)
+- Aufnahmen landen automatisch im `/Audio`-Unterordner des `.song`-Ordners (wird bei Bedarf erstellt)
 - Berechtigung: ab Pro-Mitglied
-- Der Recorder bleibt beim Seitenwechsel aktiv (globaler State via Zustand Store)
+- Der Recorder bleibt beim Seitenwechsel aktiv (globaler State via Zustand Store, Modul-Level-Singleton fuer MediaRecorder)
 - States: Idle → Recording → Stopped (Anhoeren/Neu/Hochladen) → Uploading → Done
 
 ### Datei-Upload
 
 Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, Dateien-App).
 
-- Upload-Button im Footer des Datei-Browsers (neben Aufnahme-Button)
+- Upload-Button im Kebab-Menu des Datei-Browsers
+- Funktioniert auch auf **Chor-Ebene** (Root-Modus): erstellt automatisch `.song`-Ordner mit Zeitstempel-Namen, Audio in `/Audio`, Dokumente in `/Texte`
 - Oeffnet den nativen Datei-Picker des Geraets
 - iOS: nur Dateiendungen im `accept`-Attribut, damit direkt die Dateien-App oeffnet (statt Kamera/Fotomediathek)
 - Android/Desktop: `audio/*` MIME-Type fuer nativen Audio-Filter im Picker

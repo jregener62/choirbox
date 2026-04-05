@@ -243,6 +243,7 @@ async def _sync_documents_from_dropbox(
 async def upload_document(
     file: UploadFile = File(...),
     folder_path: str = Form(...),
+    song_folder_name: str | None = Form(None),
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
@@ -250,6 +251,18 @@ async def upload_document(
     file_type = document_service.detect_file_type(original_name)
     if not file_type:
         raise HTTPException(400, "Nicht unterstuetztes Dateiformat")
+
+    # Auto-create .song folder if requested (root-level upload)
+    if song_folder_name:
+        song_path = f"{folder_path.rstrip('/')}/{song_folder_name}.song"
+        dbx = get_dropbox_service(session)
+        if dbx:
+            song_dbx = _dropbox_folder_path(song_path, user, session)
+            try:
+                await dbx.create_folder(song_dbx)
+            except RuntimeError:
+                pass  # Already exists
+        folder_path = song_path
 
     # Resolve to Texte folder (e.g. if called from Player with Audio path)
     from backend.services.folder_types import get_parent_folder_type

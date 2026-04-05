@@ -533,6 +533,7 @@ async def dropbox_stream(
 async def dropbox_upload(
     file: UploadFile = File(...),
     target_path: str = Form(...),
+    song_folder_name: str | None = Form(None),
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
@@ -580,6 +581,16 @@ async def dropbox_upload(
 
     if target_path and not target_path.startswith("/"):
         target_path = "/" + target_path
+
+    # Auto-create .song folder if requested (root-level upload)
+    if song_folder_name:
+        song_path = f"{target_path.rstrip('/')}/{song_folder_name}.song"
+        song_dbx = _to_dropbox_path(song_path, root_folder)
+        try:
+            await dbx.create_folder(song_dbx)
+        except RuntimeError:
+            pass  # Already exists
+        target_path = song_path
 
     # Auto-routing: inside a .song folder, route to reserved subfolders
     from backend.services.folder_types import get_parent_folder_type

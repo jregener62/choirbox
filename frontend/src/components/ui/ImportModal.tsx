@@ -16,6 +16,7 @@ interface ImportModalProps {
   files: File[]
   targetPath: string
   isAdmin: boolean
+  songFolderName?: string  // Root-Modus: auto-create .song folder with this name
   onClose: () => void
   onUploadComplete: () => void
 }
@@ -26,7 +27,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadComplete }: ImportModalProps) {
+export function ImportModal({ files, targetPath, isAdmin, songFolderName, onClose, onUploadComplete }: ImportModalProps) {
   const [entries, setEntries] = useState<FileEntry[]>(
     () => files.map((file) => ({ file, status: 'pending' as const })),
   )
@@ -57,9 +58,11 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
         formData.append('file', entries[i].file, entries[i].file.name)
         if (isDocument) {
           formData.append('folder_path', targetPath || '/')
+          if (songFolderName) formData.append('song_folder_name', songFolderName)
           await apiUpload('/documents/upload', formData)
         } else {
           formData.append('target_path', targetPath || '/')
+          if (songFolderName) formData.append('song_folder_name', songFolderName)
           await apiUpload('/dropbox/upload', formData)
         }
         setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: 'done' } : e))
@@ -99,7 +102,10 @@ export function ImportModal({ files, targetPath, isAdmin, onClose, onUploadCompl
       showClose={phase !== 'uploading'}
     >
       <div className="recording-path" style={{ padding: 0 }}>
-        Zielordner: {targetPath ? stripFolderExtension(targetPath.split('/').filter(Boolean).pop() || '') : 'Root'}
+        {songFolderName
+          ? `Neuer Song-Ordner: ${songFolderName}.song`
+          : `Zielordner: ${targetPath ? stripFolderExtension(targetPath.split('/').filter(Boolean).pop() || '') : 'Root'}`
+        }
       </div>
 
       <div className="import-file-list">

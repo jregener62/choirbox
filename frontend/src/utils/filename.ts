@@ -178,3 +178,13 @@ export function buildAutoRecordingName(
   }
   return `${songFolderName}-Aufnahme ${maxNum + 1}`
 }
+
+/**
+ * Generate a timestamp-based song folder name for root-level uploads.
+ * Format: "Aufnahme YYYY-MM-DD HH-mm"
+ */
+export function generateTimestampSongName(): string {
+  const now = new Date()
+  const pad = (n: number) => n.toString().padStart(2, '0')
+  return `Aufnahme ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}`
+}
