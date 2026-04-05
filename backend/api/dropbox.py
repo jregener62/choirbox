@@ -174,7 +174,7 @@ async def dropbox_browse(
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import (
         parse_folder_name, get_parent_folder_type, is_reserved_name,
-        get_visible_reserved_types,
+        get_visible_reserved_types, is_song_folder, RESERVED_FOLDERS,
     )
     from backend.services.document_service import ALL_DOC_EXTENSIONS
 
@@ -413,7 +413,8 @@ async def dropbox_browse(
         sub_folders = []
         selected_doc = None
         song_dbx = _to_dropbox_path(song["path"], root_folder)
-        for reserved_type, reserved_name in [("texte", "Texte"), ("audio", "Audio"), ("videos", "Videos"), ("multitrack", "Multitrack")]:
+        for reserved_name, meta in RESERVED_FOLDERS.items():
+            reserved_type = meta["type"]
             sub_path = f"{song_dbx}/{reserved_name}"
             try:
                 sub_entries = await dbx.list_folder(sub_path)
@@ -443,7 +444,30 @@ async def dropbox_browse(
         song["sub_folders"] = sub_folders
         song["selected_doc"] = selected_doc
 
-    return {"path": path, "entries": filtered, "root_name": root_folder or None}
+    # If browsing inside a .song subfolder, attach song_sub_folders to response
+    song_sub_folders = None
+    path_segments = [s for s in path.split('/') if s]
+    song_ancestor_idx = next((i for i, s in enumerate(path_segments) if is_song_folder(s)), None)
+    if song_ancestor_idx is not None and len(path_segments) > song_ancestor_idx + 1:
+        song_user_path = '/' + '/'.join(path_segments[:song_ancestor_idx + 1])
+        song_dbx_path = _to_dropbox_path(song_user_path, root_folder)
+        song_sub_folders = []
+        for reserved_name, meta in RESERVED_FOLDERS.items():
+            reserved_type = meta["type"]
+            sub_path = f"{song_dbx_path}/{reserved_name}"
+            try:
+                sub_entries = await dbx.list_folder(sub_path)
+                count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+                if count > 0:
+                    user_sub_path = f"{song_user_path}/{reserved_name}"
+                    song_sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
+            except Exception:
+                pass
+
+    result = {"path": path, "entries": filtered, "root_name": root_folder or None}
+    if song_sub_folders is not None:
+        result["song_sub_folders"] = song_sub_folders
+    return result
 
 
 @router.get("/search")

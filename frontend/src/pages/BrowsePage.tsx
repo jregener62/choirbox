@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Folder, FolderPlus, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Volume2, Layers, Check, RefreshCw } from 'lucide-react'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -14,12 +14,14 @@ import { generateTimestampSongName, detectFileTypePrefix } from '@/utils/filenam
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
+import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import { stripFolderExtension, isReservedName, isSongFolder } from '@/utils/folderTypes.ts'
+import { getFolderTypeConfig } from '@/utils/folderTypeConfig'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
 
@@ -39,7 +41,7 @@ export function BrowsePage() {
   const canDelete = hasMinRole(user?.role ?? 'guest', 'chorleiter')
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
-  const { currentEntries: entries, loading, refreshing, error: browseError, loadFolder: storeLoadFolder } = useBrowseStore()
+  const { currentEntries: entries, currentSongSubFolders: songSubFolders, loading, refreshing, error: browseError, loadFolder: storeLoadFolder } = useBrowseStore()
   const [mutationError, setMutationError] = useState('')
   const error = browseError || mutationError
   const [importOpen, setImportOpen] = useState(false)
@@ -198,22 +200,14 @@ export function BrowsePage() {
     }
   }
 
-  const handleSongClick = async (entry: DropboxEntry) => {
-    const audioRe = /\.(mp3|m4a|wav|ogg|flac|aac|webm)$/i
-    try {
-      const results = await Promise.all(
-        ['Audio', 'Multitrack'].map((sub) =>
-          api<BrowseResponse>(`/dropbox/browse?path=${encodeURIComponent(`${entry.path}/${sub}`)}`)
-            .then((d) => d.entries.filter((e) => e.type === 'file' && audioRe.test(e.name)))
-            .catch(() => [] as DropboxEntry[])
-        )
-      )
-      const audioFiles = results.flat()
-      if (audioFiles.length > 0) {
-        const first = audioFiles[0]
-        usePlayerStore.getState().setTrack(first.path, first.name)
-      }
-    } catch {
+  const handleSongClick = (entry: DropboxEntry) => {
+    // Navigate into first subfolder (prefer Audio)
+    if (entry.sub_folders && entry.sub_folders.length > 0) {
+      const audioSf = entry.sub_folders.find((sf) => sf.type === 'audio')
+      const target = audioSf || entry.sub_folders[0]
+      closeSearch()
+      loadFolder(target.path)
+    } else {
       closeSearch()
       loadFolder(entry.path)
     }
@@ -296,6 +290,12 @@ export function BrowsePage() {
   if (isInsideSong) {
     lastSongPathRef.current = '/' + browseSegments.slice(0, songAncestorIdx + 1).join('/')
   }
+
+  // Active subfolder name within .song (e.g., 'Audio', 'Videos')
+  const activeSubfolderName = isInsideSong && browseSegments.length > songAncestorIdx + 1
+    ? browseSegments[songAncestorIdx + 1]
+    : null
+  const showSegmentedControl = isInsideSong && songSubFolders && songSubFolders.length > 0
 
   // Detect if we're inside a Texte folder
   const isInTexteFolder = lastSegment.toLowerCase() === 'texte'
@@ -454,44 +454,48 @@ export function BrowsePage() {
             </div>
           )}
         </div>
-        {!searchOpen && (
+        {!searchOpen && isInsideSong && (
+          /* Inside .song: back button only (all roles) */
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
-            {isInsideSong && !isProMember ? (
-              /* Member inside .song: back button to parent folder */
-              <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-                <span className="breadcrumb-item" onClick={() => loadFolder(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <ChevronLeft size={16} />
-                  {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
-                </span>
-                {browseSegments.length > songAncestorIdx + 1 && (
-                  <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                    <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                    <span className="breadcrumb-current">{browseSegments[browseSegments.length - 1]}</span>
-                  </span>
-                )}
-              </div>
-            ) : (
-              /* Pro-member+ or outside .song: full breadcrumb */
-              <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-                <span className="breadcrumb-item" onClick={() => loadFolder('')}>{user?.choir_name || 'Dateien'}</span>
-                {pathParts.map((part, i) => {
-                  const path = '/' + pathParts.slice(0, i + 1).join('/')
-                  const isLast = i === pathParts.length - 1
-                  const displayPart = stripFolderExtension(part)
-                  return (
-                    <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-                      {isLast ? (
-                        <span className="breadcrumb-current">{displayPart}</span>
-                      ) : (
-                        <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{displayPart}</span>
-                      )}
-                    </span>
-                  )
-                })}
-              </div>
-            )}
+            <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
+              <span className="breadcrumb-item" onClick={() => loadFolder(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <ChevronLeft size={16} />
+                {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
+              </span>
+            </div>
           </div>
+        )}
+        {!searchOpen && !isInsideSong && (
+          /* Outside .song: full breadcrumb (all roles) */
+          <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
+            <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
+              <span className="breadcrumb-item" onClick={() => loadFolder('')}>{user?.choir_name || 'Dateien'}</span>
+              {pathParts.map((part, i) => {
+                const path = '/' + pathParts.slice(0, i + 1).join('/')
+                const isLast = i === pathParts.length - 1
+                const displayPart = stripFolderExtension(part)
+                return (
+                  <span key={path} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                    {isLast ? (
+                      <span className="breadcrumb-current">{displayPart}</span>
+                    ) : (
+                      <span className="breadcrumb-item" onClick={() => loadFolder(path)}>{displayPart}</span>
+                    )}
+                  </span>
+                )
+              })}
+            </div>
+          </div>
+        )}
+
+        {/* Segmented Control for .song subfolders */}
+        {!searchOpen && showSegmentedControl && (
+          <SegmentedControl
+            segments={songSubFolders}
+            activeType={activeSubfolderName}
+            onSelect={(sf) => loadFolder(sf.path)}
+          />
         )}
 
         {/* Label filter bar — toggleable */}
@@ -575,10 +579,7 @@ export function BrowsePage() {
 
           const folderIcon = entry.type === 'folder' ? (
             entry.folder_type === 'song' ? <Music size={18} /> :
-            entry.folder_type === 'texte' ? <FileText size={18} /> :
-            entry.folder_type === 'audio' ? <Volume2 size={18} /> :
-            entry.folder_type === 'videos' ? <Video size={18} /> :
-            entry.folder_type === 'multitrack' ? <Layers size={18} /> :
+            entry.folder_type ? createElement(getFolderTypeConfig(entry.folder_type).icon, { size: 18 }) :
             <Folder size={18} />
           ) : null
 
@@ -680,10 +681,7 @@ export function BrowsePage() {
                                 loadFolder(sf.path)
                               }}
                             >
-                              {sf.type === 'texte' ? <FileText size={14} /> :
-                               sf.type === 'audio' ? <Volume2 size={14} /> :
-                               sf.type === 'videos' ? <Video size={14} /> :
-                               <Layers size={14} />}
+                              {createElement(getFolderTypeConfig(sf.type).icon, { size: 14 })}
                               {sf.count}
                             </button>
                           ))}

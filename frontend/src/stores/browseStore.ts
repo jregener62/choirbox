@@ -1,7 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/api/client.ts'
 import { useAppStore } from '@/stores/appStore.ts'
-import type { BrowseResponse, DropboxEntry } from '@/types/index.ts'
+import type { BrowseResponse, DropboxEntry, SubFolderInfo } from '@/types/index.ts'
 
 const CACHE_TTL = 5 * 60 * 1000 // 5 minutes (mutations invalidate immediately)
 const MAX_CACHE_ENTRIES = 50
@@ -12,12 +12,14 @@ const inflight = new Map<string, Promise<void>>()
 interface CacheEntry {
   entries: DropboxEntry[]
   timestamp: number
+  songSubFolders?: SubFolderInfo[]
 }
 
 interface BrowseStore {
   cache: Record<string, CacheEntry>
   currentPath: string
   currentEntries: DropboxEntry[]
+  currentSongSubFolders: SubFolderInfo[] | null
   loading: boolean
   refreshing: boolean // background refresh (no skeleton)
   error: string
@@ -31,6 +33,7 @@ export const useBrowseStore = create<BrowseStore>((set, get) => ({
   cache: {},
   currentPath: '',
   currentEntries: [],
+  currentSongSubFolders: null,
   loading: false,
   refreshing: false,
   error: '',
@@ -43,14 +46,14 @@ export const useBrowseStore = create<BrowseStore>((set, get) => ({
 
     // Fresh cache hit: show cached data, no API call
     if (isFresh && !forceRefresh) {
-      set({ currentPath: path, currentEntries: cached.entries, error: '' })
+      set({ currentPath: path, currentEntries: cached.entries, currentSongSubFolders: cached.songSubFolders || null, error: '' })
       useAppStore.getState().setBrowsePath(path)
       return
     }
 
     // Stale cache: show cached data immediately, fetch in background
     if (cached && !forceRefresh) {
-      set({ currentPath: path, currentEntries: cached.entries, error: '', refreshing: true })
+      set({ currentPath: path, currentEntries: cached.entries, currentSongSubFolders: cached.songSubFolders || null, error: '', refreshing: true })
       useAppStore.getState().setBrowsePath(path)
     } else {
       // No cache: show loading skeleton
@@ -74,7 +77,7 @@ export const useBrowseStore = create<BrowseStore>((set, get) => ({
 
         // Update cache (LRU eviction)
         const newCache = { ...get().cache }
-        newCache[path] = { entries: data.entries, timestamp: Date.now() }
+        newCache[path] = { entries: data.entries, timestamp: Date.now(), songSubFolders: data.song_sub_folders }
 
         // Evict oldest if over limit
         const keys = Object.keys(newCache)
@@ -94,6 +97,7 @@ export const useBrowseStore = create<BrowseStore>((set, get) => ({
           cache: newCache,
           currentPath: data.path,
           currentEntries: data.entries,
+          currentSongSubFolders: data.song_sub_folders || null,
           loading: false,
           refreshing: false,
           error: data.error || '',

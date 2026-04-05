@@ -47,6 +47,7 @@ export interface BrowseResponse {
   path: string
   entries: DropboxEntry[]
   root_name?: string | null
+  song_sub_folders?: SubFolderInfo[]
   error?: string
 }
 
