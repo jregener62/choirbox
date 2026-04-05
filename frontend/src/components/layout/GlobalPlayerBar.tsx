@@ -3,7 +3,6 @@ import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus, Rewind, FastForward, FileText } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
-import { useAppStore } from '@/stores/appStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
@@ -87,20 +86,13 @@ export function GlobalPlayerBar() {
   }, [])
 
   const location = useLocation()
-  const browsePath = useAppStore((s) => s.browsePath)
   const isSections = location.pathname === '/sections'
   const canGenerateSections = isSections && markers.length >= 2
 
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
 
-  // Show only in folders with streamable files (Audio, Multitrack, Videos) or on /viewer
-  const browseFolder = browsePath.split('/').filter(Boolean).pop()?.toLowerCase() || ''
-  const isStreamableFolder = ['audio', 'multitrack', 'videos'].includes(browseFolder)
-  const isViewerRoute = location.pathname === '/viewer'
-  const isSectionsRoute = location.pathname === '/sections'
-  const isVisible = currentPath && (isStreamableFolder || isViewerRoute || isSectionsRoute)
-
-  if (!isVisible) return null
+  // Show whenever a track is loaded
+  if (!currentPath) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
   const hasActiveLoop = loopEnabled && hasLoopRange && duration > 0
