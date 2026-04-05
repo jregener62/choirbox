@@ -392,6 +392,7 @@ Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent i
 - Leitet Song-Ordner automatisch aus dem aktuellen Track-Pfad ab (geht ueber reservierte Ordner wie Audio/ hinauf)
 - Funktionalitaet: Annotationen, Fullscreen inkl. Topbar-Hide
 - Fullscreen-Reset beim Verlassen der Seite
+- Aufnahme-Button in der Topbar (ab Pro-Mitglied) — oeffnet Floating Recorder fuer den aktuellen Song
 
 | Datei | Rolle |
 |-------|-------|
@@ -679,6 +680,7 @@ Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
   - Favorisierte Ordner als blaue Divider-Zeilen mit Datei-Anzahl
   - Zugehoerige favorisierte Dateien eingerueckt darunter
   - Einzelne Dateien ohne Folder-Favorit unter "Einzelne Dateien"
+  - Mic-Icon pro Ordner-Gruppe (ab Pro-Mitglied) — oeffnet Floating Recorder fuer diesen Song
 - Tap auf Folder-Divider navigiert zum Ordner im Browser, Zurueck-Pfeil fuehrt zu Favorites
 - Tap auf Datei startet Wiedergabe im Floating Player, Zurueck-Pfeil fuehrt zu Favorites
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
@@ -732,13 +734,17 @@ Labels zum Kategorisieren von Dateien, verwaltbar ab Rolle `pro-member`.
 
 Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 
-### Aufnahme
+### Aufnahme (Floating Recorder)
 
+- **Schwebender Mini-Recorder** am oberen Bildschirmrand — erlaubt gleichzeitiges Lesen von Texten/Noten waehrend der Aufnahme
+- Erreichbar von **mehreren Views**: Browse (Kebab-Menu), Favoriten (Mic-Icon pro Ordner), Viewer (Topbar-Button)
 - Browser-Mikrofon-Aufnahme (MediaRecorder API)
 - Server-seitige Konvertierung zu MP3 (FFmpeg)
-- Strukturierte Dateibenennung: `{Stimme}-{Liedname}-{Abschnitt}.mp3` — Stimmen aus Labels (category=Stimme), Abschnitte aus SectionPresets, Liedname per Default aus .song-Ordnername. "Keine"-Button zum Abwaehlen aller Stimmen/Abschnitte. Stimmen und Abschnitte seitlich scrollbar.
-- Upload in aktuellen Dropbox-Ordner
-- Alle authentifizierten User koennen aufnehmen
+- **Auto-Benennung**: `{SongName}-Aufnahme {n}` — fortlaufende Nummerierung basierend auf vorhandenen Aufnahmen im /Audio-Ordner
+- Aufnahmen landen automatisch im `/Audio`-Unterordner des zugehoerigen `.song`-Ordners (wird bei Bedarf erstellt)
+- Berechtigung: ab Pro-Mitglied
+- Der Recorder bleibt beim Seitenwechsel aktiv (globaler State via Zustand Store)
+- States: Idle → Recording → Stopped (Anhoeren/Neu/Hochladen) → Uploading → Done
 
 ### Datei-Upload
 
@@ -756,10 +762,14 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/BrowsePage.tsx` | Upload-Button + verstecktes File-Input |
-| `frontend/src/components/ui/RecordingModal.tsx` | Geteiltes Modal (Aufnahme + Import) |
-| `frontend/src/utils/platform.ts` | OS-Erkennung (isIOS, isAndroid, isMobile) |
-| `backend/api/dropbox.py` | `POST /dropbox/upload` (Validierung + Konvertierung) |
+| `frontend/src/components/layout/FloatingRecorder.tsx` | Schwebender Mini-Recorder (alle States) |
+| `frontend/src/stores/recordingStore.ts` | Globaler Recording-Session-State |
+| `frontend/src/pages/BrowsePage.tsx` | Aufnahme-Trigger (Kebab-Menu) + Upload-Button |
+| `frontend/src/pages/FavoritesPage.tsx` | Aufnahme-Trigger (Mic-Icon pro Ordner) |
+| `frontend/src/pages/ViewerPage.tsx` | Aufnahme-Trigger (Topbar-Button) |
+| `frontend/src/utils/filename.ts` | `buildAutoRecordingName()` fuer fortlaufende Nummerierung |
+| `frontend/src/utils/folderTypes.ts` | `deriveSongFolderPath()` zum Erkennen des .song-Ordners |
+| `backend/api/dropbox.py` | `POST /dropbox/upload` (Validierung + Konvertierung + Auto-Routing nach /Audio) |
 
 ---
 

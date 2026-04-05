@@ -154,3 +154,27 @@ export function buildFilename(
 
   return `${parts.join('-')}.${ext}`
 }
+
+/**
+ * Build an auto-generated recording name: "{songName}-Aufnahme {n}"
+ * Scans existing filenames to find the next available number.
+ */
+export function buildAutoRecordingName(
+  songFolderName: string,
+  existingFiles: string[],
+): string {
+  const prefix = `${songFolderName}-Aufnahme `.toLowerCase()
+  let maxNum = 0
+  for (const file of existingFiles) {
+    const lower = file.toLowerCase()
+    if (!lower.startsWith(prefix)) continue
+    // Extract number after prefix, before extension
+    const rest = lower.slice(prefix.length)
+    const match = rest.match(/^(\d+)/)
+    if (match) {
+      const n = parseInt(match[1], 10)
+      if (n > maxNum) maxNum = n
+    }
+  }
+  return `${songFolderName}-Aufnahme ${maxNum + 1}`
+}

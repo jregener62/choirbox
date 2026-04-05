@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
-import { Heart, Trash2, ChevronLeft, Folder } from 'lucide-react'
+import { Heart, Trash2, ChevronLeft, Folder, Mic } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
+import { useAuthStore } from '@/stores/authStore.ts'
+import { useRecordingStore } from '@/stores/recordingStore'
+import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName } from '@/utils/formatters.ts'
 import SkeletonList from '@/components/ui/SkeletonList'
 import type { Favorite } from '@/types/index.ts'
@@ -35,6 +38,8 @@ export function FavoritesPage() {
   const { labels, assignments, loaded: labelsLoaded, load: loadLabels, getLabelsForPath } = useLabelsStore()
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const user = useAuthStore((s) => s.user)
+  const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
   const [activeFilters, setActiveFilters] = useState<number[]>([])
 
   const voiceLookup = Object.fromEntries(labels.filter((l) => l.category === 'Stimme').map((l) => [l.shortcode || l.name, { name: l.name, color: l.color }]))
@@ -227,6 +232,14 @@ export function FavoritesPage() {
                 <span className="fav-folder-divider-count">
                   {group.files.length} {group.files.length === 1 ? 'Datei' : 'Dateien'}
                 </span>
+              )}
+              {isProMember && (
+                <button
+                  className="fav-toggle"
+                  onClick={(e) => { e.stopPropagation(); useRecordingStore.getState().startSession(group.folder.dropbox_path) }}
+                >
+                  <Mic size={16} color="var(--text-muted)" />
+                </button>
               )}
               <button
                 className="fav-toggle"

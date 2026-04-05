@@ -1,9 +1,12 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Mic } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useAuthStore } from '@/stores/authStore.ts'
+import { useRecordingStore } from '@/stores/recordingStore'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
+import { hasMinRole } from '@/utils/roles.ts'
 import { isReservedName } from '@/utils/folderTypes.ts'
 
 export function ViewerPage() {
@@ -11,6 +14,8 @@ export function ViewerPage() {
   const { selectedDoc, loadedFolder, loadSelected } = useSelectedDocumentStore()
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentPath = usePlayerStore((s) => s.currentPath)
+  const user = useAuthStore((s) => s.user)
+  const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
 
   // Derive the .song folder path from the current track
   const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
@@ -35,6 +40,15 @@ export function ViewerPage() {
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">Viewer</span>
+        {isProMember && songFolderPath && (
+          <button
+            className="topbar-action"
+            onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
+            title="Aufnehmen"
+          >
+            <Mic size={18} />
+          </button>
+        )}
       </div>
       <div className="viewer-content">
         {selectedDoc ? (

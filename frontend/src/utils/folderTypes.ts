@@ -29,3 +29,19 @@ export function getFolderType(pathOrName: string): string | null {
   if (SONG_EXT.test(segment)) return 'song'
   return getReservedType(segment)
 }
+
+/**
+ * Derive the .song folder path from any Dropbox path (file or subfolder).
+ * Walks up path segments to find the nearest .song ancestor.
+ * Returns null if no .song folder is found in the path.
+ */
+export function deriveSongFolderPath(path: string): string | null {
+  const segments = path.split('/').filter(Boolean)
+  // Walk from end to start looking for a .song segment
+  for (let i = segments.length - 1; i >= 0; i--) {
+    if (SONG_EXT.test(segments[i])) {
+      return '/' + segments.slice(0, i + 1).join('/')
+    }
+  }
+  return null
+}

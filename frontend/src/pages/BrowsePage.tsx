@@ -8,7 +8,8 @@ import { useAppStore } from '@/stores/appStore.ts'
 import { useBrowseStore } from '@/stores/browseStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
-import { RecordingModal } from '@/components/ui/RecordingModal'
+import { useRecordingStore } from '@/stores/recordingStore'
+import { deriveSongFolderPath } from '@/utils/folderTypes'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
@@ -40,7 +41,6 @@ export function BrowsePage() {
   const { currentEntries: entries, loading, refreshing, error: browseError, loadFolder: storeLoadFolder } = useBrowseStore()
   const [mutationError, setMutationError] = useState('')
   const error = browseError || mutationError
-  const [recordingOpen, setRecordingOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
   const [importedFiles, setImportedFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -408,8 +408,8 @@ export function BrowsePage() {
                         borderRadius: 'var(--radius-lg)', padding: 'var(--space-2) 0',
                         minWidth: 200, boxShadow: 'var(--shadow-lg)',
                       }}>
-                        {browsePath && (
-                          <button className="kebab-item" onClick={() => { setKebabOpen(false); setRecordingOpen(true) }}>
+                        {isProMember && deriveSongFolderPath(browsePath) && (
+                          <button className="kebab-item" onClick={() => { setKebabOpen(false); useRecordingStore.getState().startSession(deriveSongFolderPath(browsePath)!) }}>
                             <Mic size={16} /> Aufnehmen
                           </button>
                         )}
@@ -921,14 +921,6 @@ export function BrowsePage() {
           e.target.value = ''
         }}
       />
-
-      {recordingOpen && (
-        <RecordingModal
-          targetPath={browsePath}
-          onClose={() => setRecordingOpen(false)}
-          onUploadComplete={() => loadFolder(browsePath)}
-        />
-      )}
 
       {videoEntry && (
         <VideoModal

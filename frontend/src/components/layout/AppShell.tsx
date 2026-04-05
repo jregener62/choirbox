@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect } from 'react'
 import { PwaInstallGuide } from '@/components/PwaInstallGuide.tsx'
 import { GlobalPlayerBar } from '@/components/layout/GlobalPlayerBar.tsx'
+import { FloatingRecorder } from '@/components/layout/FloatingRecorder.tsx'
 import { FooterPortalProvider } from '@/components/layout/FooterPortal.tsx'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
@@ -39,6 +40,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <div className="main-content">
           {children}
         </div>
+        <FloatingRecorder />
         <GlobalPlayerBar />
         <div ref={footerRef} className="footer-slot" />
       </div>
