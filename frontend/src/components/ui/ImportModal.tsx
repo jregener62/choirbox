@@ -2,7 +2,7 @@ import { useState, useRef } from 'react'
 import { Upload, Check, AlertCircle, Loader, FileAudio, Info, Film } from 'lucide-react'
 import { apiUpload } from '@/api/client'
 import { Modal } from './Modal'
-import { getFolderType, stripFolderExtension } from '@/utils/folderTypes'
+import { stripFolderExtension, deriveSongFolderPath } from '@/utils/folderTypes'
 
 type FileStatus = 'pending' | 'uploading' | 'done' | 'error'
 
@@ -48,20 +48,18 @@ export function ImportModal({ files, targetPath, isAdmin, songFolderName, onClos
 
       try {
         const name = entries[i].file.name.toLowerCase()
-        const folderType = getFolderType(targetPath)
-        // In Texte folder: always document upload. In Audio/Multitrack: always audio upload.
-        // Otherwise: detect by file extension.
-        const isDocument = folderType === 'texte' ||
-          (folderType !== 'audio' && folderType !== 'multitrack' &&
-           (name.endsWith('.pdf') || name.endsWith('.webm') || name.endsWith('.mov') || name.endsWith('.txt')))
+        // Always detect by file extension — backend handles routing to correct subfolder
+        const isDocument = name.endsWith('.pdf') || name.endsWith('.txt')
+        // Use .song parent folder when inside a reserved subfolder (Audio, Texte, etc.)
+        const uploadPath = deriveSongFolderPath(targetPath) || targetPath || '/'
         const formData = new FormData()
         formData.append('file', entries[i].file, entries[i].file.name)
         if (isDocument) {
-          formData.append('folder_path', targetPath || '/')
+          formData.append('folder_path', uploadPath)
           if (songFolderName) formData.append('song_folder_name', songFolderName)
           await apiUpload('/documents/upload', formData)
         } else {
-          formData.append('target_path', targetPath || '/')
+          formData.append('target_path', uploadPath)
           if (songFolderName) formData.append('song_folder_name', songFolderName)
           await apiUpload('/dropbox/upload', formData)
         }

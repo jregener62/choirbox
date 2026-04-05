@@ -1,8 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import { Mic, Square, Play, Pause, Upload, RotateCcw, Check, X } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { useRecorder } from '@/hooks/useRecorder'
+import { useAppStore } from '@/stores/appStore'
 import { useBrowseStore } from '@/stores/browseStore'
 import { apiUpload } from '@/api/client'
 import { api } from '@/api/client'
@@ -49,6 +51,7 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
     blobUrl, fileExtension, startRecording, stopRecording, reset,
   } = useRecorder()
 
+  const navigate = useNavigate()
   const [phase, setPhase] = useState<Phase>('idle')
   const [uploadError, setUploadError] = useState<string | null>(null)
   const [previewPlaying, setPreviewPlaying] = useState(false)
@@ -102,10 +105,13 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
     try {
       let uploadFilename: string
 
+      let targetSongFolder: string
+
       if (isRootMode) {
         // Root mode: create .song folder via song_folder_name parameter
         const timestampName = generateTimestampSongName()
         uploadFilename = `${timestampName}-Aufnahme 1.${fileExtension}`
+        targetSongFolder = `${(basePath || '').replace(/\/$/, '')}/${timestampName}.song`
 
         const formData = new FormData()
         formData.append('file', blob, uploadFilename)
@@ -114,12 +120,10 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
 
         await apiUpload('/dropbox/upload', formData)
 
-        // Invalidate and reload browse cache for the base path
-        const path = basePath || '/'
-        useBrowseStore.getState().invalidate(path)
-        useBrowseStore.getState().loadFolder(path, true)
+        useBrowseStore.getState().invalidate(basePath || '/')
       } else {
         // Song mode: upload into existing .song folder
+        targetSongFolder = songFolderPath!
         let existingFiles: string[] = []
         try {
           const audioPath = `${songFolderPath}/Audio`
@@ -140,8 +144,12 @@ function FloatingRecorderInner({ songFolderPath, songFolderName, basePath, isRoo
 
         useBrowseStore.getState().invalidate(`${songFolderPath}/Audio`)
         useBrowseStore.getState().invalidate(songFolderPath!)
-        useBrowseStore.getState().loadFolder(songFolderPath!, true)
       }
+
+      // Navigate to the .song folder (shows Audio files)
+      useAppStore.getState().setBrowsePath(targetSongFolder)
+      useBrowseStore.getState().loadFolder(targetSongFolder, true)
+      navigate('/')
 
       setPhase('done')
       setTimeout(() => {

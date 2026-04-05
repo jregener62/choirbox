@@ -936,16 +936,32 @@ export function BrowsePage() {
         />
       )}
 
-      {importOpen && importedFiles.length > 0 && (
-        <ImportModal
-          files={importedFiles}
-          targetPath={browsePath}
-          isAdmin={isAdmin}
-          songFolderName={!deriveSongFolderPath(browsePath) ? generateTimestampSongName(detectFileTypePrefix(importedFiles[0]?.name || '')) : undefined}
-          onClose={() => { setImportOpen(false); setImportedFiles([]) }}
-          onUploadComplete={() => { loadFolder(browsePath); useDocumentsStore.setState({ loadedFolder: null }) }}
-        />
-      )}
+      {importOpen && importedFiles.length > 0 && (() => {
+        const importSongName = !deriveSongFolderPath(browsePath) && importedFiles[0]
+          ? importedFiles[0].name.replace(/\.[^.]+$/, '')
+          : undefined
+        return (
+          <ImportModal
+            files={importedFiles}
+            targetPath={browsePath}
+            isAdmin={isAdmin}
+            songFolderName={importSongName}
+            onClose={() => { setImportOpen(false); setImportedFiles([]) }}
+            onUploadComplete={() => {
+              useDocumentsStore.setState({ loadedFolder: null })
+              if (importSongName) {
+                // Navigate to the newly created .song folder
+                const newPath = `${browsePath.replace(/\/$/, '')}/${importSongName}.song`
+                loadFolder(newPath)
+              } else {
+                // Stay in current .song folder and reload
+                const songFolder = deriveSongFolderPath(browsePath)
+                loadFolder(songFolder || browsePath)
+              }
+            }}
+          />
+        )
+      })()}
     </div>
   )
 }
