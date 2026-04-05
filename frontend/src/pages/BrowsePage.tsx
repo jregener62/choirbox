@@ -10,7 +10,7 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { deriveSongFolderPath } from '@/utils/folderTypes'
-import { generateTimestampSongName } from '@/utils/filename'
+import { generateTimestampSongName, detectFileTypePrefix } from '@/utils/filename'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
@@ -941,7 +941,7 @@ export function BrowsePage() {
           files={importedFiles}
           targetPath={browsePath}
           isAdmin={isAdmin}
-          songFolderName={!deriveSongFolderPath(browsePath) ? generateTimestampSongName() : undefined}
+          songFolderName={!deriveSongFolderPath(browsePath) ? generateTimestampSongName(detectFileTypePrefix(importedFiles[0]?.name || '')) : undefined}
           onClose={() => { setImportOpen(false); setImportedFiles([]) }}
           onUploadComplete={() => { loadFolder(browsePath); useDocumentsStore.setState({ loadedFolder: null }) }}
         />

@@ -181,10 +181,20 @@ export function buildAutoRecordingName(
 
 /**
  * Generate a timestamp-based song folder name for root-level uploads.
- * Format: "Aufnahme YYYY-MM-DD HH-mm"
+ * Format: "{prefix} YYYY-MM-DD HH-mm"
  */
-export function generateTimestampSongName(): string {
+export function generateTimestampSongName(prefix: 'Audio' | 'Video' | 'Text' = 'Audio'): string {
   const now = new Date()
   const pad = (n: number) => n.toString().padStart(2, '0')
-  return `Aufnahme ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}`
+  return `${prefix} ${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())} ${pad(now.getHours())}-${pad(now.getMinutes())}`
+}
+
+/**
+ * Detect the content type prefix from a filename for song folder naming.
+ */
+export function detectFileTypePrefix(filename: string): 'Audio' | 'Video' | 'Text' {
+  const ext = filename.split('.').pop()?.toLowerCase() || ''
+  if (['mp4', 'mov'].includes(ext)) return 'Video'
+  if (['pdf', 'txt'].includes(ext)) return 'Text'
+  return 'Audio'
 }
