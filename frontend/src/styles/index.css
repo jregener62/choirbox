@@ -546,6 +546,7 @@ textarea::placeholder {
   left: var(--space-3);
   right: var(--space-3);
   z-index: 50;
+  padding-top: var(--space-2);
   background: #252D40;
   color: var(--text-primary);
   border-radius: var(--radius-2xl);
