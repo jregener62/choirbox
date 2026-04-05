@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
 import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus, Rewind, FastForward, FileText } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { useAppStore } from '@/stores/appStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
@@ -91,8 +92,11 @@ export function GlobalPlayerBar() {
 
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
 
-  // Show whenever a track is loaded
-  if (!currentPath) return null
+  // Show only when browsing Audio or Multitrack tab inside a .song folder
+  const browsePath = useAppStore((s) => s.browsePath)
+  const browseLastSegment = browsePath.split('/').filter(Boolean).pop()?.toLowerCase() || ''
+  const isAudioOrMultitrack = browseLastSegment === 'audio' || browseLastSegment === 'multitrack'
+  if (!currentPath || !isAudioOrMultitrack) return null
 
   const hasLoopRange = loopStart != null && loopEnd != null
   const hasActiveLoop = loopEnabled && hasLoopRange && duration > 0
