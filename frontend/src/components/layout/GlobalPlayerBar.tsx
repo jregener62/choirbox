@@ -6,7 +6,9 @@ import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
+import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { formatTime } from '@/utils/formatters.ts'
+import { isReservedName } from '@/utils/folderTypes.ts'
 // import { VoiceBricks } from '@/components/ui/VoiceBricks.tsx'
 import type { Marker } from '@/stores/playerStore'
 
@@ -23,6 +25,19 @@ export function GlobalPlayerBar() {
   } = usePlayerStore()
   const { togglePlay, skip, seek } = useAudioPlayer()
   const { addMarker, handleLoopTap } = useLoopControls()
+  const { selectedDoc, loadedFolder, loadSelected } = useSelectedDocumentStore()
+
+  // Derive song folder path from current track (same logic as ViewerPage)
+  const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
+  const pathSegments = folderPath.split('/').filter(Boolean)
+  const lastSegment = pathSegments[pathSegments.length - 1] || ''
+  const songFolderPath = isReservedName(lastSegment) && pathSegments.length >= 2
+    ? '/' + pathSegments.slice(0, -1).join('/')
+    : folderPath
+
+  useEffect(() => {
+    if (songFolderPath && songFolderPath !== loadedFolder) loadSelected(songFolderPath)
+  }, [songFolderPath, loadedFolder, loadSelected])
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [markerMenuOpen, setMarkerMenuOpen] = useState(false)
@@ -209,6 +224,7 @@ export function GlobalPlayerBar() {
                 navigate('/viewer')
               }
             }}
+            disabled={!selectedDoc}
             aria-label="Viewer"
           >
             <FileText size={22} />
