@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 
 export type RecorderState = 'idle' | 'recording' | 'stopped' | 'error'
 
@@ -30,108 +30,151 @@ function getPreferredMimeType(): { mimeType: string; extension: string } {
   return { mimeType: '', extension: 'webm' }
 }
 
+// ── Module-level singleton state ──
+// Survives component unmount/remount so recording continues across navigation.
+let _recorder: MediaRecorder | null = null
+let _stream: MediaStream | null = null
+let _chunks: Blob[] = []
+let _timer: ReturnType<typeof setInterval> | null = null
+let _startTime = 0
+let _onStateChange: (() => void) | null = null
+
+// Snapshot values readable by any hook instance
+let _sState: RecorderState = 'idle'
+let _sError: string | null = null
+let _sDuration = 0
+let _sBlob: Blob | null = null
+let _sBlobUrl: string | null = null
+
+function notify() { _onStateChange?.() }
+
+function cleanupStream() {
+  if (_timer) { clearInterval(_timer); _timer = null }
+  if (_stream) { _stream.getTracks().forEach((t) => t.stop()); _stream = null }
+  _recorder = null
+  _chunks = []
+}
+
 export function useRecorder(): UseRecorderReturn {
-  const [state, setState] = useState<RecorderState>('idle')
-  const [error, setError] = useState<string | null>(null)
-  const [duration, setDuration] = useState(0)
-  const [blob, setBlob] = useState<Blob | null>(null)
-  const [blobUrl, setBlobUrl] = useState<string | null>(null)
-
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-  const streamRef = useRef<MediaStream | null>(null)
-  const chunksRef = useRef<Blob[]>([])
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null)
-  const startTimeRef = useRef<number>(0)
-
-  const { mimeType, extension: fileExtension } = getPreferredMimeType()
+  // Force re-render when singleton state changes
+  const [, setTick] = useState(0)
+  const tickRef = useRef(0)
 
   useEffect(() => {
+    _onStateChange = () => {
+      tickRef.current += 1
+      setTick(tickRef.current)
+    }
+    // Sync in case recording was already active before mount
+    setTick((t) => t + 1)
     return () => {
-      if (timerRef.current) clearInterval(timerRef.current)
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop())
-      }
+      // Do NOT stop the stream on unmount — that's the whole point.
+      // Only unregister the listener.
+      _onStateChange = null
     }
   }, [])
 
-  const startRecording = useCallback(async () => {
-    try {
-      setError(null)
-      chunksRef.current = []
+  const { mimeType, extension: fileExtension } = getPreferredMimeType()
 
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      streamRef.current = stream
+  const startRecording = useCallback(async () => {
+    // If already recording, ignore
+    if (_recorder && _recorder.state === 'recording') return
+
+    try {
+      _sError = null
+      _chunks = []
+
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl: false,
+        },
+      })
+      _stream = stream
 
       const options: MediaRecorderOptions = {}
       if (mimeType) options.mimeType = mimeType
 
       const recorder = new MediaRecorder(stream, options)
-      mediaRecorderRef.current = recorder
+      _recorder = recorder
 
       recorder.ondataavailable = (e) => {
-        if (e.data.size > 0) chunksRef.current.push(e.data)
+        if (e.data.size > 0) _chunks.push(e.data)
       }
 
       recorder.onstop = () => {
-        const recorded = new Blob(chunksRef.current, {
+        const recorded = new Blob(_chunks, {
           type: recorder.mimeType || mimeType || 'audio/webm',
         })
-        setBlob(recorded)
-        setBlobUrl(URL.createObjectURL(recorded))
-        setState('stopped')
+        _sBlob = recorded
+        _sBlobUrl = URL.createObjectURL(recorded)
+        _sState = 'stopped'
 
         stream.getTracks().forEach((t) => t.stop())
-        streamRef.current = null
+        _stream = null
 
-        if (timerRef.current) {
-          clearInterval(timerRef.current)
-          timerRef.current = null
-        }
+        if (_timer) { clearInterval(_timer); _timer = null }
+        notify()
       }
 
       recorder.onerror = () => {
-        setError('Aufnahme fehlgeschlagen')
-        setState('error')
+        _sError = 'Aufnahme fehlgeschlagen'
+        _sState = 'error'
         stream.getTracks().forEach((t) => t.stop())
+        _stream = null
+        notify()
       }
 
       recorder.start(1000)
-      startTimeRef.current = Date.now()
-      setState('recording')
-      setDuration(0)
+      _startTime = Date.now()
+      _sState = 'recording'
+      _sDuration = 0
+      notify()
 
-      timerRef.current = setInterval(() => {
-        setDuration(Math.floor((Date.now() - startTimeRef.current) / 1000))
+      _timer = setInterval(() => {
+        _sDuration = Math.floor((Date.now() - _startTime) / 1000)
+        notify()
       }, 500)
     } catch (err) {
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
-        setError('Mikrofonzugriff verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.')
+        _sError = 'Mikrofonzugriff verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen.'
       } else if (err instanceof DOMException && err.name === 'NotFoundError') {
-        setError('Kein Mikrofon gefunden.')
+        _sError = 'Kein Mikrofon gefunden.'
       } else {
-        setError('Mikrofon konnte nicht aktiviert werden.')
+        _sError = 'Mikrofon konnte nicht aktiviert werden.'
       }
-      setState('error')
+      _sState = 'error'
+      notify()
     }
   }, [mimeType])
 
   const stopRecording = useCallback(() => {
-    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-      mediaRecorderRef.current.stop()
+    if (_recorder && _recorder.state === 'recording') {
+      _recorder.stop()
     }
   }, [])
 
   const reset = useCallback(() => {
-    if (blobUrl) URL.revokeObjectURL(blobUrl)
-    setBlob(null)
-    setBlobUrl(null)
-    setDuration(0)
-    setError(null)
-    setState('idle')
-  }, [blobUrl])
+    if (_sBlobUrl) URL.revokeObjectURL(_sBlobUrl)
+    cleanupStream()
+    _sBlob = null
+    _sBlobUrl = null
+    _sDuration = 0
+    _sError = null
+    _sState = 'idle'
+    notify()
+  }, [])
 
   return {
-    state, error, duration, blob, blobUrl,
-    fileExtension, startRecording, stopRecording, reset,
+    state: _sState,
+    error: _sError,
+    duration: _sDuration,
+    blob: _sBlob,
+    blobUrl: _sBlobUrl,
+    fileExtension,
+    startRecording,
+    stopRecording,
+    reset,
   }
 }
