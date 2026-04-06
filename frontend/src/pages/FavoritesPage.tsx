@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Heart, Trash2, ChevronLeft, Folder, Mic } from 'lucide-react'
+import { Heart, Trash2, ChevronLeft, Folder, Mic, Music } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
@@ -107,14 +107,18 @@ export function FavoritesPage() {
     return (
       <li
         key={fav.id}
-        className={`file-item fav-file-indented ${isActive ? 'file-item--active' : ''}`}
+        className={`file-item ${isActive ? 'file-item--active' : ''}`}
         onClick={() => handlePlay(fav.dropbox_path, fav.file_name)}
       >
         {isActive && isPlaying ? (
           <div className="file-icon-box file-icon-playing">
             <div className="playing-bars"><span /><span /><span /></div>
           </div>
-        ) : null}
+        ) : (
+          <div className="file-icon-box file-icon-audio">
+            <Music size={18} />
+          </div>
+        )}
         <div className="file-info">
           <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
             {fav.song_name || formatDisplayName(fav.file_name)}
@@ -212,7 +216,7 @@ export function FavoritesPage() {
         </div>
       )}
 
-      <ul className="file-list">
+      <ul className="file-list file-list--cards">
         {/* Folder groups */}
         {groups.map((group) => (
           <li key={group.folder.id} className="fav-folder-group">
@@ -248,7 +252,7 @@ export function FavoritesPage() {
                 <Trash2 size={16} color="var(--text-muted)" />
               </button>
             </div>
-            <ul className="file-list">
+            <ul className="file-list fav-group-files">
               {group.files.map(renderFileItem)}
             </ul>
           </li>
@@ -290,7 +294,11 @@ export function FavoritesPage() {
                 <div className="file-icon-box file-icon-playing">
                   <div className="playing-bars"><span /><span /><span /></div>
                 </div>
-              ) : null}
+              ) : (
+                <div className="file-icon-box file-icon-audio">
+                  <Music size={18} />
+                </div>
+              )}
               <div className="file-info">
                 <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                   {fav.song_name || formatDisplayName(fav.file_name)}

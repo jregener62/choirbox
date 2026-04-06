@@ -2240,6 +2240,32 @@ textarea::placeholder {
   padding-left: var(--space-8);
 }
 
+/* Folder group as card in file-list--cards */
+.file-list--cards > .fav-folder-group {
+  background: var(--bg-secondary);
+}
+
+.file-list--cards .fav-folder-divider {
+  border-bottom: 1px solid var(--border);
+}
+
+.file-list--cards .fav-group-files {
+  padding: 0;
+}
+
+.file-list--cards .fav-group-files > li {
+  border-radius: 0;
+  border: none;
+}
+
+.file-list--cards .fav-group-files .file-item {
+  border-bottom: 1px solid var(--border);
+}
+
+.file-list--cards .fav-group-files > li:last-child .file-item {
+  border-bottom: none;
+}
+
 .fav-section-label {
   padding: var(--space-2-5) var(--space-4) var(--space-1-5);
   font-size: var(--text-xs);
@@ -2247,9 +2273,13 @@ textarea::placeholder {
   color: var(--text-muted);
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
   list-style: none;
+}
+
+.file-list--cards > .fav-section-label {
+  background: none;
+  border: none;
+  border-radius: 0;
 }
 
 /* -- Swipe-to-delete -- */
