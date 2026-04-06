@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music, RefreshCw } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
-import { useAppStore } from '@/stores/appStore.ts'
+import { useAppStore, ZOOM_LABELS, type ZoomLevel } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
 import { hasMinRole, ROLE_LABELS, type Role } from '@/utils/roles.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
@@ -22,7 +22,7 @@ interface AdminSettings {
 export function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const { theme, toggleTheme } = useAppStore()
+  const { theme, toggleTheme, zoomLevel, setZoomLevel } = useAppStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
@@ -356,11 +356,27 @@ export function SettingsPage() {
         {/* -- Darstellung -- */}
         <section>
           <h3 className="settings-heading">{theme === 'dark' ? <Moon size={14} /> : <Sun size={14} />} Darstellung</h3>
-          <div className="settings-row">
-            <span>Theme</span>
-            <button className="btn btn-secondary" onClick={toggleTheme}>
-              {theme === 'dark' ? 'Hell' : 'Dunkel'}
-            </button>
+          <div className="settings-rows">
+            <div className="settings-row">
+              <span>Theme</span>
+              <button className="btn btn-secondary" onClick={toggleTheme}>
+                {theme === 'dark' ? 'Hell' : 'Dunkel'}
+              </button>
+            </div>
+            <div className="settings-row">
+              <span>Schriftgroesse</span>
+              <div className="zoom-selector">
+                {(Object.keys(ZOOM_LABELS) as ZoomLevel[]).map((level) => (
+                  <button
+                    key={level}
+                    className={`zoom-btn ${zoomLevel === level ? 'active' : ''}`}
+                    onClick={() => setZoomLevel(level)}
+                  >
+                    {ZOOM_LABELS[level]}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
 

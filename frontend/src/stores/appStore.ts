@@ -1,9 +1,23 @@
 import { create } from 'zustand'
 
 type Theme = 'dark' | 'light'
+export type ZoomLevel = 'normal' | 'large' | 'xlarge'
+
+export const ZOOM_VALUES: Record<ZoomLevel, number> = {
+  normal: 1.0,
+  large: 1.15,
+  xlarge: 1.3,
+}
+
+export const ZOOM_LABELS: Record<ZoomLevel, string> = {
+  normal: 'Normal',
+  large: 'Groß',
+  xlarge: 'Sehr groß',
+}
 
 interface AppState {
   theme: Theme
+  zoomLevel: ZoomLevel
   activeRequests: number
   browsePath: string
   browseReturnTo: string | null
@@ -11,6 +25,7 @@ interface AppState {
   highlightPath: string | null
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
+  setZoomLevel: (level: ZoomLevel) => void
   setBrowsePath: (path: string) => void
   setBrowseReturnTo: (path: string | null) => void
   setModalOpen: (open: boolean) => void
@@ -19,8 +34,13 @@ interface AppState {
   decrementRequests: () => void
 }
 
+function applyZoom(level: ZoomLevel) {
+  document.documentElement.style.zoom = String(ZOOM_VALUES[level])
+}
+
 export const useAppStore = create<AppState>((set, get) => ({
   theme: (localStorage.getItem('choirbox_theme') as Theme) || 'light',
+  zoomLevel: (localStorage.getItem('choirbox_zoom') as ZoomLevel) || 'normal',
   activeRequests: 0,
   browsePath: '',
   browseReturnTo: null,
@@ -36,6 +56,12 @@ export const useAppStore = create<AppState>((set, get) => ({
   toggleTheme: () => {
     const next = get().theme === 'dark' ? 'light' : 'dark'
     get().setTheme(next)
+  },
+
+  setZoomLevel: (level) => {
+    localStorage.setItem('choirbox_zoom', level)
+    applyZoom(level)
+    set({ zoomLevel: level })
   },
 
   setBrowsePath: (path) => set({ browsePath: path }),

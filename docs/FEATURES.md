@@ -125,7 +125,7 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Notizen/Lyrics bearbeiten | ✓ | ✓ | ✓ | ✓ | — | — |
 | Section-Editor | ✓ | — | — | — | — | — |
 | **SettingsPage** | | | | | | |
-| Profil, Passwort, Theme | ✓ | ✓ | ✓ | ✓ | ✓ | — |
+| Profil, Passwort, Theme, Zoom | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Labels verwalten | ✓ | ✓ | ✓ | ✓ | — | — |
 | Sektionsvorlagen | ✓ | ✓ | ✓ | ✓ | — | — |
 | Nutzer verwalten | ✓ | ✓ | — | — | — | — |
@@ -853,12 +853,21 @@ Betrifft: Player-Header-Menu, Player-Footer-Menu, Marker-Kebab-Menu, Skip-Interv
 - Umgesetzt ueber CSS Custom Properties (`--bg-primary`, `--text-primary`, etc.)
 - Toggle auf der Einstellungen-Seite
 
+### Zoom-Stufen (Schriftgroesse)
+
+- Drei Stufen: Normal (100%), Groß (115%), Sehr groß (130%)
+- Skaliert die gesamte UI proportional (Text, Icons, Abstände, Buttons) via CSS `zoom`
+- Einstellung wird in `localStorage` gespeichert und beim App-Start angewendet
+- Funktioniert auch in der PWA
+- Umschalten unter Einstellungen > Darstellung > Schriftgroesse
+
 ### Einstellungen-Seite
 
 Zentrale Seite fuer alle User- und Admin-Konfigurationen:
 - Profil (Anzeigename, Stimme, Chor-Name)
 - Passwort aendern
 - Theme-Toggle
+- Zoom-Stufen (Schriftgroesse)
 - Dropbox-Verbindung (nur Developer)
 - Einladungslink mit Copy-Button und klickbarer URL (nur Admin)
 - Chor-Ordner in der Dropbox (nur Admin)
