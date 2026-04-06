@@ -1,4 +1,5 @@
 import { useRef, useState, useEffect } from 'react'
+import { useLocation } from 'react-router-dom'
 import { PwaInstallGuide } from '@/components/PwaInstallGuide.tsx'
 import { GlobalPlayerBar } from '@/components/layout/GlobalPlayerBar.tsx'
 import { FloatingRecorder } from '@/components/layout/FloatingRecorder.tsx'
@@ -7,14 +8,27 @@ import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useBrowseStore } from '@/stores/browseStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
+import { usePlayerStore } from '@/stores/playerStore.ts'
+
+// Routes where audio playback should persist (song context)
+const SONG_CONTEXT_ROUTES = ['/', '/browse', '/viewer', '/doc-viewer', '/sections']
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const footerRef = useRef<HTMLDivElement>(null)
   const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null)
+  const { pathname } = useLocation()
 
   useEffect(() => {
     setFooterEl(footerRef.current)
   }, [])
+
+  // Stop playback when navigating away from song-context routes
+  useEffect(() => {
+    if (!SONG_CONTEXT_ROUTES.includes(pathname) && usePlayerStore.getState().currentPath) {
+      usePlayerStore.getState().setPlaying(false)
+      usePlayerStore.setState({ currentPath: null, currentName: null })
+    }
+  }, [pathname])
 
   // Page Visibility: reload data when app comes back to foreground
   useEffect(() => {
