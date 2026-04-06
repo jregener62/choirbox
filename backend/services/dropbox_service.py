@@ -240,10 +240,15 @@ class DropboxService:
             all_entries.extend(result.get("entries", []))
 
         # Group entries by parent directory, track all folder paths
+        # Filter out the listed folder itself (Dropbox sometimes includes it
+        # in recursive results), which would pollute the parent's cache.
+        listed_path = path.lower().rstrip("/")
         by_parent: dict[str, list[dict]] = defaultdict(list)
         folder_paths: set[str] = set()
         for entry in all_entries:
             entry_path = entry.get("path_lower", "")
+            if entry_path.rstrip("/") == listed_path:
+                continue
             if "/" in entry_path.lstrip("/"):
                 parent = entry_path.rsplit("/", 1)[0]
             else:
