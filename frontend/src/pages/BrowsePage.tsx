@@ -189,7 +189,7 @@ export function BrowsePage() {
       }
       setConfirmEntry(null)
       setRevealedPath(null)
-      await loadFolder(browsePath)
+      await loadFolder(browsePath, true)
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Fehler beim Löschen')
       setConfirmEntry(null)
@@ -348,7 +348,7 @@ export function BrowsePage() {
       await api('/dropbox/folder', { method: 'POST', body: { name: newFolderName.trim(), path: browsePath } })
       setNewFolderName('')
       setCreateFolderOpen(false)
-      await loadFolder(browsePath)
+      await loadFolder(browsePath, true)
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Fehler beim Erstellen')
     } finally {
@@ -363,7 +363,7 @@ export function BrowsePage() {
       await api(`/dropbox/folder?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })
       setConfirmEntry(null)
       setRevealedPath(null)
-      await loadFolder(browsePath)
+      await loadFolder(browsePath, true)
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Fehler beim Loeschen'
       setMutationError(msg)
@@ -381,7 +381,7 @@ export function BrowsePage() {
       await api('/dropbox/rename', { method: 'POST', body: { path: renameEntry.path, new_name: fullName } })
       setRenameEntry(null)
       setRevealedPath(null)
-      await loadFolder(browsePath)
+      await loadFolder(browsePath, true)
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Fehler beim Umbenennen')
       setRenameEntry(null)
@@ -997,7 +997,7 @@ export function BrowsePage() {
           currentName={renameEntry.name}
           folderPath={browsePath}
           onClose={() => setRenameEntry(null)}
-          onRenamed={() => { setRenameEntry(null); loadFolder(browsePath) }}
+          onRenamed={() => { setRenameEntry(null); loadFolder(browsePath, true) }}
         />
       )}
 

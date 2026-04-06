@@ -1286,3 +1286,7 @@ Placeholder-Texte in Input-Feldern sahen aus wie eingegebener Text (gleiche Farb
 ### Audio-Aufnahme auf iOS blockiert (iPhone)
 
 Auf iOS Safari blieb der Floating Recorder nach dem Mikrofon-Berechtigungsdialog im "Aufnahme starten"-Zustand haengen, obwohl die Aufnahme tatsaechlich lief (Dynamic Island zeigte aktive Aufnahme). Ursache: `useRecorder` Hook nutzte ein Singleton-Callback-Pattern (`_onStateChange`) mit genau einem Listener-Slot. Der native getUserMedia-Berechtigungsdialog auf iOS konnte den React-Lifecycle unterbrechen, wodurch der Callback `null` wurde und State-Updates verloren gingen. Fix: Umstellung auf `useSyncExternalStore` mit `Set<listener>` — unterstuetzt mehrere Subscriber, ueberlebt Mount/Unmount-Zyklen zuverlaessig. Zusaetzlich verzoegertes Re-Notify (100ms) als Safety-Net nach getUserMedia.
+
+### Browse-View aktualisiert sich nicht nach Mutationen
+
+Nach Rename, Delete, Ordner erstellen/loeschen wurde `loadFolder(browsePath)` ohne `forceRefresh` aufgerufen. Der 5-Minuten-Cache im browseStore lieferte daraufhin die alten Daten zurueck — die Aenderung war erst nach manuellem Sync sichtbar. Fix: Alle Mutations-Handler rufen jetzt `loadFolder(browsePath, true)` auf, um den Cache zu umgehen.
