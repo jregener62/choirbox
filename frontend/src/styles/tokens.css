@@ -10,34 +10,37 @@
 */
 
 :root {
-  /* --- Spacing Scale (4px base) --- */
-  --space-0: 0px;
-  --space-0-5: 2px;
-  --space-1: 4px;
-  --space-1-5: 6px;
-  --space-2: 8px;
-  --space-2-5: 10px;
-  --space-3: 12px;
-  --space-3-5: 14px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-7: 28px;
-  --space-8: 32px;
-  --space-12: 48px;
+  /* --- UI Scale (set via JS for zoom levels) --- */
+  --ui-scale: 1;
 
-  /* --- Typography Scale --- */
-  --text-2xs: 10px;
-  --text-xs: 11px;
-  --text-sm: 12px;
-  --text-caption: 13px;
-  --text-body-sm: 14px;
-  --text-body: 15px;
-  --text-md: 16px;
-  --text-lg: 17px;
-  --text-xl: 18px;
-  --text-2xl: 20px;
-  --text-3xl: 32px;
+  /* --- Spacing Scale (4px base, scaled) --- */
+  --space-0: 0px;
+  --space-0-5: calc(2px * var(--ui-scale));
+  --space-1: calc(4px * var(--ui-scale));
+  --space-1-5: calc(6px * var(--ui-scale));
+  --space-2: calc(8px * var(--ui-scale));
+  --space-2-5: calc(10px * var(--ui-scale));
+  --space-3: calc(12px * var(--ui-scale));
+  --space-3-5: calc(14px * var(--ui-scale));
+  --space-4: calc(16px * var(--ui-scale));
+  --space-5: calc(20px * var(--ui-scale));
+  --space-6: calc(24px * var(--ui-scale));
+  --space-7: calc(28px * var(--ui-scale));
+  --space-8: calc(32px * var(--ui-scale));
+  --space-12: calc(48px * var(--ui-scale));
+
+  /* --- Typography Scale (scaled) --- */
+  --text-2xs: calc(10px * var(--ui-scale));
+  --text-xs: calc(11px * var(--ui-scale));
+  --text-sm: calc(12px * var(--ui-scale));
+  --text-caption: calc(13px * var(--ui-scale));
+  --text-body-sm: calc(14px * var(--ui-scale));
+  --text-body: calc(15px * var(--ui-scale));
+  --text-md: calc(16px * var(--ui-scale));
+  --text-lg: calc(17px * var(--ui-scale));
+  --text-xl: calc(18px * var(--ui-scale));
+  --text-2xl: calc(20px * var(--ui-scale));
+  --text-3xl: calc(32px * var(--ui-scale));
 
   /* --- Border Radius --- */
   --radius-xs: 4px;

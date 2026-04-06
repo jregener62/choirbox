@@ -10,13 +10,7 @@ document.documentElement.setAttribute('data-theme', savedTheme)
 // Apply saved zoom on load
 const savedZoom = localStorage.getItem('choirbox_zoom') || 'normal'
 const zoomValues: Record<string, number> = { normal: 1.0, large: 1.125, xlarge: 1.25 }
-const zoomValue = zoomValues[savedZoom] ?? 1.0
-if (zoomValue !== 1) {
-  const root = document.getElementById('root')!
-  root.style.zoom = String(zoomValue)
-  root.style.width = `${100 / zoomValue}%`
-  root.style.height = `${100 / zoomValue}%`
-}
+document.documentElement.style.setProperty('--ui-scale', String(zoomValues[savedZoom] ?? 1.0))
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

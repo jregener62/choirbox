@@ -35,18 +35,7 @@ interface AppState {
 }
 
 function applyZoom(level: ZoomLevel) {
-  const value = ZOOM_VALUES[level]
-  const root = document.getElementById('root')
-  if (!root) return
-  if (value === 1) {
-    root.style.removeProperty('zoom')
-    root.style.removeProperty('width')
-    root.style.removeProperty('height')
-  } else {
-    root.style.zoom = String(value)
-    root.style.width = `${100 / value}%`
-    root.style.height = `${100 / value}%`
-  }
+  document.documentElement.style.setProperty('--ui-scale', String(ZOOM_VALUES[level]))
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
