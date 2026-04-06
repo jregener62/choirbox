@@ -789,7 +789,7 @@ export function BrowsePage() {
                     ))}
                   </div>
                 )}
-                {isMediaEntry && generalLabels.length > 0 && (
+                {isMediaEntry && generalLabels.length > 0 && !isInsideSong && (
                   <div className="meta-line3">
                     {generalLabels.map((l) => (
                       <span key={l.id} className="meta-label" style={{ color: l.color }}>
@@ -842,7 +842,7 @@ export function BrowsePage() {
                     <Check size={18} />
                   </button>
                 )}
-                {(isFile || isDoc || entry.folder_type === 'song') && !isTexteFolder && (
+                {(isFile || isDoc || entry.folder_type === 'song') && !isTexteFolder && !isInsideSong && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}

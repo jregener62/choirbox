@@ -227,7 +227,7 @@ Konzert im Juni/           (Container)
   - **Titel**: Songname (aus .song-Ordner abgeleitet). Voice-Prefix, Sections und Songname werden nicht im Titel wiederholt.
   - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot. Quellen: Backend-Parsing + zugewiesene Stimme-Labels (gemerged)
   - **Zeile 2:** Abschnitte als Accent-Badges (aus SectionPresets dynamisch)
-  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund). Nur Nicht-Stimme-Labels
+  - **Zeile 3:** Persoenliche Labels als Outline-Badges (farbiger Rand + Text, kein Hintergrund). Nur Nicht-Stimme-Labels. Nicht sichtbar innerhalb von `.song`-Ordnern
   - **Zeile 4:** Kommentar (kursiv) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
 - **Backend Filename-Parsing**: Metadaten (voice_keys, section_keys, song_name, free_text) werden im Backend geparst und in `audio_meta`-Tabelle gecacht. Lazy Parsing beim Browse, Batch-Parsing beim Re-Sync. Invalidierung bei Label/Preset-Aenderungen.
 - **.song Ordner bekommen zusaetzlich:**
@@ -251,11 +251,12 @@ Konzert im Juni/           (Container)
 
 ### Datei-Aktionen (Swipe & Drei-Punkte-Menue)
 
-Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap darauf oder Swipe nach links enthuellt die Aktions-Buttons:
+Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Tap darauf oder Swipe nach links enthuellt die Aktions-Buttons.
+**Innerhalb von `.song`-Ordnern** entfaellt der Label-Button (Tag) — Labels koennen dort nicht zugewiesen werden.
 
 **Dateien:**
 - **Favorit** (Herz): Datei als Favorit markieren/entfernen
-- **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen
+- **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen (nicht innerhalb von `.song`-Ordnern)
 - **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
 - **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+) sichtbar. Bestaetigungsdialog vor dem Loeschen.
 - **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
