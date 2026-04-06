@@ -16,7 +16,7 @@ interface ImportModalProps {
   files: File[]
   targetPath: string
   isAdmin: boolean
-  songFolderName?: string  // Root-Modus: auto-create .song folder with this name
+  rootUpload?: boolean  // Root-Modus: pro Datei eigenen .song-Ordner anlegen
   onClose: () => void
   onUploadComplete: () => void
 }
@@ -27,7 +27,7 @@ function formatSize(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
-export function ImportModal({ files, targetPath, isAdmin, songFolderName, onClose, onUploadComplete }: ImportModalProps) {
+export function ImportModal({ files, targetPath, isAdmin, rootUpload, onClose, onUploadComplete }: ImportModalProps) {
   const [entries, setEntries] = useState<FileEntry[]>(
     () => files.map((file) => ({ file, status: 'pending' as const })),
   )
@@ -52,15 +52,19 @@ export function ImportModal({ files, targetPath, isAdmin, songFolderName, onClos
         const isDocument = name.endsWith('.pdf') || name.endsWith('.txt')
         // Use .song parent folder when inside a reserved subfolder (Audio, Texte, etc.)
         const uploadPath = deriveSongFolderPath(targetPath) || targetPath || '/'
+        // Root-Modus: pro Datei eigenen .song-Ordner anlegen (Name = Dateiname ohne Extension)
+        const fileSongName = rootUpload
+          ? entries[i].file.name.replace(/\.[^.]+$/, '')
+          : undefined
         const formData = new FormData()
         formData.append('file', entries[i].file, entries[i].file.name)
         if (isDocument) {
           formData.append('folder_path', uploadPath)
-          if (songFolderName) formData.append('song_folder_name', songFolderName)
+          if (fileSongName) formData.append('song_folder_name', fileSongName)
           await apiUpload('/documents/upload', formData)
         } else {
           formData.append('target_path', uploadPath)
-          if (songFolderName) formData.append('song_folder_name', songFolderName)
+          if (fileSongName) formData.append('song_folder_name', fileSongName)
           await apiUpload('/dropbox/upload', formData)
         }
         setEntries((prev) => prev.map((e, idx) => idx === i ? { ...e, status: 'done' } : e))
@@ -100,8 +104,8 @@ export function ImportModal({ files, targetPath, isAdmin, songFolderName, onClos
       showClose={phase !== 'uploading'}
     >
       <div className="recording-path" style={{ padding: 0 }}>
-        {songFolderName
-          ? `Neuer Song-Ordner: ${songFolderName}.song`
+        {rootUpload
+          ? 'Jede Datei wird als eigener Song-Ordner angelegt'
           : `Zielordner: ${targetPath ? stripFolderExtension(targetPath.split('/').filter(Boolean).pop() || '') : 'Root'}`
         }
       </div>

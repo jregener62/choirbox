@@ -1052,22 +1052,18 @@ export function BrowsePage() {
       )}
 
       {importOpen && importedFiles.length > 0 && (() => {
-        const importSongName = !deriveSongFolderPath(browsePath) && importedFiles[0]
-          ? importedFiles[0].name.replace(/\.[^.]+$/, '')
-          : undefined
+        const isRootUpload = !deriveSongFolderPath(browsePath)
         return (
           <ImportModal
             files={importedFiles}
             targetPath={browsePath}
             isAdmin={isAdmin}
-            songFolderName={importSongName}
+            rootUpload={isRootUpload || undefined}
             onClose={() => { setImportOpen(false); setImportedFiles([]) }}
             onUploadComplete={() => {
               useDocumentsStore.setState({ loadedFolder: null })
-              if (importSongName) {
-                // Root mode: stay in root, highlight new .song folder
-                const newSongPath = `${browsePath.replace(/\/$/, '')}/${importSongName}.song`
-                useAppStore.getState().setHighlightPath(newSongPath)
+              if (isRootUpload) {
+                // Root mode: stay in root, reload folder
                 loadFolder(browsePath, true)
               } else {
                 // Song mode: switch to the tab matching the file type, highlight file
