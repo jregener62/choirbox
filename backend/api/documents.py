@@ -465,7 +465,8 @@ async def get_text_content(
         async with httpx.AsyncClient() as client:
             resp = await client.get(link)
             resp.raise_for_status()
-            return {"content": resp.text}
+            content = resp.text.replace('\r\n', '\n').replace('\r', '\n').replace('\u2028', '\n').replace('\u2029', '\n\n')
+            return {"content": content}
     except RuntimeError as e:
         raise HTTPException(502, str(e))
 
