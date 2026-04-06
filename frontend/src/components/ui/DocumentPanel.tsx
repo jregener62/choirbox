@@ -200,7 +200,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.mp4,.webm,.mov,.txt"
+          accept=".pdf,.txt"
           style={{ display: 'none' }}
           onChange={handleFileSelect}
         />
@@ -336,7 +336,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.mp4,.webm,.mov,.txt"
+          accept=".pdf,.txt"
           style={{ display: 'none' }}
           onChange={handleFileSelect}
         />

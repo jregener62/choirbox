@@ -1005,7 +1005,7 @@ export function BrowsePage() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.mp4,.mov,.txt,video/mp4"
+        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.txt"
         style={{ display: 'none' }}
         onChange={(e) => {
           const files = e.target.files
