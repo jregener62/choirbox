@@ -677,7 +677,8 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
 
             wav_path = src_path.rsplit(".", 1)[0] + ".wav"
             proc = await asyncio.create_subprocess_exec(
-                "fluidsynth", "-ni", soundfont, src_path, "-F", wav_path, "-r", "44100",
+                "fluidsynth", "-ni", "-F", wav_path, "-r", "44100",
+                soundfont, src_path,
                 stdout=asyncio.subprocess.DEVNULL,
                 stderr=asyncio.subprocess.PIPE,
             )
