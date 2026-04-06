@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect, useRef } from 'react'
+import { useSyncExternalStore, useCallback } from 'react'
 
 export type RecorderState = 'idle' | 'recording' | 'stopped' | 'error'
 
@@ -37,7 +37,6 @@ let _stream: MediaStream | null = null
 let _chunks: Blob[] = []
 let _timer: ReturnType<typeof setInterval> | null = null
 let _startTime = 0
-let _onStateChange: (() => void) | null = null
 
 // Snapshot values readable by any hook instance
 let _sState: RecorderState = 'idle'
@@ -46,7 +45,23 @@ let _sDuration = 0
 let _sBlob: Blob | null = null
 let _sBlobUrl: string | null = null
 
-function notify() { _onStateChange?.() }
+// Subscription system for useSyncExternalStore
+const _listeners = new Set<() => void>()
+let _version = 0
+
+function subscribe(listener: () => void) {
+  _listeners.add(listener)
+  return () => { _listeners.delete(listener) }
+}
+
+function getSnapshot() {
+  return _version
+}
+
+function notify() {
+  _version++
+  _listeners.forEach(fn => fn())
+}
 
 function cleanupStream() {
   if (_timer) { clearInterval(_timer); _timer = null }
@@ -56,23 +71,9 @@ function cleanupStream() {
 }
 
 export function useRecorder(): UseRecorderReturn {
-  // Force re-render when singleton state changes
-  const [, setTick] = useState(0)
-  const tickRef = useRef(0)
-
-  useEffect(() => {
-    _onStateChange = () => {
-      tickRef.current += 1
-      setTick(tickRef.current)
-    }
-    // Sync in case recording was already active before mount
-    setTick((t) => t + 1)
-    return () => {
-      // Do NOT stop the stream on unmount — that's the whole point.
-      // Only unregister the listener.
-      _onStateChange = null
-    }
-  }, [])
+  // Re-render when singleton state changes — supports multiple subscribers,
+  // survives component unmount/remount, works after native dialogs (iOS getUserMedia)
+  useSyncExternalStore(subscribe, getSnapshot)
 
   const { mimeType, extension: fileExtension } = getPreferredMimeType()
 
@@ -131,6 +132,9 @@ export function useRecorder(): UseRecorderReturn {
       _sState = 'recording'
       _sDuration = 0
       notify()
+      // iOS Safari: nach dem getUserMedia-Berechtigungsdialog kann der
+      // erste notify() verloren gehen — nochmal nach einem Tick senden
+      setTimeout(notify, 100)
 
       _timer = setInterval(() => {
         _sDuration = Math.floor((Date.now() - _startTime) / 1000)

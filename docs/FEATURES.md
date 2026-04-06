@@ -499,9 +499,9 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 ### Floating Global Player
 
-Der Audio-Player ist ein schwebendes, abgerundetes Overlay-Element (`position: fixed`), das ueber der aktuellen Seite liegt. Kein eigener `/player`-Endpoint mehr — der Player erscheint auf Browse, Viewer und Favorites.
+Der Audio-Player ist ein schwebendes, abgerundetes Overlay-Element (`position: fixed`), das ueber der aktuellen Seite liegt. Kein eigener `/player`-Endpoint mehr — der Player erscheint auf allen Seiten sobald ein Track geladen ist.
 
-- **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist. Ausgeblendet auf Login, Settings, Admin-Seiten und im PDF-Fullscreen-Modus.
+- **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist — auf allen Seiten (Browse, Viewer, Favoriten, Texte-Tab, Videos-Tab, Settings, etc.). Ausgeblendet auf Login und im PDF-Fullscreen-Modus.
 - **Design**: Abgerundeter Container (`border-radius: 16px`), eigene Hintergrundfarbe (`#252D40`), dezenter Schatten. Outline-Style fuer Play/Skip-Buttons.
 - **Klick auf .song-Eintrag**: Laedt alle Audio-Dateien aus dem `/Audio`-Unterordner, setzt den ersten Track (ohne Autoplay), Player erscheint mit Voice Bricks.
 - **Aktiver .song**: Bekommt Indigo-Rahmen und statisches Lautsprecher-Icon vor dem Titel in der Browse-Liste.
@@ -752,7 +752,7 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 - Server-seitige Konvertierung zu MP3 (FFmpeg)
 - Aufnahmen landen automatisch im `/Audio`-Unterordner des `.song`-Ordners (wird bei Bedarf erstellt)
 - Berechtigung: ab Pro-Mitglied
-- Der Recorder bleibt beim Seitenwechsel aktiv (globaler State via Zustand Store, Modul-Level-Singleton fuer MediaRecorder)
+- Der Recorder bleibt beim Seitenwechsel aktiv (globaler State via Zustand Store, Modul-Level-Singleton fuer MediaRecorder, `useSyncExternalStore` fuer zuverlaessige Re-Renders)
 - States: Idle → Recording → Stopped (Anhoeren/Neu/Hochladen) → Uploading → Done
 
 ### Datei-Upload
@@ -1257,6 +1257,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### GlobalPlayerBar verschwand beim Tab-Wechsel
+
+Der Player wurde nur in Audio/Multitrack/Videos-Ordnern und auf /viewer bzw. /sections angezeigt. Beim Wechsel zum Texte-Tab, zur Songliste oder anderen Seiten verschwand er, obwohl Audio weiterlief. Fix: Player wird jetzt immer angezeigt sobald ein Track geladen ist, unabhaengig von der aktuellen Seite.
+
 ### Dokumente im Texte-Ordner konnten nicht geloescht werden
 
 Das Frontend berechnete den `folder_path` fuer den DB-Lookup falsch: es entfernte nur den Dateinamen (`Chormappe/Lied1/Texte`), aber die DB speichert ohne `/Texte`-Suffix (`Chormappe/Lied1`). Dadurch fand der Lookup kein Dokument und das Loeschen schlug still fehl.
@@ -1278,3 +1282,7 @@ Im Texte-Ordner fehlte die `doc_id` fuer Dokument-Eintraege, wodurch der Select-
 ### Placeholder-Text nicht als solcher erkennbar
 
 Placeholder-Texte in Input-Feldern sahen aus wie eingegebener Text (gleiche Farbe, nicht kursiv). Betroffen: Login, Settings, Admin-Seiten, Modals, Suche, Lyrics-Editor. Fix: Globale `::placeholder`-Regel mit `color: var(--text-muted)` + `font-style: italic`. Zwei redundante klassenspezifische Regeln entfernt.
+
+### Audio-Aufnahme auf iOS blockiert (iPhone)
+
+Auf iOS Safari blieb der Floating Recorder nach dem Mikrofon-Berechtigungsdialog im "Aufnahme starten"-Zustand haengen, obwohl die Aufnahme tatsaechlich lief (Dynamic Island zeigte aktive Aufnahme). Ursache: `useRecorder` Hook nutzte ein Singleton-Callback-Pattern (`_onStateChange`) mit genau einem Listener-Slot. Der native getUserMedia-Berechtigungsdialog auf iOS konnte den React-Lifecycle unterbrechen, wodurch der Callback `null` wurde und State-Updates verloren gingen. Fix: Umstellung auf `useSyncExternalStore` mit `Set<listener>` — unterstuetzt mehrere Subscriber, ueberlebt Mount/Unmount-Zyklen zuverlaessig. Zusaetzlich verzoegertes Re-Notify (100ms) als Safety-Net nach getUserMedia.
