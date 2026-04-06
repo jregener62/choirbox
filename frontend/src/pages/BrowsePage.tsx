@@ -77,6 +77,7 @@ export function BrowsePage() {
   // Filter state
   const [activeFilters, setActiveFilters] = useState<number[]>([])
   const [filterOpen, setFilterOpen] = useState(false)
+  const [showFavorites, setShowFavorites] = useState(false)
 
   // Search state
   const [searchOpen, setSearchOpen] = useState(false)
@@ -88,6 +89,7 @@ export function BrowsePage() {
 
   const loadFolder = useCallback((path: string, forceRefresh = false) => {
     setRevealedPath(null)
+    setShowFavorites(false)
     storeLoadFolder(path, forceRefresh)
   }, [storeLoadFolder])
 
@@ -269,7 +271,11 @@ export function BrowsePage() {
         .sort((a, b) => a.name.localeCompare(b.name))
     : entries
 
-  const displayEntries = isSearching ? searchResults : filteredEntries
+  const favFilteredEntries = showFavorites
+    ? entries.filter((e) => isFavorite(e.path))
+    : filteredEntries
+
+  const displayEntries = isSearching ? searchResults : favFilteredEntries
 
   // Folder name for parsing track filenames — use .song ancestor if inside reserved folder
   const browseSegments = browsePath.split('/').filter(Boolean)
@@ -439,8 +445,10 @@ export function BrowsePage() {
                 </div>
                 {/* Center group */}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  <button className="player-header-btn" style={favorites.length > 0 ? { color: 'var(--accent)' } : undefined} onClick={() => navigate('/favorites')}>
-                    <Heart size={18} fill={favorites.length > 0 ? 'currentColor' : 'none'} />
+                  <button className="player-header-btn" style={showFavorites ? { color: 'var(--accent)' } : undefined} onClick={() => {
+                    if (!showFavorites) { useAppStore.getState().setBrowsePath(''); setShowFavorites(true) } else { setShowFavorites(false) }
+                  }}>
+                    <Heart size={18} fill={showFavorites ? 'currentColor' : 'none'} />
                   </button>
                   <button className="player-header-btn" onClick={openSearch}>
                     <Search size={18} />
@@ -510,7 +518,13 @@ export function BrowsePage() {
           /* Outside .song: full breadcrumb (all roles) */
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-              <span className="breadcrumb-item" onClick={() => loadFolder('')}>{user?.choir_name || 'Dateien'}</span>
+              <span className="breadcrumb-item" onClick={() => { setShowFavorites(false); loadFolder('') }}>{user?.choir_name || 'Dateien'}</span>
+              {showFavorites && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <ChevronRight size={12} style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
+                  <span className="breadcrumb-current">Favoriten</span>
+                </span>
+              )}
               {pathParts.map((part, i) => {
                 const path = '/' + pathParts.slice(0, i + 1).join('/')
                 const isLast = i === pathParts.length - 1
@@ -587,6 +601,14 @@ export function BrowsePage() {
             <>
               <Search size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
               <div>{searchQuery.length < 2 ? 'Mindestens 2 Zeichen eingeben' : 'Keine Ergebnisse'}</div>
+            </>
+          ) : showFavorites ? (
+            <>
+              <Heart size={48} strokeWidth={1} style={{ opacity: 0.3 }} />
+              <div>Noch keine Favoriten</div>
+              <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                Markiere Songs mit dem Herz-Symbol
+              </div>
             </>
           ) : (
             <>
