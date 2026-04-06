@@ -22,22 +22,29 @@ class DropboxService:
         self.refresh_token = refresh_token
         self._access_token: Optional[str] = None
         self._token_expires_at: float = 0
+        self._client: Optional[httpx.AsyncClient] = None
+
+    async def _ensure_client(self) -> httpx.AsyncClient:
+        """Get or create a shared httpx client (reuses TCP connections)."""
+        if self._client is None or self._client.is_closed:
+            self._client = httpx.AsyncClient(timeout=30.0)
+        return self._client
 
     async def _get_access_token(self) -> str:
         """Get a valid access token, refreshing if needed."""
         if self._access_token and self._token_expires_at > time.time() + 300:
             return self._access_token
 
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.dropboxapi.com/oauth2/token",
-                data={
-                    "grant_type": "refresh_token",
-                    "refresh_token": self.refresh_token,
-                    "client_id": DROPBOX_APP_KEY,
-                    "client_secret": DROPBOX_APP_SECRET,
-                },
-            )
+        client = await self._ensure_client()
+        resp = await client.post(
+            "https://api.dropboxapi.com/oauth2/token",
+            data={
+                "grant_type": "refresh_token",
+                "refresh_token": self.refresh_token,
+                "client_id": DROPBOX_APP_KEY,
+                "client_secret": DROPBOX_APP_SECRET,
+            },
+        )
 
         if resp.status_code != 200:
             raise RuntimeError(f"Dropbox token refresh failed: {resp.text}")
@@ -50,9 +57,21 @@ class DropboxService:
     async def api_call(self, endpoint: str, body: dict, max_retries: int = 5) -> dict:
         """Make an authenticated Dropbox API call with auto-retry on 401 and rate limits."""
         token = await self._get_access_token()
+        client = await self._ensure_client()
 
         for attempt in range(max_retries + 1):
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            resp = await client.post(
+                f"https://api.dropboxapi.com/2/{endpoint}",
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "Content-Type": "application/json",
+                },
+                json=body,
+            )
+
+            if resp.status_code == 401:
+                self._access_token = None
+                token = await self._get_access_token()
                 resp = await client.post(
                     f"https://api.dropboxapi.com/2/{endpoint}",
                     headers={
@@ -61,18 +80,6 @@ class DropboxService:
                     },
                     json=body,
                 )
-
-                if resp.status_code == 401:
-                    self._access_token = None
-                    token = await self._get_access_token()
-                    resp = await client.post(
-                        f"https://api.dropboxapi.com/2/{endpoint}",
-                        headers={
-                            "Authorization": f"Bearer {token}",
-                            "Content-Type": "application/json",
-                        },
-                        json=body,
-                    )
 
             if resp.status_code == 200:
                 return resp.json()
@@ -102,6 +109,7 @@ class DropboxService:
         Includes 401 auto-refresh and rate-limit retry with exponential backoff.
         """
         token = await self._get_access_token()
+        client = await self._ensure_client()
 
         api_arg = json.dumps({
             "path": dropbox_path,
@@ -117,23 +125,21 @@ class DropboxService:
                 "Dropbox-API-Arg": api_arg,
             }
 
-            async with httpx.AsyncClient(timeout=60.0) as client:
-                resp = await client.post(
-                    "https://content.dropboxapi.com/2/files/upload",
-                    headers=headers,
-                    content=file_content,
-                )
+            resp = await client.post(
+                "https://content.dropboxapi.com/2/files/upload",
+                headers=headers,
+                content=file_content,
+            )
 
             if resp.status_code == 401:
                 self._access_token = None
                 token = await self._get_access_token()
                 headers["Authorization"] = f"Bearer {token}"
-                async with httpx.AsyncClient(timeout=60.0) as client:
-                    resp = await client.post(
-                        "https://content.dropboxapi.com/2/files/upload",
-                        headers=headers,
-                        content=file_content,
-                    )
+                resp = await client.post(
+                    "https://content.dropboxapi.com/2/files/upload",
+                    headers=headers,
+                    content=file_content,
+                )
 
             if resp.status_code == 200:
                 return resp.json()
@@ -195,12 +201,17 @@ class DropboxService:
         folder_cache.put(path, entries, cursor)
         return entries
 
-    async def list_folder_recursive(self, path: str, use_cache: bool = True) -> list[dict]:
+    async def list_folder_recursive(
+        self, path: str, use_cache: bool = True,
+    ) -> tuple[list[dict], dict[str, list[dict]] | None]:
         """Recursively list all entries under a Dropbox path and pre-populate the per-folder cache.
 
         Makes a single Dropbox API call with recursive=True (plus pagination),
         then splits entries by parent directory and stores each group in folder_cache.
-        Returns the top-level entries (direct children of path) for immediate use.
+
+        Returns (top_level_entries, tree) where tree is a dict mapping
+        normalized parent paths to their children. tree is None on cache hit
+        (individual sub-paths are still cached for list_folder lookups).
         """
         from backend.services.dropbox_cache import folder_cache
         from collections import defaultdict
@@ -210,11 +221,12 @@ class DropboxService:
             cached = folder_cache.get(path)
             if cached is not None:
                 logger.debug("list_folder_recursive cache hit (top-level): %s", path)
-                return cached[0]
+                return cached[0], None
 
         result = await self.api_call("files/list_folder", {
             "path": path,
             "recursive": True,
+            "limit": 2000,
         })
         all_entries = result.get("entries", [])
 
@@ -248,10 +260,11 @@ class DropboxService:
         for folder_path in folder_paths:
             if folder_path not in by_parent:
                 folder_cache.put(folder_path, [])
+                by_parent[folder_path] = []
 
-        # Return top-level entries
+        # Return top-level entries + full tree
         normalized = path.lower().rstrip("/") or ""
-        return by_parent.get(normalized, [])
+        return by_parent.get(normalized, []), dict(by_parent)
 
     async def search(self, query: str, path: str = "") -> list[dict]:
         """Search for files by name."""
@@ -324,12 +337,12 @@ class DropboxService:
     async def get_account_info(self) -> dict:
         """Get current account info (for connection test)."""
         token = await self._get_access_token()
-        async with httpx.AsyncClient() as client:
-            resp = await client.post(
-                "https://api.dropboxapi.com/2/users/get_current_account",
-                headers={"Authorization": f"Bearer {token}"},
-                content="null",
-            )
+        client = await self._ensure_client()
+        resp = await client.post(
+            "https://api.dropboxapi.com/2/users/get_current_account",
+            headers={"Authorization": f"Bearer {token}"},
+            content="null",
+        )
         if resp.status_code != 200:
             raise RuntimeError(f"Dropbox account info failed: {resp.text}")
         return resp.json()

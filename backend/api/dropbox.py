@@ -18,6 +18,16 @@ from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 
+
+async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
+    """Look up folder children from in-memory tree (fast) or fall back to list_folder (cached)."""
+    if tree is not None:
+        return tree.get(dbx_path.lower().rstrip("/"), [])
+    try:
+        return await dbx.list_folder(dbx_path)
+    except Exception:
+        return []
+
 _oauth_states: dict[str, str] = {}
 
 
@@ -171,6 +181,10 @@ async def dropbox_browse(
     session: Session = Depends(get_session),
 ):
     """List files/folders at a Dropbox path with folder-type awareness."""
+    import logging
+    import time as _time
+    _log = logging.getLogger(__name__)
+
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import (
         parse_folder_name, get_parent_folder_type, is_reserved_name,
@@ -178,6 +192,8 @@ async def dropbox_browse(
         TRASH_FOLDER_NAME,
     )
     from backend.services.document_service import ALL_DOC_EXTENSIONS
+
+    _t0 = _time.monotonic()
 
     dbx = get_dropbox_service(session)
     if not dbx:
@@ -188,11 +204,15 @@ async def dropbox_browse(
 
     use_cache = not refresh
     try:
-        entries = await dbx.list_folder_recursive(dropbox_path, use_cache=use_cache)
+        entries, tree = await dbx.list_folder_recursive(dropbox_path, use_cache=use_cache)
     except RuntimeError as e:
         if "path/not_found" in str(e):
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
+    _t1 = _time.monotonic()
+    _log.info("browse %s: recursive listing %.1fms (cache=%s, entries=%d, tree=%s)",
+              path or "/", (_t1 - _t0) * 1000, "hit" if tree is None else "miss",
+              len(entries), f"{len(tree)} paths" if tree else "cached")
 
     parent_type = get_parent_folder_type(path)
     is_inside_reserved = parent_type in ("texte", "audio", "videos", "multitrack")
@@ -267,13 +287,9 @@ async def dropbox_browse(
     # Create synthetic entries for reserved folders + count their contents
     for reserved_name, reserved_path in reserved_found.items():
         _, folder_type = parse_folder_name(reserved_name)
-        sub_files = []
-        try:
-            sub_dbx = _to_dropbox_path(reserved_path, root_folder)
-            sub_entries = await dbx.list_folder(sub_dbx)
-            sub_files = [e for e in sub_entries if e.get(".tag") == "file"]
-        except Exception:
-            pass
+        sub_dbx = _to_dropbox_path(reserved_path, root_folder)
+        sub_entries = await _get_children(tree, dbx, sub_dbx)
+        sub_files = [e for e in sub_entries if e.get(".tag") == "file"]
         count = len(sub_files)
 
         if count == 0:
@@ -424,14 +440,11 @@ async def dropbox_browse(
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
             sub_path = f"{song_dbx}/{reserved_name}"
-            try:
-                sub_entries = await dbx.list_folder(sub_path)
-                count = sum(1 for se in sub_entries if se.get(".tag") == "file")
-                if count > 0:
-                    user_sub_path = f"{song['path']}/{reserved_name}"
-                    sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
-            except Exception:
-                pass
+            sub_entries = await _get_children(tree, dbx, sub_path)
+            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            if count > 0:
+                user_sub_path = f"{song['path']}/{reserved_name}"
+                sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
         # Selected document
         try:
             texte_path = f"{song['path']}/Texte"
@@ -463,14 +476,16 @@ async def dropbox_browse(
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
             sub_path = f"{song_dbx_path}/{reserved_name}"
-            try:
-                sub_entries = await dbx.list_folder(sub_path)
-                count = sum(1 for se in sub_entries if se.get(".tag") == "file")
-                if count > 0:
-                    user_sub_path = f"{song_user_path}/{reserved_name}"
-                    song_sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
-            except Exception:
-                pass
+            sub_entries = await _get_children(tree, dbx, sub_path)
+            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            if count > 0:
+                user_sub_path = f"{song_user_path}/{reserved_name}"
+                song_sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
+
+    _t2 = _time.monotonic()
+    _log.info("browse %s: total %.1fms (listing=%.1fms, enrichment=%.1fms, songs=%d, entries=%d)",
+              path or "/", (_t2 - _t0) * 1000, (_t1 - _t0) * 1000,
+              (_t2 - _t1) * 1000, len(song_entries), len(filtered))
 
     result = {"path": path, "entries": filtered, "root_name": root_folder or None}
     if song_sub_folders is not None:
