@@ -1758,11 +1758,24 @@ textarea::placeholder {
   overflow: hidden;
 }
 
+.file-name-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1-5);
+  min-width: 0;
+}
+
+.fav-heart {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
 .file-name {
   font-size: var(--text-body);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-width: 0;
 }
 
 .file-meta {

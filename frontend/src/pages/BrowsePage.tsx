@@ -641,6 +641,7 @@ export function BrowsePage() {
           // Song name and free text from backend
           const songName = isMediaEntry ? (entry.song_name || folderName) : ''
           const freeText = isMediaEntry ? (entry.free_text || '') : ''
+          const fav = isFavorite(entry.path)
 
           // Zugewiesene Labels nach Kategorie trennen
           const allTrackLabels = isMediaEntry ? getLabelsForPath(entry.path) : []
@@ -677,15 +678,18 @@ export function BrowsePage() {
                 </div>
               ) : null}
               <div className="file-info">
-                <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
-                  {isMediaEntry && entry.song_name
-                    ? songName
-                    : (isFile || isDoc)
-                      ? formatDisplayName(entry.display_name || entry.name)
-                      : (entry.display_name || entry.name)}
-                  {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
-                    <FileText size={14} className="file-name-selected" />
-                  )}
+                <div className="file-name-row">
+                  {fav && <Heart size={16} className="fav-heart" fill="currentColor" strokeWidth={0} />}
+                  <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
+                    {isMediaEntry && entry.song_name
+                      ? songName
+                      : (isFile || isDoc)
+                        ? formatDisplayName(entry.display_name || entry.name)
+                        : (entry.display_name || entry.name)}
+                    {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
+                      <FileText size={14} className="file-name-selected" />
+                    )}
+                  </div>
                 </div>
                 {entry.doc_count != null && entry.doc_count > 0 && entry.folder_type !== 'song' && (
                   <div className="file-meta">
@@ -788,7 +792,6 @@ export function BrowsePage() {
             </>
           )
 
-          const fav = isFavorite(entry.path)
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
