@@ -7,13 +7,10 @@ export function RegisterPage() {
   const { inviteCode } = useParams<{ inviteCode: string }>()
   const [choirName, setChoirName] = useState<string | null>(null)
   const [choirError, setChoirError] = useState('')
-  const [voiceParts, setVoiceParts] = useState<string[]>([])  // dynamisch vom Server
-  const [displayName, setDisplayName] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [passwordConfirm, setPasswordConfirm] = useState('')
   const [showPw, setShowPw] = useState(false)
-  const [voicePart, setVoicePart] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const register = useAuthStore((s) => s.register)
@@ -28,9 +25,6 @@ export function RegisterPage() {
       })
       .then((data) => {
         setChoirName(data.choir_name)
-        if (data.voice_labels?.length > 0) {
-          setVoiceParts(data.voice_labels.map((l: { name: string }) => l.name))
-        }
       })
       .catch(() => setChoirError('Ungueltiger Einladungslink'))
   }, [inviteCode])
@@ -85,19 +79,12 @@ export function RegisterPage() {
       setError('Passwoerter stimmen nicht ueberein')
       return
     }
-    if (voiceParts.length > 0 && !voicePart) {
-      setError('Bitte Stimmgruppe waehlen')
-      return
-    }
-
     setLoading(true)
     try {
       await register({
         invite_code: inviteCode,
         username,
-        display_name: displayName || username,
         password,
-        voice_part: voicePart,
       })
       navigate('/', { replace: true })
     } catch (err) {
@@ -126,15 +113,6 @@ export function RegisterPage() {
         {error && <div className="auth-error">{error}</div>}
 
         <form className="auth-form" onSubmit={handleSubmit}>
-          <div className="auth-field">
-            <label className="auth-label">Anzeigename</label>
-            <input
-              className="auth-input"
-              type="text"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
-          </div>
           <div className="auth-field">
             <label className="auth-label">Benutzername</label>
             <input
@@ -176,22 +154,6 @@ export function RegisterPage() {
               autoComplete="new-password"
               required
             />
-          </div>
-
-          <div className="auth-field">
-            <label className="auth-label">Stimmgruppe</label>
-            <div className="voice-part-selector">
-              {voiceParts.map((part) => (
-                <button
-                  key={part}
-                  type="button"
-                  className={`voice-part-btn ${voicePart === part ? 'selected' : ''}`}
-                  onClick={() => setVoicePart(part)}
-                >
-                  {part}
-                </button>
-              ))}
-            </div>
           </div>
 
           <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>

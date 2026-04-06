@@ -26,9 +26,7 @@ interface AuthState {
   register: (data: {
     invite_code: string
     username: string
-    display_name: string
     password: string
-    voice_part: string
   }) => Promise<void>
   logout: () => void
   restoreSession: () => void
