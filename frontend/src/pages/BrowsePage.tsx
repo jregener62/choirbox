@@ -850,7 +850,7 @@ export function BrowsePage() {
                     <Tag size={18} />
                   </button>
                 )}
-                {(isAdmin || (isDoc && isProMember)) && !isTexteFolder && (
+                {isProMember && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-info"
                     onClick={(e) => {

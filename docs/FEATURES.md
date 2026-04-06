@@ -100,43 +100,43 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 
 ### Berechtigungsmatrix
 
-| Element | beta-tester (5) | admin (4) | chorleiter (3) | pro-member (2) | member (1) | guest (0) |
-|---------|:-:|:-:|:-:|:-:|:-:|:-:|
-| **BrowsePage** | | | | | | |
-| Browse, Play, Stream | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Favoriten (Herz) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Filter (Labels) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Suche | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Label zuweisen (Tag) | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Aufnehmen (Mic-Icon) | ✓ | ✓ | ✓ | ✓ | — | — |
-| Kebab-Menue (⋮) | ✓ | ✓ | ✓ | ✓ | — | — |
-| ↳ Datei hochladen | ✓ | ✓ | ✓ | ✓ | — | — |
-| ↳ Ordner erstellen | ✓ | ✓ | — | — | — | — |
-| Datei-Einstellungen (Info) | ✓ | ✓ | ✓ | ✓ | — | — |
-| Datei loeschen | ✓ | ✓ | ✓ | — | — | — |
-| Umbenennen (Stift) | ✓ | ✓ | — | — | — | — |
-| Ordner loeschen | ✓ | ✓ | ✓ | — | — | — |
-| **GlobalPlayer** | | | | | | |
-| Wiedergabe + Voice Bricks | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Viewer-Button | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| **ViewerPage** | | | | | | |
-| Dokument anzeigen | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| PDF hochladen/loeschen | ✓ | ✓ | ✓ | ✓ | — | — |
-| Notizen/Lyrics bearbeiten | ✓ | ✓ | ✓ | ✓ | — | — |
-| Section-Editor | ✓ | — | — | — | — | — |
-| **SettingsPage** | | | | | | |
-| Profil, Passwort, Theme, Zoom | ✓ | ✓ | ✓ | ✓ | ✓ | — |
-| Labels verwalten | ✓ | ✓ | ✓ | ✓ | — | — |
-| Sektionsvorlagen | ✓ | ✓ | ✓ | ✓ | — | — |
-| Nutzer verwalten | ✓ | ✓ | — | — | — | — |
-| Einladungslink + Copy | ✓ | ✓ | — | — | — | — |
-| Chor-Ordner | ✓ | ✓ | — | — | — | — |
-| Dropbox Re-Sync | ✓ | ✓ | — | — | — | — |
-| Dropbox-Verbindung | — | — | — | — | — | — |
-| Choere verwalten | — | — | — | — | — | — |
-| **FileSettingsPage** | | | | | | |
-| Anzeigen (read-only) | ✓ | ✓ | ✓ | ✓ | — | — |
-| Bearbeiten + Speichern | ✓ | ✓ | ✓ | ✓ | — | — |
+| Element                       | beta-tester (5) | admin (4) | chorleiter (3) | pro-member (2) | member (1) | guest (0) |
+| ----------------------------- | :-------------: | :-------: | :------------: | :------------: | :--------: | :-------: |
+| **BrowsePage**                |                 |           |                |                |            |           |
+| Browse, Play, Stream          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Favoriten (Herz)              |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Filter (Labels)               |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Suche                         |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Label zuweisen (Tag)          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Aufnehmen (Mic-Icon)          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Kebab-Menue (⋮)               |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| ↳ Datei hochladen             |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| ↳ Ordner erstellen            |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Datei-Einstellungen (Info)    |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Datei loeschen                |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
+| Umbenennen (Stift)            |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Ordner loeschen               |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
+| **GlobalPlayer**              |                 |           |                |                |            |           |
+| Wiedergabe + Voice Bricks     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Viewer-Button                 |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| **ViewerPage**                |                 |           |                |                |            |           |
+| Dokument anzeigen             |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| PDF hochladen/loeschen        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Notizen/Lyrics bearbeiten     |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Section-Editor                |        ✓        |     —     |       —        |       —        |     —      |     —     |
+| **SettingsPage**              |                 |           |                |                |            |           |
+| Profil, Passwort, Theme, Zoom |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Labels verwalten              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Sektionsvorlagen              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Nutzer verwalten              |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Einladungslink + Copy         |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Chor-Ordner                   |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Dropbox Re-Sync               |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Dropbox-Verbindung            |        —        |     —     |       —        |       —        |     —      |     —     |
+| Choere verwalten              |        —        |     —     |       —        |       —        |     —      |     —     |
+| **FileSettingsPage**          |                 |           |                |                |            |           |
+| Anzeigen (read-only)          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Bearbeiten + Speichern        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 
 *Developer (6) hat alle Rechte + Dropbox-Verbindung, Choere verwalten, Chor-Wechsel.*
 
@@ -259,11 +259,11 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - **Label** (Tag): Label-Picker-Overlay oeffnen, Labels zuweisen/entfernen (nicht innerhalb von `.song`-Ordnern)
 - **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
 - **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+) sichtbar. Bestaetigungsdialog vor dem Loeschen.
-- **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
+- **Umbenennen** (Stift): Ab Pro-Mitglied (Level 2+). Dialog mit vorausgefuelltem Namen.
 
 **Ordner:**
 - **Favorit** (Herz): Ordner als Favorit markieren/entfernen
-- **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
+- **Umbenennen** (Stift): Ab Pro-Mitglied (Level 2+). Dialog mit vorausgefuelltem Namen.
 - **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+). `.song`-Ordner werden samt Inhalt in einen `Trash`-Ordner im Chor-Root verschoben (Papierkorb). Normale Ordner muessen leer sein fuer permanentes Loeschen.
 
 **Aufnahme-Button (Mic-Icon im Header):**

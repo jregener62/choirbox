@@ -881,10 +881,10 @@ async def dropbox_delete_folder(
 @router.post("/rename")
 async def dropbox_rename(
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
-    """Rename a file or folder in Dropbox. Requires Admin role."""
+    """Rename a file or folder in Dropbox. Requires Pro-Member role."""
     from backend.services.dropbox_service import get_dropbox_service
 
     path = (data.get("path") or "").strip()
