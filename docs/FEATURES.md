@@ -501,7 +501,7 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 Der Audio-Player ist ein schwebendes, abgerundetes Overlay-Element (`position: fixed`), das ueber der aktuellen Seite liegt. Kein eigener `/player`-Endpoint mehr — der Player erscheint auf allen Seiten sobald ein Track geladen ist.
 
-- **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist — auf allen Seiten (Browse, Viewer, Favoriten, Texte-Tab, Videos-Tab, Settings, etc.). Ausgeblendet auf Login und im PDF-Fullscreen-Modus.
+- **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist — auf allen Seiten (Browse, Viewer, Texte-Tab, Videos-Tab, Settings, etc.). Ausgeblendet auf Login und im PDF-Fullscreen-Modus.
 - **Design**: Abgerundeter Container (`border-radius: 16px`), eigene Hintergrundfarbe (`#252D40`), dezenter Schatten. Outline-Style fuer Play/Skip-Buttons.
 - **Klick auf .song-Eintrag**: Laedt alle Audio-Dateien aus dem `/Audio`-Unterordner, setzt den ersten Track (ohne Autoplay), Player erscheint mit Voice Bricks.
 - **Aktiver .song**: Bekommt Indigo-Rahmen und statisches Lautsprecher-Icon vor dem Titel in der Browse-Liste.
@@ -680,24 +680,21 @@ Kompakte Wiedergabe-Steuerung unterhalb des Seiten-Headers auf Browse-Seiten.
 
 ## Favoriten
 
-Persoenliche Sammlung von Lieblings-Dateien und -Ordnern pro User.
+Persoenliche Sammlung von Lieblings-Songs als Filter in der Browse-Ansicht.
 
-- Datei oder Ordner als Favorit markieren/entfernen (Herz-Icon) ueber Drei-Punkte-Menue/Swipe im Browser
-- Eigene Favoriten-Seite mit gruppierter Darstellung:
-  - Favorisierte Ordner als blaue Divider-Zeilen mit Datei-Anzahl
-  - Zugehoerige favorisierte Dateien eingerueckt darunter
-  - Einzelne Dateien ohne Folder-Favorit unter "Einzelne Dateien"
-  - Mic-Icon pro Ordner-Gruppe (ab Pro-Mitglied) — oeffnet Floating Recorder fuer diesen Song
-- Tap auf Folder-Divider navigiert zum Ordner im Browser, Zurueck-Pfeil fuehrt zu Favorites
-- Tap auf Datei startet Wiedergabe im Floating Player, Zurueck-Pfeil fuehrt zu Favorites
+- Nur `.song`-Ordner koennen als Favorit markiert werden (Herz-Icon im Swipe-Menue)
+- Herz-Button im Browse-Header toggelt den Favoriten-Filter:
+  - Zeigt nur favorisierte .song-Ordner in der Root-Ansicht
+  - Gleiche Card-Darstellung wie Root-Browse (mit allen Metadaten, Bricks etc.)
+  - Breadcrumb zeigt "Dateien > Favoriten" wenn Filter aktiv
+  - Herz-Icon gefuellt + Accent-Farbe wenn Filter aktiv
+- Tap auf favorisierten Ordner navigiert in den Song (Filter wird deaktiviert)
 - Pro User unabhaengig (jeder User hat eigene Favoriten)
-- Label-Filter auch auf Favoriten-Seite verfuegbar
-- Herz-Icon im Browse-Header zeigt Accent-Farbe + ausgefuelltes Herz wenn Favoriten vorhanden
+- Empty-State mit Hinweis wenn keine Favoriten vorhanden
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/FavoritesPage.tsx` | Favoriten-Seite (gruppiert nach Ordnern) |
-| `frontend/src/pages/BrowsePage.tsx` | Favorit-Toggle fuer Dateien und Ordner (Swipe/Kebab) |
+| `frontend/src/pages/BrowsePage.tsx` | Favoriten-Filter + Toggle (Swipe/Herz-Button) |
 | `frontend/src/hooks/useFavorites.ts` | Zustand Store + API-Logik |
 | `backend/api/favorites.py` | `GET /favorites`, `POST /favorites/toggle` |
 | `backend/models/favorite.py` | Favoriten-Modell (user_id + dropbox_path + entry_type) |
@@ -728,7 +725,7 @@ Labels zum Kategorisieren von Dateien, verwaltbar ab Rolle `pro-member`.
 
 ### Label-Filter
 
-- Filter-Leiste auf Browse- und Favoriten-Seite
+- Filter-Leiste auf Browse-Seite
 - Labels als klickbare Chips mit Farbpunkt
 - Mehrfachauswahl moeglich
 - Filter zeigt **alle** Dateien mit dem Label (ordneruebergreifend)
@@ -744,7 +741,7 @@ Detaillierte Spezifikation zur Aufnahme: **[RECORDING.md](RECORDING.md)**
 ### Aufnahme (Floating Recorder)
 
 - **Schwebender Mini-Recorder** am oberen Bildschirmrand — erlaubt gleichzeitiges Lesen von Texten/Noten waehrend der Aufnahme
-- Erreichbar von **mehreren Views**: Browse (Mic-Icon in Topbar), Favoriten (Mic-Icon pro Ordner), Viewer (Topbar-Button)
+- Erreichbar von **mehreren Views**: Browse (Mic-Icon in Topbar), Viewer (Topbar-Button)
 - **Zwei Modi**:
   - **Song-Modus**: Aufnahme innerhalb eines `.song`-Ordners — Auto-Benennung `{SongName}-Aufnahme {n}`
   - **Root-Modus**: Aufnahme auf Chor-Ebene (ausserhalb `.song`) — erstellt automatisch neuen `.song`-Ordner mit Zeitstempel-Namen (z.B. `Aufnahme 2026-04-05 14-30.song`)
@@ -775,7 +772,6 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 | `frontend/src/components/layout/FloatingRecorder.tsx` | Schwebender Mini-Recorder (alle States) |
 | `frontend/src/stores/recordingStore.ts` | Globaler Recording-Session-State |
 | `frontend/src/pages/BrowsePage.tsx` | Aufnahme-Trigger (Kebab-Menu) + Upload-Button |
-| `frontend/src/pages/FavoritesPage.tsx` | Aufnahme-Trigger (Mic-Icon pro Ordner) |
 | `frontend/src/pages/ViewerPage.tsx` | Aufnahme-Trigger (Topbar-Button) |
 | `frontend/src/utils/filename.ts` | `buildAutoRecordingName()` fuer fortlaufende Nummerierung |
 | `frontend/src/utils/folderTypes.ts` | `deriveSongFolderPath()` zum Erkennen des .song-Ordners |
@@ -938,7 +934,7 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 
 - **Dateien** (Hauptseite): Header mit Chor-Name + Aktions-Icons (Favoriten, Filter, Suche, Einstellungen). Breadcrumb mit Home-Icon. Footer mit Aufnahme- und Upload-Buttons.
 - **Player, Sektionen**: Header mit Zurueck-Button + Titel, darunter Player-Controls und Toolbar.
-- **Favoriten, Einstellungen**: Header mit Zurueck-Button + Titel.
+- **Einstellungen**: Header mit Zurueck-Button + Titel.
 - **Admin-Seiten**: Header mit Zurueck-Button + Titel + optionale Aktions-Buttons.
 
 ### Routing
@@ -949,7 +945,6 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 | `/register` | Registrierung (Hinweis ohne Einladungslink) | Oeffentlich |
 | `/join/:inviteCode` | Registrierung mit Chor-Kontext | Oeffentlich |
 | `/browse` | Datei-Browser | Authentifiziert |
-| `/favorites` | Favoriten | Authentifiziert |
 | `/viewer` | Dokument-Viewer | Authentifiziert |
 | `/settings` | Einstellungen | Authentifiziert |
 | `/sections` | Section-Editor | Pro-Mitglied+ |
@@ -1302,7 +1297,7 @@ Nach Rename, Delete, Ordner erstellen/loeschen wurde `loadFolder(browsePath)` oh
 
 ### Playback stoppt nicht beim Verlassen der Song-Ansicht
 
-Beim Navigieren von einem .song-Ordner zu Favoriten, Einstellungen oder Admin-Seiten lief die Wiedergabe weiter. Das bestehende Cleanup in BrowsePage griff nur beim Ordnerwechsel innerhalb der Browse-Ansicht, nicht beim Seitenwechsel. Fix: AppShell ueberwacht Routen-Wechsel und stoppt die Wiedergabe beim Verlassen der Song-Kontext-Routen (Browse, Viewer, Sections).
+Beim Navigieren von einem .song-Ordner zu Einstellungen oder Admin-Seiten lief die Wiedergabe weiter. Das bestehende Cleanup in BrowsePage griff nur beim Ordnerwechsel innerhalb der Browse-Ansicht, nicht beim Seitenwechsel. Fix: AppShell ueberwacht Routen-Wechsel und stoppt die Wiedergabe beim Verlassen der Song-Kontext-Routen (Browse, Viewer, Sections).
 
 ### Pinch-to-Zoom im Viewer funktioniert erst beim zweiten Oeffnen
 
