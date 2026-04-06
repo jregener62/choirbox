@@ -1,10 +1,11 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft } from 'lucide-react'
+import { ChevronLeft, Mic } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { useRecordingStore } from '@/stores/recordingStore'
 import { hasMinRole } from '@/utils/roles.ts'
 import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 
@@ -43,6 +44,9 @@ export function DocViewerPage() {
   const folderName = isReservedName(lastSeg) && segments.length >= 2
     ? stripFolderExtension(segments[segments.length - 2])
     : stripFolderExtension(lastSeg)
+  const songFolderPath = isReservedName(lastSeg) && segments.length >= 2
+    ? '/' + segments.slice(0, -1).join('/')
+    : folder
 
   return (
     <div className="player-page">
@@ -51,6 +55,15 @@ export function DocViewerPage() {
           <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">{folderName}</span>
+        {canUpload && songFolderPath && (
+          <button
+            className="topbar-action"
+            onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
+            title="Aufnehmen"
+          >
+            <Mic size={18} />
+          </button>
+        )}
       </div>
       <div className="player-scroll-content">
         <DocumentPanel folderPath={folder} canUpload={canUpload} />
