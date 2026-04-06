@@ -783,7 +783,7 @@ textarea::placeholder {
 }
 .gpc-btn:disabled { cursor: default; opacity: 0.3; }
 .gpc-btn:active:not(:disabled) { background: var(--bg-tertiary); }
-.gpc-btn--active { color: #f59e0b; opacity: 1; }
+.gpc-btn--active { color: #22c55e; opacity: 1; }
 
 /* Skip buttons — outline only */
 .gpc-btn-skip {
