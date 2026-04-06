@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Upload, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Check, RefreshCw } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Check, RefreshCw } from 'lucide-react'
+import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -417,7 +418,7 @@ export function BrowsePage() {
               )}
               {isProMember && (
                 <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={18} />
+                  <FolderImportIcon size={18} />
                 </button>
               )}
             </div>
@@ -470,7 +471,7 @@ export function BrowsePage() {
                   )}
                   {isProMember && (
                     <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
-                      <Upload size={18} />
+                      <FolderImportIcon size={18} />
                     </button>
                   )}
                 </div>
