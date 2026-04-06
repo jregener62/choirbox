@@ -5,8 +5,8 @@ export type ZoomLevel = 'normal' | 'large' | 'xlarge'
 
 export const ZOOM_VALUES: Record<ZoomLevel, number> = {
   normal: 1.0,
-  large: 1.15,
-  xlarge: 1.3,
+  large: 1.125,
+  xlarge: 1.25,
 }
 
 export const ZOOM_LABELS: Record<ZoomLevel, string> = {
@@ -35,7 +35,18 @@ interface AppState {
 }
 
 function applyZoom(level: ZoomLevel) {
-  document.documentElement.style.zoom = String(ZOOM_VALUES[level])
+  const value = ZOOM_VALUES[level]
+  const root = document.getElementById('root')
+  if (!root) return
+  if (value === 1) {
+    root.style.removeProperty('zoom')
+    root.style.removeProperty('width')
+    root.style.removeProperty('height')
+  } else {
+    root.style.zoom = String(value)
+    root.style.width = `${100 / value}%`
+    root.style.height = `${100 / value}%`
+  }
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
