@@ -878,7 +878,7 @@ export function BrowsePage() {
                     <Pencil size={18} />
                   </button>
                 )}
-                {((isFile || isDoc) ? canDelete : isAdmin) && !isTexteFolder && (
+                {canDelete && !isTexteFolder && (
                   <button
                     className="swipe-action-btn swipe-action-delete"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setConfirmEntry(entry) }}

@@ -822,10 +822,10 @@ async def dropbox_create_folder(
 @router.delete("/folder")
 async def dropbox_delete_folder(
     path: str = "",
-    user: User = Depends(require_admin),
+    user: User = Depends(require_role("chorleiter")),
     session: Session = Depends(get_session),
 ):
-    """Delete a folder from Dropbox. .song folders are moved to Trash; others must be empty."""
+    """Delete a folder from Dropbox. .song folders (chorleiter+) are moved to Trash; others (admin) must be empty."""
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import is_song_folder, TRASH_FOLDER_NAME
 

@@ -76,15 +76,15 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 
 5-stufiges Rollensystem mit aufsteigenden Berechtigungen. Jede hoehere Rolle erbt alle Rechte der niedrigeren.
 
-| Rolle | Level | Beschreibung |
-|-------|-------|-------------|
-| `guest` | 0 | Registriert, eingeschraenkt |
-| `member` | 1 | Standard-Chormitglied (Browsen, Streamen, Upload, Favoriten) |
-| `pro-member` | 2 | Kann Labels und Sections verwalten |
-| `chorleiter` | 3 | Erweiterte Verwaltungsrechte |
-| `admin` | 4 | Voller Zugriff (Nutzer, Einladungslink, Settings) innerhalb des eigenen Chors |
-| `beta-tester` | 5 | Beta-Features (z.B. Section-Editor) |
-| `developer` | 6 | Instanz-Verwaltung: Choere erstellen/wechseln, Dropbox OAuth |
+| Rolle         | Level | Beschreibung                                                                  |
+| ------------- | ----- | ----------------------------------------------------------------------------- |
+| `guest`       | 0     | Registriert, eingeschraenkt                                                   |
+| `member`      | 1     | Standard-Chormitglied (Browsen, Streamen, Upload, Favoriten)                  |
+| `pro-member`  | 2     | Kann Labels und Sections verwalten                                            |
+| `chorleiter`  | 3     | Erweiterte Verwaltungsrechte                                                  |
+| `admin`       | 4     | Voller Zugriff (Nutzer, Einladungslink, Settings) innerhalb des eigenen Chors |
+| `beta-tester` | 5     | Beta-Features (z.B. Section-Editor)                                           |
+| `developer`   | 6     | Instanz-Verwaltung: Choere erstellen/wechseln, Dropbox OAuth                  |
 
 - Neue Registrierungen erhalten automatisch die Rolle `member`
 - Rollen sind pro Chor (User gehoert zu genau einem Chor)
@@ -115,7 +115,7 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Datei-Einstellungen (Info) | ✓ | ✓ | ✓ | ✓ | — | — |
 | Datei loeschen | ✓ | ✓ | ✓ | — | — | — |
 | Umbenennen (Stift) | ✓ | ✓ | — | — | — | — |
-| Ordner loeschen | ✓ | ✓ | — | — | — | — |
+| Ordner loeschen | ✓ | ✓ | ✓ | — | — | — |
 | **GlobalPlayer** | | | | | | |
 | Wiedergabe + Voice Bricks | ✓ | ✓ | ✓ | ✓ | ✓ | — |
 | Viewer-Button | ✓ | ✓ | ✓ | ✓ | ✓ | — |
@@ -264,7 +264,7 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 **Ordner:**
 - **Favorit** (Herz): Ordner als Favorit markieren/entfernen
 - **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
-- **Loeschen** (Papierkorb): Nur Admin (Level 4+). `.song`-Ordner werden samt Inhalt in einen `Trash`-Ordner im Chor-Root verschoben (Papierkorb). Normale Ordner muessen leer sein fuer permanentes Loeschen.
+- **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+). `.song`-Ordner werden samt Inhalt in einen `Trash`-Ordner im Chor-Root verschoben (Papierkorb). Normale Ordner muessen leer sein fuer permanentes Loeschen.
 
 **Aufnahme-Button (Mic-Icon im Header):**
 - Ab Pro-Mitglied sichtbar. Oeffnet den Floating Recorder.
