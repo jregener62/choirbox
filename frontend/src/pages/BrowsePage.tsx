@@ -680,15 +680,15 @@ export function BrowsePage() {
               <div className="file-info">
                 <div className="file-name-row">
                   {fav && <Heart size={16} className="fav-heart" fill="currentColor" strokeWidth={0} />}
+                  {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
+                    <FileText size={14} className="file-name-selected" />
+                  )}
                   <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                     {isMediaEntry && entry.song_name
                       ? songName
                       : (isFile || isDoc)
                         ? formatDisplayName(entry.display_name || entry.name)
                         : (entry.display_name || entry.name)}
-                    {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
-                      <FileText size={14} className="file-name-selected" />
-                    )}
                   </div>
                 </div>
                 {entry.doc_count != null && entry.doc_count > 0 && entry.folder_type !== 'song' && (
