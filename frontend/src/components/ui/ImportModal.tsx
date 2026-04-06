@@ -140,7 +140,7 @@ export function ImportModal({ files, targetPath, isAdmin, songFolderName, onClos
         </div>
       )}
 
-      {phase === 'done' && (
+      {phase === 'done' && doneCount > 0 && (
         <div className="import-hint-box">
           <Info size={14} style={{ flexShrink: 0, marginTop: 1 }} />
           <span>
