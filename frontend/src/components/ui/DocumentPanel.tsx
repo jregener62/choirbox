@@ -88,11 +88,12 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const circumference = 2 * Math.PI * 22
   const dashOffset = circumference * (1 - progress)
 
-  // Pinch-to-zoom
+  // Pinch-to-zoom — re-attach when document changes
   useEffect(() => {
     const el = pagesRef.current
     if (!el) return
 
+    setScale(1)
     let currentScale = 1
 
     function onTouchStart(e: TouchEvent) {
@@ -131,7 +132,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchend', onTouchEnd)
     }
-  }, [])
+  }, [activeDoc?.id])
 
   // Double-tap to toggle zoom
   const lastTapRef = useRef(0)

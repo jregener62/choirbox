@@ -1299,3 +1299,11 @@ Auf iOS Safari blieb der Floating Recorder nach dem Mikrofon-Berechtigungsdialog
 ### Browse-View aktualisiert sich nicht nach Mutationen
 
 Nach Rename, Delete, Ordner erstellen/loeschen wurde `loadFolder(browsePath)` ohne `forceRefresh` aufgerufen. Der 5-Minuten-Cache im browseStore lieferte daraufhin die alten Daten zurueck — die Aenderung war erst nach manuellem Sync sichtbar. Fix: Alle Mutations-Handler rufen jetzt `loadFolder(browsePath, true)` auf, um den Cache zu umgehen.
+
+### Playback stoppt nicht beim Verlassen der Song-Ansicht
+
+Beim Navigieren von einem .song-Ordner zu Favoriten, Einstellungen oder Admin-Seiten lief die Wiedergabe weiter. Das bestehende Cleanup in BrowsePage griff nur beim Ordnerwechsel innerhalb der Browse-Ansicht, nicht beim Seitenwechsel. Fix: AppShell ueberwacht Routen-Wechsel und stoppt die Wiedergabe beim Verlassen der Song-Kontext-Routen (Browse, Viewer, Sections).
+
+### Pinch-to-Zoom im Viewer funktioniert erst beim zweiten Oeffnen
+
+Der Pinch-to-Zoom useEffect in DocumentPanel hatte leere Dependencies (`[]`) und lief nur einmal beim Mount. Wenn zu dem Zeitpunkt die PDF-Area noch nicht gerendert war (Dokumente laden noch), war `pagesRef.current` null und die Touch-Listener wurden nie angehaengt. Fix: `activeDoc?.id` als Dependency hinzugefuegt — der Effect laeuft neu sobald das Dokument verfuegbar ist. Zoom-Scale wird bei Dokumentwechsel zurueckgesetzt.
