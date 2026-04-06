@@ -9,6 +9,7 @@ from backend.api.auth import ROLE_HIERARCHY
 
 # --- Song extension ---
 SONG_EXTENSION = "song"
+TRASH_FOLDER_NAME = "Trash"
 
 # --- Reserved folder names (canonical casing) → metadata ---
 RESERVED_FOLDERS: dict[str, dict] = {

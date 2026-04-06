@@ -929,14 +929,16 @@ export function BrowsePage() {
 
       {confirmEntry && (
         <ConfirmDialog
-          title={confirmEntry.type === 'folder' ? 'Ordner loeschen?' : 'Datei loeschen?'}
+          title={confirmEntry.folder_type === 'song' ? 'Song loeschen?' : confirmEntry.type === 'folder' ? 'Ordner loeschen?' : 'Datei loeschen?'}
           filename={confirmEntry.display_name || confirmEntry.name}
-          hint={confirmEntry.type === 'folder'
-            ? 'Nur leere Ordner koennen geloescht werden.'
-            : 'Wird unwiderruflich aus der Dropbox geloescht.'}
+          hint={confirmEntry.folder_type === 'song'
+            ? 'Der Song wird in den Papierkorb verschoben.'
+            : confirmEntry.type === 'folder'
+              ? 'Nur leere Ordner koennen geloescht werden.'
+              : 'Wird unwiderruflich aus der Dropbox geloescht.'}
           onClose={() => setConfirmEntry(null)}
-          confirmLabel="Loeschen"
-          confirmLoadingLabel="Loeschen..."
+          confirmLabel={confirmEntry.folder_type === 'song' ? 'In Papierkorb' : 'Loeschen'}
+          confirmLoadingLabel={confirmEntry.folder_type === 'song' ? 'Verschieben...' : 'Loeschen...'}
           onConfirm={confirmEntry.type === 'folder' ? handleDeleteFolder : handleDelete}
           loading={deleting}
         />

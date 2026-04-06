@@ -175,6 +175,7 @@ async def dropbox_browse(
     from backend.services.folder_types import (
         parse_folder_name, get_parent_folder_type, is_reserved_name,
         get_visible_reserved_types, is_song_folder, RESERVED_FOLDERS,
+        TRASH_FOLDER_NAME,
     )
     from backend.services.document_service import ALL_DOC_EXTENSIONS
 
@@ -209,6 +210,10 @@ async def dropbox_browse(
         user_path = _to_user_path(e.get("path_display", ""), root_folder)
 
         if tag == "folder":
+            # Hide Trash folder from browse
+            if name.lower() == TRASH_FOLDER_NAME.lower():
+                continue
+
             display_name, folder_type = parse_folder_name(name)
 
             # Reserved folders: hide and collect for synthetic entries
@@ -820,8 +825,9 @@ async def dropbox_delete_folder(
     user: User = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    """Delete an empty folder from Dropbox. Requires Admin role."""
+    """Delete a folder from Dropbox. .song folders are moved to Trash; others must be empty."""
     from backend.services.dropbox_service import get_dropbox_service
+    from backend.services.folder_types import is_song_folder, TRASH_FOLDER_NAME
 
     if not path:
         raise HTTPException(400, "path is required")
@@ -833,23 +839,35 @@ async def dropbox_delete_folder(
     root_folder = _get_root_folder(user, session)
     dropbox_path = _to_dropbox_path(path, root_folder)
 
-    # Check if folder is empty
-    try:
-        entries = await dbx.list_folder(dropbox_path)
-    except RuntimeError as e:
-        if "path/not_found" in str(e):
-            raise HTTPException(404, "Ordner nicht gefunden")
-        raise HTTPException(502, str(e))
+    folder_name = path.rstrip("/").rsplit("/", 1)[-1] if "/" in path.strip("/") else path.strip("/")
 
-    if entries:
-        raise HTTPException(409, "Ordner ist nicht leer")
+    if is_song_folder(folder_name):
+        # .song folder: move to Trash instead of permanent delete
+        trash_path = _to_dropbox_path(TRASH_FOLDER_NAME, root_folder)
+        try:
+            await dbx.move_to_trash(dropbox_path, trash_path)
+        except RuntimeError as e:
+            if "path_lookup/not_found" in str(e) or "from_lookup/not_found" in str(e):
+                raise HTTPException(404, "Ordner nicht gefunden")
+            raise HTTPException(502, str(e))
+    else:
+        # Non-.song folder: must be empty, permanent delete
+        try:
+            entries = await dbx.list_folder(dropbox_path)
+        except RuntimeError as e:
+            if "path/not_found" in str(e):
+                raise HTTPException(404, "Ordner nicht gefunden")
+            raise HTTPException(502, str(e))
 
-    try:
-        await dbx.delete_file(dropbox_path)
-    except RuntimeError as e:
-        raise HTTPException(502, str(e))
+        if entries:
+            raise HTTPException(409, "Ordner ist nicht leer")
 
-    # Invalidate cache for the deleted folder and its parent
+        try:
+            await dbx.delete_file(dropbox_path)
+        except RuntimeError as e:
+            raise HTTPException(502, str(e))
+
+    # Invalidate cache for the deleted/moved folder and its parent
     from backend.services.dropbox_cache import folder_cache
     folder_cache.invalidate_subtree(dropbox_path)
 

@@ -295,6 +295,32 @@ class DropboxService:
         })
         return result.get("metadata", {})
 
+    async def move_to_trash(self, dropbox_path: str, trash_folder: str) -> dict:
+        """Move a file/folder to the trash folder, handling name collisions."""
+        import datetime
+
+        # Ensure trash folder exists
+        try:
+            await self.create_folder(trash_folder)
+        except RuntimeError as e:
+            if "path/conflict" not in str(e):
+                raise
+
+        name = dropbox_path.rstrip("/").rsplit("/", 1)[-1]
+        to_path = f"{trash_folder}/{name}"
+
+        try:
+            return await self.move_file(dropbox_path, to_path)
+        except RuntimeError as e:
+            if "to/conflict" not in str(e) and "path/conflict" not in str(e):
+                raise
+            # Name collision: append timestamp
+            base, ext = name.rsplit(".", 1) if "." in name else (name, "")
+            stamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+            new_name = f"{base}_{stamp}.{ext}" if ext else f"{base}_{stamp}"
+            to_path = f"{trash_folder}/{new_name}"
+            return await self.move_file(dropbox_path, to_path)
+
     async def get_account_info(self) -> dict:
         """Get current account info (for connection test)."""
         token = await self._get_access_token()

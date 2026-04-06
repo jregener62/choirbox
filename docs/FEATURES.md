@@ -264,7 +264,7 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 **Ordner:**
 - **Favorit** (Herz): Ordner als Favorit markieren/entfernen
 - **Umbenennen** (Stift): Nur Admin (Level 4+). Dialog mit vorausgefuelltem Namen.
-- **Loeschen** (Papierkorb): Nur Admin (Level 4+). Nur leere Ordner koennen geloescht werden.
+- **Loeschen** (Papierkorb): Nur Admin (Level 4+). `.song`-Ordner werden samt Inhalt in einen `Trash`-Ordner im Chor-Root verschoben (Papierkorb). Normale Ordner muessen leer sein fuer permanentes Loeschen.
 
 **Aufnahme-Button (Mic-Icon im Header):**
 - Ab Pro-Mitglied sichtbar. Oeffnet den Floating Recorder.
@@ -281,7 +281,7 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 |-------|-------|
 | `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Drei-Punkte-Button, Kebab-Menue, Dialoge |
 | `backend/api/dropbox.py` | `DELETE /dropbox/file`, `POST/DELETE /dropbox/folder`, `POST /dropbox/rename` |
-| `backend/services/dropbox_service.py` | `delete_file()`, `create_folder()`, `move_file()` |
+| `backend/services/dropbox_service.py` | `delete_file()`, `create_folder()`, `move_file()`, `move_to_trash()` |
 
 ### Suche
 
