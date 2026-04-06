@@ -1302,3 +1302,7 @@ Beim Navigieren von einem .song-Ordner zu Einstellungen oder Admin-Seiten lief d
 ### Pinch-to-Zoom im Viewer funktioniert erst beim zweiten Oeffnen
 
 Der Pinch-to-Zoom useEffect in DocumentPanel hatte leere Dependencies (`[]`) und lief nur einmal beim Mount. Wenn zu dem Zeitpunkt die PDF-Area noch nicht gerendert war (Dokumente laden noch), war `pagesRef.current` null und die Touch-Listener wurden nie angehaengt. Fix: `activeDoc?.id` als Dependency hinzugefuegt — der Effect laeuft neu sobald das Dokument verfuegbar ist. Zoom-Scale wird bei Dokumentwechsel zurueckgesetzt.
+
+### TXT-Viewer zeigt keine Zeilenumbrueche bei Unicode Line Separators
+
+Textdateien mit U+2028 (Line Separator) wurden im Viewer ohne Zeilenumbrueche dargestellt — alle Zeilen liefen in einem Block zusammen. Ursache: Browser rendern U+2028/U+2029 in `<pre>`-Tags nicht als sichtbaren Umbruch. Fix: Backend normalisiert beim Abrufen aus der Dropbox alle Zeilenumbruch-Varianten (`\r\n`, `\r`, U+2028, U+2029) zu `\n`.
