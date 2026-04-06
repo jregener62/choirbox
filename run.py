@@ -7,9 +7,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+import logging
 import uvicorn
 from backend.app import app  # noqa: E402, F401
 from backend.seed import seed  # noqa: E402
+
+logging.basicConfig(level=logging.INFO)
 
 if __name__ == "__main__":
     seed()
