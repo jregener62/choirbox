@@ -224,13 +224,27 @@ export function GlobalPlayerBar() {
             <div className="gpc-doc-menu" ref={docMenuRef}>
               <button
                 className={`gpc-btn${location.pathname === '/viewer' && selectedDoc ? ' gpc-btn--active' : ''}`}
-                onClick={() => {
+                onClick={async () => {
                   if (location.pathname === '/viewer' && selectedDoc) {
                     deselectDoc(songFolderPath)
                     navigate(-1)
-                  } else {
-                    setDocMenuOpen(!docMenuOpen)
+                    return
                   }
+                  // Nur 1 Text → auto-select und direkt zum Viewer
+                  if (documents.length === 1) {
+                    if (!selectedDoc || selectedDoc.id !== documents[0].id) {
+                      await selectDoc(songFolderPath, documents[0].id)
+                    }
+                    navigate('/viewer')
+                    return
+                  }
+                  // Mehrere Texte mit Auswahl → direkt zum Viewer
+                  if (selectedDoc) {
+                    navigate('/viewer')
+                    return
+                  }
+                  // Mehrere Texte, keine Auswahl → Menu oeffnen
+                  setDocMenuOpen(!docMenuOpen)
                 }}
                 aria-label="Text auswählen"
               >
