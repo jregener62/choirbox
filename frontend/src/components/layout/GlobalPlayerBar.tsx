@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useNavigate } from 'react-router-dom'
-import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus, Rewind, FastForward, FileText } from 'lucide-react'
+import { Play, Pause, MoreVertical, Repeat, MapPin, ListPlus, Rewind, FastForward, FileText, Check } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { useLoopControls } from '@/hooks/useLoopControls.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
+import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { formatTime } from '@/utils/formatters.ts'
 import { isReservedName } from '@/utils/folderTypes.ts'
 // import { VoiceBricks } from '@/components/ui/VoiceBricks.tsx'
@@ -25,7 +26,8 @@ export function GlobalPlayerBar() {
   } = usePlayerStore()
   const { togglePlay, skip, seek } = useAudioPlayer()
   const { addMarker, handleLoopTap } = useLoopControls()
-  const { selectedDoc, loadedFolder, loadSelected } = useSelectedDocumentStore()
+  const { selectedDoc, loadedFolder, loadSelected, select: selectDoc, deselect: deselectDoc } = useSelectedDocumentStore()
+  const { documents, loadedFolder: docsLoadedFolder, load: loadDocs } = useDocumentsStore()
 
   // Derive song folder path from current track (same logic as ViewerPage)
   const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
@@ -39,11 +41,17 @@ export function GlobalPlayerBar() {
     if (songFolderPath && songFolderPath !== loadedFolder) loadSelected(songFolderPath)
   }, [songFolderPath, loadedFolder, loadSelected])
 
+  useEffect(() => {
+    if (songFolderPath && songFolderPath !== docsLoadedFolder) loadDocs(songFolderPath)
+  }, [songFolderPath, docsLoadedFolder, loadDocs])
+
   const [menuOpen, setMenuOpen] = useState(false)
   const [markerMenuOpen, setMarkerMenuOpen] = useState(false)
+  const [docMenuOpen, setDocMenuOpen] = useState(false)
   const [deleteMode, setDeleteMode] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const markerMenuRef = useRef<HTMLDivElement>(null)
+  const docMenuRef = useRef<HTMLDivElement>(null)
   const deleteModeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const seekBarRef = useRef<HTMLDivElement>(null)
   const trackRef = useRef<HTMLDivElement>(null)
@@ -73,14 +81,15 @@ export function GlobalPlayerBar() {
   }, [duration, seek])
 
   useEffect(() => {
-    if (!menuOpen && !markerMenuOpen) return
+    if (!menuOpen && !markerMenuOpen && !docMenuOpen) return
     const close = (e: MouseEvent) => {
       if (menuOpen && menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
       if (markerMenuOpen && markerMenuRef.current && !markerMenuRef.current.contains(e.target as Node)) setMarkerMenuOpen(false)
+      if (docMenuOpen && docMenuRef.current && !docMenuRef.current.contains(e.target as Node)) setDocMenuOpen(false)
     }
     document.addEventListener('mousedown', close)
     return () => document.removeEventListener('mousedown', close)
-  }, [menuOpen, markerMenuOpen])
+  }, [menuOpen, markerMenuOpen, docMenuOpen])
 
   useEffect(() => {
     return () => { if (deleteModeTimer.current) clearTimeout(deleteModeTimer.current) }
@@ -211,20 +220,42 @@ export function GlobalPlayerBar() {
       {/* Controls — pure flex, no absolute positioning */}
       <div className="global-player-controls">
         <div className="gpc-side gpc-side--left">
-          <button
-            className={`gpc-btn${location.pathname === '/viewer' ? ' gpc-btn--active' : ''}`}
-            onClick={() => {
-              if (location.pathname === '/viewer') {
-                navigate(-1)
-              } else {
-                navigate('/viewer')
-              }
-            }}
-            disabled={!selectedDoc}
-            aria-label="Viewer"
-          >
-            <FileText size={22} />
-          </button>
+          {documents.length > 0 && (
+            <div className="gpc-doc-menu" ref={docMenuRef}>
+              <button
+                className={`gpc-btn${location.pathname === '/viewer' && selectedDoc ? ' gpc-btn--active' : ''}`}
+                onClick={() => {
+                  if (location.pathname === '/viewer' && selectedDoc) {
+                    deselectDoc(songFolderPath)
+                    navigate(-1)
+                  } else {
+                    setDocMenuOpen(!docMenuOpen)
+                  }
+                }}
+                aria-label="Text auswählen"
+              >
+                <FileText size={22} />
+              </button>
+              {docMenuOpen && (
+                <div className="popup-menu gpc-doc-popup">
+                  {documents.map((doc) => (
+                    <button
+                      key={doc.id}
+                      className={`popup-menu-item gpc-doc-item${selectedDoc?.id === doc.id ? ' gpc-doc-item--selected' : ''}`}
+                      onClick={async () => {
+                        await selectDoc(songFolderPath, doc.id)
+                        setDocMenuOpen(false)
+                        navigate('/viewer')
+                      }}
+                    >
+                      <span className="gpc-doc-item-name">{doc.original_name}</span>
+                      {selectedDoc?.id === doc.id && <Check size={16} className="gpc-doc-item-check" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
           {isSections && (
             <button
               className="gpc-btn"

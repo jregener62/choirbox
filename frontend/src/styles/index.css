@@ -846,6 +846,33 @@ textarea::placeholder {
 
 .gpc-menu-item.active { background: var(--accent); color: white; }
 
+/* Doc picker menu */
+.gpc-doc-menu { position: relative; }
+.gpc-doc-popup {
+  left: 0;
+  bottom: calc(100% + 4px);
+  min-width: 200px;
+  max-width: 280px;
+  z-index: 60;
+}
+.gpc-doc-item {
+  justify-content: space-between;
+}
+.gpc-doc-item-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+  min-width: 0;
+}
+.gpc-doc-item-check {
+  color: #22c55e;
+  flex-shrink: 0;
+}
+.gpc-doc-item--selected {
+  color: var(--text-primary);
+}
+
 .global-player-menu-popup {
   position: absolute;
   right: 0;
