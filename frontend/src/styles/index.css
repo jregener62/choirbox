@@ -1122,6 +1122,14 @@ textarea::placeholder {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
+.pdf-panel--fullscreen .text-viewer-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+}
+.pdf-panel--fullscreen .pdf-pages {
+  justify-content: safe center;
+}
 .pdf-toolbar {
   display: flex;
   align-items: center;
