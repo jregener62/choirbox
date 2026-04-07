@@ -27,7 +27,7 @@ export function GlobalPlayerBar() {
   const { togglePlay, skip, seek } = useAudioPlayer()
   const { addMarker, handleLoopTap } = useLoopControls()
   const { selectedDoc, loadedFolder, loadSelected, select: selectDoc, deselect: deselectDoc } = useSelectedDocumentStore()
-  const { documents, loadedFolder: docsLoadedFolder, load: loadDocs } = useDocumentsStore()
+  const { documents, loadedFolder: docsLoadedFolder, loading: docsLoading, load: loadDocs } = useDocumentsStore()
 
   // Derive song folder path from current track (same logic as ViewerPage)
   const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
@@ -220,11 +220,15 @@ export function GlobalPlayerBar() {
       {/* Controls — pure flex, no absolute positioning */}
       <div className="global-player-controls">
         <div className="gpc-side gpc-side--left">
-          {documents.length > 0 && (
+          {(docsLoading || documents.length > 0) && (
             <div className="gpc-doc-menu" ref={docMenuRef}>
               <button
                 className={`gpc-btn${location.pathname === '/viewer' && selectedDoc ? ' gpc-btn--active' : ''}`}
                 onClick={async () => {
+                  if (docsLoading) {
+                    setDocMenuOpen(!docMenuOpen)
+                    return
+                  }
                   if (location.pathname === '/viewer' && selectedDoc) {
                     deselectDoc(songFolderPath)
                     navigate(-1)
@@ -252,20 +256,27 @@ export function GlobalPlayerBar() {
               </button>
               {docMenuOpen && (
                 <div className="popup-menu gpc-doc-popup">
-                  {documents.map((doc) => (
-                    <button
-                      key={doc.id}
-                      className={`popup-menu-item gpc-doc-item${selectedDoc?.id === doc.id ? ' gpc-doc-item--selected' : ''}`}
-                      onClick={async () => {
-                        await selectDoc(songFolderPath, doc.id)
-                        setDocMenuOpen(false)
-                        navigate('/viewer')
-                      }}
-                    >
-                      <span className="gpc-doc-item-name">{doc.original_name}</span>
-                      {selectedDoc?.id === doc.id && <Check size={16} className="gpc-doc-item-check" />}
-                    </button>
-                  ))}
+                  {docsLoading ? (
+                    <div className="gpc-doc-skeleton">
+                      <div className="skeleton-bone gpc-doc-skeleton-item" />
+                      <div className="skeleton-bone gpc-doc-skeleton-item" />
+                    </div>
+                  ) : (
+                    documents.map((doc) => (
+                      <button
+                        key={doc.id}
+                        className={`popup-menu-item gpc-doc-item${selectedDoc?.id === doc.id ? ' gpc-doc-item--selected' : ''}`}
+                        onClick={async () => {
+                          await selectDoc(songFolderPath, doc.id)
+                          setDocMenuOpen(false)
+                          navigate('/viewer')
+                        }}
+                      >
+                        <span className="gpc-doc-item-name">{doc.original_name}</span>
+                        {selectedDoc?.id === doc.id && <Check size={16} className="gpc-doc-item-check" />}
+                      </button>
+                    ))
+                  )}
                 </div>
               )}
             </div>

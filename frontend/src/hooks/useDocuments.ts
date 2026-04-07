@@ -25,7 +25,8 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
   uploading: false,
 
   load: async (folderPath: string) => {
-    set({ loading: true })
+    const isDifferentFolder = get().loadedFolder !== folderPath
+    set({ loading: true, ...(isDifferentFolder ? { documents: [], loadedFolder: null } : {}) })
     try {
       const data = await api<DocumentListResponse>(
         `/documents/list?folder=${encodeURIComponent(folderPath)}`
