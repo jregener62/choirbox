@@ -20,17 +20,25 @@ router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 
 
 async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
-    """Look up folder children from in-memory tree or cache. No extra API calls.
+    """Look up folder children from in-memory tree, cache, or targeted API call.
 
     On fresh fetch (tree available): direct dict lookup.
     On cache hit (tree=None): sub-folders were cached by the same recursive listing.
-    Cache miss = folder doesn't exist in Dropbox → return empty.
+    On cache miss while tree=None: a mutation invalidated this sub-path but not
+    the root — fall back to a single list_folder call for just this path.
     """
     if tree is not None:
         return tree.get(dbx_path.lower().rstrip("/"), [])
     from backend.services.dropbox_cache import folder_cache
     cached = folder_cache.get(dbx_path)
-    return cached[0] if cached is not None else []
+    if cached is not None:
+        return cached[0]
+    # Cache inconsistency: root was cached but this sub-path was invalidated.
+    # Fetch just this folder instead of returning [] (which hides sub-folders).
+    try:
+        return await dbx.list_folder(dbx_path)
+    except Exception:
+        return []
 
 _oauth_states: dict[str, str] = {}
 
