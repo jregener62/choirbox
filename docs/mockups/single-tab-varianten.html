@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Single-Tab: Song Card statt Tab Header</title>
+<script src="/mockups/lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --border: #334155;
+    /* Folder type colors */
+    --col-texte: #c7d2fe; --col-texte-bg: rgba(99,102,241,0.10); --col-texte-border: rgba(99,102,241,0.35);
+    --col-texte-active: rgba(99,102,241,0.22);
+    --col-audio: #67e8f9; --col-audio-bg: rgba(6,182,212,0.10); --col-audio-border: rgba(6,182,212,0.35);
+    --col-audio-active: rgba(6,182,212,0.22);
+    --col-videos: #e879f9; --col-videos-bg: rgba(217,70,239,0.10); --col-videos-border: rgba(217,70,239,0.35);
+    --col-videos-active: rgba(217,70,239,0.22);
+    --col-multi: #fbbf24; --col-multi-bg: rgba(245,158,11,0.10); --col-multi-border: rgba(245,158,11,0.35);
+    --col-multi-active: rgba(245,158,11,0.22);
+  }
+  body { font-family: -apple-system, 'Inter', sans-serif; background: var(--bg); color: var(--text);
+         max-width: 390px; margin: 0 auto; -webkit-font-smoothing: antialiased; padding-bottom: 60px; }
+
+  /* Topbar */
+  .topbar { display: flex; align-items: center; padding: 10px 16px; gap: 8px; }
+  .topbar-back { background: none; border: none; color: var(--text2); cursor: pointer; padding: 6px; display: flex; }
+  .topbar-title { flex: 1; font-size: 15px; font-weight: 600; }
+  .topbar-btn { background: none; border: none; color: var(--text2); cursor: pointer; padding: 6px; display: flex; }
+
+  /* Breadcrumb */
+  .breadcrumb { padding: 0 16px 10px; font-size: 14px; color: var(--accent); display: flex; align-items: center; gap: 6px; }
+
+  /* ─── Song Card (wie in Browse-Liste) ─── */
+  .song-card {
+    display: flex;
+    align-items: flex-start;
+    padding: 14px 16px;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    gap: 14px;
+  }
+  .song-card__info { flex: 1; min-width: 0; }
+  .song-card__name { font-size: 18px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-card__dots { background: none; border: none; color: var(--text3); cursor: pointer; padding: 4px; display: flex;
+    align-self: center; }
+
+  /* Meta bricks row */
+  .meta-bricks { display: flex; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+
+  .meta-brick {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    padding: 2px 10px; min-width: 48px; border-radius: 6px;
+    font-size: 12px; font-weight: 600; border: 1px solid;
+    cursor: pointer; white-space: nowrap; flex-shrink: 0;
+    font-family: inherit; transition: all 0.15s ease;
+  }
+
+  /* Normal brick states */
+  .meta-brick--texte { background: var(--col-texte-bg); color: var(--col-texte); border-color: var(--col-texte-border); }
+  .meta-brick--audio { background: var(--col-audio-bg); color: var(--col-audio); border-color: var(--col-audio-border); }
+  .meta-brick--videos { background: var(--col-videos-bg); color: var(--col-videos); border-color: var(--col-videos-border); }
+  .meta-brick--multi { background: var(--col-multi-bg); color: var(--col-multi); border-color: var(--col-multi-border); }
+
+  /* ─── Aktiv-Styles für Variante A: Filled (starker Hintergrund) ─── */
+  .meta-brick--active-filled.meta-brick--texte {
+    background: rgba(99,102,241,0.30);
+    border-color: rgba(99,102,241,0.60);
+    box-shadow: 0 0 8px rgba(99,102,241,0.25);
+  }
+  .meta-brick--active-filled.meta-brick--audio {
+    background: rgba(6,182,212,0.30);
+    border-color: rgba(6,182,212,0.60);
+    box-shadow: 0 0 8px rgba(6,182,212,0.25);
+  }
+  .meta-brick--active-filled.meta-brick--videos {
+    background: rgba(217,70,239,0.30);
+    border-color: rgba(217,70,239,0.60);
+    box-shadow: 0 0 8px rgba(217,70,239,0.25);
+  }
+  .meta-brick--active-filled.meta-brick--multi {
+    background: rgba(245,158,11,0.30);
+    border-color: rgba(245,158,11,0.60);
+    box-shadow: 0 0 8px rgba(245,158,11,0.25);
+  }
+
+  /* ─── Aktiv-Styles für Variante B: Bottom-Indicator (Unterstrich) ─── */
+  .meta-brick--active-underline {
+    position: relative;
+    border-bottom-color: transparent;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+  .meta-brick--active-underline::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 2px;
+    right: 2px;
+    height: 2.5px;
+    border-radius: 2px 2px 0 0;
+  }
+  .meta-brick--active-underline.meta-brick--texte::after { background: var(--col-texte); }
+  .meta-brick--active-underline.meta-brick--audio::after { background: var(--col-audio); }
+  .meta-brick--active-underline.meta-brick--videos::after { background: var(--col-videos); }
+  .meta-brick--active-underline.meta-brick--multi::after { background: var(--col-multi); }
+
+  /* ─── Aktiv-Styles für Variante C: Label sichtbar ─── */
+  .meta-brick--active-label.meta-brick--texte {
+    background: rgba(99,102,241,0.28);
+    border-color: rgba(99,102,241,0.55);
+  }
+  .meta-brick--active-label.meta-brick--audio {
+    background: rgba(6,182,212,0.28);
+    border-color: rgba(6,182,212,0.55);
+  }
+  .meta-brick--active-label.meta-brick--videos {
+    background: rgba(217,70,239,0.28);
+    border-color: rgba(217,70,239,0.55);
+  }
+  .meta-brick--active-label.meta-brick--multi {
+    background: rgba(245,158,11,0.28);
+    border-color: rgba(245,158,11,0.55);
+  }
+  .brick-label { display: none; font-size: 11px; }
+  .meta-brick--active-label .brick-label { display: inline; }
+
+  /* ─── Dimmed brick (inaktiv bei Multi-Tab) ─── */
+  .meta-brick--dimmed {
+    opacity: 0.45;
+  }
+
+  /* File list */
+  .file-list { list-style: none; padding: 0; }
+  .file-item { display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+               border-bottom: 1px solid var(--border); cursor: pointer; }
+  .file-item:active { background: var(--bg2); }
+  .file-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center;
+               justify-content: center; flex-shrink: 0; }
+  .file-icon--texte { background: var(--col-texte-bg); color: var(--col-texte); }
+  .file-icon--audio { background: var(--col-audio-bg); color: var(--col-audio); }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 14px; font-weight: 500; }
+  .file-meta { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .file-dots { background: none; border: none; color: var(--text3); cursor: pointer; padding: 4px; display: flex; }
+  .file-duration { font-size: 12px; color: var(--text3); flex-shrink: 0; }
+  .file-voice { display: inline-flex; align-items: center; gap: 4px; margin-right: 8px; }
+  .file-voice-dot { width: 6px; height: 6px; border-radius: 50%; }
+
+  /* Variant headers */
+  .divider { margin: 36px 16px 20px; border-top: 1px solid var(--border); padding-top: 20px; }
+  .variant-label { font-size: 11px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+    color: var(--accent); margin: 0 16px 4px; }
+  .variant-title { font-size: 16px; font-weight: 700; margin: 0 16px 4px; }
+  .variant-desc { font-size: 13px; color: var(--text2); margin: 0 16px 16px; line-height: 1.6; }
+
+  /* Compare box */
+  .compare { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+    padding: 16px; margin: 0 16px; font-size: 13px; line-height: 1.6; color: var(--text2); }
+  .compare b { color: var(--text); }
+  .compare-title { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 12px; }
+  .compare-section { margin-bottom: 12px; }
+  .compare-section:last-child { margin-bottom: 0; }
+  .pro { color: #4ade80; }
+  .con { color: #f87171; }
+
+  /* Scenario label */
+  .scenario { font-size: 10px; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase;
+    color: var(--text3); margin: 0 16px 6px; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- VORSCHLAG A — Filled Glow                                      -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="variant-label" style="margin-top: 20px;">Vorschlag A</div>
+<div class="variant-title">Filled Glow — aktiver Badge leuchtet staerker</div>
+<div class="variant-desc">
+  Die Song Card ersetzt die Tab-Leiste. Der aktive Subfolder-Badge bekommt
+  einen kraeftigeren Hintergrund, staerkeren Border und einen subtilen Glow.
+  Inaktive Badges bleiben wie gewohnt — sie sind weiterhin klickbar.
+</div>
+
+<!-- Szenario: Nur 1 Subfolder -->
+<div class="scenario">Nur 1 Subfolder</div>
+<div class="song-card">
+  <div class="song-card__info">
+    <div class="song-card__name">bluemelein</div>
+    <div class="meta-bricks">
+      <button class="meta-brick meta-brick--texte meta-brick--active-filled">
+        <i data-lucide="file-text" width="14" height="14"></i> 1
+      </button>
+    </div>
+  </div>
+  <button class="song-card__dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+</div>
+<ul class="file-list">
+  <li class="file-item">
+    <div class="file-icon file-icon--texte"><i data-lucide="file-text" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">bluemelein</div></div>
+    <button class="file-dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+  </li>
+</ul>
+
+<!-- Szenario: 3 Subfolder, Audio aktiv -->
+<div class="scenario" style="margin-top: 20px;">3 Subfolder, Audio aktiv</div>
+<div class="song-card">
+  <div class="song-card__info">
+    <div class="song-card__name">Bring Me Little Water</div>
+    <div class="meta-bricks">
+      <button class="meta-brick meta-brick--texte meta-brick--dimmed">
+        <i data-lucide="file-text" width="14" height="14"></i> 1
+      </button>
+      <button class="meta-brick meta-brick--audio meta-brick--active-filled">
+        <i data-lucide="volume-2" width="14" height="14"></i> 6
+      </button>
+      <button class="meta-brick meta-brick--videos meta-brick--dimmed">
+        <i data-lucide="video" width="14" height="14"></i> 1
+      </button>
+    </div>
+  </div>
+  <button class="song-card__dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+</div>
+<ul class="file-list">
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info">
+      <div class="file-name">Alle Stimmen</div>
+      <div class="file-meta"><span class="file-voice"><span class="file-voice-dot" style="background:#f87171"></span>S</span><span class="file-voice"><span class="file-voice-dot" style="background:#fb923c"></span>A</span><span class="file-voice"><span class="file-voice-dot" style="background:#4ade80"></span>T</span><span class="file-voice"><span class="file-voice-dot" style="background:#60a5fa"></span>B</span></div>
+    </div>
+    <span class="file-duration">4:32</span>
+  </li>
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">Sopran</div></div>
+    <span class="file-duration">4:32</span>
+  </li>
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">Alt</div></div>
+    <span class="file-duration">4:32</span>
+  </li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- VORSCHLAG B — Bottom Indicator                                  -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="divider"></div>
+<div class="variant-label">Vorschlag B</div>
+<div class="variant-title">Bottom Indicator — Unterstrich am aktiven Badge</div>
+<div class="variant-desc">
+  Die Song Card mit Badges, aber der aktive Badge bekommt einen farbigen
+  Unterstrich (wie ein Tab-Indicator). Die Badge-Form bleibt gleich, der
+  Unterstrich signalisiert: "Du bist hier". Kein extra Glow noetig.
+</div>
+
+<!-- Szenario: Nur 1 Subfolder -->
+<div class="scenario">Nur 1 Subfolder</div>
+<div class="song-card">
+  <div class="song-card__info">
+    <div class="song-card__name">bluemelein</div>
+    <div class="meta-bricks">
+      <button class="meta-brick meta-brick--texte meta-brick--active-underline">
+        <i data-lucide="file-text" width="14" height="14"></i> 1
+      </button>
+    </div>
+  </div>
+  <button class="song-card__dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+</div>
+<ul class="file-list">
+  <li class="file-item">
+    <div class="file-icon file-icon--texte"><i data-lucide="file-text" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">bluemelein</div></div>
+    <button class="file-dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+  </li>
+</ul>
+
+<!-- Szenario: 3 Subfolder, Audio aktiv -->
+<div class="scenario" style="margin-top: 20px;">3 Subfolder, Audio aktiv</div>
+<div class="song-card">
+  <div class="song-card__info">
+    <div class="song-card__name">Bring Me Little Water</div>
+    <div class="meta-bricks">
+      <button class="meta-brick meta-brick--texte">
+        <i data-lucide="file-text" width="14" height="14"></i> 1
+      </button>
+      <button class="meta-brick meta-brick--audio meta-brick--active-underline">
+        <i data-lucide="volume-2" width="14" height="14"></i> 6
+      </button>
+      <button class="meta-brick meta-brick--videos">
+        <i data-lucide="video" width="14" height="14"></i> 1
+      </button>
+    </div>
+  </div>
+  <button class="song-card__dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+</div>
+<ul class="file-list">
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info">
+      <div class="file-name">Alle Stimmen</div>
+      <div class="file-meta"><span class="file-voice"><span class="file-voice-dot" style="background:#f87171"></span>S</span><span class="file-voice"><span class="file-voice-dot" style="background:#fb923c"></span>A</span><span class="file-voice"><span class="file-voice-dot" style="background:#4ade80"></span>T</span><span class="file-voice"><span class="file-voice-dot" style="background:#60a5fa"></span>B</span></div>
+    </div>
+    <span class="file-duration">4:32</span>
+  </li>
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">Sopran</div></div>
+    <span class="file-duration">4:32</span>
+  </li>
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">Alt</div></div>
+    <span class="file-duration">4:32</span>
+  </li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- VORSCHLAG C — Expanded Label                                    -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="divider"></div>
+<div class="variant-label">Vorschlag C</div>
+<div class="variant-title">Expanded Label — aktiver Badge zeigt den Namen</div>
+<div class="variant-desc">
+  Der aktive Badge wird erweitert und zeigt den Typ-Namen (z.B. "Texte", "Audio").
+  Die inaktiven Badges bleiben kompakt mit nur Icon + Zahl.
+  Das Label macht sofort klar, welcher Bereich gerade angezeigt wird.
+</div>
+
+<!-- Szenario: Nur 1 Subfolder -->
+<div class="scenario">Nur 1 Subfolder</div>
+<div class="song-card">
+  <div class="song-card__info">
+    <div class="song-card__name">bluemelein</div>
+    <div class="meta-bricks">
+      <button class="meta-brick meta-brick--texte meta-brick--active-label">
+        <i data-lucide="file-text" width="14" height="14"></i>
+        <span class="brick-label">Texte</span> 1
+      </button>
+    </div>
+  </div>
+  <button class="song-card__dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+</div>
+<ul class="file-list">
+  <li class="file-item">
+    <div class="file-icon file-icon--texte"><i data-lucide="file-text" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">bluemelein</div></div>
+    <button class="file-dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+  </li>
+</ul>
+
+<!-- Szenario: 3 Subfolder, Audio aktiv -->
+<div class="scenario" style="margin-top: 20px;">3 Subfolder, Audio aktiv</div>
+<div class="song-card">
+  <div class="song-card__info">
+    <div class="song-card__name">Bring Me Little Water</div>
+    <div class="meta-bricks">
+      <button class="meta-brick meta-brick--texte">
+        <i data-lucide="file-text" width="14" height="14"></i> 1
+      </button>
+      <button class="meta-brick meta-brick--audio meta-brick--active-label">
+        <i data-lucide="volume-2" width="14" height="14"></i>
+        <span class="brick-label">Audio</span> 6
+      </button>
+      <button class="meta-brick meta-brick--videos">
+        <i data-lucide="video" width="14" height="14"></i> 1
+      </button>
+    </div>
+  </div>
+  <button class="song-card__dots"><i data-lucide="more-vertical" width="18" height="18"></i></button>
+</div>
+<ul class="file-list">
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info">
+      <div class="file-name">Alle Stimmen</div>
+      <div class="file-meta"><span class="file-voice"><span class="file-voice-dot" style="background:#f87171"></span>S</span><span class="file-voice"><span class="file-voice-dot" style="background:#fb923c"></span>A</span><span class="file-voice"><span class="file-voice-dot" style="background:#4ade80"></span>T</span><span class="file-voice"><span class="file-voice-dot" style="background:#60a5fa"></span>B</span></div>
+    </div>
+    <span class="file-duration">4:32</span>
+  </li>
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">Sopran</div></div>
+    <span class="file-duration">4:32</span>
+  </li>
+  <li class="file-item">
+    <div class="file-icon file-icon--audio"><i data-lucide="volume-2" width="18" height="18"></i></div>
+    <div class="file-info"><div class="file-name">Alt</div></div>
+    <span class="file-duration">4:32</span>
+  </li>
+</ul>
+
+<!-- ════════════════════════════════════════════════════════════════ -->
+<!-- VERGLEICH                                                       -->
+<!-- ════════════════════════════════════════════════════════════════ -->
+<div class="divider"></div>
+<div class="compare">
+  <div class="compare-title">Vergleich</div>
+
+  <div class="compare-section">
+    <b>A — Filled Glow</b><br>
+    <span class="pro">+</span> Staerkster visueller Kontrast zum Normal-Badge<br>
+    <span class="pro">+</span> Subtiler Glow gibt "aktiv"-Gefuehl<br>
+    <span class="pro">+</span> Inaktive Badges gedimmt — klare Hierarchie<br>
+    <span class="con">−</span> Glow koennte auf OLED-Screens auffaellig wirken
+  </div>
+
+  <div class="compare-section">
+    <b>B — Bottom Indicator</b><br>
+    <span class="pro">+</span> Etabliertes Tab-Pattern (Browser-Tabs, Material)<br>
+    <span class="pro">+</span> Minimale Aenderung — Badge-Form bleibt 100% gleich<br>
+    <span class="pro">+</span> Inaktive Badges behalten volle Sichtbarkeit<br>
+    <span class="con">−</span> Unterstrich ist auf kleinen Badges subtil
+  </div>
+
+  <div class="compare-section">
+    <b>C — Expanded Label</b><br>
+    <span class="pro">+</span> Textlabel macht den aktiven Typ sofort klar<br>
+    <span class="pro">+</span> Groessenunterschied aktiv/inaktiv schafft Hierarchie<br>
+    <span class="con">−</span> Badge-Breite aendert sich beim Wechsel (Layout-Shift)
+  </div>
+</div>
+
+<script>lucide.createIcons()</script>
+</body>
+</html>

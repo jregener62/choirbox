@@ -14,7 +14,6 @@ import { deriveSongFolderPath } from '@/utils/folderTypes'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
-import { SegmentedControl } from '@/components/ui/SegmentedControl'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
@@ -544,13 +543,35 @@ export function BrowsePage() {
           </div>
         )}
 
-        {/* Segmented Control for .song subfolders */}
+        {/* Song Card with subfolder badges (replaces SegmentedControl) */}
         {!searchOpen && showSegmentedControl && (
-          <SegmentedControl
-            segments={songSubFolders}
-            activeType={activeSubfolderName}
-            onSelect={(sf) => loadFolder(sf.path)}
-          />
+          <div className="song-card-header">
+            <div className="song-card-header__info">
+              <div className="song-card-header__name">
+                {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
+              </div>
+              <div className="meta-bricks">
+                {songSubFolders.map((sf) => {
+                  const config = getFolderTypeConfig(sf.type)
+                  const isActive = sf.name.toLowerCase() === activeSubfolderName?.toLowerCase()
+                  return (
+                    <button
+                      key={sf.type}
+                      className={`meta-brick meta-brick--${sf.type}${isActive ? ' meta-brick--active' : ''}`}
+                      onClick={() => loadFolder(sf.path)}
+                    >
+                      {createElement(config.icon, { size: 14 })}
+                      {isActive && <span className="meta-brick__label">{sf.name}</span>}
+                      {sf.count}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+            <button className="song-card-header__dots">
+              <EllipsisVertical size={18} />
+            </button>
+          </div>
         )}
 
         {/* Label filter bar — toggleable */}
