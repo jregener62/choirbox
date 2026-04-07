@@ -568,9 +568,6 @@ export function BrowsePage() {
                 })}
               </div>
             </div>
-            <button className="song-card-header__dots">
-              <EllipsisVertical size={18} />
-            </button>
           </div>
         )}
 

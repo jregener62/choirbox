@@ -2110,16 +2110,12 @@ textarea::placeholder {
 /* -- Song Card Header (replaces Segmented Control) -- */
 
 .song-card-header {
-  display: flex;
-  align-items: flex-start;
   padding: var(--space-3) var(--space-4);
   background: var(--bg-secondary);
   border-bottom: 1px solid var(--border);
-  gap: var(--space-3);
 }
 
 .song-card-header__info {
-  flex: 1;
   min-width: 0;
 }
 
@@ -2129,17 +2125,6 @@ textarea::placeholder {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.song-card-header__dots {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  cursor: pointer;
-  padding: var(--space-1);
-  display: flex;
-  align-self: center;
-  -webkit-tap-highlight-color: transparent;
 }
 
 /* Active badge: bottom indicator + label */
