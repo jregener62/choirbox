@@ -472,7 +472,8 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 - **FAB** rechts unten: Maximize/Minimize, Progress-Ring im Fullscreen
 - **Auto-Fade**: Alle FABs faden nach 3s Inaktivitaet. Beruehrung stellt Sichtbarkeit her
-- **Audio laeuft weiter** — nur UI-Elemente (Topbar, Tabs, PlayerBar) werden versteckt
+- **Echtes Fullscreen**: Panel wird `position: fixed` ueber das gesamte Display gelegt — Topbar, Toolbar, PlayerBar und Tabs verschwinden komplett. Nur FABs schweben ueber dem Inhalt. Safe-Area-Insets fuer Notch-Geraete
+- **Audio laeuft weiter** — nur UI-Elemente werden versteckt
 - **Reset** bei Panel-Wechsel oder Navigation weg vom Player/DocViewer
 - **TXT Schriftgroesse**: Im Fullscreen erscheinen +/- Buttons (rechts ueber Fullscreen-FAB) zum Zoomen der Schrift (7 Stufen, 12px–32px). Text bricht bei jeder Groesse sauber um
 

@@ -216,9 +216,9 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const pdfUrl = `/api/documents/${activeDoc.id}/download?token=${token}`
 
   return (
-    <div className="pdf-panel">
-      {/* Toolbar (PDF only) */}
-      {isPdf && (
+    <div className={`pdf-panel${pdfFullscreen ? ' pdf-panel--fullscreen' : ''}`}>
+      {/* Toolbar (PDF only) — hidden in fullscreen */}
+      {isPdf && !pdfFullscreen && (
         <div className="pdf-toolbar">
           <span className="pdf-toolbar-name">
             {activeDoc.original_name}
@@ -234,8 +234,8 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         </div>
       )}
 
-      {/* Non-PDF toolbar */}
-      {!isPdf && (
+      {/* Non-PDF toolbar — hidden in fullscreen */}
+      {!isPdf && !pdfFullscreen && (
         <div className="pdf-toolbar">
           <span className="pdf-toolbar-name">
             {getDocIcon(activeDoc.file_type)} {activeDoc.original_name}
