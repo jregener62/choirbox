@@ -4542,9 +4542,7 @@ textarea::placeholder {
 }
 
 .issue-drawer {
-  margin-left: auto;
-  width: 320px;
-  max-width: 85vw;
+  width: 100%;
   background: var(--bg-primary);
   border-left: 1px solid var(--border);
   display: flex;
