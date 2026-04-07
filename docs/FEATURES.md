@@ -139,6 +139,7 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | Bearbeiten + Speichern        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 
 *Developer (6) hat alle Rechte + Dropbox-Verbindung, Choere verwalten, Chor-Wechsel.*
+*Bug-Reporting (Edge Tab): Unabhaengig von der Rolle — per `can_report_bugs`-Flag vom Developer individuell vergeben.*
 
 ### Logout
 
@@ -824,6 +825,23 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 | `frontend/src/pages/admin/ChoirsPage.tsx` | Chor-Verwaltungs-UI |
 | `backend/api/admin.py` | `GET/POST/PUT/DELETE /admin/choirs` |
 
+### Bug-Reporting (Edge Drawer)
+
+- Amber-Tab am rechten Bildschirmrand, von jeder Seite aus erreichbar
+- Oeffnet Drawer mit Issue-Liste (von GitHub geladen, 60s Cache)
+- Quick-Add: Titel eingeben + Typ (Bug/Wunsch) waehlen → GitHub Issue wird erstellt
+- Issue-Body enthaelt automatisch User-Kontext (Name, Stimme, Chor)
+- Berechtigung `can_report_bugs` wird pro User individuell vergeben (nicht rollenbasiert)
+- Nur Developer kann die Berechtigung in der Nutzerverwaltung setzen/entziehen (Bug-Icon)
+- GitHub-Token und Repo-Name werden ueber `.env` konfiguriert (`GITHUB_TOKEN`, `GITHUB_REPO`)
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/layout/EdgeBugTab.tsx` | Edge Tab + Issue Drawer UI |
+| `frontend/src/components/layout/AppShell.tsx` | Integration (nur bei `can_report_bugs`) |
+| `backend/api/feedback.py` | `GET /feedback/issues`, `POST /feedback` |
+| `backend/services/github_service.py` | GitHub API Wrapper |
+
 ### Label-Verwaltung
 
 - Labels erstellen mit Name, Farbe, Kategorie, Sortierung
@@ -1077,6 +1095,13 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | POST | `/choirs/{id}/switch` | In Chor wechseln (setzt user.choir_id) | Developer |
 | POST | `/resync` | Vollstaendiger Dropbox ↔ DB Abgleich des Chors | Admin |
 
+### Feedback (`/api/feedback`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| GET | `/issues` | Offene/geschlossene GitHub Issues auflisten | `can_report_bugs` |
+| POST | `/` | Neues GitHub Issue erstellen (title, description, type) | `can_report_bugs` |
+
 ---
 
 ## Datenmodelle
@@ -1096,6 +1121,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `created_at` | DateTime | Erstellungszeitpunkt |
 | `updated_at` | DateTime | Letzte Aenderung |
 | `last_login_at` | DateTime | Letzter Login |
+| `can_report_bugs` | Boolean | Bug-Reporting-Berechtigung (vom Developer vergeben) |
 
 ### Favorite
 
