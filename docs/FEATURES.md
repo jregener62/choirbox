@@ -393,7 +393,7 @@ Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent i
 - **Auswahl im Texte-Ordner**: Swipe-Action (Haken-Icon) auf Dokumenten als Toggle — grau = nicht ausgewaehlt, gruen = ausgewaehlt. Funktioniert auch bei nur einem Dokument
 - **Visueller Indikator**: Gruenes FileText-Icon hinter dem Dateinamen des ausgewaehlten Texts im Texte-Ordner
 - **Viewer**: Zeigt den ausgewaehlten Text. Ohne Auswahl: Hinweis "Kein Dokument ausgewaehlt"
-- **Viewer-Button**: FileText-Icon links im Global Player oeffnet `/viewer`. Aktiv hervorgehoben wenn Viewer-Route aktiv. Disabled wenn kein Dokument ausgewaehlt.
+- **Text-Auswahl im Player**: FileText-Icon links im Global Player oeffnet ein Popup-Menu mit allen Texten des Songs. Klick auf einen Text waehlt ihn aus (persistent) und oeffnet den Viewer. Erneuter Klick im Viewer schliesst ihn und waehlt den Text ab. Button nur sichtbar wenn Texte vorhanden, aktiv (gruen) nur wenn Viewer offen.
 
 ### Viewer-Seite
 
@@ -534,7 +534,7 @@ Klickbare Stimmen-Chips oben im Floating Player. Zeigen alle Audio-Dateien des a
 - Streaming ueber temporaere Dropbox-Links (4 Stunden gueltig, gecached)
 - Globaler Audio-Singleton (ein Track gleichzeitig)
 - Vor-/Zurueckspringen: Rewind/FastForward-Icons, Skip-Zeit als klickbares Label rechts neben Forward (1s/5s/10s/15s waehlbar)
-- Viewer-Button (FileText-Icon) links im Player oeffnet `/viewer` mit ausgewaehltem Dokument. Inaktiv (disabled) wenn kein Text ausgewaehlt.
+- Text-Auswahl-Button (FileText-Icon) links im Player oeffnet Popup-Menu mit allen Texten des Songs. Auswahl oeffnet Viewer, erneuter Klick schliesst Viewer. Versteckt wenn keine Texte vorhanden.
 
 | Datei | Rolle |
 |-------|-------|
