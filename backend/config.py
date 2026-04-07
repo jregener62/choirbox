@@ -23,3 +23,7 @@ ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "")
 
 # Registration code
 REGISTRATION_CODE = os.getenv("REGISTRATION_CODE", "")
+
+# GitHub Issue Reporting
+GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
+GITHUB_REPO = os.getenv("GITHUB_REPO", "")  # Format: "owner/repo"

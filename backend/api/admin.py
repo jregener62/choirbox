@@ -25,6 +25,7 @@ def list_users(user: User = Depends(require_admin), session: Session = Depends(g
             "voice_part": u.voice_part,
             "created_at": u.created_at.isoformat(),
             "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
+            "can_report_bugs": u.can_report_bugs,
         }
         for u in users
     ]
@@ -77,6 +78,12 @@ def update_user(
 
     if "role" in data and data["role"] not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
+
+    if "can_report_bugs" in data:
+        from backend.api.auth import ROLE_HIERARCHY
+        if ROLE_HIERARCHY.get(user.role, 0) < ROLE_HIERARCHY["developer"]:
+            raise HTTPException(403, "Nur Developer koennen Bug-Reporting vergeben")
+        target.can_report_bugs = bool(data["can_report_bugs"])
 
     for field in ["display_name", "role", "voice_part"]:
         if field in data:

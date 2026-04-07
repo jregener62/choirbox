@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Trash2 } from 'lucide-react'
+import { ChevronLeft, Trash2, Bug } from 'lucide-react'
 import { api } from '@/api/client.ts'
-import { ALL_ROLES, ROLE_LABELS, type Role } from '@/utils/roles.ts'
+import { useAuthStore } from '@/stores/authStore.ts'
+import { ALL_ROLES, ROLE_LABELS, hasMinRole, type Role } from '@/utils/roles.ts'
 
 interface AdminUser {
   id: string
@@ -12,6 +13,7 @@ interface AdminUser {
   voice_part: string
   created_at: string
   last_login_at: string | null
+  can_report_bugs: boolean
 }
 
 export function UsersPage() {
@@ -19,6 +21,8 @@ export function UsersPage() {
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
   const navigate = useNavigate()
+  const currentUser = useAuthStore((s) => s.user)
+  const isDeveloper = currentUser ? hasMinRole(currentUser.role, 'developer') : false
 
   const loadUsers = useCallback(async () => {
     try {
@@ -45,6 +49,16 @@ export function UsersPage() {
       loadUsers()
     } catch {
       setMessage('Fehler beim Aendern der Rolle')
+    }
+  }
+
+  const toggleBugReporting = async (user: AdminUser) => {
+    try {
+      await api(`/admin/users/${user.id}`, { method: 'PUT', body: { can_report_bugs: !user.can_report_bugs } })
+      setMessage(`Bug-Reporting fuer ${user.display_name} ${user.can_report_bugs ? 'deaktiviert' : 'aktiviert'}`)
+      loadUsers()
+    } catch {
+      setMessage('Fehler beim Aendern der Bug-Reporting-Berechtigung')
     }
   }
 
@@ -111,6 +125,16 @@ export function UsersPage() {
                 <option key={r} value={r}>{ROLE_LABELS[r]}</option>
               ))}
             </select>
+            {isDeveloper && (
+              <button
+                className="player-header-btn"
+                title={u.can_report_bugs ? 'Bug-Reporting deaktivieren' : 'Bug-Reporting aktivieren'}
+                onClick={() => toggleBugReporting(u)}
+                style={{ color: u.can_report_bugs ? '#f59e0b' : 'var(--text-muted)' }}
+              >
+                <Bug size={16} />
+              </button>
+            )}
             <button className="player-header-btn" title="Loeschen" onClick={() => deleteUser(u)}
               style={{ color: 'var(--danger)' }}>
               <Trash2 size={16} />

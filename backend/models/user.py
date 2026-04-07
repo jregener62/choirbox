@@ -17,3 +17,4 @@ class User(SQLModel, table=True):
     choir_id: Optional[str] = Field(default=None, foreign_key="choirs.id", index=True)
     must_change_password: bool = Field(default=False)
     last_login_at: Optional[datetime] = Field(default=None)
+    can_report_bugs: bool = Field(default=False)

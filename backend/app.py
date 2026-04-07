@@ -14,6 +14,7 @@ from backend.api.notes import router as notes_router
 from backend.api.section_presets import router as section_presets_router
 from backend.api.documents import router as documents_router
 from backend.api.annotations import router as annotations_router
+from backend.api.feedback import router as feedback_router
 
 
 class CacheControlMiddleware:
@@ -60,6 +61,7 @@ app.include_router(notes_router, prefix="/api")
 app.include_router(section_presets_router, prefix="/api")
 app.include_router(documents_router, prefix="/api")
 app.include_router(annotations_router, prefix="/api")
+app.include_router(feedback_router, prefix="/api")
 
 # Static files
 BASE = Path(__file__).resolve().parent.parent

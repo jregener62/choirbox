@@ -3,7 +3,9 @@ import { useLocation } from 'react-router-dom'
 import { PwaInstallGuide } from '@/components/PwaInstallGuide.tsx'
 import { GlobalPlayerBar } from '@/components/layout/GlobalPlayerBar.tsx'
 import { FloatingRecorder } from '@/components/layout/FloatingRecorder.tsx'
+import { EdgeBugTab } from '@/components/layout/EdgeBugTab.tsx'
 import { FooterPortalProvider } from '@/components/layout/FooterPortal.tsx'
+import { useAuthStore } from '@/stores/authStore.ts'
 import { useFavoritesStore } from '@/hooks/useFavorites.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useBrowseStore } from '@/stores/browseStore.ts'
@@ -17,6 +19,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const footerRef = useRef<HTMLDivElement>(null)
   const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null)
   const { pathname } = useLocation()
+  const user = useAuthStore((s) => s.user)
 
   useEffect(() => {
     setFooterEl(footerRef.current)
@@ -55,6 +58,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           {children}
         </div>
         <FloatingRecorder />
+        {user?.can_report_bugs && <EdgeBugTab />}
         <GlobalPlayerBar />
         <div ref={footerRef} className="footer-slot" />
       </div>

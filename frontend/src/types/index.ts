@@ -7,6 +7,7 @@ export interface User {
   choir_id: string | null
   choir_name: string | null
   must_change_password: boolean
+  can_report_bugs: boolean
 }
 
 export interface LoginResponse {
