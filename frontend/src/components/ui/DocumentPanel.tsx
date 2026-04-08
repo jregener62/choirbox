@@ -97,7 +97,6 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     let currentScale = 1
 
     function onTouchStart(e: TouchEvent) {
-      if (useAnnotationStore.getState().drawingMode) return
       if (e.touches.length === 2) {
         e.preventDefault()
         pinchRef.current.startDist = getDistance(e.touches[0], e.touches[1])
@@ -106,7 +105,6 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     }
 
     function onTouchMove(e: TouchEvent) {
-      if (useAnnotationStore.getState().drawingMode) return
       if (e.touches.length === 2) {
         e.preventDefault()
         const dist = getDistance(e.touches[0], e.touches[1])

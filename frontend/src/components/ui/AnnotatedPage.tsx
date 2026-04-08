@@ -15,6 +15,8 @@ interface AnnotatedPageProps {
 export function AnnotatedPage({ page, src, alt, scale, loading, docId }: AnnotatedPageProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
+  const activePointersRef = useRef<Set<number>>(new Set())
+  const wasPinchRef = useRef(false)
   const [viewBoxHeight, setViewBoxHeight] = useState(1414) // A4 default
   const [imgLoaded, setImgLoaded] = useState(false)
 
@@ -85,6 +87,23 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
     (e: React.PointerEvent) => {
       if (!drawingMode || e.button !== 0) return
 
+      activePointersRef.current.add(e.pointerId)
+
+      // 2+ fingers = pinch gesture, not drawing
+      if (activePointersRef.current.size >= 2) {
+        wasPinchRef.current = true
+        if (activeStroke) setActiveStroke(null)
+        // Release pointer capture on previously captured pointers
+        for (const id of activePointersRef.current) {
+          if (id !== e.pointerId) {
+            try { (e.currentTarget as Element).releasePointerCapture(id) } catch {}
+          }
+        }
+        return
+      }
+      // After a pinch: remaining finger should not draw
+      if (wasPinchRef.current) return
+
       const point = getPointerData(e)
       if (!point) return
 
@@ -105,12 +124,13 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       }
       setActiveStroke(newStroke)
     },
-    [drawingMode, tool, color, strokeWidth, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, key],
+    [drawingMode, tool, color, strokeWidth, activeStroke, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, key],
   )
 
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!drawingMode) return
+      if (activePointersRef.current.size >= 2 || wasPinchRef.current) return
       const point = getPointerData(e)
       if (!point) return
 
@@ -129,10 +149,21 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
     [drawingMode, tool, activeStroke, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, key],
   )
 
-  const handlePointerUp = useCallback(() => {
+  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+    activePointersRef.current.delete(e.pointerId)
+    if (activePointersRef.current.size === 0) {
+      wasPinchRef.current = false
+    }
     if (!drawingMode || !activeStroke) return
     commitStroke(key)
   }, [drawingMode, activeStroke, key, commitStroke])
+
+  const handlePointerCancel = useCallback((e: React.PointerEvent) => {
+    activePointersRef.current.delete(e.pointerId)
+    if (activePointersRef.current.size === 0) {
+      wasPinchRef.current = false
+    }
+  }, [])
 
   const renderStroke = (stroke: Stroke) => {
     const d = getSvgPathFromStroke(stroke.points, stroke.width, stroke.tool)
@@ -170,6 +201,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={handlePointerCancel}
         >
           {strokes.map(renderStroke)}
           {activeD && <path d={activeD} fill={activeStroke!.color} />}
