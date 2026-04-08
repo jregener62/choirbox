@@ -513,16 +513,20 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 Chord Sheets ermöglichen das Importieren und Anzeigen von Akkord-Texten (z.B. von Ultimate Guitar) mit transponierbaren Akkorden. Jeder User kann seine bevorzugte Tonart pro Sheet speichern.
 
-### PDF-Import
+### PDF-Import (Auto-Erkennung)
 
-- PDF-Upload mit automatischer Erkennung von Akkorden und Text
+- PDF-Upload ueber den bestehenden Upload-Button in der BrowsePage-Toolbar
+- Automatische Erkennung: PDFs mit Akkorden werden automatisch als Chord Sheet erkannt und in den `Chordsheets/`-Ordner geroutet (statt `Texte/`)
+- Heuristik: mindestens 3 verschiedene Akkorde und Tonart-Konfidenz > 0.2
+- PDFs ohne Akkorde werden wie bisher als Dokument in `Texte/` hochgeladen
 - Unterstützt text-basierte PDFs (pdfplumber) und Bild-PDFs (OCR via pytesseract)
 - Automatische Erkennung von Zwei-Spalten-Layouts (typisch für Ultimate Guitar)
 - OCR-Nachbearbeitung: korrigiert häufige Fehllesungen (z.B. # als i)
 - Sektions-Erkennung: [Verse], [Chorus], [Intro], [Bridge], [Outro], [Solo]
 - Automatische Tonart-Erkennung mit Konfidenz-Score
 - Titel wird aus Dateiname abgeleitet (zuverlässiger als OCR)
-- Vorschau-Schritt: User kann Titel und Tonart vor dem Speichern korrigieren
+- Nach Upload wird automatisch zur Chord Sheet Liste navigiert
+- Zusaetzlich steht ein Review-Dialog (ChordSheetImportModal) zur Verfuegung, in dem Titel und Tonart vor dem Speichern korrigiert werden koennen
 
 ### Chord Sheet Viewer
 
@@ -551,6 +555,7 @@ Chord Sheets ermöglichen das Importieren und Anzeigen von Akkord-Texten (z.B. v
 - Lila Badge (Musik-Icon) in der Song-Card-Navigation
 - Klick auf Badge oeffnet die Chord Sheet Liste
 - Count im Badge wird aus der Datenbank gelesen (nicht aus Dropbox)
+- Upload-Flow erkennt Chord Sheet PDFs automatisch und routet sie korrekt
 
 ### Berechtigungen
 

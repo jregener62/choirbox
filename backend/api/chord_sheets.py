@@ -245,6 +245,64 @@ async def confirm_import_body(
     return ActionResponse.success(data=svc.chord_sheet_to_dict(cs))
 
 
+class TextImportBody(BaseModel):
+    folder: str
+    title: str
+    text: str
+
+
+@router.post("/import/text")
+async def import_from_text(
+    body: TextImportBody,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    """Import a chord sheet from pasted text (e.g. from Ultimate Guitar).
+
+    Parses the text, saves to DB, and uploads .txt export to Dropbox.
+    """
+    from backend.services.chord_parser import parse_chord_text
+    from backend.services.chord_transposer import detect_key
+
+    text = body.text.strip()
+    if not text:
+        return ActionResponse.failure("Kein Text eingegeben.")
+
+    # Parse the chord text
+    parsed = parse_chord_text(text)
+    all_chords = parsed.get("all_chords", [])
+    if len(all_chords) < 1:
+        return ActionResponse.failure("Keine Akkorde im Text erkannt.")
+
+    original_key = parsed.get("detected_key", "")
+
+    # Upload .txt export to Dropbox
+    await _upload_to_dropbox(
+        session=session,
+        user=user,
+        song_folder_path=body.folder,
+        pdf_bytes=None,
+        pdf_filename="",
+        title=body.title,
+        original_key=original_key,
+        parsed_content=parsed,
+    )
+
+    # Save to database
+    cs = svc.create_chord_sheet(
+        session=session,
+        song_folder_path=body.folder,
+        title=body.title,
+        parsed_content=parsed,
+        original_key=original_key,
+        source_filename="",
+        choir_id=user.choir_id or "",
+        created_by=user.id,
+    )
+
+    return ActionResponse.success(data=svc.chord_sheet_to_dict(cs))
+
+
 # --- List & Read ---
 
 @router.get("/list")

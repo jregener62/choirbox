@@ -247,6 +247,9 @@ async def upload_document(
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
 ):
+    import logging
+    _log = logging.getLogger(__name__)
+
     original_name = file.filename or "document"
     file_type = document_service.detect_file_type(original_name)
     if not file_type:
@@ -264,19 +267,50 @@ async def upload_document(
                 pass  # Already exists
         folder_path = song_path
 
-    # Resolve to Texte folder (e.g. if called from Player with Audio path)
-    from backend.services.folder_types import get_parent_folder_type
+    content = await file.read()
+
+    # --- Chord sheet auto-detection for PDFs inside .song folders ---
+    from backend.services.folder_types import get_parent_folder_type, get_song_folder_path
+    song_folder = get_song_folder_path(folder_path)
+
+    if file_type == "pdf" and song_folder:
+        try:
+            from backend.services.chord_parser import parse_pdf_to_chord_sheet
+            _log.info("Attempting chord sheet detection for: %s (song_folder=%s)", original_name, song_folder)
+            result = parse_pdf_to_chord_sheet(content, original_name)
+            parsed = result.get("parsed_content", {})
+            all_chords = parsed.get("all_chords", [])
+            confidence = parsed.get("key_confidence", 0)
+            _log.info("Chord detection result: %d chords, confidence=%.2f, chords=%s",
+                      len(all_chords), confidence, all_chords[:10])
+
+            # Heuristic: at least 3 unique chords and some key confidence
+            if len(all_chords) >= 3 and confidence > 0.2:
+                _log.info("Auto-detected chord sheet PDF: %s (%d chords, confidence %.2f)",
+                          original_name, len(all_chords), confidence)
+                return await _handle_chord_sheet_upload(
+                    session=session,
+                    user=user,
+                    song_folder=song_folder,
+                    pdf_bytes=content,
+                    original_name=original_name,
+                    parse_result=result,
+                )
+            else:
+                _log.info("PDF not a chord sheet (too few chords or low confidence), routing to Texte/")
+        except Exception as e:
+            _log.warning("Chord sheet detection failed for %s: %s", original_name, e, exc_info=True)
+            # Not a chord sheet — fall through to normal document upload
+
+    # --- Normal document upload (Texte/ folder) ---
     texte_path = await _resolve_texte_folder(folder_path, user, session)
     if not texte_path:
-        # Auto-create Texte subfolder if inside a .song folder
         parent_type = get_parent_folder_type(folder_path)
         if parent_type == "song":
             texte_path = folder_path.rstrip("/") + "/Texte"
         else:
             raise HTTPException(400, "Kein Texte-Ordner gefunden")
     folder_path = texte_path
-
-    content = await file.read()
 
     # Upload to Dropbox (into the Texte folder, auto-create if needed)
     dbx_hash = None
@@ -349,6 +383,59 @@ async def upload_document(
         "original_name": doc.original_name,
         "file_type": doc.file_type,
         "file_size": doc.file_size,
+    })
+
+
+async def _handle_chord_sheet_upload(
+    session: Session,
+    user: User,
+    song_folder: str,
+    pdf_bytes: bytes,
+    original_name: str,
+    parse_result: dict,
+) -> ActionResponse:
+    """Handle a PDF that was auto-detected as a chord sheet.
+
+    Uploads PDF + text export to Chordsheets/ in Dropbox and creates DB entry.
+    """
+    from backend.api.chord_sheets import _upload_to_dropbox
+    from backend.services import chord_sheet_service as svc
+
+    title = parse_result.get("title", original_name)
+    parsed_content = parse_result.get("parsed_content", {})
+    original_key = parsed_content.get("detected_key", "")
+
+    # Upload to Dropbox (Chordsheets/ subfolder)
+    await _upload_to_dropbox(
+        session=session,
+        user=user,
+        song_folder_path=song_folder,
+        pdf_bytes=pdf_bytes,
+        pdf_filename=original_name,
+        title=title,
+        original_key=original_key,
+        parsed_content=parsed_content,
+    )
+
+    # Create DB entry
+    cs = svc.create_chord_sheet(
+        session=session,
+        song_folder_path=song_folder,
+        title=title,
+        parsed_content=parsed_content,
+        original_key=original_key,
+        source_filename=original_name,
+        choir_id=user.choir_id or "",
+        created_by=user.id,
+    )
+
+    return ActionResponse.success(data={
+        "id": cs.id,
+        "original_name": original_name,
+        "file_type": "pdf",
+        "file_size": len(pdf_bytes),
+        "is_chord_sheet": True,
+        "chord_sheet": svc.chord_sheet_to_dict(cs),
     })
 
 

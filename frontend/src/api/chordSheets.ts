@@ -20,6 +20,17 @@ export async function saveChordSheet(data: {
   })
 }
 
+export async function importFromText(data: {
+  folder: string
+  title: string
+  text: string
+}): Promise<ChordSheet> {
+  return api<ChordSheet>('/chord-sheets/import/text', {
+    method: 'POST',
+    body: data,
+  })
+}
+
 export async function listChordSheets(folder: string): Promise<ChordSheet[]> {
   return api<ChordSheet[]>(`/chord-sheets/list?folder=${encodeURIComponent(folder)}`)
 }

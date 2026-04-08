@@ -14,6 +14,7 @@ import { deriveSongFolderPath } from '@/utils/folderTypes'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
+import { ChordSheetPasteModal } from '@/components/ui/ChordSheetPasteModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useShareTarget } from '@/hooks/useShareTarget'
@@ -47,6 +48,7 @@ export function BrowsePage() {
   const error = browseError || mutationError
   const [importOpen, setImportOpen] = useState(false)
   const [importedFiles, setImportedFiles] = useState<File[]>([])
+  const [chordPasteOpen, setChordPasteOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sharedFiles = useShareTarget()
 
@@ -430,6 +432,11 @@ export function BrowsePage() {
                   }
                 }}>
                   <Mic size={18} />
+                </button>
+              )}
+              {isProMember && (
+                <button className="player-header-btn" onClick={() => setChordPasteOpen(true)} title="Akkordblatt einfügen">
+                  <Music size={18} />
                 </button>
               )}
               {isProMember && (
@@ -1112,7 +1119,7 @@ export function BrowsePage() {
             isAdmin={isAdmin}
             rootUpload={isRootUpload || undefined}
             onClose={() => { setImportOpen(false); setImportedFiles([]) }}
-            onUploadComplete={() => {
+            onUploadComplete={(hasChordSheet) => {
               useDocumentsStore.setState({ loadedFolder: null })
               if (isRootUpload) {
                 // Root mode: stay in root, reload folder
@@ -1121,17 +1128,39 @@ export function BrowsePage() {
                 // Song mode: switch to the tab matching the file type, highlight file
                 const songFolder = deriveSongFolderPath(browsePath)
                 if (songFolder && importedFiles[0]) {
-                  const ext = importedFiles[0].name.split('.').pop()?.toLowerCase() || ''
-                  const isDoc = ['pdf', 'txt'].includes(ext)
-                  const isVideo = ['mp4', 'mov'].includes(ext)
-                  const subFolder = isDoc ? 'Texte' : isVideo ? 'Videos' : 'Audio'
-                  const tabPath = `${songFolder}/${subFolder}`
-                  useBrowseStore.getState().invalidate(tabPath)
-                  loadFolder(tabPath, true)
+                  if (hasChordSheet) {
+                    // PDF was auto-detected as chord sheet → navigate to chord sheets list
+                    navigate(`/chord-sheets?folder=${encodeURIComponent(songFolder)}&back=${encodeURIComponent(`/browse?path=${encodeURIComponent(browsePath)}`)}`)
+                  } else {
+                    const ext = importedFiles[0].name.split('.').pop()?.toLowerCase() || ''
+                    const isDoc = ['pdf', 'txt'].includes(ext)
+                    const isVideo = ['mp4', 'mov'].includes(ext)
+                    const subFolder = isDoc ? 'Texte' : isVideo ? 'Videos' : 'Audio'
+                    const tabPath = `${songFolder}/${subFolder}`
+                    useBrowseStore.getState().invalidate(tabPath)
+                    loadFolder(tabPath, true)
+                  }
                 } else {
                   loadFolder(browsePath, true)
                 }
               }
+            }}
+          />
+        )
+      })()}
+
+      {chordPasteOpen && (() => {
+        const songFolder = deriveSongFolderPath(browsePath)
+        if (!songFolder) return null
+        const songName = stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
+        return (
+          <ChordSheetPasteModal
+            songFolder={songFolder}
+            songName={songName}
+            onClose={() => setChordPasteOpen(false)}
+            onSaved={() => {
+              setChordPasteOpen(false)
+              navigate(`/chord-sheets?folder=${encodeURIComponent(songFolder)}&back=${encodeURIComponent(`/browse?path=${encodeURIComponent(browsePath)}`)}`)
             }}
           />
         )

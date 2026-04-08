@@ -12,13 +12,18 @@ interface FileEntry {
   error?: string
 }
 
+interface UploadResult {
+  is_chord_sheet?: boolean
+  [key: string]: unknown
+}
+
 interface ImportModalProps {
   files: File[]
   targetPath: string
   isAdmin: boolean
   rootUpload?: boolean  // Root-Modus: pro Datei eigenen .song-Ordner anlegen
   onClose: () => void
-  onUploadComplete: () => void
+  onUploadComplete: (hasChordSheet?: boolean) => void
 }
 
 function formatSize(bytes: number): string {
@@ -40,6 +45,7 @@ export function ImportModal({ files, targetPath, isAdmin, rootUpload, onClose, o
   const handleUpload = async () => {
     setPhase('uploading')
     abortRef.current = false
+    let detectedChordSheet = false
 
     for (let i = 0; i < entries.length; i++) {
       if (abortRef.current) break
@@ -61,7 +67,10 @@ export function ImportModal({ files, targetPath, isAdmin, rootUpload, onClose, o
         if (isDocument) {
           formData.append('folder_path', uploadPath)
           if (fileSongName) formData.append('song_folder_name', fileSongName)
-          await apiUpload('/documents/upload', formData)
+          const result = await apiUpload<UploadResult>('/documents/upload', formData)
+          if (result?.is_chord_sheet) {
+            detectedChordSheet = true
+          }
         } else {
           formData.append('target_path', uploadPath)
           if (fileSongName) formData.append('song_folder_name', fileSongName)
@@ -75,7 +84,7 @@ export function ImportModal({ files, targetPath, isAdmin, rootUpload, onClose, o
     }
 
     setPhase('done')
-    onUploadComplete()
+    onUploadComplete(detectedChordSheet)
   }
 
   const handleClose = () => {

@@ -80,6 +80,22 @@ def get_parent_folder_type(path: str) -> str | None:
     return ft
 
 
+def get_song_folder_path(path: str) -> str | None:
+    """Walk up the path to find the nearest .song folder.
+
+    Returns the full path to the .song folder, or None if not inside one.
+    E.g. '/Konzert/Fragile.song/Audio' → '/Konzert/Fragile.song'
+         '/Konzert/Fragile.song' → '/Konzert/Fragile.song'
+         '/Konzert' → None
+    """
+    parts = [p for p in path.strip("/").split("/") if p]
+    for i in range(len(parts), 0, -1):
+        segment = parts[i - 1]
+        if is_song_folder(segment):
+            return "/" + "/".join(parts[:i])
+    return None
+
+
 def get_visible_reserved_types(user_role: str) -> set[str]:
     """Return reserved types visible to the given role."""
     user_level = ROLE_HIERARCHY.get(user_role, 0)
