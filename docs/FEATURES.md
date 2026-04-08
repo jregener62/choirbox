@@ -943,6 +943,25 @@ Network-first Service Worker — frische Inhalte haben Prioritaet, Cache dient n
 | `frontend/index.html` | Meta-Tags, Manifest-Link |
 | `frontend/src/main.tsx` | Service Worker Registrierung |
 
+### Web Share Target
+
+Die installierte PWA erscheint im nativen Teilen-Dialog des Smartphones. Nutzer koennen PDFs, Audio-Dateien und Texte direkt aus anderen Apps (WhatsApp, E-Mail, Datei-Manager) an Cantabox teilen.
+
+- **Unterstuetzte Formate**: PDF, MP3, M4A, OGG, WAV, WebM, MIDI, TXT
+- **Zielordner**: Der zuletzt besuchte Song-Ordner bestimmt das Upload-Ziel. Dateien werden automatisch in den richtigen Unterordner geroutet (PDF→Texte, Audio→Audio)
+- **Root-Upload**: War der Nutzer im Root-Verzeichnis, wird pro geteilter Datei ein neuer Song-Ordner angelegt
+- **Flow**: Service Worker faengt den Share-Request ab → Dateien werden in der Cache API zwischengespeichert → App oeffnet sich mit ImportModal
+- **Login-Redirect**: Geteilte Dateien ueberleben einen Login-Redirect (Cache API persistiert)
+- **Fallback**: Ohne aktiven Service Worker (erster Besuch) wird auf die Startseite weitergeleitet
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/public/manifest.json` | `share_target`-Deklaration |
+| `frontend/public/sw.js` | POST-Intercept, Cache-Speicherung |
+| `frontend/src/hooks/useShareTarget.ts` | Hook: liest geteilte Dateien aus Cache |
+| `frontend/src/pages/BrowsePage.tsx` | Integration: oeffnet ImportModal |
+| `backend/app.py` | POST `/share-target` Fallback-Route |
+
 ### Geplant (nicht implementiert)
 
 Audio-Caching und Offline-Modus sind als Future Feature dokumentiert. Siehe `docs/future/pwa-audio-caching.md`.
