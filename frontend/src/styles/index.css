@@ -1575,17 +1575,10 @@ textarea::placeholder {
   cursor: default;
 }
 
-/* Document icon in browse */
+/* Document icon in browse — kept for DocumentPanel */
 .file-icon-doc {
   background: rgba(129,140,248,0.15);
   color: var(--accent);
-}
-
-.file-name-selected {
-  color: #22c55e;
-  flex-shrink: 0;
-  margin-left: var(--space-2);
-  vertical-align: middle;
 }
 
 .player-empty-sections {
@@ -1740,44 +1733,80 @@ textarea::placeholder {
   100% { background: transparent; }
 }
 
-.file-icon-box {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-lg);
+/* File type badge — icon + extension as one framed element */
+.file-type-badge {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  width: 40px;
+  min-height: 40px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--border);
+  gap: var(--space-0-5);
+  padding: var(--space-1) 0;
+  color: var(--text-muted);
+  line-height: 1;
 }
 
-.file-icon-folder {
-  background: rgba(96,165,250,0.15);
-  color: #60a5fa;
+.file-type-ext {
+  text-transform: uppercase;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
-.file-icon-folder.folder-audio {
-  background: rgba(6,182,212,0.15);
-  color: #22d3ee;
+/* Folder badges — no frame */
+.file-type-badge--folder,
+.file-type-badge--texte,
+.file-type-badge--folder-audio,
+.file-type-badge--folder-videos,
+.file-type-badge--folder-multitrack,
+.file-type-badge--song {
+  border: none;
+  padding: 0;
+  min-height: 0;
+  width: auto;
 }
 
-.file-icon-folder.folder-videos {
-  background: rgba(217,70,239,0.15);
-  color: #e879f9;
-}
+.file-type-badge--folder { color: #60a5fa; }
+.file-type-badge--texte { color: var(--accent); }
+.file-type-badge--folder-audio { color: #22d3ee; }
+.file-type-badge--folder-videos { color: #e879f9; }
+.file-type-badge--folder-multitrack { color: #fbbf24; }
+.file-type-badge--song { color: var(--accent); }
 
-.file-icon-folder.folder-multitrack {
-  background: rgba(245,158,11,0.15);
-  color: #fbbf24;
-}
-
-.file-icon-audio {
-  background: rgba(168,85,247,0.15);
-  color: #a855f7;
-}
-
-.file-icon-playing {
-  background: rgba(129,140,248,0.2);
+/* File badges — framed with category color */
+.file-type-badge--text {
   color: var(--accent);
+  border-color: rgba(129,140,248,0.35);
+}
+.file-type-badge--audio {
+  color: #22d3ee;
+  border-color: rgba(6,182,212,0.35);
+}
+.file-type-badge--videos {
+  color: #e879f9;
+  border-color: rgba(217,70,239,0.35);
+}
+.file-type-badge--multitrack {
+  color: #fbbf24;
+  border-color: rgba(245,158,11,0.35);
+}
+
+.file-selected-check {
+  color: #22c55e;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.file-type-badge--playing {
+  color: var(--accent);
+  border: none;
+  padding: 0;
+  min-height: 0;
+  width: auto;
 }
 
 .file-name--active {
@@ -1993,11 +2022,8 @@ textarea::placeholder {
   font-size: var(--text-xl);
 }
 
-.file-list--cards .file-icon-playing {
-  background: none;
-  width: auto;
-  height: auto;
-  min-width: 0;
+.file-list--cards .file-type-badge {
+  margin-top: var(--space-0-5);
 }
 
 

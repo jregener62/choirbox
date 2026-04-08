@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, File, Music, Check, RefreshCw } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2 } from 'lucide-react'
 import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
@@ -309,8 +309,9 @@ export function BrowsePage() {
     }
   }, [isInsideSong])
 
-  // Detect if we're inside a Texte folder
+  // Detect which subfolder type we're inside
   const isInTexteFolder = lastSegment.toLowerCase() === 'texte'
+  const parentFolderType = lastSegment.toLowerCase() as string
   // Song folder path for selected doc (go up one level from Texte)
   const songFolderPath = isInTexteFolder && browseSegments.length >= 2
     ? '/' + browseSegments.slice(0, -1).join('/')
@@ -652,11 +653,11 @@ export function BrowsePage() {
           const isTexteFolder = entry.folder_type === 'texte'
           const isRevealed = revealedPath === entry.path
 
-          const docIcon = isDoc ? (
-            entry.name.toLowerCase().endsWith('.pdf') ? <FileText size={18} /> :
-            entry.name.toLowerCase().endsWith('.txt') ? <File size={18} /> :
-            <Video size={18} />
-          ) : null
+          // File extension for badge text
+          const fileExt = (isFile || isDoc) ? (entry.name.split('.').pop()?.toLowerCase() || '') : ''
+          const isTextFile = fileExt === 'pdf' || fileExt === 'txt'
+          const isVideoFile = fileExt === 'mp4' || fileExt === 'webm' || fileExt === 'mov'
+          const isSelectedText = entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)
 
           const folderIcon = entry.type === 'folder' ? (
             entry.folder_type === 'song' ? <Music size={18} /> :
@@ -698,31 +699,41 @@ export function BrowsePage() {
 
           const itemContent = (
             <>
-              {entry.type === 'folder' && entry.folder_type !== 'song' ? (
-                <div className={`file-icon-box ${isTexteFolder ? 'file-icon-doc' : 'file-icon-folder'}${entry.folder_type === 'audio' ? ' folder-audio' : ''}${entry.folder_type === 'videos' ? ' folder-videos' : ''}${entry.folder_type === 'multitrack' ? ' folder-multitrack' : ''}`}>
-                  {folderIcon}
-                </div>
-              ) : isDoc ? (
-                <div className="file-icon-box file-icon-doc">
-                  {docIcon}
-                </div>
-              ) : entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4') ? (
-                <div className="file-icon-box file-icon-doc">
-                  <Video size={18} />
-                </div>
-              ) : isActive && isPlaying ? (
-                <div className="file-icon-box file-icon-playing">
+              {/* Type badge — inline icon (+ extension for files) */}
+              {isActive && isPlaying ? (
+                <span className="file-type-badge file-type-badge--playing">
                   <div className="playing-bars">
                     <span /><span /><span />
                   </div>
-                </div>
+                </span>
+              ) : entry.type === 'folder' && entry.folder_type !== 'song' ? (
+                <span className={`file-type-badge ${
+                  isTexteFolder ? 'file-type-badge--texte' :
+                  entry.folder_type === 'audio' ? 'file-type-badge--folder-audio' :
+                  entry.folder_type === 'videos' ? 'file-type-badge--folder-videos' :
+                  entry.folder_type === 'multitrack' ? 'file-type-badge--folder-multitrack' :
+                  'file-type-badge--folder'
+                }`}>
+                  {folderIcon}
+                </span>
+              ) : (isFile || isDoc) ? (
+                <>
+                  {isSelectedText && <Check size={18} className="file-selected-check" />}
+                  <span className={`file-type-badge ${
+                    parentFolderType === 'multitrack' ? 'file-type-badge--multitrack' :
+                    parentFolderType === 'videos' ? 'file-type-badge--videos' :
+                    isVideoFile ? 'file-type-badge--videos' :
+                    isTextFile ? 'file-type-badge--text' :
+                    'file-type-badge--audio'
+                  }`}>
+                    {isTextFile ? <FileText size={16} /> : isVideoFile ? <Video size={16} /> : <Volume2 size={16} />}
+                    <span className="file-type-ext">{fileExt}</span>
+                  </span>
+                </>
               ) : null}
               <div className="file-info">
                 <div className="file-name-row">
                   {fav && <Heart size={16} className="fav-heart" fill="currentColor" strokeWidth={0} />}
-                  {(entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)) && (
-                    <FileText size={14} className="file-name-selected" />
-                  )}
                   <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                     {isMediaEntry && entry.song_name
                       ? songName
