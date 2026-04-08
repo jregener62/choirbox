@@ -465,6 +465,7 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 - **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8)
 - **Undo**: Letzter Strich rueckgaengig machen
 - **Seite loeschen**: Alle Annotationen einer Seite entfernen
+- **Pinch-to-Zoom im Zeichenmodus**: Zwei-Finger-Geste zoomt auch bei aktivem Zeichenmodus. Multi-Touch-Erkennung verwirft angefangene Striche und leitet Pinch an den Zoom-Handler weiter
 - **Technologie**: SVG-Overlay auf `<img>`-Seiten + `perfect-freehand`. Koordinaten normalisiert (ViewBox 0-1000)
 - **Auto-Save**: 500ms Debounce → `PUT /api/annotations`. Flush bei Seitenwechsel und `beforeunload`
 - **Speicherung**: Strokes als JSON in SQLite, pro User + Document-ID + Seitennummer (unique constraint)
@@ -1332,6 +1333,10 @@ Beim Navigieren von einem .song-Ordner zu Einstellungen oder Admin-Seiten lief d
 ### Pinch-to-Zoom im Viewer funktioniert erst beim zweiten Oeffnen
 
 Der Pinch-to-Zoom useEffect in DocumentPanel hatte leere Dependencies (`[]`) und lief nur einmal beim Mount. Wenn zu dem Zeitpunkt die PDF-Area noch nicht gerendert war (Dokumente laden noch), war `pagesRef.current` null und die Touch-Listener wurden nie angehaengt. Fix: `activeDoc?.id` als Dependency hinzugefuegt — der Effect laeuft neu sobald das Dokument verfuegbar ist. Zoom-Scale wird bei Dokumentwechsel zurueckgesetzt.
+
+### Pinch-to-Zoom im Annotations-Modus nicht moeglich
+
+Im Zeichenmodus wurde die Pinch-Geste als Zeichnung erkannt statt zu zoomen. Ursache: DocumentPanel uebersprang die Pinch-Handler komplett wenn `drawingMode` aktiv war (`if (drawingMode) return`), und AnnotatedPage fing jeden Finger einzeln als Strich ab ohne Multi-Touch-Pruefung. Fix: Early Returns in DocumentPanel entfernt — Pinch-Erkennung laeuft jetzt immer. AnnotatedPage trackt aktive Pointer-IDs und verwirft angefangene Striche bei 2+ Fingern. `wasPinchRef` verhindert versehentliches Zeichnen wenn nach einem Pinch ein Finger liegen bleibt.
 
 ### TXT-Viewer zeigt keine Zeilenumbrueche bei Unicode Line Separators
 
