@@ -445,7 +445,6 @@ async def dropbox_browse(
     from backend.models.user_selected_document import UserSelectedDocument
     from backend.models.document import Document as DocModel
     from backend.models.chord_sheet import ChordSheet
-    from sqlalchemy import func as sql_func
     song_entries = [e for e in filtered if e.get("folder_type") == "song" and e["type"] == "folder"]
     for song in song_entries:
         sub_folders = []
@@ -455,9 +454,9 @@ async def dropbox_browse(
             reserved_type = meta["type"]
             if reserved_type == "chordsheets":
                 # Chordsheets: count from DB, not Dropbox
-                count = session.exec(
-                    sql_select(sql_func.count()).where(ChordSheet.song_folder_path == song["path"])
-                ).one()
+                count = len(session.exec(
+                    sql_select(ChordSheet.id).where(ChordSheet.song_folder_path == song["path"])
+                ).all())
             else:
                 sub_path = f"{song_dbx}/{reserved_name}"
                 sub_entries = await _get_children(tree, dbx, sub_path)
@@ -497,10 +496,10 @@ async def dropbox_browse(
             reserved_type = meta["type"]
             if reserved_type == "chordsheets":
                 # Chordsheets: count from DB, not Dropbox
-                from backend.models.chord_sheet import ChordSheet
-                count = session.exec(
-                    sql_select(sql_func.count()).where(ChordSheet.song_folder_path == song_user_path)
-                ).one()
+                from backend.models.chord_sheet import ChordSheet as CS2
+                count = len(session.exec(
+                    sql_select(CS2.id).where(CS2.song_folder_path == song_user_path)
+                ).all())
             else:
                 sub_path = f"{song_dbx_path}/{reserved_name}"
                 # None statt tree: tree wurde vom aktuellen Subfolder gebaut und
