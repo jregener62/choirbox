@@ -75,7 +75,7 @@ def parse_audio_filename(
 
     # Split on hyphens; if no hyphens, split on spaces
     if '-' in name:
-        parts = [p for p in name.split('-') if p]
+        parts = [p.strip() for p in name.split('-') if p.strip()]
     else:
         parts = [p for p in name.split(' ') if p]
     if not parts:
