@@ -488,7 +488,10 @@ async def dropbox_browse(
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
             sub_path = f"{song_dbx_path}/{reserved_name}"
-            sub_entries = await _get_children(tree, dbx, sub_path)
+            # None statt tree: tree wurde vom aktuellen Subfolder gebaut und
+            # enthält keine Geschwister-Daten. Mit None nutzt _get_children
+            # den Cache oder macht einen gezielten API-Call.
+            sub_entries = await _get_children(None, dbx, sub_path)
             count = sum(1 for se in sub_entries if se.get(".tag") == "file")
             if count > 0:
                 user_sub_path = f"{song_user_path}/{reserved_name}"
