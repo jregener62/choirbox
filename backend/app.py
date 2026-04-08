@@ -1,7 +1,7 @@
 from pathlib import Path
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from backend.database import create_db_and_tables
 
 from backend.api.auth import router as auth_router
@@ -81,6 +81,12 @@ if REACT_ASSETS.exists():
 MOCKUPS_DIR = BASE / "docs" / "mockups"
 if MOCKUPS_DIR.exists():
     app.mount("/mockups", StaticFiles(directory=str(MOCKUPS_DIR), html=True), name="mockups")
+
+
+@app.post("/share-target")
+async def share_target_fallback(request: Request):
+    """Fallback wenn SW nicht aktiv — Dateien gehen verloren, aber kein Crash."""
+    return RedirectResponse("/", status_code=303)
 
 
 @app.get("/")

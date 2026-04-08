@@ -16,6 +16,7 @@ import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
+import { useShareTarget } from '@/hooks/useShareTarget'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
@@ -47,6 +48,7 @@ export function BrowsePage() {
   const [importOpen, setImportOpen] = useState(false)
   const [importedFiles, setImportedFiles] = useState<File[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const sharedFiles = useShareTarget()
 
   // Swipe-to-delete state
   const [revealedPath, setRevealedPath] = useState<string | null>(null)
@@ -97,6 +99,14 @@ export function BrowsePage() {
     if (!favsLoaded) loadFavs()
     if (!labelsLoaded) loadLabels()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Share Target: geteilte Dateien in ImportModal öffnen
+  useEffect(() => {
+    if (sharedFiles.length > 0) {
+      setImportedFiles(sharedFiles)
+      setImportOpen(true)
+    }
+  }, [sharedFiles])
 
   // Periodic background refresh (every 2 minutes)
   useEffect(() => {
