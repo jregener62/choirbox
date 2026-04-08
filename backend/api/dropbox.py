@@ -442,6 +442,7 @@ async def dropbox_browse(
                 e["free_text"] = meta.free_text
 
     # Attach sub_folders + selected_doc to .song folder entries
+    from sqlmodel import select as sql_select
     from backend.models.user_selected_document import UserSelectedDocument
     from backend.models.document import Document as DocModel
     from backend.models.chord_sheet import ChordSheet
