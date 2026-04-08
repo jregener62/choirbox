@@ -565,11 +565,18 @@ export function BrowsePage() {
                 {songSubFolders.map((sf) => {
                   const config = getFolderTypeConfig(sf.type)
                   const isActive = sf.name.toLowerCase() === activeSubfolderName?.toLowerCase()
+                  const songPath = '/' + browseSegments.slice(0, songAncestorIdx + 1).join('/')
                   return (
                     <button
                       key={sf.type}
                       className={`meta-brick meta-brick--${sf.type}${isActive ? ' meta-brick--active' : ''}`}
-                      onClick={() => loadFolder(sf.path)}
+                      onClick={() => {
+                        if (sf.type === 'chordsheets') {
+                          navigate(`/chord-sheets?folder=${encodeURIComponent(songPath)}&back=${encodeURIComponent(`/browse?path=${encodeURIComponent(sf.path)}`)}`)
+                        } else {
+                          loadFolder(sf.path)
+                        }
+                      }}
                     >
                       {createElement(config.icon, { size: 14 })}
                       {isActive && <span className="meta-brick__label">{sf.name}</span>}
@@ -784,7 +791,11 @@ export function BrowsePage() {
                               className={`meta-brick meta-brick--${sf.type}`}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                loadFolder(sf.path)
+                                if (sf.type === 'chordsheets') {
+                                  navigate(`/chord-sheets?folder=${encodeURIComponent(entry.path)}&back=${encodeURIComponent('/browse')}`)
+                                } else {
+                                  loadFolder(sf.path)
+                                }
                               }}
                             >
                               {createElement(getFolderTypeConfig(sf.type).icon, { size: 14 })}

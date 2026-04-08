@@ -15,7 +15,7 @@ export interface LoginResponse {
   user: User
 }
 
-export type FolderType = 'song' | 'texte' | 'audio' | 'videos' | 'multitrack'
+export type FolderType = 'song' | 'texte' | 'audio' | 'videos' | 'multitrack' | 'chordsheets'
 
 export interface SubFolderInfo {
   type: FolderType
@@ -135,4 +135,48 @@ export interface ActionResponse<T = unknown> {
   reason: string | null
   data: T
   warnings: Array<{ code: string; message: string }>
+}
+
+// --- Chord Sheets ---
+
+export interface ChordPosition {
+  chord: string
+  col: number
+}
+
+export interface ChordLine {
+  text: string
+  chords: ChordPosition[]
+}
+
+export interface ChordSection {
+  type: string
+  label: string
+  lines: ChordLine[]
+}
+
+export interface ParsedChordContent {
+  sections: ChordSection[]
+  all_chords: string[]
+  detected_key: string
+  key_confidence: number
+}
+
+export interface ChordSheet {
+  id: number
+  song_folder_path: string
+  title: string
+  original_key: string | null
+  parsed_content: ParsedChordContent
+  source_filename: string | null
+  created_by: string | null
+  created_at: string
+  updated_at: string
+  user_transposition: number
+}
+
+export interface ChordSheetParseResult {
+  title: string
+  parsed_content: ParsedChordContent
+  source_filename: string
 }

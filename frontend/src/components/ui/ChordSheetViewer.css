@@ -1,0 +1,220 @@
+/* ChordSheetViewer — Akkorde über Textzeilen */
+
+.chord-sheet-viewer {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: var(--text-body);
+  line-height: 1.4;
+  padding: var(--space-3);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Sektionen */
+.chord-section {
+  margin-bottom: var(--space-5);
+}
+
+.chord-section-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: var(--text-caption);
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  display: inline-block;
+  background: var(--bg-tertiary);
+}
+
+.chord-section-chorus .chord-section-label,
+.chord-section-label.chord-section-chorus {
+  color: var(--accent);
+  background: rgba(99, 102, 241, 0.1);
+}
+
+/* Einzelne Zeile (Akkorde + Text) */
+.chord-line {
+  position: relative;
+  margin-bottom: var(--space-0-5);
+  min-height: 1.4em;
+  white-space: pre;
+}
+
+/* Akkord-Zeile (über dem Text) */
+.chord-row {
+  position: relative;
+  height: 1.5em;
+  white-space: pre;
+}
+
+.chord-symbol {
+  position: absolute;
+  font-weight: 700;
+  color: var(--accent);
+  white-space: nowrap;
+}
+
+/* Text-Zeile */
+.chord-text {
+  color: var(--text-primary);
+  white-space: pre;
+  min-height: 1em;
+}
+
+/* Transpose Controls */
+.transpose-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.transpose-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-full);
+  border: 1.5px solid var(--border-primary);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+
+.transpose-btn:active {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+
+.transpose-info {
+  flex: 1;
+  text-align: center;
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.transpose-key {
+  font-weight: 700;
+  font-size: var(--text-md);
+  color: var(--text-primary);
+  display: block;
+}
+
+.transpose-saved {
+  font-size: var(--text-2xs);
+  color: var(--success);
+}
+
+/* Chord Sheet Header */
+.chord-sheet-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+.chord-sheet-header .back-btn {
+  flex-shrink: 0;
+}
+
+.chord-sheet-title {
+  flex: 1;
+  font-size: var(--text-lg);
+  font-weight: 700;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chord Sheet List */
+.chord-sheet-list {
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.chord-sheet-list-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.chord-sheet-list-item:active {
+  background: var(--bg-tertiary);
+}
+
+.chord-sheet-list-item-icon {
+  color: #a78bfa;
+  flex-shrink: 0;
+}
+
+.chord-sheet-list-item-info {
+  flex: 1;
+  overflow: hidden;
+}
+
+.chord-sheet-list-item-title {
+  font-weight: 600;
+  font-size: var(--text-body);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chord-sheet-list-item-meta {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+}
+
+.chord-sheet-empty {
+  text-align: center;
+  padding: var(--space-8) var(--space-4);
+  color: var(--text-tertiary);
+}
+
+.chord-sheet-empty p {
+  margin-bottom: var(--space-3);
+}
+
+/* Import button in list */
+.chord-sheet-import-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  background: rgba(168, 85, 247, 0.08);
+  border: 1.5px dashed rgba(168, 85, 247, 0.4);
+  border-radius: var(--radius-md);
+  color: #a78bfa;
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  width: 100%;
+  justify-content: center;
+}
+
+.chord-sheet-import-btn:active {
+  background: rgba(168, 85, 247, 0.15);
+}

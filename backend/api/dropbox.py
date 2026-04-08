@@ -444,6 +444,8 @@ async def dropbox_browse(
     # Attach sub_folders + selected_doc to .song folder entries
     from backend.models.user_selected_document import UserSelectedDocument
     from backend.models.document import Document as DocModel
+    from backend.models.chord_sheet import ChordSheet
+    from sqlalchemy import func as sql_func
     song_entries = [e for e in filtered if e.get("folder_type") == "song" and e["type"] == "folder"]
     for song in song_entries:
         sub_folders = []
@@ -451,9 +453,15 @@ async def dropbox_browse(
         song_dbx = _to_dropbox_path(song["path"], root_folder)
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
-            sub_path = f"{song_dbx}/{reserved_name}"
-            sub_entries = await _get_children(tree, dbx, sub_path)
-            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            if reserved_type == "chordsheets":
+                # Chordsheets: count from DB, not Dropbox
+                count = session.exec(
+                    sql_select(sql_func.count()).where(ChordSheet.song_folder_path == song["path"])
+                ).one()
+            else:
+                sub_path = f"{song_dbx}/{reserved_name}"
+                sub_entries = await _get_children(tree, dbx, sub_path)
+                count = sum(1 for se in sub_entries if se.get(".tag") == "file")
             if count > 0:
                 user_sub_path = f"{song['path']}/{reserved_name}"
                 sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
@@ -487,12 +495,19 @@ async def dropbox_browse(
         song_sub_folders = []
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
-            sub_path = f"{song_dbx_path}/{reserved_name}"
-            # None statt tree: tree wurde vom aktuellen Subfolder gebaut und
-            # enthält keine Geschwister-Daten. Mit None nutzt _get_children
-            # den Cache oder macht einen gezielten API-Call.
-            sub_entries = await _get_children(None, dbx, sub_path)
-            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            if reserved_type == "chordsheets":
+                # Chordsheets: count from DB, not Dropbox
+                from backend.models.chord_sheet import ChordSheet
+                count = session.exec(
+                    sql_select(sql_func.count()).where(ChordSheet.song_folder_path == song_user_path)
+                ).one()
+            else:
+                sub_path = f"{song_dbx_path}/{reserved_name}"
+                # None statt tree: tree wurde vom aktuellen Subfolder gebaut und
+                # enthält keine Geschwister-Daten. Mit None nutzt _get_children
+                # den Cache oder macht einen gezielten API-Call.
+                sub_entries = await _get_children(None, dbx, sub_path)
+                count = sum(1 for se in sub_entries if se.get(".tag") == "file")
             if count > 0:
                 user_sub_path = f"{song_user_path}/{reserved_name}"
                 song_sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})

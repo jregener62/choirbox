@@ -124,6 +124,12 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | PDF hochladen/loeschen        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Notizen/Lyrics bearbeiten     |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Section-Editor                |        ✓        |     —     |       —        |       —        |     —      |     —     |
+| **ChordSheetPage**            |                 |           |                |                |            |           |
+| Chord Sheets ansehen          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Transposition speichern       |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| PDF importieren               |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Chord Sheet bearbeiten        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Chord Sheet loeschen          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | **SettingsPage**              |                 |           |                |                |            |           |
 | Profil, Passwort, Theme, Zoom |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
 | Labels verwalten              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
@@ -498,6 +504,80 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 | `backend/models/document.py` | Document-Modell (folder_path, file_type, content_hash) |
 | `backend/models/user_selected_document.py` | Ausgewaehlter Text pro User pro Song |
 | `deploy_pdfs.sh` | PDF-Dateien + DB-Eintraege auf Prod deployen |
+
+---
+
+## Chord Sheets (Akkordblätter)
+
+### Übersicht
+
+Chord Sheets ermöglichen das Importieren und Anzeigen von Akkord-Texten (z.B. von Ultimate Guitar) mit transponierbaren Akkorden. Jeder User kann seine bevorzugte Tonart pro Sheet speichern.
+
+### PDF-Import
+
+- PDF-Upload mit automatischer Erkennung von Akkorden und Text
+- Unterstützt text-basierte PDFs (pdfplumber) und Bild-PDFs (OCR via pytesseract)
+- Automatische Erkennung von Zwei-Spalten-Layouts (typisch für Ultimate Guitar)
+- OCR-Nachbearbeitung: korrigiert häufige Fehllesungen (z.B. # als i)
+- Sektions-Erkennung: [Verse], [Chorus], [Intro], [Bridge], [Outro], [Solo]
+- Automatische Tonart-Erkennung mit Konfidenz-Score
+- Titel wird aus Dateiname abgeleitet (zuverlässiger als OCR)
+- Vorschau-Schritt: User kann Titel und Tonart vor dem Speichern korrigieren
+
+### Chord Sheet Viewer
+
+- Akkorde werden über den Textzeilen positioniert (Monospace-Font)
+- Sektions-Header farblich hervorgehoben
+- Mobile-optimiert mit horizontalem Scroll bei langen Zeilen
+
+### Transposition
+
+- Hoch/Runter-Buttons (Halbtonschritte)
+- Anzeige der aktuellen Tonart und des Originals
+- Per-User speicherbar (z.B. Gitarrist in C, Keyboarder in Eb)
+- Unterstützt: Grundakkorde, Slash-Akkorde, Erweiterungen (maj7, sus4, dim etc.)
+- Enharmonische Varianten: Sharp/Flat-Präferenz basierend auf Original-Akkorden
+
+### Dropbox-Speicherung
+
+- Original-PDFs werden in `Chordsheets/` innerhalb des `.song`-Ordners in Dropbox hochgeladen
+- Zusaetzlich wird ein `.txt`-Export mit Akkorden ueber Text generiert und in Dropbox gespeichert
+- Geparste Metadaten (Sektionen, Akkord-Positionen, Tonart) liegen in der Datenbank fuer schnellen Zugriff
+- Bei Update wird der Text-Export automatisch neu exportiert
+
+### Integration
+
+- Neuer reservierter Unterordner `Chordsheets/` in `.song`-Ordnern
+- Lila Badge (Musik-Icon) in der Song-Card-Navigation
+- Klick auf Badge oeffnet die Chord Sheet Liste
+- Count im Badge wird aus der Datenbank gelesen (nicht aus Dropbox)
+
+### Berechtigungen
+
+| Aktion | Mindest-Rolle |
+|--------|---------------|
+| Chord Sheets ansehen | member |
+| Transposition speichern | member |
+| PDF importieren | pro-member |
+| Chord Sheet bearbeiten | pro-member |
+| Chord Sheet löschen | pro-member |
+
+### Dateien
+
+| Datei | Beschreibung |
+|-------|-------------|
+| `backend/models/chord_sheet.py` | ChordSheet-Modell |
+| `backend/models/user_chord_preference.py` | User-Transpositions-Präferenz |
+| `backend/services/chord_parser.py` | PDF-Parsing + OCR + Akkord-Erkennung |
+| `backend/services/chord_transposer.py` | Transpositions-Engine |
+| `backend/services/chord_sheet_service.py` | CRUD + Präferenz-Service |
+| `backend/api/chord_sheets.py` | API-Endpoints |
+| `frontend/src/pages/ChordSheetPage.tsx` | Viewer-Page mit Transposition |
+| `frontend/src/pages/ChordSheetListPage.tsx` | Liste der Chord Sheets |
+| `frontend/src/components/ui/ChordSheetViewer.tsx` | Viewer-Komponente |
+| `frontend/src/components/ui/ChordSheetImportModal.tsx` | Import-Dialog |
+| `frontend/src/utils/chordTransposer.ts` | Frontend-Transpositionslogik |
+| `frontend/src/api/chordSheets.ts` | API-Client |
 
 ---
 
@@ -1124,6 +1204,18 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | GET | `/issues` | Offene/geschlossene GitHub Issues auflisten | `can_report_bugs` |
 | POST | `/` | Neues GitHub Issue erstellen (title, description, type) | `can_report_bugs` |
 
+### Chord Sheets (`/api/chord-sheets`)
+
+| Methode | Pfad | Beschreibung | Zugang |
+|---------|------|-------------|--------|
+| POST | `/import/parse` | PDF hochladen + parsen (Vorschau) | pro-member+ |
+| POST | `/import` | Geparsten Inhalt speichern | pro-member+ |
+| GET | `/list?folder=...` | Chord Sheets eines Song-Ordners | member+ |
+| GET | `/{id}` | Einzelnes Chord Sheet laden | member+ |
+| PUT | `/{id}` | Chord Sheet bearbeiten | pro-member+ |
+| DELETE | `/{id}` | Chord Sheet loeschen | pro-member+ |
+| PUT | `/{id}/preference` | User-Transposition speichern | member+ |
+
 ---
 
 ## Datenmodelle
@@ -1269,6 +1361,33 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 | `dropbox_connected_at` | DateTime | Verbindungszeitpunkt |
 | ~~`dropbox_root_folder`~~ | — | Entfernt — Dropbox App-Ordner wird automatisch von der Dropbox-App gesetzt |
 | `updated_at` | DateTime | Letzte Aenderung |
+
+### ChordSheet
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer (PK) | |
+| `song_folder_path` | String | Pfad zum .song-Ordner |
+| `title` | String | Songtitel |
+| `original_key` | String? | Erkannte Original-Tonart |
+| `parsed_content` | Text (JSON) | Geparste Sektionen mit Akkord-Positionen |
+| `source_filename` | String? | Original-PDF-Dateiname |
+| `choir_id` | String? | Chor-Zuordnung |
+| `created_by` | FK→User | Ersteller |
+| `created_at` | DateTime | Erstellungszeitpunkt |
+| `updated_at` | DateTime | Letzte Aenderung |
+
+### UserChordPreference
+
+| Feld | Typ | Beschreibung |
+|------|-----|-------------|
+| `id` | Integer (PK) | |
+| `user_id` | FK→User | |
+| `chord_sheet_id` | FK→ChordSheet | |
+| `transposition_semitones` | Integer | Halbtonschritte (-12 bis +12) |
+| `updated_at` | DateTime | Letzte Aenderung |
+
+Unique: `(user_id, chord_sheet_id)`
 
 ---
 
