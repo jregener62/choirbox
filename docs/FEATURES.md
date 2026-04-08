@@ -953,6 +953,7 @@ Die installierte PWA erscheint im nativen Teilen-Dialog des Smartphones. Nutzer 
 - **Flow**: Service Worker faengt den Share-Request ab → Dateien werden in der Cache API zwischengespeichert → App oeffnet sich mit ImportModal
 - **Login-Redirect**: Geteilte Dateien ueberleben einen Login-Redirect (Cache API persistiert)
 - **Fallback**: Ohne aktiven Service Worker (erster Besuch) wird auf die Startseite weitergeleitet
+- **Plattform-Einschraenkung**: Nur Android (Chrome, Samsung Internet, Edge). iOS/Safari unterstuetzt die Web Share Target API nicht — Apple erlaubt Share Extensions nur fuer native Apps. Auf iOS bleibt der manuelle Upload ueber den Datei-Picker in der App
 
 | Datei | Rolle |
 |-------|-------|
