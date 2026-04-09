@@ -1,15 +1,17 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
-import { usePlayerStore } from '@/stores/playerStore.ts'
+import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useChordPreference } from '@/hooks/useChordPreference.ts'
+import { useAutoScroll } from '@/hooks/useAutoScroll.ts'
 import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
 import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
 import { VideoViewer } from '@/components/ui/VideoViewer.tsx'
 import { TextViewer } from '@/components/ui/TextViewer.tsx'
 import { ChordSheetTextViewer } from '@/components/ui/ChordSheetTextViewer.tsx'
+import { AutoScrollStepper } from '@/components/ui/AutoScrollStepper.tsx'
 import type { DocumentItem } from '@/types/index.ts'
 
 interface DocumentPanelProps {
@@ -67,10 +69,16 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
+  const isPlaying = usePlayerStore((s) => s.isPlaying)
+  const currentPath = usePlayerStore((s) => s.currentPath)
+  const autoScrollEnabled = usePlayerStore((s) => s.autoScrollEnabled)
+  const autoScrollSpeedIdx = usePlayerStore((s) => s.autoScrollSpeedIdx)
+  const setAutoScrollEnabled = usePlayerStore((s) => s.setAutoScrollEnabled)
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
+  const scrollContainerRef = useRef<HTMLElement | null>(null)
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
@@ -116,6 +124,18 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const handlePdfAreaTouch = useCallback(() => {
     if (pdfFullscreen) resetFadeTimer()
   }, [pdfFullscreen, resetFadeTimer])
+
+  // Autoscroll: nur im Vollbild, nur bei Text/Chord/PDF, pausiert wenn Audio geladen aber nicht spielt
+  const isScrollableType = activeDoc?.file_type === 'pdf' || activeDoc?.file_type === 'txt' || activeDoc?.file_type === 'cho'
+  const autoScrollActive =
+    pdfFullscreen &&
+    isScrollableType &&
+    autoScrollEnabled &&
+    (currentPath === null || isPlaying)
+  const autoScrollPxPerSec = AUTO_SCROLL_BASE_PX_PER_SEC * AUTO_SCROLL_SPEEDS[autoScrollSpeedIdx]
+  useAutoScroll(scrollContainerRef, autoScrollActive, autoScrollPxPerSec, () => {
+    setAutoScrollEnabled(false)
+  })
 
   const progress = duration > 0 ? currentTime / duration : 0
   const circumference = 2 * Math.PI * 22
@@ -282,7 +302,10 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       {/* Content area */}
       {activeDoc.file_type === 'pdf' && (
         <div
-          ref={pagesRef}
+          ref={(el) => {
+            pagesRef.current = el
+            scrollContainerRef.current = el
+          }}
           className={`pdf-pages${drawingMode ? ' pdf-pages--drawing' : ''}`}
           onTouchStart={(e) => { handleDoubleTap(e); handlePdfAreaTouch() }}
         >
@@ -310,6 +333,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           originalName={activeDoc.original_name}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
+          scrollContainerRef={scrollContainerRef}
         />
       )}
 
@@ -320,6 +344,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           transposition={transposition}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
+          scrollContainerRef={scrollContainerRef}
         />
       )}
 
@@ -364,6 +389,12 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
             onChange={(v) => { updateTransposition(v); resetFadeTimer() }}
           />
         </div>
+      )}
+      {pdfFullscreen && (isPdf || isTxt || isCho) && (
+        <AutoScrollStepper
+          faded={fabFaded}
+          onInteract={resetFadeTimer}
+        />
       )}
       {(isPdf || isTxt || isCho) && (
         <button

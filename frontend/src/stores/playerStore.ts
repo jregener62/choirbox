@@ -7,6 +7,10 @@ export interface Marker {
   label: string
 }
 
+export const AUTO_SCROLL_SPEEDS = [0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5] as const
+export const AUTO_SCROLL_DEFAULT_IDX = 3
+export const AUTO_SCROLL_BASE_PX_PER_SEC = 30
+
 interface PlayerState {
   // Current track
   currentPath: string | null
@@ -34,6 +38,10 @@ interface PlayerState {
   // PDF fullscreen
   pdfFullscreen: boolean
 
+  // Autoscroll im Vollbild
+  autoScrollEnabled: boolean
+  autoScrollSpeedIdx: number
+
   // Actions
   setTrack: (path: string, name: string) => void
   setPlaying: (playing: boolean) => void
@@ -51,6 +59,8 @@ interface PlayerState {
   createLoopFromMarkers: (a: Marker, b: Marker) => void
   setSkipInterval: (interval: number) => void
   setPdfFullscreen: (fullscreen: boolean) => void
+  setAutoScrollEnabled: (enabled: boolean) => void
+  setAutoScrollSpeedIdx: (idx: number) => void
 }
 
 let markerCounter = 0
@@ -70,6 +80,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   loopMarkerIds: null,
   skipInterval: 15,
   pdfFullscreen: false,
+  autoScrollEnabled: false,
+  autoScrollSpeedIdx: AUTO_SCROLL_DEFAULT_IDX,
 
   setTrack: (path, name) => set({
     currentPath: path,
@@ -84,6 +96,7 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
     markers: [],
     pendingLoopMarkerId: null,
     loopMarkerIds: null,
+    autoScrollEnabled: false,
   }),
 
   setPlaying: (playing) => set({ isPlaying: playing }),
@@ -145,4 +158,8 @@ export const usePlayerStore = create<PlayerState>((set, get) => ({
   },
   setSkipInterval: (interval) => set({ skipInterval: interval }),
   setPdfFullscreen: (fullscreen) => set({ pdfFullscreen: fullscreen }),
+  setAutoScrollEnabled: (enabled) => set({ autoScrollEnabled: enabled }),
+  setAutoScrollSpeedIdx: (idx) => set({
+    autoScrollSpeedIdx: Math.max(0, Math.min(AUTO_SCROLL_SPEEDS.length - 1, idx)),
+  }),
 }))

@@ -6,9 +6,10 @@ interface TextViewerProps {
   originalName: string
   fontSize?: number
   showName?: boolean
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
-export function TextViewer({ docId, originalName, fontSize = 16, showName = true }: TextViewerProps) {
+export function TextViewer({ docId, originalName, fontSize = 16, showName = true, scrollContainerRef }: TextViewerProps) {
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
@@ -47,7 +48,17 @@ export function TextViewer({ docId, originalName, fontSize = 16, showName = true
   return (
     <div className="text-viewer">
       {showName && <div className="text-viewer-name">{originalName}</div>}
-      <pre className="text-viewer-content" style={{ fontSize }}>{content}</pre>
+      <pre
+        className="text-viewer-content"
+        style={{ fontSize }}
+        ref={(el) => {
+          if (scrollContainerRef) {
+            (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
+          }
+        }}
+      >
+        {content}
+      </pre>
     </div>
   )
 }
