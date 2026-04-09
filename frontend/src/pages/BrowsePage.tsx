@@ -215,7 +215,14 @@ export function BrowsePage() {
   }
 
   const handleSongClick = (entry: DropboxEntry) => {
-    // Navigate into first subfolder (prefer Audio)
+    // If /Texte has at least one text, open the Texte view first
+    const texteSf = entry.sub_folders?.find((sf) => sf.type === 'texte')
+    if (texteSf && texteSf.count > 0) {
+      closeSearch()
+      loadFolder(texteSf.path)
+      return
+    }
+    // Otherwise navigate into first subfolder (prefer Audio)
     if (entry.sub_folders && entry.sub_folders.length > 0) {
       const audioSf = entry.sub_folders.find((sf) => sf.type === 'audio')
       const target = audioSf || entry.sub_folders[0]
