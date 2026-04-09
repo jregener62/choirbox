@@ -330,25 +330,7 @@ async def upload_document(
         )
 
     # Auto-select first document in folder
-    doc_count = len(session.exec(
-        select(Document).where(Document.folder_path == folder_path)
-    ).all())
-    if doc_count == 1:
-        from backend.models.user_selected_document import UserSelectedDocument
-        song_path = folder_path.rsplit("/", 1)[0]
-        existing_sel = session.exec(
-            select(UserSelectedDocument).where(
-                UserSelectedDocument.user_id == user.id,
-                UserSelectedDocument.folder_path == song_path,
-            )
-        ).first()
-        if not existing_sel:
-            session.add(UserSelectedDocument(
-                user_id=user.id,
-                folder_path=song_path,
-                document_id=doc.id,
-            ))
-            session.commit()
+    document_service.auto_select_if_first_doc(doc, folder_path, user.id, session)
 
     return ActionResponse.success(data={
         "id": doc.id,
@@ -450,6 +432,9 @@ async def paste_text(
         content_hash=dbx_hash,
         dropbox_path=rel_path,
     )
+
+    # Auto-select first document in folder
+    document_service.auto_select_if_first_doc(doc, texte_path, user.id, session)
 
     return ActionResponse.success(data={
         "id": doc.id,

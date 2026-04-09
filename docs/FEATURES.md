@@ -1464,6 +1464,12 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Erster Text/Chordsheet per Paste-Upload nicht als ausgewaehlt markiert
+
+Beim Hochladen eines `.txt` oder `.cho` ueber das "Text einfuegen" / "Chordsheet einfuegen" Modal wurde das Dokument zwar in der DB registriert, aber nie als `UserSelectedDocument` markiert. Folge: `selected_doc` blieb `null`, der Klick auf den Song oeffnete nicht den DocViewer, sondern lief in die Subfolder-Fallback-Kette. Der `/upload`-Endpoint hatte die Auto-Select-Logik inline, der `/paste-text`-Endpoint jedoch nicht.
+
+**Fix:** Die Auto-Select-Logik wurde in `document_service.auto_select_if_first_doc()` ausgelagert und wird jetzt von beiden Upload-Endpoints (`/upload`, `/paste-text`) aufgerufen. Damit wird der erste Text in einem Song-Ordner konsistent als ausgewaehlt gesetzt, unabhaengig vom Upload-Weg.
+
 ### Bugreporter zeigte auch geschlossene Issues (#63)
 
 Der Edge-Bug-Drawer listete sowohl offene als auch geschlossene Issues mit `geschlossen`-Label und Statszeile `X offen · Y geschlossen`. Fix: Backend fragt GitHub nur noch mit `state=open` ab, Frontend zeigt nur die Anzahl offener Issues; Closed-Label und zugehoeriges CSS entfernt.
