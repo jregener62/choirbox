@@ -1664,6 +1664,83 @@ textarea::placeholder {
   user-select: none;
 }
 
+/* Autoscroll Stepper (Vollbildmodus) */
+.autoscroll-stepper {
+  position: absolute;
+  bottom: var(--space-3);
+  left: 50%;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-0-5);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-1-5);
+  box-shadow: var(--shadow-md);
+  z-index: 5;
+  transition: opacity 0.5s ease;
+  user-select: none;
+}
+.autoscroll-stepper--faded {
+  opacity: 0.3;
+}
+.autoscroll-stepper-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.autoscroll-stepper-icon--on {
+  background: var(--accent);
+  color: white;
+}
+.autoscroll-stepper-divider {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 var(--space-0-5);
+}
+.autoscroll-stepper-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.autoscroll-stepper-btn:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+.autoscroll-stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.autoscroll-stepper-value {
+  min-width: 44px;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+.autoscroll-stepper-value--off {
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
 /* Document icon in browse — kept for DocumentPanel */
 .file-icon-doc {
   background: rgba(129,140,248,0.15);

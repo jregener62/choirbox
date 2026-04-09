@@ -488,6 +488,7 @@ Auf Chord Sheets (`.cho`) wird `page=1` als virtuelle Seite verwendet (ein Chord
 - **Audio laeuft weiter** — nur UI-Elemente werden versteckt
 - **Reset** bei Panel-Wechsel oder Navigation weg vom Player/DocViewer
 - **TXT Schriftgroesse**: Im Fullscreen erscheinen +/- Buttons (rechts ueber Fullscreen-FAB) zum Zoomen der Schrift (7 Stufen, 12px–32px). Text bricht bei jeder Groesse sauber um
+- **Autoscroll**: Im Fullscreen zentriert am unteren Rand sitzt der Speed-Stepper (`ChevronsDown` Toggle + −/Wert/+ analog zum Transpose-Stepper). 12 diskrete Geschwindigkeitsstufen (0.25× / 0.5× / 0.75× / 1× / 1.25× / 1.5× / 1.75× / 2× / 2.5× / 3× / 4× / 5×) auf Basis von 30 px/s. Funktioniert fuer PDF, TXT und CHO. Pausiert automatisch wenn Audio geladen ist und nicht spielt — oder laeuft frei wenn kein Track geladen ist (DocViewer-Modus). Stoppt automatisch beim Erreichen des Dokument-Endes. Setzt sich beim Trackwechsel zurueck. Auto-Fade nach 3s Idle wie die anderen FABs.
 
 | Datei | Rolle |
 |-------|-------|
@@ -497,6 +498,8 @@ Auf Chord Sheets (`.cho`) wird `page=1` als virtuelle Seite verwendet (ein Chord
 | `frontend/src/components/ui/VideoViewer.tsx` | HTML5 Video-Player im Texte-Viewer (Dokumente) |
 | `frontend/src/components/ui/VideoModal.tsx` | Video-Modal fuer .mp4 Dateien in der Browse-Seite |
 | `frontend/src/components/ui/TextViewer.tsx` | Monospace-Textansicht |
+| `frontend/src/components/ui/AutoScrollStepper.tsx` | Speed-Stepper fuer Autoscroll im Vollbild |
+| `frontend/src/hooks/useAutoScroll.ts` | RAF-Loop fuer pixelgenaues Autoscrolling |
 | `frontend/src/hooks/useDocuments.ts` | Zustand Store (load/upload/remove) |
 | `frontend/src/hooks/useSelectedDocument.ts` | Zustand Store: Text-Auswahl fuer Player (select/deselect/load) |
 | `frontend/src/hooks/useAnnotations.ts` | Zustand Store: drawingMode, tool, strokes, API-Calls |

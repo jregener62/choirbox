@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Autoscroll-Geschwindigkeit im Vollbildmodus — Mockup</title>
+<style>
+  :root {
+    --bg-primary: #1E2538;
+    --bg-secondary: #2A3348;
+    --bg-tertiary: #354050;
+    --bg-elevated: #303A50;
+    --text-primary: #E4E8EE;
+    --text-secondary: #9AA4B4;
+    --text-muted: #6A7484;
+    --border: rgba(148,163,184,0.10);
+    --accent: #818cf8;
+    --confirm: #3b82f6;
+    --success: #4ade80;
+    --danger: #f87171;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #0f1219;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 16px 16px 48px;
+    color: var(--text-primary);
+  }
+  h1 { font-size: 20px; margin-bottom: 6px; }
+  .subtitle {
+    font-size: 13px; color: var(--text-muted);
+    margin-bottom: 24px; max-width: 860px;
+    text-align: center; line-height: 1.55;
+  }
+  .variant-block { width: 100%; max-width: 1200px; margin-bottom: 28px; }
+  .variant-head {
+    display: flex; align-items: baseline; gap: 10px;
+    padding: 0 4px 6px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 14px;
+  }
+  .variant-tag {
+    font-size: 11px; font-weight: 800;
+    color: white; background: var(--accent);
+    padding: 3px 8px; border-radius: 10px;
+    letter-spacing: 0.5px;
+  }
+  .variant-title { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+  .variant-sub { font-size: 12px; color: var(--text-muted); }
+
+  .devices { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; }
+  .device-col { display: flex; flex-direction: column; align-items: center; }
+  .device-label {
+    font-size: 11px; color: var(--text-muted);
+    margin-bottom: 6px; font-weight: 600;
+    letter-spacing: 0.5px; text-transform: uppercase;
+  }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 18px; height: 18px; border-radius: 50%;
+    background: var(--accent); color: white;
+    font-size: 10px; font-weight: 700; margin-right: 6px;
+  }
+  .device {
+    width: 320px; height: 620px;
+    background: var(--bg-primary);
+    border-radius: 22px;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+    border: 1px solid var(--border);
+  }
+
+  /* Fullscreen content area */
+  .fs-area {
+    flex: 1;
+    overflow: hidden;
+    padding: 28px 22px 22px;
+    position: relative;
+    background: var(--bg-primary);
+  }
+  .lyrics {
+    display: flex; flex-direction: column;
+    gap: 8px;
+  }
+  .ll {
+    font-size: 13px; line-height: 1.5;
+    color: var(--text-secondary);
+  }
+  .ll.h { color: var(--text-primary); font-weight: 600; }
+  .ll.dim { color: var(--text-muted); }
+  .ll.section {
+    color: var(--accent); font-weight: 700;
+    text-transform: uppercase; font-size: 10px;
+    letter-spacing: 1px; margin-top: 6px;
+  }
+  .chord {
+    display: inline-block;
+    color: var(--accent); font-weight: 700;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 11px;
+    margin-right: 4px;
+  }
+
+  /* Subtle horizontal "current line" guide */
+  .scroll-cursor {
+    position: absolute; left: 0; right: 0;
+    height: 22px;
+    background: linear-gradient(90deg, transparent, rgba(129,140,248,0.10), transparent);
+    border-top: 1px dashed rgba(129,140,248,0.35);
+    border-bottom: 1px dashed rgba(129,140,248,0.35);
+    pointer-events: none;
+  }
+
+  /* ─── Base FAB (matches frontend .pdf-fab) ─── */
+  .fab {
+    position: absolute;
+    width: 44px; height: 44px;
+    border-radius: 50%;
+    border: 1px solid var(--border);
+    background: var(--bg-elevated);
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    z-index: 20;
+    transition: opacity 0.4s ease;
+  }
+  .fab--accent { background: var(--accent); color: white; border-color: transparent; }
+  .fab--rb { right: 12px; bottom: 12px; }
+  .fab--lb { left: 12px; bottom: 12px; }
+  .fab--rb2 { right: 12px; bottom: 64px; }
+  .fab--rb3 { right: 12px; bottom: 116px; }
+  .faded { opacity: 0.3; }
+
+  .fab-progress { position: absolute; top: -2px; left: -2px; width: 48px; height: 48px; pointer-events: none; }
+  .fab-progress circle { fill: none; stroke-width: 2; transform: rotate(-90deg); transform-origin: center; }
+  .fab-progress .track { stroke: rgba(255,255,255,0.15); }
+  .fab-progress .fill { stroke: white; stroke-dasharray: 138.23; stroke-dashoffset: 50; }
+
+  /* ─── Variante A: Stepper (Transpose-Style) ─── */
+  .speed-stepper {
+    position: absolute;
+    bottom: 14px;
+    left: 50%; transform: translateX(-50%);
+    display: flex; align-items: center; gap: 2px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 4px 6px 4px 4px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    z-index: 20;
+  }
+  .speed-stepper-icon {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-secondary);
+    border: none; background: none; cursor: pointer;
+  }
+  .speed-stepper-icon.on { background: var(--accent); color: white; }
+  .speed-stepper-divider {
+    width: 1px; height: 24px;
+    background: var(--border);
+    margin: 0 2px;
+  }
+  .speed-stepper-btn {
+    width: 30px; height: 30px;
+    border-radius: 50%;
+    background: none; border: none;
+    color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer;
+  }
+  .speed-stepper-btn:disabled { color: var(--text-muted); opacity: 0.4; }
+  .speed-stepper-value {
+    min-width: 44px; text-align: center;
+    font-size: 13px; font-weight: 700; color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+  }
+  .speed-stepper-value.off { color: var(--text-muted); font-weight: 500; }
+
+  /* ─── Variante B: Vertikaler Slider ─── */
+  .speed-slider-v {
+    position: absolute;
+    right: 12px; bottom: 64px;
+    width: 46px;
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    padding: 10px 0 10px;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    z-index: 20;
+  }
+  .speed-slider-icon {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; background: var(--accent);
+  }
+  .speed-slider-icon.off { background: var(--bg-tertiary); color: var(--text-secondary); }
+  .speed-slider-track {
+    position: relative;
+    width: 4px; height: 150px;
+    background: var(--bg-tertiary);
+    border-radius: 2px;
+    margin: 6px 0 4px;
+  }
+  .speed-slider-fill {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--accent);
+    border-radius: 2px;
+  }
+  .speed-slider-thumb {
+    position: absolute;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 2px solid var(--bg-elevated);
+    left: 50%; transform: translate(-50%, 50%);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .speed-slider-tick {
+    position: absolute;
+    left: -7px; width: 18px; height: 1px;
+    background: var(--text-muted);
+    opacity: 0.5;
+  }
+  .speed-slider-value {
+    font-size: 11px; font-weight: 700; color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .speed-slider-value.off { color: var(--text-muted); }
+
+  /* ─── Variante C: Bottom-Sheet ─── */
+  .sheet-backdrop {
+    position: absolute; inset: 0;
+    background: rgba(15,18,25,0.55);
+    z-index: 10;
+  }
+  .bottom-sheet {
+    position: absolute;
+    left: 0; right: 0; bottom: 0;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    border-radius: 18px 18px 0 0;
+    padding: 12px 22px 24px;
+    z-index: 15;
+    box-shadow: 0 -8px 24px rgba(0,0,0,0.5);
+  }
+  .sheet-handle {
+    width: 36px; height: 4px;
+    background: var(--text-muted);
+    border-radius: 2px;
+    margin: 0 auto 12px;
+    opacity: 0.5;
+  }
+  .sheet-title {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    text-align: center;
+    text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .sheet-value {
+    font-size: 34px; font-weight: 800; color: var(--accent);
+    text-align: center; margin-bottom: 14px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+  }
+  .sheet-value-unit {
+    font-size: 14px; color: var(--text-muted);
+    font-weight: 500; margin-left: 4px;
+  }
+
+  .h-slider { position: relative; width: 100%; height: 28px; }
+  .h-slider-track {
+    position: absolute; top: 50%; left: 0; right: 0;
+    height: 4px; background: var(--bg-tertiary);
+    border-radius: 2px; transform: translateY(-50%);
+  }
+  .h-slider-fill {
+    position: absolute; top: 50%; left: 0;
+    height: 4px; background: var(--accent);
+    border-radius: 2px; transform: translateY(-50%);
+  }
+  .h-slider-thumb {
+    position: absolute; top: 50%;
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid var(--bg-secondary);
+    transform: translate(-50%, -50%);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.5);
+  }
+  .h-slider-ticks {
+    position: relative; width: 100%; height: 14px;
+    margin-top: 2px;
+  }
+  .h-slider-tick {
+    position: absolute; top: 0;
+    font-size: 9px; color: var(--text-muted);
+    font-weight: 600; transform: translateX(-50%);
+    font-variant-numeric: tabular-nums;
+  }
+  .preset-row {
+    display: flex; gap: 6px; justify-content: center;
+    margin-top: 14px;
+  }
+  .preset-btn {
+    padding: 6px 10px;
+    border-radius: 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    color: var(--text-secondary);
+    font-size: 11px; font-weight: 600;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .preset-btn.active {
+    background: var(--accent); color: white;
+    border-color: transparent;
+  }
+
+  /* Annotations */
+  .annot {
+    position: absolute;
+    display: flex; align-items: center; gap: 6px;
+    z-index: 25;
+    pointer-events: none;
+  }
+  .annot-label {
+    font-size: 10px; font-weight: 600; color: var(--accent);
+    background: rgba(129,140,248,0.20);
+    padding: 3px 10px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+  .annot-arrow-r {
+    width: 18px; height: 2px;
+    background: var(--accent);
+    position: relative;
+  }
+  .annot-arrow-r::after {
+    content: ''; position: absolute;
+    right: -1px; top: -3px;
+    border-left: 5px solid var(--accent);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .annot-arrow-l {
+    width: 18px; height: 2px;
+    background: var(--accent);
+    position: relative;
+  }
+  .annot-arrow-l::after {
+    content: ''; position: absolute;
+    left: -1px; top: -3px;
+    border-right: 5px solid var(--accent);
+    border-top: 4px solid transparent;
+    border-bottom: 4px solid transparent;
+  }
+  .annot-success .annot-label { color: var(--success); background: rgba(74,222,128,0.15); }
+
+  /* Description box under devices */
+  .desc-box {
+    margin-top: 10px;
+    padding: 10px 14px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    max-width: 320px;
+    width: 100%;
+  }
+  .desc-box p { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+  .desc-box p + p { margin-top: 6px; }
+  .hl { color: var(--accent); font-weight: 600; }
+
+  /* Final summary */
+  .summary {
+    margin-top: 8px;
+    padding: 18px 22px;
+    background: var(--bg-secondary);
+    border-radius: 14px;
+    border: 1px solid var(--border);
+    max-width: 1080px;
+    width: 100%;
+  }
+  .summary-title { font-size: 14px; font-weight: 700; color: var(--accent); margin-bottom: 12px; }
+  .compare-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .compare-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .compare-card h4 {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+  }
+  .compare-card ul {
+    list-style: none;
+    padding: 0; margin: 0;
+  }
+  .compare-card li {
+    font-size: 11px;
+    color: var(--text-secondary);
+    line-height: 1.55;
+    padding: 2px 0 2px 14px;
+    position: relative;
+  }
+  .compare-card li.pro::before {
+    content: '+';
+    position: absolute; left: 0;
+    color: var(--success); font-weight: 800;
+  }
+  .compare-card li.con::before {
+    content: '−';
+    position: absolute; left: 0;
+    color: var(--danger); font-weight: 800;
+  }
+  .compare-recommend {
+    margin-top: 14px;
+    padding: 10px 14px;
+    background: rgba(129,140,248,0.10);
+    border: 1px solid rgba(129,140,248,0.30);
+    border-radius: 8px;
+    font-size: 12px;
+    color: var(--text-primary);
+    line-height: 1.55;
+  }
+  .compare-recommend strong { color: var(--accent); }
+</style>
+</head>
+<body>
+  <h1>Autoscroll-Geschwindigkeit im Vollbildmodus</h1>
+  <p class="subtitle">
+    Im Vollbildmodus (TXT, CHO und perspektivisch PDF) kann der Text automatisch nach unten scrollen, damit Saenger ohne Beruehrung des Geraetes mitlesen koennen.
+    Drei Varianten fuer die Geschwindigkeitseinstellung — alle bauen auf das bestehende FAB-System auf, bleiben Daumen-erreichbar und nutzen den Auto-Fade nach 3 Sekunden Inaktivitaet.
+  </p>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- VARIANTE A: STEPPER                            -->
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="variant-block">
+    <div class="variant-head">
+      <span class="variant-tag">A</span>
+      <span class="variant-title">Speed-Stepper</span>
+      <span class="variant-sub">analog zum Transpose-Stepper · Daumen-Bottom · jederzeit sichtbar</span>
+    </div>
+    <div class="devices">
+
+      <!-- A1: Off -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">1</span> Aus</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics">
+              <div class="ll section">Strophe 1</div>
+              <div class="ll h">Vom Himmel hoch da komm ich her,</div>
+              <div class="ll">ich bring euch gute neue Maer,</div>
+              <div class="ll">der guten Maer bring ich so viel,</div>
+              <div class="ll">davon ich singn und sagen will.</div>
+              <div class="ll section">Strophe 2</div>
+              <div class="ll">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+              <div class="ll">ein Kindelein so zart und fein,</div>
+              <div class="ll dim">das soll eur Freud und Wonne sein.</div>
+              <div class="ll dim">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll dim">der will euch fuehrn aus aller Not,</div>
+              <div class="ll dim">er will eur Heiland selber sein,</div>
+              <div class="ll dim">von allen Suenden machen rein.</div>
+            </div>
+
+            <!-- Speed Stepper (Off state) -->
+            <div class="speed-stepper">
+              <button class="speed-stepper-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 6 L12 11 L17 6"/>
+                  <path d="M7 13 L12 18 L17 13"/>
+                </svg>
+              </button>
+              <div class="speed-stepper-divider"></div>
+              <button class="speed-stepper-btn" disabled>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <span class="speed-stepper-value off">Aus</span>
+              <button class="speed-stepper-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+
+            <!-- Other FABs (existing) -->
+            <button class="fab fab--lb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/><path d="M18 13l-1.5-7.5L2 2l3.5 14.5L13 18l5-5z"/><path d="M2 2l7.586 7.586"/><circle cx="11" cy="11" r="2"/></svg>
+            </button>
+            <button class="fab fab--accent fab--rb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Stepper sitzt zentriert am unteren Rand. Der <span class="hl">ChevronsDown-Button links</span> ist Toggle: Tap startet Autoscroll, der Wert wechselt von „Aus" auf zuletzt gewaehlte Geschwindigkeit.</p>
+        </div>
+      </div>
+
+      <!-- A2: Aktiv mit 1.5x -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">2</span> Aktiv · 1.5x</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics" style="margin-top: -20px;">
+              <div class="ll dim">davon ich singn und sagen will.</div>
+              <div class="ll section">Strophe 2</div>
+              <div class="ll">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+              <div class="ll h">ein Kindelein so zart und fein,</div>
+              <div class="ll">das soll eur Freud und Wonne sein.</div>
+              <div class="ll">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll">der will euch fuehrn aus aller Not,</div>
+              <div class="ll">er will eur Heiland selber sein,</div>
+              <div class="ll">von allen Suenden machen rein.</div>
+            </div>
+            <!-- subtle "current line" guide near the highlighted line -->
+            <div class="scroll-cursor" style="top: 38%;"></div>
+
+            <div class="speed-stepper">
+              <button class="speed-stepper-icon on">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M7 6 L12 11 L17 6"/>
+                  <path d="M7 13 L12 18 L17 13"/>
+                </svg>
+              </button>
+              <div class="speed-stepper-divider"></div>
+              <button class="speed-stepper-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+              <span class="speed-stepper-value">1.5×</span>
+              <button class="speed-stepper-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              </button>
+            </div>
+
+            <button class="fab fab--lb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg>
+            </button>
+            <button class="fab fab--accent fab--rb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot" style="bottom: 24px; left: 18px;">
+              <div class="annot-label">aktiv: Akzent-Hintergrund</div>
+              <div class="annot-arrow-r"></div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p><span class="hl">+/− stufen</span> in 0.5er-Schritten (0.5×, 1×, 1.5×, 2×, 3×, 5×). Der Text scrollt mit konstanter Px/s je nach Stufe. Der dezente Cursor markiert die aktuelle Lese-Linie.</p>
+        </div>
+      </div>
+
+      <!-- A3: Auto-Fade -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">3</span> Auto-Fade nach 3s</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics" style="margin-top: -60px;">
+              <div class="ll dim">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll dim">von einer Jungfrau auserkorn,</div>
+              <div class="ll">ein Kindelein so zart und fein,</div>
+              <div class="ll">das soll eur Freud und Wonne sein.</div>
+              <div class="ll h">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll">der will euch fuehrn aus aller Not,</div>
+              <div class="ll">er will eur Heiland selber sein,</div>
+              <div class="ll">von allen Suenden machen rein.</div>
+              <div class="ll section">Strophe 3</div>
+              <div class="ll">Er bringt euch alle Seligkeit,</div>
+              <div class="ll">die Gott der Vater hat bereit,</div>
+            </div>
+            <div class="scroll-cursor" style="top: 42%;"></div>
+
+            <div class="speed-stepper faded">
+              <button class="speed-stepper-icon on">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6 L12 11 L17 6"/><path d="M7 13 L12 18 L17 13"/></svg>
+              </button>
+              <div class="speed-stepper-divider"></div>
+              <button class="speed-stepper-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+              <span class="speed-stepper-value">1.5×</span>
+              <button class="speed-stepper-btn"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+            </div>
+
+            <button class="fab fab--lb faded"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></button>
+            <button class="fab fab--accent fab--rb faded">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot annot-success" style="bottom: 60px; left: 50%; transform: translateX(-50%);">
+              <div class="annot-label">Touch = 100% Opazitaet</div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Wie alle FABs: nach <span class="hl">3s Inaktivitaet</span> auf 30% Opazitaet gefadet. Der Text wird kaum verdeckt, jede Beruehrung stellt volle Sichtbarkeit wieder her.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- VARIANTE B: VERTIKALER SLIDER                  -->
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="variant-block">
+    <div class="variant-head">
+      <span class="variant-tag">B</span>
+      <span class="variant-title">Vertikaler Slider</span>
+      <span class="variant-sub">stufenlose Geschwindigkeit · neben dem Maximize-FAB · live drag</span>
+    </div>
+    <div class="devices">
+
+      <!-- B1: Off -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">1</span> Aus</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics">
+              <div class="ll section">Strophe 1</div>
+              <div class="ll h">Vom Himmel hoch da komm ich her,</div>
+              <div class="ll">ich bring euch gute neue Maer,</div>
+              <div class="ll">der guten Maer bring ich so viel,</div>
+              <div class="ll">davon ich singn und sagen will.</div>
+              <div class="ll section">Strophe 2</div>
+              <div class="ll">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+              <div class="ll">ein Kindelein so zart und fein,</div>
+              <div class="ll dim">das soll eur Freud und Wonne sein.</div>
+              <div class="ll dim">Es ist der Herr Christ, unser Gott,</div>
+            </div>
+
+            <button class="fab fab--lb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></button>
+
+            <!-- Toggle FAB above the maximize FAB -->
+            <button class="fab fab--rb2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6 L12 11 L17 6"/><path d="M7 13 L12 18 L17 13"/></svg>
+            </button>
+
+            <button class="fab fab--accent fab--rb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot" style="bottom: 70px; right: 64px;">
+              <div class="annot-label">Tap startet Autoscroll</div>
+              <div class="annot-arrow-r"></div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Im Off-Zustand zeigt sich nur ein kompakter <span class="hl">FAB ueber dem Maximize-Button</span>. Tap startet Autoscroll und blendet den Slider ein.</p>
+        </div>
+      </div>
+
+      <!-- B2: Aktiv mit Slider -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">2</span> Slider sichtbar · 1.8×</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics" style="margin-top: -20px;">
+              <div class="ll dim">davon ich singn und sagen will.</div>
+              <div class="ll section">Strophe 2</div>
+              <div class="ll">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+              <div class="ll h">ein Kindelein so zart und fein,</div>
+              <div class="ll">das soll eur Freud und Wonne sein.</div>
+              <div class="ll">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll">der will euch fuehrn aus aller Not,</div>
+              <div class="ll">er will eur Heiland selber sein,</div>
+            </div>
+            <div class="scroll-cursor" style="top: 38%;"></div>
+
+            <button class="fab fab--lb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></button>
+
+            <!-- Slider pill -->
+            <div class="speed-slider-v">
+              <div class="speed-slider-icon">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6 L12 11 L17 6"/><path d="M7 13 L12 18 L17 13"/></svg>
+              </div>
+              <div class="speed-slider-track">
+                <div class="speed-slider-fill" style="height: 60%;"></div>
+                <div class="speed-slider-tick" style="top: 0;"></div>
+                <div class="speed-slider-tick" style="top: 25%;"></div>
+                <div class="speed-slider-tick" style="top: 50%;"></div>
+                <div class="speed-slider-tick" style="top: 75%;"></div>
+                <div class="speed-slider-tick" style="top: 100%;"></div>
+                <div class="speed-slider-thumb" style="top: 40%;"></div>
+              </div>
+              <div class="speed-slider-value">1.8×</div>
+            </div>
+
+            <button class="fab fab--accent fab--rb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot" style="top: 50%; right: 70px;">
+              <div class="annot-label">Drag = stufenlos</div>
+              <div class="annot-arrow-r"></div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Slider erscheint als <span class="hl">vertikales Pill</span> rechts. Drag am Thumb veraendert die Geschwindigkeit live, der Wert wird oberhalb angezeigt. Stufenlos zwischen 0.3× und 5×.</p>
+        </div>
+      </div>
+
+      <!-- B3: Auto-Fade -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">3</span> Auto-Fade nach 3s</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics" style="margin-top: -60px;">
+              <div class="ll dim">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll dim">von einer Jungfrau auserkorn,</div>
+              <div class="ll">ein Kindelein so zart und fein,</div>
+              <div class="ll">das soll eur Freud und Wonne sein.</div>
+              <div class="ll h">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll">der will euch fuehrn aus aller Not,</div>
+              <div class="ll">er will eur Heiland selber sein,</div>
+              <div class="ll">von allen Suenden machen rein.</div>
+              <div class="ll section">Strophe 3</div>
+              <div class="ll">Er bringt euch alle Seligkeit,</div>
+            </div>
+            <div class="scroll-cursor" style="top: 42%;"></div>
+
+            <button class="fab fab--lb faded"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></button>
+
+            <div class="speed-slider-v faded">
+              <div class="speed-slider-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6 L12 11 L17 6"/><path d="M7 13 L12 18 L17 13"/></svg></div>
+              <div class="speed-slider-track">
+                <div class="speed-slider-fill" style="height: 60%;"></div>
+                <div class="speed-slider-tick" style="top: 0;"></div>
+                <div class="speed-slider-tick" style="top: 25%;"></div>
+                <div class="speed-slider-tick" style="top: 50%;"></div>
+                <div class="speed-slider-tick" style="top: 75%;"></div>
+                <div class="speed-slider-tick" style="top: 100%;"></div>
+                <div class="speed-slider-thumb" style="top: 40%;"></div>
+              </div>
+              <div class="speed-slider-value">1.8×</div>
+            </div>
+
+            <button class="fab fab--accent fab--rb faded">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot annot-success" style="top: 40%; right: 70px;">
+              <div class="annot-label">Touch = 100%</div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Auch der Slider faded nach <span class="hl">3s Idle</span> auf 30%. Der Slider verbraucht etwas mehr Hoehe, dafuer kein „raten" zwischen Stufen.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- VARIANTE C: BOTTOM-SHEET MIT LONG-PRESS        -->
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="variant-block">
+    <div class="variant-head">
+      <span class="variant-tag">C</span>
+      <span class="variant-title">FAB + Bottom-Sheet</span>
+      <span class="variant-sub">Tap = Start/Stop · Long-Press oder zweiter Tap = Bottom-Sheet mit Slider</span>
+    </div>
+    <div class="devices">
+
+      <!-- C1: FAB im Off -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">1</span> FAB im Vollbild</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics">
+              <div class="ll section">Strophe 1</div>
+              <div class="ll h">Vom Himmel hoch da komm ich her,</div>
+              <div class="ll">ich bring euch gute neue Maer,</div>
+              <div class="ll">der guten Maer bring ich so viel,</div>
+              <div class="ll">davon ich singn und sagen will.</div>
+              <div class="ll section">Strophe 2</div>
+              <div class="ll">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+              <div class="ll">ein Kindelein so zart und fein,</div>
+              <div class="ll dim">das soll eur Freud und Wonne sein.</div>
+              <div class="ll dim">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll dim">der will euch fuehrn aus aller Not,</div>
+            </div>
+
+            <button class="fab fab--lb"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></button>
+
+            <!-- Autoscroll FAB -->
+            <button class="fab fab--rb2">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6 L12 11 L17 6"/><path d="M7 13 L12 18 L17 13"/></svg>
+            </button>
+
+            <button class="fab fab--accent fab--rb">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot" style="bottom: 70px; right: 64px;">
+              <div class="annot-label">Tap = Start · Long-Press = Speed</div>
+              <div class="annot-arrow-r"></div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Minimaler UI-Footprint: <span class="hl">nur ein FAB</span>. Tap startet/stoppt, Long-Press oeffnet das Bottom-Sheet zur Geschwindigkeitswahl.</p>
+        </div>
+      </div>
+
+      <!-- C2: Bottom-Sheet offen -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">2</span> Bottom-Sheet offen</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics">
+              <div class="ll section">Strophe 1</div>
+              <div class="ll">Vom Himmel hoch da komm ich her,</div>
+              <div class="ll">ich bring euch gute neue Maer,</div>
+              <div class="ll">der guten Maer bring ich so viel,</div>
+              <div class="ll">davon ich singn und sagen will.</div>
+              <div class="ll section">Strophe 2</div>
+              <div class="ll">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+            </div>
+
+            <div class="sheet-backdrop"></div>
+            <div class="bottom-sheet">
+              <div class="sheet-handle"></div>
+              <div class="sheet-title">Autoscroll-Geschwindigkeit</div>
+              <div class="sheet-value">1.5<span class="sheet-value-unit">×</span></div>
+              <div class="h-slider">
+                <div class="h-slider-track"></div>
+                <div class="h-slider-fill" style="width: 38%;"></div>
+                <div class="h-slider-thumb" style="left: 38%;"></div>
+              </div>
+              <div class="h-slider-ticks">
+                <span class="h-slider-tick" style="left: 0%;">0.5×</span>
+                <span class="h-slider-tick" style="left: 25%;">1×</span>
+                <span class="h-slider-tick" style="left: 50%;">2×</span>
+                <span class="h-slider-tick" style="left: 75%;">3×</span>
+                <span class="h-slider-tick" style="left: 100%;">5×</span>
+              </div>
+              <div class="preset-row">
+                <button class="preset-btn">0.5×</button>
+                <button class="preset-btn">1×</button>
+                <button class="preset-btn active">1.5×</button>
+                <button class="preset-btn">2×</button>
+                <button class="preset-btn">3×</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p><span class="hl">Bottom-Sheet</span> mit grosser Wert-Anzeige, horizontalem Slider und Preset-Pills. Schliesst sich nach 2s ohne Interaktion oder beim Tap auf Backdrop.</p>
+        </div>
+      </div>
+
+      <!-- C3: Aktiv ohne Sheet -->
+      <div class="device-col">
+        <div class="device-label"><span class="step-num">3</span> Aktiv · ohne Sheet</div>
+        <div class="device">
+          <div class="fs-area">
+            <div class="lyrics" style="margin-top: -40px;">
+              <div class="ll dim">Euch ist ein Kindlein heut geborn</div>
+              <div class="ll">von einer Jungfrau auserkorn,</div>
+              <div class="ll">ein Kindelein so zart und fein,</div>
+              <div class="ll h">das soll eur Freud und Wonne sein.</div>
+              <div class="ll">Es ist der Herr Christ, unser Gott,</div>
+              <div class="ll">der will euch fuehrn aus aller Not,</div>
+              <div class="ll">er will eur Heiland selber sein,</div>
+              <div class="ll">von allen Suenden machen rein.</div>
+              <div class="ll section">Strophe 3</div>
+              <div class="ll">Er bringt euch alle Seligkeit,</div>
+            </div>
+            <div class="scroll-cursor" style="top: 42%;"></div>
+
+            <button class="fab fab--lb faded"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 19l7-7 3 3-7 7-3-3z"/></svg></button>
+
+            <!-- Active Autoscroll FAB with speed badge -->
+            <button class="fab fab--accent fab--rb2 faded">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 6 L12 11 L17 6"/><path d="M7 13 L12 18 L17 13"/></svg>
+              <span style="position:absolute; bottom:-2px; right:-4px; font-size:9px; font-weight:800; background:var(--bg-primary); color:var(--accent); padding:1px 5px; border-radius:8px; border:1px solid var(--accent); line-height:1;">1.5×</span>
+            </button>
+
+            <button class="fab fab--accent fab--rb faded">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6"/><path d="M20 10h-6V4"/><path d="M14 10l7-7"/><path d="M3 21l7-7"/></svg>
+              <svg class="fab-progress" viewBox="0 0 48 48"><circle class="track" cx="24" cy="24" r="22"/><circle class="fill" cx="24" cy="24" r="22"/></svg>
+            </button>
+
+            <div class="annot" style="bottom: 80px; right: 70px;">
+              <div class="annot-label">Speed-Badge am FAB</div>
+              <div class="annot-arrow-r"></div>
+            </div>
+          </div>
+        </div>
+        <div class="desc-box">
+          <p>Sheet schliesst, FAB faerbt sich akzentuiert und zeigt eine kleine <span class="hl">Speed-Badge</span> mit aktueller Geschwindigkeit. Erneuter Tap stoppt, Long-Press oeffnet Sheet wieder.</p>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- SUMMARY                                        -->
+  <!-- ─────────────────────────────────────────────── -->
+  <div class="summary">
+    <div class="summary-title">Vergleich &amp; Empfehlung</div>
+    <div class="compare-grid">
+      <div class="compare-card">
+        <h4>A — Speed-Stepper</h4>
+        <ul>
+          <li class="pro">Konsistent mit Transpose-Stepper (bestehende Komponente)</li>
+          <li class="pro">Ein Tap = Start/Stop, +/− = Speed</li>
+          <li class="pro">Wert immer sichtbar</li>
+          <li class="con">Belegt zentralen Bildbereich am unteren Rand</li>
+          <li class="con">Diskrete Stufen statt stufenlos</li>
+        </ul>
+      </div>
+      <div class="compare-card">
+        <h4>B — Vertikaler Slider</h4>
+        <ul>
+          <li class="pro">Stufenlose Geschwindigkeit, sehr fein</li>
+          <li class="pro">Live-Drag zeigt sofort Wirkung</li>
+          <li class="pro">Sitzt rechts neben FAB-Stack — natuerliche Daumen-Zone</li>
+          <li class="con">Hoeherer vertikaler Platzbedarf</li>
+          <li class="con">Slider-Drag schwierig bei kleinen Geraeten</li>
+        </ul>
+      </div>
+      <div class="compare-card">
+        <h4>C — FAB + Bottom-Sheet</h4>
+        <ul>
+          <li class="pro">Minimaler Footprint im Vollbild — fast nichts verdeckt</li>
+          <li class="pro">Bottom-Sheet bietet komfortable Slider+Presets</li>
+          <li class="pro">Long-Press ist bekanntes Mobile-Pattern</li>
+          <li class="con">Long-Press ist nicht selbsterklaerend (Onboarding noetig)</li>
+          <li class="con">Mehr Tap-Schritte fuer Speed-Aenderung</li>
+        </ul>
+      </div>
+    </div>
+    <div class="compare-recommend">
+      <strong>Empfehlung:</strong> Variante <strong>A (Speed-Stepper)</strong> — sie nutzt die bereits etablierte Stepper-Komponente (Transpose), ist sofort verstaendlich, braucht keine versteckten Gesten und passt visuell zum Rest der Player-UI. Die diskreten Stufen (0.5× / 1× / 1.5× / 2× / 3× / 5×) sind fuer den Use-Case „beim Mitsingen scrollen" ausreichend fein.
+    </div>
+  </div>
+
+</body>
+</html>

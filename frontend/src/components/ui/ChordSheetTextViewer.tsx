@@ -13,6 +13,7 @@ interface ChordSheetTextViewerProps {
   transposition: number
   fontSize?: number
   showName?: boolean
+  scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
 const ANNOTATION_PAGE = 1
@@ -24,6 +25,7 @@ export function ChordSheetTextViewer({
   transposition,
   fontSize = 14,
   showName = true,
+  scrollContainerRef,
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -223,7 +225,15 @@ export function ChordSheetTextViewer({
   }
 
   return (
-    <div className="cho-viewer-wrap" style={{ fontSize }}>
+    <div
+      className="cho-viewer-wrap"
+      style={{ fontSize }}
+      ref={(el) => {
+        if (scrollContainerRef) {
+          (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
+        }
+      }}
+    >
       <div className="cho-viewer-content" ref={contentRef}>
         {showName && <div className="cho-viewer-name">{originalName}</div>}
         <ChordSheetViewer content={parsed} transposition={transposition} />
