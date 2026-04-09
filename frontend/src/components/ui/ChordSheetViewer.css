@@ -2,7 +2,7 @@
 
 .chord-sheet-viewer {
   font-family: 'Courier New', Courier, monospace;
-  font-size: var(--text-body);
+  /* font-size wird vom Parent (.cho-viewer-wrap) via Inline-Style gesetzt, damit Zoom durchschlaegt */
   line-height: 1.4;
   padding: var(--space-3);
   overflow-x: auto;
@@ -16,7 +16,8 @@
 
 .chord-section-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: var(--text-caption);
+  /* em-basiert, damit das Label mit dem Chord-Sheet-Body mitskaliert */
+  font-size: 0.85em;
   font-weight: 600;
   color: var(--text-secondary);
   margin-bottom: var(--space-2);
