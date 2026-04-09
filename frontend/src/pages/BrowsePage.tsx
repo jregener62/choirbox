@@ -793,21 +793,9 @@ export function BrowsePage() {
                   const songLabels = getLabelsForPath(entry.path).filter((l) => l.category !== 'Stimme')
                   return (
                     <>
-                      {(entry.sub_folders?.length || entry.selected_doc) && (
+                      {entry.sub_folders?.length && (
                         <div className="meta-bricks">
-                          {entry.selected_doc && (
-                            <button
-                              className="meta-brick meta-brick--text-viewer meta-brick--text-viewer-active"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                const docFolder = entry.selected_doc!.path.split('/').slice(0, -1).join('/')
-                                navigate(`/doc-viewer?folder=${encodeURIComponent(docFolder)}&name=${encodeURIComponent(entry.selected_doc!.name)}`)
-                              }}
-                            >
-                              <FileText size={14} />
-                            </button>
-                          )}
-                          {entry.sub_folders?.map((sf) => (
+                          {entry.sub_folders.map((sf) => (
                             <button
                               key={sf.type}
                               className={`meta-brick meta-brick--${sf.type}`}
