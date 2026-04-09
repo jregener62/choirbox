@@ -1830,6 +1830,10 @@ textarea::placeholder {
   color: var(--accent);
   border-color: rgba(129,140,248,0.35);
 }
+.file-type-badge--chord .file-type-ext {
+  text-transform: none;
+  letter-spacing: 0;
+}
 .file-type-badge--audio {
   color: #22d3ee;
   border-color: rgba(6,182,212,0.35);

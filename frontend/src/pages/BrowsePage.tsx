@@ -670,6 +670,7 @@ export function BrowsePage() {
           // File extension for badge text
           const fileExt = (isFile || isDoc) ? (entry.name.split('.').pop()?.toLowerCase() || '') : ''
           const isTextFile = fileExt === 'pdf' || fileExt === 'txt'
+          const isChordFile = fileExt === 'cho'
           const isVideoFile = fileExt === 'mp4' || fileExt === 'webm' || fileExt === 'mov'
           const isSelectedText = entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)
 
@@ -737,11 +738,12 @@ export function BrowsePage() {
                     parentFolderType === 'multitrack' ? 'file-type-badge--multitrack' :
                     parentFolderType === 'videos' ? 'file-type-badge--videos' :
                     isVideoFile ? 'file-type-badge--videos' :
+                    isChordFile ? 'file-type-badge--text file-type-badge--chord' :
                     isTextFile ? 'file-type-badge--text' :
                     'file-type-badge--audio'
                   }`}>
-                    {isTextFile ? <FileText size={16} /> : isVideoFile ? <Video size={16} /> : <Volume2 size={16} />}
-                    <span className="file-type-ext">{fileExt}</span>
+                    {isChordFile ? <Music size={16} /> : isTextFile ? <FileText size={16} /> : isVideoFile ? <Video size={16} /> : <Volume2 size={16} />}
+                    <span className="file-type-ext">{isChordFile ? 'Chords' : fileExt}</span>
                   </span>
                 </>
               ) : null}
