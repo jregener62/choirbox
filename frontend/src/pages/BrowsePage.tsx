@@ -215,23 +215,39 @@ export function BrowsePage() {
   }
 
   const handleSongClick = (entry: DropboxEntry) => {
-    // If /Texte has at least one text, open the Texte view first
-    const texteSf = entry.sub_folders?.find((sf) => sf.type === 'texte')
-    if (texteSf && texteSf.count > 0) {
-      closeSearch()
+    closeSearch()
+
+    // 1) Ausgewaehlter Text -> direkt DocViewer mit diesem Text
+    if (entry.selected_doc) {
+      const docFolder = entry.selected_doc.path.split('/').slice(0, -1).join('/')
+      navigate(`/doc-viewer?folder=${encodeURIComponent(docFolder)}&name=${encodeURIComponent(entry.selected_doc.name)}`)
+      return
+    }
+
+    // 2) Audio/Multitrack/Videos haben Vorrang, wenn gefuellt
+    for (const type of ['audio', 'multitrack', 'videos'] as const) {
+      const sf = entry.sub_folders?.find((s) => s.type === type)
+      if (sf) {
+        loadFolder(sf.path)
+        return
+      }
+    }
+
+    // 3) Nur /Texte uebrig
+    const texteSf = entry.sub_folders?.find((s) => s.type === 'texte')
+    if (texteSf) {
+      // Genau ein Text -> DocViewer direkt (auto-select greift im DocViewer)
+      if (texteSf.count === 1) {
+        navigate(`/doc-viewer?folder=${encodeURIComponent(texteSf.path)}`)
+        return
+      }
+      // Mehrere Texte ohne Auswahl -> /Texte-Liste zur Auswahl
       loadFolder(texteSf.path)
       return
     }
-    // Otherwise navigate into first subfolder (prefer Audio)
-    if (entry.sub_folders && entry.sub_folders.length > 0) {
-      const audioSf = entry.sub_folders.find((sf) => sf.type === 'audio')
-      const target = audioSf || entry.sub_folders[0]
-      closeSearch()
-      loadFolder(target.path)
-    } else {
-      closeSearch()
-      loadFolder(entry.path)
-    }
+
+    // 4) Song ohne Inhalt -> Song-Folder selbst oeffnen
+    loadFolder(entry.path)
   }
 
   const handleEntryClick = (entry: DropboxEntry) => {

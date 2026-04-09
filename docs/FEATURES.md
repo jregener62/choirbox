@@ -618,7 +618,7 @@ Der Audio-Player ist ein schwebendes, abgerundetes Overlay-Element (`position: f
 
 - **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist — auf allen Seiten (Browse, Viewer, Texte-Tab, Videos-Tab, Settings, etc.). Ausgeblendet auf Login und im PDF-Fullscreen-Modus.
 - **Design**: Abgerundeter Container (`border-radius: 16px`), eigene Hintergrundfarbe (`#252D40`), dezenter Schatten. Outline-Style fuer Play/Skip-Buttons.
-- **Klick auf .song-Eintrag**: Laedt alle Audio-Dateien aus dem `/Audio`-Unterordner, setzt den ersten Track (ohne Autoplay), Player erscheint mit Voice Bricks.
+- **Klick auf .song-Eintrag**: Springt direkt ins passende Ziel, ohne die Subfolder-Zwischenebene zu zeigen. Priorisierung: (1) Ausgewaehlter Text → DocViewer direkt, (2) erster gefuellter Subfolder in der Reihenfolge Audio > Multitrack > Videos, (3) genau ein Text ohne explizite Auswahl → DocViewer direkt, (4) mehrere Texte ohne Auswahl → Texte-Liste. Beim Audio-Ziel werden alle Audio-Dateien geladen, erster Track gesetzt (ohne Autoplay), Voice Bricks erscheinen. Subfolder-Badges in der Song-Zeile erlauben einen gezielten Sprung in einen bestimmten Ordner.
 - **Aktiver .song**: Bekommt Indigo-Rahmen und statisches Lautsprecher-Icon vor dem Titel in der Browse-Liste.
 
 ### Voice Bricks
