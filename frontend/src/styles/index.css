@@ -1069,17 +1069,55 @@ textarea::placeholder {
   margin-left: var(--space-0-5);
 }
 
-.marker-kebab-wrap {
-  position: relative;
-  flex-shrink: 0;
-  margin-left: auto;
+.player-toolbar-marker--deletable .player-toolbar-marker-x {
+  color: #fff;
 }
 
-.marker-kebab-popup {
-  right: 0;
-  bottom: calc(100% + 4px);
-  min-width: 160px;
-  z-index: 60;
+.marker-delete-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 34px;
+  padding: 5px var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border);
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  flex-shrink: 0;
+  margin-left: auto;
+  touch-action: manipulation;
+}
+
+.marker-delete-toggle:active {
+  background: var(--bg-tertiary);
+}
+
+.marker-delete-toggle--active {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+.marker-clear-all-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 34px;
+  padding: 5px var(--space-3);
+  border-radius: var(--radius-lg);
+  border: 1.5px solid var(--danger);
+  background: var(--danger);
+  color: #fff;
+  cursor: pointer;
+  flex-shrink: 0;
+  touch-action: manipulation;
+}
+
+.marker-clear-all-btn:active {
+  opacity: 0.85;
 }
 
 /* Player page scroll content */

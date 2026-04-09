@@ -708,15 +708,19 @@ Wichtige Stellen im Track markieren fuer schnelle Navigation und Loop-Definition
 - Maximal 5 Marker gleichzeitig — "Setze Marker"-Button wird bei 5 Markern deaktiviert, bei Loeschung wieder aktiv
 - Alle Marker mit Zeitstempel als Chips anzeigen (horizontal scrollbar)
 - Per Klick zum Marker springen
-- Kebab-Menue (⋮) in der Marker-Zeile mit zwei Optionen:
-  - **Marker loeschen**: Aktiviert Loesch-Modus — Marker wechseln auf weissen Rahmen, Tap loescht einzelnen Marker. Modus endet automatisch nach 3 Sekunden.
-  - **Alle Marker loeschen**: Entfernt alle Marker auf einmal
+- **Lösch-Modus** ueber Trash-Button am Ende der Marker-Zeile:
+  - Klick auf Trash → Lösch-Modus an (Button rot, alle Marker werden weiss mit X-Symbol)
+  - Klick auf einen weissen Marker → loescht diesen Marker
+  - Klick auf "Alle löschen"-Icon (erscheint links in der Leiste) → loescht alle Marker
+  - Erneuter Klick auf Trash → Lösch-Modus aus, verbliebene Marker wieder gruen
 - Marker als Punkte auf der Waveform sichtbar
 - Marker-Chips dienen als Looppunkt-Auswahl (siehe Cycle Play oben): erster Tap = pending (orange), zweiter Tap auf anderen Marker = Loop erstellen
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/components/ui/PlayerControlsBar.tsx` | Marker-Chip-UI + Tap-Logik |
+| `frontend/src/components/ui/MarkerRow.tsx` | Gemeinsame Marker-Leiste (Tap-Logik, Lösch-Modus) |
+| `frontend/src/components/ui/PlayerControlsBar.tsx` | Bindet `MarkerRow` in die Player-Page ein |
+| `frontend/src/components/layout/GlobalPlayerBar.tsx` | Bindet `MarkerRow` in den Global Player ein |
 | `frontend/src/stores/playerStore.ts` | `markers[]`, `addMarker()`, `removeMarker()`, `clearMarkers()`, `pendingLoopMarkerId`, `loopMarkerIds` |
 
 ### Sektionen & Section-Loop
