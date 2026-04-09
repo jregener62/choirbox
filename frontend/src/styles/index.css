@@ -126,6 +126,9 @@ textarea::placeholder {
   border-bottom: 1px solid var(--border);
   min-height: 40px;
   gap: var(--space-2-5);
+  position: sticky;
+  top: 0;
+  z-index: 10;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 .topbar--hidden {

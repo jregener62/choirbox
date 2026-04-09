@@ -1506,3 +1506,7 @@ Im Zeichenmodus wurde die Pinch-Geste als Zeichnung erkannt statt zu zoomen. Urs
 ### TXT-Viewer zeigt keine Zeilenumbrueche bei Unicode Line Separators
 
 Textdateien mit U+2028 (Line Separator) wurden im Viewer ohne Zeilenumbrueche dargestellt — alle Zeilen liefen in einem Block zusammen. Ursache: Browser rendern U+2028/U+2029 in `<pre>`-Tags nicht als sichtbaren Umbruch. Fix: Backend normalisiert beim Abrufen aus der Dropbox alle Zeilenumbruch-Varianten (`\r\n`, `\r`, U+2028, U+2029) zu `\n`.
+
+### Topbar scrollt auf Settings & Admin-Seiten mit dem Inhalt weg
+
+Der Topheader (`.topbar`) der Settings-Seite war `position: static` und scrollte beim Scrollen der Seite mit nach oben aus dem Viewport. Gleiches galt fuer alle Admin-Unterseiten (Nutzer, Labels, Sektionsvorlagen, Choere), die das gleiche Layout-Pattern (plain `<div>` Wrapper im `.main-content`-Scroll-Container) nutzen. Fix: `.topbar` ist jetzt global `position: sticky; top: 0; z-index: 10` — bleibt am oberen Rand kleben, waehrend der Inhalt darunter scrollt. `.topbar--hidden` ueberschreibt das weiterhin mit `position: absolute` fuer den Fullscreen-Modus im PDF-Viewer.
