@@ -569,7 +569,6 @@ export function BrowsePage() {
                 {songSubFolders.map((sf) => {
                   const config = getFolderTypeConfig(sf.type)
                   const isActive = sf.name.toLowerCase() === activeSubfolderName?.toLowerCase()
-                  const songPath = '/' + browseSegments.slice(0, songAncestorIdx + 1).join('/')
                   return (
                     <button
                       key={sf.type}
