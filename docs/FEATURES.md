@@ -232,7 +232,7 @@ Konzert im Juni/           (Container)
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
 - **Card-Layout**: Alle Dateien und .song-Ordner werden als Cards mit Rahmen und Abstand dargestellt
-- **File-Type-Badge**: Jede Datei zeigt ein gerahmtes Badge mit Kategorie-Icon (Volume2/FileText/Video) und Dateiendung als Text (z.B. MP3, PDF, MP4). Farbe richtet sich nach Dateityp (Audio=Cyan, Text=Accent, Video=Pink). Files in Multitrack- oder Videos-Ordnern uebernehmen die jeweilige Ordner-Farbe fuer konsistente UX. Ordner-Icons werden ohne Rahmen angezeigt. Ausgewaehlte Texte werden mit einem gruenen Haken vor dem Badge markiert.
+- **File-Type-Badge**: Jede Datei zeigt ein gerahmtes Badge mit Kategorie-Icon (Volume2/FileText/Video/Music) und Dateiendung als Text (z.B. MP3, PDF, MP4). Farbe richtet sich nach Dateityp (Audio=Cyan, Text=Accent, Video=Pink). `.cho`-Dateien verwenden das Music-Icon, den Accent-Rahmen (wie PDF/TXT) und das Label "Chords" statt der Dateiendung — sie gehoeren visuell zum Text-Cluster. Files in Multitrack- oder Videos-Ordnern uebernehmen die jeweilige Ordner-Farbe fuer konsistente UX. Ordner-Icons werden ohne Rahmen angezeigt. Ausgewaehlte Texte werden mit einem gruenen Haken vor dem Badge markiert.
 - **Einheitliches Meta-System** fuer alle Dateitypen (Audio, Video, PDF, TXT):
   - **Titel**: Songname (aus .song-Ordner abgeleitet). Voice-Prefix, Sections und Songname werden nicht im Titel wiederholt.
   - **Zeile 1:** Dauer + Stimmen/Instrumente als farbige Tags mit Dot. Quellen: Backend-Parsing + zugewiesene Stimme-Labels (gemerged)
