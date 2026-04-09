@@ -14,6 +14,7 @@ from sqlmodel import Session, select
 
 from backend.models.document import Document
 from backend.models.user_hidden_document import UserHiddenDocument
+from backend.models.user_selected_document import UserSelectedDocument
 
 MAX_PDF_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_TXT_SIZE = 2 * 1024 * 1024   # 2 MB
@@ -175,6 +176,38 @@ def register_document(
     session.commit()
     session.refresh(document)
     return document
+
+
+def auto_select_if_first_doc(
+    doc: Document, texte_folder_path: str, user_id: str, session: Session
+) -> None:
+    """Set `doc` as the user's selected document for the parent song
+    if it's the only document in the Texte folder and the user has no
+    existing selection yet.
+
+    Called after a successful upload/paste to ensure the first text/chord
+    sheet uploaded to a song is automatically picked as the default view.
+    """
+    doc_count = len(session.exec(
+        select(Document).where(Document.folder_path == texte_folder_path)
+    ).all())
+    if doc_count != 1:
+        return
+    song_path = texte_folder_path.rsplit("/", 1)[0]
+    existing = session.exec(
+        select(UserSelectedDocument).where(
+            UserSelectedDocument.user_id == user_id,
+            UserSelectedDocument.folder_path == song_path,
+        )
+    ).first()
+    if existing:
+        return
+    session.add(UserSelectedDocument(
+        user_id=user_id,
+        folder_path=song_path,
+        document_id=doc.id,
+    ))
+    session.commit()
 
 
 def update_document_hash(
