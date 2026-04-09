@@ -1,13 +1,15 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus } from 'lucide-react'
+import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
+import { useChordPreference } from '@/hooks/useChordPreference.ts'
 import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
 import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
 import { VideoViewer } from '@/components/ui/VideoViewer.tsx'
 import { TextViewer } from '@/components/ui/TextViewer.tsx'
+import { ChordSheetTextViewer } from '@/components/ui/ChordSheetTextViewer.tsx'
 import type { DocumentItem } from '@/types/index.ts'
 
 interface DocumentPanelProps {
@@ -22,7 +24,34 @@ interface DocumentPanelProps {
 function getDocIcon(type: string, size = 14) {
   if (type === 'pdf') return <FileText size={size} />
   if (type === 'video') return <Video size={size} />
+  if (type === 'cho') return <Music size={size} />
   return <File size={size} />
+}
+
+function TransposeButtons({ value, onChange }: { value: number; onChange: (v: number) => void }) {
+  return (
+    <>
+      <button
+        className="transpose-stepper-btn"
+        onClick={() => onChange(value - 1)}
+        disabled={value <= -12}
+        aria-label="Transponieren -1"
+      >
+        <Minus size={16} />
+      </button>
+      <span className="transpose-stepper-value">
+        {value > 0 ? `+${value}` : value}
+      </span>
+      <button
+        className="transpose-stepper-btn"
+        onClick={() => onChange(value + 1)}
+        disabled={value >= 12}
+        aria-label="Transponieren +1"
+      >
+        <Plus size={16} />
+      </button>
+    </>
+  )
 }
 
 function getDistance(t1: Touch, t2: Touch) {
@@ -53,6 +82,10 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   // If external document is provided (player mode), use it; otherwise use store
   const isPlayerMode = externalDoc !== undefined
   const activeDoc = isPlayerMode ? (externalDoc ?? null) : (documents.find((d) => d.id === activeDocId) ?? null)
+
+  // Chord preference hook — must be called unconditionally; pass null when not a .cho doc
+  const isChoActive = activeDoc?.file_type === 'cho'
+  const { transposition, updateTransposition } = useChordPreference(isChoActive ? activeDoc!.id : null)
 
   // Flush annotations on unmount
   useEffect(() => {
@@ -199,7 +232,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.txt"
+          accept=".pdf,.txt,.cho"
           style={{ display: 'none' }}
           onChange={handleFileSelect}
         />
@@ -211,6 +244,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
 
   const isPdf = activeDoc.file_type === 'pdf'
   const isTxt = activeDoc.file_type === 'txt'
+  const isCho = activeDoc.file_type === 'cho'
   const pdfUrl = `/api/documents/${activeDoc.id}/download?token=${token}`
 
   return (
@@ -241,7 +275,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         </div>
       )}
 
-      {isPdf && drawingMode && (
+      {(isPdf || isCho) && drawingMode && (
         <AnnotationToolbar pageKey={`${activeDoc.id}::1`} />
       )}
 
@@ -279,8 +313,18 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         />
       )}
 
-      {/* FABs — PDF: Draw + Fullscreen, TXT: Zoom + Fullscreen */}
-      {isPdf && (
+      {activeDoc.file_type === 'cho' && (
+        <ChordSheetTextViewer
+          docId={activeDoc.id}
+          originalName={activeDoc.original_name}
+          transposition={transposition}
+          fontSize={TEXT_FONT_SIZES[textSizeIndex]}
+          showName={!pdfFullscreen}
+        />
+      )}
+
+      {/* FABs — PDF/CHO: Draw + Fullscreen, TXT/CHO: Zoom + Fullscreen, CHO: Transpose */}
+      {(isPdf || isCho) && (
         <button
           className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={() => setDrawingMode(!drawingMode)}
@@ -290,7 +334,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           <PenLine size={18} />
         </button>
       )}
-      {isTxt && pdfFullscreen && (
+      {(isTxt || isCho) && pdfFullscreen && (
         <>
           <button
             className={`pdf-fab pdf-fab--small pdf-fab--zoom-in${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
@@ -310,7 +354,18 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           </button>
         </>
       )}
-      {(isPdf || isTxt) && (
+      {isCho && (
+        <div
+          className={`transpose-stepper transpose-stepper--floating${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+          onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
+        >
+          <TransposeButtons
+            value={transposition}
+            onChange={(v) => { updateTransposition(v); resetFadeTimer() }}
+          />
+        </div>
+      )}
+      {(isPdf || isTxt || isCho) && (
         <button
           className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={handleFabClick}
@@ -335,7 +390,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         <input
           ref={fileInputRef}
           type="file"
-          accept=".pdf,.txt"
+          accept=".pdf,.txt,.cho"
           style={{ display: 'none' }}
           onChange={handleFileSelect}
         />

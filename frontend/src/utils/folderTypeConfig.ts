@@ -1,4 +1,4 @@
-import { FileText, Volume2, Video, Layers, Folder, Music, type LucideIcon } from 'lucide-react'
+import { FileText, Volume2, Video, Layers, Folder, type LucideIcon } from 'lucide-react'
 
 export interface FolderTypeStyle {
   icon: LucideIcon
@@ -50,14 +50,6 @@ export const FOLDER_TYPE_CONFIG: Record<string, FolderTypeStyle> = {
     bgColor: 'rgba(245,158,11,0.10)',
     borderColor: 'rgba(245,158,11,0.35)',
     activeBgColor: 'rgba(245,158,11,0.22)',
-  },
-  chordsheets: {
-    icon: Music,
-    label: 'Akkorde',
-    color: '#a78bfa',
-    bgColor: 'rgba(168,85,247,0.10)',
-    borderColor: 'rgba(168,85,247,0.35)',
-    activeBgColor: 'rgba(168,85,247,0.22)',
   },
 }
 

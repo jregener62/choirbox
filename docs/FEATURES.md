@@ -124,11 +124,12 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | PDF hochladen/loeschen        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Notizen/Lyrics bearbeiten     |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Section-Editor                |        ✓        |     —     |       —        |       —        |     —      |     —     |
-| **ChordSheetPage**            |                 |           |                |                |            |           |
+| **Chord Sheets (.cho)**       |                 |           |                |                |            |           |
 | Chord Sheets ansehen          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| Transposition speichern       |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| PDF importieren               |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
-| Chord Sheet bearbeiten        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Transposition (auto-save)     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Annotationen (Stift)          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Chordsheet einfuegen (Paste)  |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| .cho-Datei hochladen          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Chord Sheet loeschen          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | **SettingsPage**              |                 |           |                |                |            |           |
 | Profil, Passwort, Theme, Zoom |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
@@ -461,9 +462,11 @@ PDFs werden **nicht** auf dem Server gespeichert. Stattdessen:
 
 ---
 
-## Handschriftliche Annotationen (PDFs)
+## Handschriftliche Annotationen (PDFs und Chord Sheets)
 
-Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z.B. Atemzeichen, Dynamik, Einsaetze. Jeder User sieht nur seine eigenen Annotationen.
+Chormitglieder koennen auf PDF-Seiten und Chord Sheets handschriftliche Markierungen machen — z.B. Atemzeichen, Dynamik, Einsaetze. Jeder User sieht nur seine eigenen Annotationen.
+
+Auf Chord Sheets (`.cho`) wird `page=1` als virtuelle Seite verwendet (ein Chord Sheet ist eine durchgehende Scroll-Flaeche). Der SVG-Overlay passt sich per ResizeObserver an die tatsaechliche Inhaltshoehe an, sodass Strokes auch nach Aenderungen der Schriftgroesse oder Transposition korrekt ausgerichtet bleiben.
 
 - **Zeichenmodus-Toggle**: Floating Action Button (Stift-Icon) unten-links auf dem PDF-Panel. Wird blau wenn aktiv
 - **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (Distanz-basierter Hit-Test)
@@ -507,82 +510,100 @@ Chormitglieder koennen auf PDF-Seiten handschriftliche Markierungen machen — z
 
 ---
 
-## Chord Sheets (Akkordblätter)
+## Chord Sheets (.cho)
 
 ### Übersicht
 
-Chord Sheets ermöglichen das Importieren und Anzeigen von Akkord-Texten (z.B. von Ultimate Guitar) mit transponierbaren Akkorden. Jeder User kann seine bevorzugte Tonart pro Sheet speichern.
+Chord Sheets sind transponierbare Akkord-Texte. Sie liegen als `.cho`-Dateien im **ChordPro-Format** im `Texte/`-Ordner — genau wie `.txt`-Songtexte. Es gibt keinen separaten Player und keinen separaten Storage-Ordner: ein `.cho` ist ein Dokument-Typ wie PDF, TXT oder Video, mit zusaetzlichen Funktionen (Transponieren, Akkord-Rendering).
 
-### PDF-Import (Auto-Erkennung)
+### Eingabe-Wege
 
-- PDF-Upload ueber den bestehenden Upload-Button in der BrowsePage-Toolbar
-- Automatische Erkennung: PDFs mit Akkorden werden automatisch als Chord Sheet erkannt und in den `Chordsheets/`-Ordner geroutet (statt `Texte/`)
-- Heuristik: mindestens 3 verschiedene Akkorde und Tonart-Konfidenz > 0.2
-- PDFs ohne Akkorde werden wie bisher als Dokument in `Texte/` hochgeladen
-- Unterstützt text-basierte PDFs (pdfplumber) und Bild-PDFs (OCR via pytesseract)
-- Automatische Erkennung von Zwei-Spalten-Layouts (typisch für Ultimate Guitar)
-- OCR-Nachbearbeitung: korrigiert häufige Fehllesungen (z.B. # als i)
-- Sektions-Erkennung: [Verse], [Chorus], [Intro], [Bridge], [Outro], [Solo]
-- Automatische Tonart-Erkennung mit Konfidenz-Score
-- Titel wird aus Dateiname abgeleitet (zuverlässiger als OCR)
-- Nach Upload wird automatisch zur Chord Sheet Liste navigiert
-- Zusaetzlich steht ein Review-Dialog (ChordSheetImportModal) zur Verfuegung, in dem Titel und Tonart vor dem Speichern korrigiert werden koennen
+Drei Wege fuehren zu einer `.cho`-Datei:
 
-### Chord Sheet Viewer
+1. **"Chordsheet einfuegen"** (Upload-Auswahl-Modal) — Akkord-Text aus Zwischenablage einfuegen
+2. **"Datei auswaehlen"** + `.cho`-Datei — direkter Upload einer ChordPro-Datei
+3. **Format-Detection** beim Paste: erkennt automatisch, ob der Input bereits ChordPro ist oder im "Akkord-Zeile ueber Lyrics"-Stil (Ultimate Guitar)
 
-- Akkorde werden über den Textzeilen positioniert (Monospace-Font)
-- Sektions-Header farblich hervorgehoben
-- Mobile-optimiert mit horizontalem Scroll bei langen Zeilen
+### Format-Auto-Detection
 
-### Transposition
+Beim Speichern wird der Input-Text analysiert:
 
-- Hoch/Runter-Buttons (Halbtonschritte)
-- Anzeige der aktuellen Tonart und des Originals
-- Per-User speicherbar (z.B. Gitarrist in C, Keyboarder in Eb)
-- Unterstützt: Grundakkorde, Slash-Akkorde, Erweiterungen (maj7, sus4, dim etc.)
-- Enharmonische Varianten: Sharp/Flat-Präferenz basierend auf Original-Akkorden
+- **ChordPro erkannt** (z.B. enthaelt `{title:}`, `{start_of_verse}` oder inline `[Chord]Lyrics`-Brackets) → 1:1 als ChordPro gespeichert
+- **Plain "Akkord-Zeile ueber Lyrics"** (Ultimate Guitar Stil) → automatisch konvertiert zu ChordPro mit Direktiven (`{title:}`, `{key:}`, `{start_of_verse}`) und inline `[Chord]`-Brackets, dann gespeichert
 
-### Dropbox-Speicherung
+So liegt die Datei immer im standardisierten ChordPro-Format auf der Disk und kann von externen Tools (OnSong, ChordPro Editor, Songbook-Apps) gelesen werden.
 
-- Original-PDFs werden in `Chordsheets/` innerhalb des `.song`-Ordners in Dropbox hochgeladen
-- Zusaetzlich wird ein `.txt`-Export mit Akkorden ueber Text generiert und in Dropbox gespeichert
-- Geparste Metadaten (Sektionen, Akkord-Positionen, Tonart) liegen in der Datenbank fuer schnellen Zugriff
-- Bei Update wird der Text-Export automatisch neu exportiert
+### Chord Sheet Viewer (im DocumentPanel)
 
-### Integration
+- `.cho`-Dateien oeffnen sich im selben DocumentPanel wie PDFs/TXTs/Videos — kein eigener Player
+- Beim Oeffnen wird der ChordPro-Text geparst und in die kanonische `ParsedChordContent`-Struktur konvertiert
+- Akkorde werden ueber den Textzeilen in Monospace-Font positioniert (spaltentreu)
+- Sektions-Header (`[Verse]`, `[Chorus]`, etc.) farblich abgesetzt
+- Liest BEIDE Formate transparent: ChordPro UND Plain (Backwards-Compat)
 
-- Neuer reservierter Unterordner `Chordsheets/` in `.song`-Ordnern
-- Lila Badge (Musik-Icon) in der Song-Card-Navigation
-- Klick auf Badge oeffnet die Chord Sheet Liste
-- Count im Badge wird aus der Datenbank gelesen (nicht aus Dropbox)
-- Upload-Flow erkennt Chord Sheet PDFs automatisch und routet sie korrekt
+### Transposition (Auto-Save)
+
+- Stepper-Element schwebend oben rechts: `[− <wert> +]`
+- Range: −12 bis +12 Halbtoene
+- **Optimistic UI**: Klick wirkt sofort, ohne Server-Wartezeit
+- **Debounced Save**: ~400 ms nach letztem Klick wird die Praeferenz im Backend gespeichert
+- Per User pro Datei (z.B. Gitarrist in C, Keyboarder in Eb)
+- Nach Reload wird die gespeicherte Tonart wieder geladen und angewendet
+- Sharp/Flat-Praeferenz wird aus den Original-Akkorden abgeleitet
+
+### Annotationen
+
+- `.cho`-Dateien unterstuetzen handschriftliche Annotationen wie PDFs
+- Stift-FAB unten links toggelt den Drawing-Mode
+- AnnotationToolbar oben (Stift/Highlighter/Radierer, 6 Farben, 3 Strichbreiten, Undo, Trash)
+- SVG-Overlay mit dynamischem viewBox (ResizeObserver passt sich der Content-Hoehe an)
+- Strokes scrollen mit dem Inhalt
+- Persistenz ueber den bestehenden Annotation-Endpoint (`page=1` fuer das ganze Sheet)
+
+### Upload-Auswahl-Modal
+
+Ein zentrales Modal hinter dem `+`-Button im Song-Folder bietet drei Optionen:
+
+1. **Text einfuegen** — Songtext aus Zwischenablage → erstellt `.txt` in `/Texte`
+2. **Chordsheet einfuegen** — Akkord-Text aus Zwischenablage → erstellt `.cho` in `/Texte` (mit Format-Auto-Detection)
+3. **Datei auswaehlen** — Datei-Picker fuer Audio, PDF, TXT, CHO
+
+Das Modal nutzt das bestehende `<Modal>`-Component-System.
+
+### Speicherung & Architektur
+
+- `.cho`-Dateien sind **gewoehnliche Documents** (`file_type="cho"`) im `Texte/`-Ordner
+- Kein eigener `Chordsheets/`-Ordner mehr (alter PDF-Flow wurde entfernt)
+- Kein DB-Cache fuer parsed_content — die Datei selbst ist Source of Truth, geparst wird beim Anzeigen on-the-fly (Millisekunden, da kein PDF-Parsing mehr noetig ist)
+- Per-User-Transposition: `UserChordPreference` Tabelle mit FK auf `documents.id` (vorher: FK auf `chord_sheets.id`)
+- Max. Dateigroesse: 2 MB (gleich wie `.txt`)
 
 ### Berechtigungen
 
 | Aktion | Mindest-Rolle |
 |--------|---------------|
 | Chord Sheets ansehen | member |
-| Transposition speichern | member |
-| PDF importieren | pro-member |
-| Chord Sheet bearbeiten | pro-member |
-| Chord Sheet löschen | pro-member |
+| Transposition (auto-save) | member |
+| Annotationen | member |
+| Chordsheet einfuegen / Datei hochladen | pro-member |
+| Chord Sheet loeschen | pro-member |
 
 ### Dateien
 
 | Datei | Beschreibung |
 |-------|-------------|
-| `backend/models/chord_sheet.py` | ChordSheet-Modell |
-| `backend/models/user_chord_preference.py` | User-Transpositions-Präferenz |
-| `backend/services/chord_parser.py` | PDF-Parsing + OCR + Akkord-Erkennung |
-| `backend/services/chord_transposer.py` | Transpositions-Engine |
-| `backend/services/chord_sheet_service.py` | CRUD + Präferenz-Service |
-| `backend/api/chord_sheets.py` | API-Endpoints |
-| `frontend/src/pages/ChordSheetPage.tsx` | Viewer-Page mit Transposition |
-| `frontend/src/pages/ChordSheetListPage.tsx` | Liste der Chord Sheets |
-| `frontend/src/components/ui/ChordSheetViewer.tsx` | Viewer-Komponente |
-| `frontend/src/components/ui/ChordSheetImportModal.tsx` | Import-Dialog |
+| `backend/models/user_chord_preference.py` | Per-User-Transposition (FK auf `documents.id`) |
+| `backend/api/documents.py` | Endpoints `/documents/paste-text` und `/documents/{id}/chord-preference` |
+| `backend/services/document_service.py` | `.cho` als DOCUMENT_EXTENSION registriert |
+| `frontend/src/utils/chordPro.ts` | ChordPro-Parser, Plain→ChordPro-Serializer, Format-Detection, unified `parseChordSheet()` |
+| `frontend/src/utils/chordParser.ts` | Plain (Ultimate Guitar) Parser — von chordPro.ts referenziert |
 | `frontend/src/utils/chordTransposer.ts` | Frontend-Transpositionslogik |
-| `frontend/src/api/chordSheets.ts` | API-Client |
+| `frontend/src/components/ui/ChordSheetViewer.tsx` | Reine Renderkomponente fuer `ParsedChordContent` |
+| `frontend/src/components/ui/ChordSheetTextViewer.tsx` | Laedt `.cho`, parst, rendert via ChordSheetViewer + Annotation-Layer |
+| `frontend/src/components/ui/DocumentPanel.tsx` | Erweitert um `.cho`-Branch + Transpose-Stepper |
+| `frontend/src/components/ui/UploadChoiceModal.tsx` | Auswahl-Modal hinter dem `+`-Button |
+| `frontend/src/components/ui/PasteTextModal.tsx` | Vereinheitlichtes Paste-Modal fuer `.txt` und `.cho` |
+| `frontend/src/hooks/useChordPreference.ts` | Hook mit Optimistic UI + Debounced Auto-Save |
 
 ---
 

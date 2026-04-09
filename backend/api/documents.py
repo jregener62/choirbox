@@ -1,14 +1,18 @@
 """Documents API — upload, view and manage folder-level documents."""
 
+from datetime import datetime
+
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import RedirectResponse, Response
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
 from backend.models.choir import Choir
 from backend.models.document import Document
 from backend.models.user import User
+from backend.models.user_chord_preference import UserChordPreference
 from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
 from backend.services import document_service
@@ -269,40 +273,8 @@ async def upload_document(
 
     content = await file.read()
 
-    # --- Chord sheet auto-detection for PDFs inside .song folders ---
-    from backend.services.folder_types import get_parent_folder_type, get_song_folder_path
-    song_folder = get_song_folder_path(folder_path)
-
-    if file_type == "pdf" and song_folder:
-        try:
-            from backend.services.chord_parser import parse_pdf_to_chord_sheet
-            _log.info("Attempting chord sheet detection for: %s (song_folder=%s)", original_name, song_folder)
-            result = parse_pdf_to_chord_sheet(content, original_name)
-            parsed = result.get("parsed_content", {})
-            all_chords = parsed.get("all_chords", [])
-            confidence = parsed.get("key_confidence", 0)
-            _log.info("Chord detection result: %d chords, confidence=%.2f, chords=%s",
-                      len(all_chords), confidence, all_chords[:10])
-
-            # Heuristic: at least 3 unique chords and some key confidence
-            if len(all_chords) >= 3 and confidence > 0.2:
-                _log.info("Auto-detected chord sheet PDF: %s (%d chords, confidence %.2f)",
-                          original_name, len(all_chords), confidence)
-                return await _handle_chord_sheet_upload(
-                    session=session,
-                    user=user,
-                    song_folder=song_folder,
-                    pdf_bytes=content,
-                    original_name=original_name,
-                    parse_result=result,
-                )
-            else:
-                _log.info("PDF not a chord sheet (too few chords or low confidence), routing to Texte/")
-        except Exception as e:
-            _log.warning("Chord sheet detection failed for %s: %s", original_name, e, exc_info=True)
-            # Not a chord sheet — fall through to normal document upload
-
-    # --- Normal document upload (Texte/ folder) ---
+    # --- Document upload (Texte/ folder) ---
+    from backend.services.folder_types import get_parent_folder_type
     texte_path = await _resolve_texte_folder(folder_path, user, session)
     if not texte_path:
         parent_type = get_parent_folder_type(folder_path)
@@ -344,7 +316,7 @@ async def upload_document(
         except ValueError as e:
             raise HTTPException(400, str(e))
     else:
-        if file_type == "txt" and len(content) > document_service.MAX_TXT_SIZE:
+        if file_type in ("txt", "cho") and len(content) > document_service.MAX_TXT_SIZE:
             raise HTTPException(400, "Textdatei zu gross (max. 2 MB)")
         doc = document_service.register_document(
             folder_path=folder_path,
@@ -386,57 +358,94 @@ async def upload_document(
     })
 
 
-async def _handle_chord_sheet_upload(
-    session: Session,
-    user: User,
-    song_folder: str,
-    pdf_bytes: bytes,
-    original_name: str,
-    parse_result: dict,
-) -> ActionResponse:
-    """Handle a PDF that was auto-detected as a chord sheet.
+class PasteTextBody(BaseModel):
+    folder_path: str
+    title: str
+    text: str
+    file_type: str  # "txt" or "cho"
 
-    Uploads PDF + text export to Chordsheets/ in Dropbox and creates DB entry.
+
+@router.post("/paste-text")
+async def paste_text(
+    body: PasteTextBody,
+    user: User = Depends(require_role("pro-member")),
+    session: Session = Depends(get_session),
+):
+    """Create a text-based document (.txt or .cho) from pasted content.
+
+    Stores the file in the song's Texte/ folder on Dropbox and registers it
+    as a Document. Used by the "Text einfuegen" / "Chordsheet einfuegen"
+    upload options.
     """
-    from backend.api.chord_sheets import _upload_to_dropbox
-    from backend.services import chord_sheet_service as svc
+    if body.file_type not in ("txt", "cho"):
+        raise HTTPException(400, "file_type muss 'txt' oder 'cho' sein")
 
-    title = parse_result.get("title", original_name)
-    parsed_content = parse_result.get("parsed_content", {})
-    original_key = parsed_content.get("detected_key", "")
+    text = body.text.strip()
+    if not text:
+        raise HTTPException(400, "Kein Text uebergeben")
 
-    # Upload to Dropbox (Chordsheets/ subfolder)
-    await _upload_to_dropbox(
+    content_bytes = text.encode("utf-8")
+    if len(content_bytes) > document_service.MAX_TXT_SIZE:
+        raise HTTPException(400, "Text zu gross (max. 2 MB)")
+
+    # Build a safe filename from the title
+    safe_title = _safe_filename(body.title) or ("Akkorde" if body.file_type == "cho" else "Text")
+    filename = f"{safe_title}.{body.file_type}"
+
+    # Resolve / create the Texte folder
+    folder_path = body.folder_path
+    texte_path = await _resolve_texte_folder(folder_path, user, session)
+    if not texte_path:
+        from backend.services.folder_types import get_parent_folder_type
+        parent_type = get_parent_folder_type(folder_path)
+        if parent_type == "song":
+            texte_path = folder_path.rstrip("/") + "/Texte"
+        else:
+            raise HTTPException(400, "Kein Texte-Ordner gefunden")
+
+    # Upload to Dropbox (auto-create Texte/ if needed)
+    dbx_hash = None
+    try:
+        dbx = get_dropbox_service(session)
+        if dbx:
+            texte_dbx = _dropbox_folder_path(texte_path, user, session)
+            try:
+                await dbx.create_folder(texte_dbx)
+            except RuntimeError:
+                pass  # Already exists
+            dbx_path = _dropbox_doc_path(texte_path, filename, user, session)
+            result = await dbx.upload_file(content_bytes, dbx_path)
+            dbx_hash = result.get("content_hash")
+    except Exception:
+        pass
+
+    rel_path = document_service.build_dropbox_path(texte_path, filename)
+    doc = document_service.register_document(
+        folder_path=texte_path,
+        file_type=body.file_type,
+        original_name=filename,
+        file_size=len(content_bytes),
+        user_id=user.id,
         session=session,
-        user=user,
-        song_folder_path=song_folder,
-        pdf_bytes=pdf_bytes,
-        pdf_filename=original_name,
-        title=title,
-        original_key=original_key,
-        parsed_content=parsed_content,
-    )
-
-    # Create DB entry
-    cs = svc.create_chord_sheet(
-        session=session,
-        song_folder_path=song_folder,
-        title=title,
-        parsed_content=parsed_content,
-        original_key=original_key,
-        source_filename=original_name,
-        choir_id=user.choir_id or "",
-        created_by=user.id,
+        content_hash=dbx_hash,
+        dropbox_path=rel_path,
     )
 
     return ActionResponse.success(data={
-        "id": cs.id,
-        "original_name": original_name,
-        "file_type": "pdf",
-        "file_size": len(pdf_bytes),
-        "is_chord_sheet": True,
-        "chord_sheet": svc.chord_sheet_to_dict(cs),
+        "id": doc.id,
+        "original_name": doc.original_name,
+        "file_type": doc.file_type,
+        "file_size": doc.file_size,
+        "folder_path": texte_path,
     })
+
+
+def _safe_filename(title: str) -> str:
+    """Create a filesystem-safe filename from a title."""
+    import re
+    safe = re.sub(r'[^\w\s\-äöüÄÖÜß]', '', title)
+    safe = re.sub(r'\s+', ' ', safe).strip()
+    return safe
 
 
 # ---------------------------------------------------------------------------
@@ -537,9 +546,9 @@ async def get_text_content(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    """Get the text content of a TXT document via Dropbox."""
+    """Get the text content of a TXT or CHO document via Dropbox."""
     doc = document_service.get_document(doc_id, session)
-    if not doc or doc.file_type != "txt":
+    if not doc or doc.file_type not in ("txt", "cho"):
         raise HTTPException(404, "Kein Textdokument")
 
     dbx = get_dropbox_service(session)
@@ -756,3 +765,61 @@ def _doc_to_dict(doc: Document) -> dict:
         "page_count": doc.page_count,
         "sort_order": doc.sort_order,
     }
+
+
+# ---------------------------------------------------------------------------
+# Chord Preference (per-user transposition for .cho documents)
+# ---------------------------------------------------------------------------
+
+class ChordPreferenceBody(BaseModel):
+    transposition: int
+
+
+@router.get("/{doc_id}/chord-preference")
+def get_chord_preference(
+    doc_id: int,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    doc = document_service.get_document(doc_id, session)
+    if not doc or doc.file_type != "cho":
+        raise HTTPException(404, "Kein Chord Sheet")
+    pref = session.exec(
+        select(UserChordPreference).where(
+            UserChordPreference.user_id == user.id,
+            UserChordPreference.document_id == doc_id,
+        )
+    ).first()
+    return {"transposition": pref.transposition_semitones if pref else 0}
+
+
+@router.put("/{doc_id}/chord-preference")
+def set_chord_preference(
+    doc_id: int,
+    body: ChordPreferenceBody,
+    user: User = Depends(require_user),
+    session: Session = Depends(get_session),
+):
+    doc = document_service.get_document(doc_id, session)
+    if not doc or doc.file_type != "cho":
+        raise HTTPException(404, "Kein Chord Sheet")
+    if not -12 <= body.transposition <= 12:
+        raise HTTPException(400, "Transposition muss zwischen -12 und +12 liegen.")
+    pref = session.exec(
+        select(UserChordPreference).where(
+            UserChordPreference.user_id == user.id,
+            UserChordPreference.document_id == doc_id,
+        )
+    ).first()
+    if pref:
+        pref.transposition_semitones = body.transposition
+        pref.updated_at = datetime.utcnow()
+    else:
+        pref = UserChordPreference(
+            user_id=user.id,
+            document_id=doc_id,
+            transposition_semitones=body.transposition,
+        )
+    session.add(pref)
+    session.commit()
+    return {"transposition": pref.transposition_semitones}

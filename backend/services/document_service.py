@@ -23,6 +23,7 @@ DOCUMENT_EXTENSIONS = {
     "pdf": (".pdf",),
     "video": (".webm", ".mov"),
     "txt": (".txt",),
+    "cho": (".cho",),
 }
 
 ALL_DOC_EXTENSIONS = tuple(

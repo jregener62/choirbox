@@ -1575,6 +1575,54 @@ textarea::placeholder {
   cursor: default;
 }
 
+/* Transpose Stepper (floating top-right, for .cho documents) */
+.transpose-stepper {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  padding: var(--space-1) var(--space-1-5);
+  box-shadow: var(--shadow-sm);
+}
+.transpose-stepper--floating {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 5;
+  transition: opacity 0.5s ease;
+}
+.transpose-stepper-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  padding: 0;
+}
+.transpose-stepper-btn:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+.transpose-stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.transpose-stepper-value {
+  min-width: 32px;
+  text-align: center;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  user-select: none;
+}
+
 /* Document icon in browse — kept for DocumentPanel */
 .file-icon-doc {
   background: rgba(129,140,248,0.15);

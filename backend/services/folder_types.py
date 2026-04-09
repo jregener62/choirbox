@@ -17,7 +17,6 @@ RESERVED_FOLDERS: dict[str, dict] = {
     "Audio":      {"type": "audio",      "label": "Audio",      "admin_only": False},
     "Videos":     {"type": "videos",     "label": "Videos",     "admin_only": False},
     "Multitrack": {"type": "multitrack", "label": "Multitrack", "admin_only": False},
-    "Chordsheets": {"type": "chordsheets", "label": "Akkorde", "admin_only": False},
 }
 
 # Quick lookup: lowercase → canonical name

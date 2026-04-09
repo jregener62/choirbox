@@ -15,7 +15,7 @@ export interface LoginResponse {
   user: User
 }
 
-export type FolderType = 'song' | 'texte' | 'audio' | 'videos' | 'multitrack' | 'chordsheets'
+export type FolderType = 'song' | 'texte' | 'audio' | 'videos' | 'multitrack'
 
 export interface SubFolderInfo {
   type: FolderType
@@ -111,7 +111,7 @@ export interface Note {
 
 export interface DocumentItem {
   id: number
-  file_type: 'pdf' | 'video' | 'txt'
+  file_type: 'pdf' | 'video' | 'txt' | 'cho'
   original_name: string
   file_size: number
   page_count: number
@@ -162,21 +162,3 @@ export interface ParsedChordContent {
   key_confidence: number
 }
 
-export interface ChordSheet {
-  id: number
-  song_folder_path: string
-  title: string
-  original_key: string | null
-  parsed_content: ParsedChordContent
-  source_filename: string | null
-  created_by: string | null
-  created_at: string
-  updated_at: string
-  user_transposition: number
-}
-
-export interface ChordSheetParseResult {
-  title: string
-  parsed_content: ParsedChordContent
-  source_filename: string
-}

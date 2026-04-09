@@ -13,8 +13,6 @@ import { UsersPage } from '@/pages/admin/UsersPage.tsx'
 import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 import { SectionPresetsPage } from '@/pages/admin/SectionPresetsPage.tsx'
 import { ChoirsPage } from '@/pages/admin/ChoirsPage.tsx'
-import { ChordSheetListPage } from '@/pages/ChordSheetListPage.tsx'
-import { ChordSheetPage } from '@/pages/ChordSheetPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -35,8 +33,6 @@ function AppRoutes() {
       <Route path="/browse" element={<BrowsePage />} />
       <Route path="/viewer" element={<ViewerPage />} />
       <Route path="/doc-viewer" element={<DocViewerPage />} />
-      <Route path="/chord-sheets" element={<ChordSheetListPage />} />
-      <Route path="/chord-sheet" element={<ChordSheetPage />} />
       {isBeta && <Route path="/sections" element={<SectionEditorPage />} />}
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/admin/users" element={<UsersPage />} />

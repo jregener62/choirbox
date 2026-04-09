@@ -14,7 +14,8 @@ import { deriveSongFolderPath } from '@/utils/folderTypes'
 import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
-import { ChordSheetPasteModal } from '@/components/ui/ChordSheetPasteModal'
+import { UploadChoiceModal } from '@/components/ui/UploadChoiceModal'
+import { PasteTextModal } from '@/components/ui/PasteTextModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useShareTarget } from '@/hooks/useShareTarget'
@@ -48,7 +49,8 @@ export function BrowsePage() {
   const error = browseError || mutationError
   const [importOpen, setImportOpen] = useState(false)
   const [importedFiles, setImportedFiles] = useState<File[]>([])
-  const [chordPasteOpen, setChordPasteOpen] = useState(false)
+  const [uploadChoiceOpen, setUploadChoiceOpen] = useState(false)
+  const [pasteMode, setPasteMode] = useState<null | 'txt' | 'cho'>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sharedFiles = useShareTarget()
 
@@ -435,12 +437,7 @@ export function BrowsePage() {
                 </button>
               )}
               {isProMember && (
-                <button className="player-header-btn" onClick={() => setChordPasteOpen(true)} title="Akkordblatt einfügen">
-                  <Music size={18} />
-                </button>
-              )}
-              {isProMember && (
-                <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+                <button className="player-header-btn" onClick={() => setUploadChoiceOpen(true)} title="Hinzufuegen">
                   <FolderImportIcon size={18} />
                 </button>
               )}
@@ -577,13 +574,7 @@ export function BrowsePage() {
                     <button
                       key={sf.type}
                       className={`meta-brick meta-brick--${sf.type}${isActive ? ' meta-brick--active' : ''}`}
-                      onClick={() => {
-                        if (sf.type === 'chordsheets') {
-                          navigate(`/chord-sheets?folder=${encodeURIComponent(songPath)}&back=${encodeURIComponent(`/browse?path=${encodeURIComponent(sf.path)}`)}`)
-                        } else {
-                          loadFolder(sf.path)
-                        }
-                      }}
+                      onClick={() => loadFolder(sf.path)}
                     >
                       {createElement(config.icon, { size: 14 })}
                       {isActive && <span className="meta-brick__label">{sf.name}</span>}
@@ -798,11 +789,7 @@ export function BrowsePage() {
                               className={`meta-brick meta-brick--${sf.type}`}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (sf.type === 'chordsheets') {
-                                  navigate(`/chord-sheets?folder=${encodeURIComponent(entry.path)}&back=${encodeURIComponent('/browse')}`)
-                                } else {
-                                  loadFolder(sf.path)
-                                }
+                                loadFolder(sf.path)
                               }}
                             >
                               {createElement(getFolderTypeConfig(sf.type).icon, { size: 14 })}
@@ -1090,7 +1077,7 @@ export function BrowsePage() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.txt"
+        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.txt,.cho"
         style={{ display: 'none' }}
         onChange={(e) => {
           const files = e.target.files
@@ -1119,7 +1106,7 @@ export function BrowsePage() {
             isAdmin={isAdmin}
             rootUpload={isRootUpload || undefined}
             onClose={() => { setImportOpen(false); setImportedFiles([]) }}
-            onUploadComplete={(hasChordSheet) => {
+            onUploadComplete={() => {
               useDocumentsStore.setState({ loadedFolder: null })
               if (isRootUpload) {
                 // Root mode: stay in root, reload folder
@@ -1128,18 +1115,13 @@ export function BrowsePage() {
                 // Song mode: switch to the tab matching the file type, highlight file
                 const songFolder = deriveSongFolderPath(browsePath)
                 if (songFolder && importedFiles[0]) {
-                  if (hasChordSheet) {
-                    // PDF was auto-detected as chord sheet → navigate to chord sheets list
-                    navigate(`/chord-sheets?folder=${encodeURIComponent(songFolder)}&back=${encodeURIComponent(`/browse?path=${encodeURIComponent(browsePath)}`)}`)
-                  } else {
-                    const ext = importedFiles[0].name.split('.').pop()?.toLowerCase() || ''
-                    const isDoc = ['pdf', 'txt'].includes(ext)
-                    const isVideo = ['mp4', 'mov'].includes(ext)
-                    const subFolder = isDoc ? 'Texte' : isVideo ? 'Videos' : 'Audio'
-                    const tabPath = `${songFolder}/${subFolder}`
-                    useBrowseStore.getState().invalidate(tabPath)
-                    loadFolder(tabPath, true)
-                  }
+                  const ext = importedFiles[0].name.split('.').pop()?.toLowerCase() || ''
+                  const isDoc = ['pdf', 'txt', 'cho'].includes(ext)
+                  const isVideo = ['mp4', 'mov'].includes(ext)
+                  const subFolder = isDoc ? 'Texte' : isVideo ? 'Videos' : 'Audio'
+                  const tabPath = `${songFolder}/${subFolder}`
+                  useBrowseStore.getState().invalidate(tabPath)
+                  loadFolder(tabPath, true)
                 } else {
                   loadFolder(browsePath, true)
                 }
@@ -1149,18 +1131,30 @@ export function BrowsePage() {
         )
       })()}
 
-      {chordPasteOpen && (() => {
+      {uploadChoiceOpen && (
+        <UploadChoiceModal
+          onClose={() => setUploadChoiceOpen(false)}
+          onPasteText={() => setPasteMode('txt')}
+          onPasteChord={() => setPasteMode('cho')}
+          onPickFile={() => fileInputRef.current?.click()}
+        />
+      )}
+
+      {pasteMode && (() => {
         const songFolder = deriveSongFolderPath(browsePath)
         if (!songFolder) return null
         const songName = stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
         return (
-          <ChordSheetPasteModal
+          <PasteTextModal
+            mode={pasteMode}
             songFolder={songFolder}
             songName={songName}
-            onClose={() => setChordPasteOpen(false)}
-            onSaved={() => {
-              setChordPasteOpen(false)
-              navigate(`/chord-sheets?folder=${encodeURIComponent(songFolder)}&back=${encodeURIComponent(`/browse?path=${encodeURIComponent(browsePath)}`)}`)
+            onClose={() => setPasteMode(null)}
+            onSaved={(folderPath) => {
+              setPasteMode(null)
+              useDocumentsStore.setState({ loadedFolder: null })
+              useBrowseStore.getState().invalidate(folderPath)
+              loadFolder(folderPath, true)
             }}
           />
         )

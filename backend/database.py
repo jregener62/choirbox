@@ -20,8 +20,28 @@ def get_session():
 
 
 def create_db_and_tables():
+    # Pre-migration: drop tables whose schema is incompatible BEFORE create_all,
+    # so create_all can recreate them with the new schema.
+    _pre_migrate(engine)
     SQLModel.metadata.create_all(engine)
     _migrate(engine)
+
+
+def _pre_migrate(eng):
+    """Drop tables that need to be recreated with a new schema."""
+    from sqlalchemy import inspect, text
+    insp = inspect(eng)
+    tables = insp.get_table_names()
+
+    with eng.begin() as conn:
+        # user_chord_preferences: chord_sheet_id (int FK→chord_sheets) → document_id (int FK→documents)
+        if "user_chord_preferences" in tables:
+            cols = [c["name"] for c in insp.get_columns("user_chord_preferences")]
+            if "chord_sheet_id" in cols and "document_id" not in cols:
+                conn.execute(text("DROP TABLE user_chord_preferences"))
+        # chord_sheets table is obsolete (chord sheets are now Documents with file_type='cho')
+        if "chord_sheets" in tables:
+            conn.execute(text("DROP TABLE chord_sheets"))
 
 
 def _migrate(eng):
