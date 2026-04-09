@@ -492,7 +492,7 @@ export function BrowsePage() {
                     </button>
                   )}
                   {isProMember && (
-                    <button className="player-header-btn" onClick={() => fileInputRef.current?.click()}>
+                    <button className="player-header-btn" onClick={() => setUploadChoiceOpen(true)} title="Hinzufuegen">
                       <FolderImportIcon size={18} />
                     </button>
                   )}
@@ -1142,18 +1142,24 @@ export function BrowsePage() {
 
       {pasteMode && (() => {
         const songFolder = deriveSongFolderPath(browsePath)
-        if (!songFolder) return null
-        const songName = stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
+        const isRootMode = !songFolder
+        const parentPath = songFolder ?? (browsePath || '/')
+        const defaultTitle = songFolder
+          ? stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
+          : ''
         return (
           <PasteTextModal
             mode={pasteMode}
-            songFolder={songFolder}
-            songName={songName}
+            parentPath={parentPath}
+            defaultTitle={defaultTitle}
+            createSongFolder={isRootMode}
             onClose={() => setPasteMode(null)}
             onSaved={(folderPath) => {
               setPasteMode(null)
               useDocumentsStore.setState({ loadedFolder: null })
               useBrowseStore.getState().invalidate(folderPath)
+              // In root mode also invalidate parent so the new .song shows up
+              if (isRootMode) useBrowseStore.getState().invalidate(parentPath)
               loadFolder(folderPath, true)
             }}
           />

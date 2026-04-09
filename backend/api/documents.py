@@ -363,6 +363,7 @@ class PasteTextBody(BaseModel):
     title: str
     text: str
     file_type: str  # "txt" or "cho"
+    song_folder_name: str | None = None  # Optional: create a new .song folder
 
 
 @router.post("/paste-text")
@@ -376,6 +377,9 @@ async def paste_text(
     Stores the file in the song's Texte/ folder on Dropbox and registers it
     as a Document. Used by the "Text einfuegen" / "Chordsheet einfuegen"
     upload options.
+
+    If `song_folder_name` is set, a new `<song_folder_name>.song` folder is
+    created under `folder_path` first (root-upload mode).
     """
     if body.file_type not in ("txt", "cho"):
         raise HTTPException(400, "file_type muss 'txt' oder 'cho' sein")
@@ -392,8 +396,24 @@ async def paste_text(
     safe_title = _safe_filename(body.title) or ("Akkorde" if body.file_type == "cho" else "Text")
     filename = f"{safe_title}.{body.file_type}"
 
-    # Resolve / create the Texte folder
     folder_path = body.folder_path
+
+    # Root-upload mode: create a new <song_folder_name>.song folder under folder_path
+    if body.song_folder_name:
+        safe_song = _safe_filename(body.song_folder_name)
+        if not safe_song:
+            raise HTTPException(400, "Ungueltiger Songname")
+        song_path = f"{folder_path.rstrip('/')}/{safe_song}.song"
+        dbx = get_dropbox_service(session)
+        if dbx:
+            song_dbx = _dropbox_folder_path(song_path, user, session)
+            try:
+                await dbx.create_folder(song_dbx)
+            except RuntimeError:
+                pass  # Already exists
+        folder_path = song_path
+
+    # Resolve / create the Texte folder
     texte_path = await _resolve_texte_folder(folder_path, user, session)
     if not texte_path:
         from backend.services.folder_types import get_parent_folder_type

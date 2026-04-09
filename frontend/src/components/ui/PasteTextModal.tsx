@@ -8,8 +8,15 @@ type Mode = 'txt' | 'cho'
 
 interface PasteTextModalProps {
   mode: Mode
-  songFolder: string
-  songName: string
+  /** Either an existing .song folder, or its parent (when createSongFolder is true). */
+  parentPath: string
+  /** Pre-filled value for the title input. Empty in root-upload mode. */
+  defaultTitle: string
+  /**
+   * If true, the title also becomes the new <title>.song folder name.
+   * Used when invoking the modal outside of any .song folder.
+   */
+  createSongFolder?: boolean
   onClose: () => void
   onSaved: (folderPath: string) => void
 }
@@ -36,12 +43,13 @@ const COPY = {
 
 export function PasteTextModal({
   mode,
-  songFolder,
-  songName,
+  parentPath,
+  defaultTitle,
+  createSongFolder = false,
   onClose,
   onSaved,
 }: PasteTextModalProps) {
-  const [title, setTitle] = useState(songName)
+  const [title, setTitle] = useState(defaultTitle)
   const [text, setText] = useState('')
   const [phase, setPhase] = useState<'input' | 'saving' | 'done' | 'error'>('input')
   const [error, setError] = useState('')
@@ -49,6 +57,8 @@ export function PasteTextModal({
   const copy = COPY[mode]
   const Icon = copy.icon
   const canSave = title.trim().length > 0 && text.trim().length > 0
+
+  const titleLabel = createSongFolder ? 'Songname' : 'Titel'
 
   const handleSave = async () => {
     if (!canSave) return
@@ -58,14 +68,16 @@ export function PasteTextModal({
       // For chord sheets: ensure ChordPro format on disk. Auto-detects whether
       // the pasted text is already ChordPro or "chord-line above lyrics" plain
       // text and converts the latter on the fly.
-      const payloadText = mode === 'cho' ? ensureChordPro(text, title.trim()) : text
+      const trimmedTitle = title.trim()
+      const payloadText = mode === 'cho' ? ensureChordPro(text, trimmedTitle) : text
       const result = await api<{ folder_path: string }>('/documents/paste-text', {
         method: 'POST',
         body: {
-          folder_path: songFolder,
-          title: title.trim(),
+          folder_path: parentPath,
+          title: trimmedTitle,
           text: payloadText,
           file_type: mode,
+          ...(createSongFolder ? { song_folder_name: trimmedTitle } : {}),
         },
       })
       setPhase('done')
@@ -95,7 +107,7 @@ export function PasteTextModal({
                 marginBottom: 'var(--space-1)',
               }}
             >
-              Titel
+              {titleLabel}
             </label>
             <input
               id="paste-title"
@@ -103,8 +115,20 @@ export function PasteTextModal({
               className="auth-input"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Titel"
+              placeholder={titleLabel}
+              autoFocus={createSongFolder}
             />
+            {createSongFolder && title.trim() && (
+              <div
+                style={{
+                  fontSize: 'var(--text-xs)',
+                  color: 'var(--text-muted)',
+                  marginTop: 'var(--space-1)',
+                }}
+              >
+                Es wird ein neuer Song-Ordner <strong>{title.trim()}.song</strong> angelegt.
+              </div>
+            )}
           </div>
 
           <div style={{ marginBottom: 'var(--space-3)' }}>
