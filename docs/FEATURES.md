@@ -940,7 +940,7 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 ### Bug-Reporting (Edge Drawer)
 
 - Amber-Tab am rechten Bildschirmrand, von jeder Seite aus erreichbar
-- Oeffnet Drawer mit Issue-Liste (von GitHub geladen, 60s Cache)
+- Oeffnet Drawer mit Liste der **offenen** Issues (von GitHub geladen, 60s Cache)
 - Quick-Add: Titel eingeben + Typ (Bug/Wunsch) waehlen → GitHub Issue wird erstellt
 - Issue-Body enthaelt automatisch User-Kontext (Name, Stimme, Chor)
 - Berechtigung `can_report_bugs` wird pro User individuell vergeben (nicht rollenbasiert)
@@ -1231,7 +1231,7 @@ HashRouter fuer Client-seitiges Routing (`/#/browse`, `/#/player`, etc.).
 
 | Methode | Pfad | Beschreibung | Zugang |
 |---------|------|-------------|--------|
-| GET | `/issues` | Offene/geschlossene GitHub Issues auflisten | `can_report_bugs` |
+| GET | `/issues` | Offene GitHub Issues auflisten | `can_report_bugs` |
 | POST | `/` | Neues GitHub Issue erstellen (title, description, type) | `can_report_bugs` |
 
 ### Chord Sheets (`/api/chord-sheets`)
@@ -1460,6 +1460,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### Bugreporter zeigte auch geschlossene Issues (#63)
+
+Der Edge-Bug-Drawer listete sowohl offene als auch geschlossene Issues mit `geschlossen`-Label und Statszeile `X offen · Y geschlossen`. Fix: Backend fragt GitHub nur noch mit `state=open` ab, Frontend zeigt nur die Anzahl offener Issues; Closed-Label und zugehoeriges CSS entfernt.
 
 ### GlobalPlayerBar verschwand beim Tab-Wechsel
 

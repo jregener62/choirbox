@@ -15,14 +15,12 @@ interface GitHubIssue {
 interface IssuesResponse {
   issues: GitHubIssue[]
   open_count: number
-  closed_count: number
 }
 
 export function EdgeBugTab() {
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [issues, setIssues] = useState<GitHubIssue[]>([])
   const [openCount, setOpenCount] = useState(0)
-  const [closedCount, setClosedCount] = useState(0)
   const [loading, setLoading] = useState(false)
   const [quickTitle, setQuickTitle] = useState('')
   const [quickType, setQuickType] = useState<'bug' | 'feature'>('bug')
@@ -35,7 +33,6 @@ export function EdgeBugTab() {
       const data = await api<IssuesResponse>('/feedback/issues')
       setIssues(data.issues)
       setOpenCount(data.open_count)
-      setClosedCount(data.closed_count)
     } catch {
       setMessage('Fehler beim Laden der Issues')
     } finally {
@@ -101,8 +98,6 @@ export function EdgeBugTab() {
             {/* Stats */}
             <div className="issue-drawer-stats">
               <span>{openCount} offen</span>
-              <span>·</span>
-              <span>{closedCount} geschlossen</span>
             </div>
 
             {/* Message */}
@@ -136,11 +131,6 @@ export function EdgeBugTab() {
                       >
                         {getIssueTypeLabel(issue)}
                       </span>
-                      {issue.state === 'closed' && (
-                        <span className="issue-drawer-label issue-drawer-label-closed">
-                          geschlossen
-                        </span>
-                      )}
                     </div>
                   </div>
                   <a

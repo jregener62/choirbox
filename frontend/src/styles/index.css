@@ -4809,11 +4809,6 @@ textarea::placeholder {
   font-weight: 500;
 }
 
-.issue-drawer-label-closed {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-muted);
-}
-
 .issue-drawer-link {
   color: var(--text-muted);
   padding: var(--space-1);

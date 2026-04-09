@@ -20,14 +20,12 @@ def _require_bug_reporter(user: User = Depends(require_user)) -> User:
 
 @router.get("/issues")
 async def list_issues(user: User = Depends(_require_bug_reporter)):
-    """List open/closed issues from GitHub."""
+    """List open issues from GitHub."""
     if not github_service.is_configured():
         raise HTTPException(503, "GitHub nicht konfiguriert")
 
-    issues = await github_service.list_issues(state="all")
-    open_count = sum(1 for i in issues if i["state"] == "open")
-    closed_count = sum(1 for i in issues if i["state"] == "closed")
-    return {"issues": issues, "open_count": open_count, "closed_count": closed_count}
+    issues = await github_service.list_issues(state="open")
+    return {"issues": issues, "open_count": len(issues)}
 
 
 @router.post("")
