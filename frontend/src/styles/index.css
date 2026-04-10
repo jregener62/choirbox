@@ -1572,19 +1572,21 @@ textarea::placeholder {
   background: #000;
 }
 
-/* Text Viewer */
+/* Text Viewer — Paper-Style: weiss mit dunklem Text in Hell und Dunkel. */
 .text-viewer {
   display: flex;
   flex-direction: column;
   flex: 1;
   min-height: 0;
   position: relative;
+  background: #ffffff;
+  color: #1a1f2e;
 }
 .text-viewer-name {
   font-size: var(--text-sm);
-  color: var(--text-secondary);
+  color: #4a5064;
   padding: var(--space-2) var(--space-3);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   flex-shrink: 0;
 }
 .text-viewer-content {
@@ -1597,7 +1599,8 @@ textarea::placeholder {
   white-space: pre-wrap;
   word-break: break-word;
   line-height: 1.6;
-  color: var(--text-primary);
+  color: #1a1f2e;
+  background: #ffffff;
   margin: 0;
   transition: font-size 0.15s ease;
 }
