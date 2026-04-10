@@ -4,7 +4,7 @@ import secrets
 from datetime import datetime
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
@@ -115,6 +115,7 @@ def dropbox_authorize(user: User = Depends(require_role("developer"))):
 
 @router.get("/callback")
 async def dropbox_callback(
+    request: Request,
     code: str = "",
     state: str = "",
     error: str = "",
@@ -174,16 +175,14 @@ async def dropbox_callback(
     session.add(settings)
     session.commit()
 
-    # Redirect back to the app settings page
-    # In dev mode Vite runs on :5174, in production the app is on the same port
-    from backend.config import BASE_DIR
-    react_index = BASE_DIR / "static" / "react" / "index.html"
-    if react_index.exists():
-        # Production: app served from same origin
-        return RedirectResponse("/#/settings?dropbox=connected")
-    else:
-        # Dev mode: redirect to Vite dev server
-        return RedirectResponse("http://localhost:5174/#/settings?dropbox=connected")
+    # Redirect back to the app settings page.
+    # In dev the backend runs on :8001 but the user-facing frontend is on
+    # Vite (:5174); in production both share the same origin (e.g.
+    # https://cantabox.de) — derive the target from request.base_url.
+    frontend_url = str(request.base_url).rstrip("/")
+    if "localhost:8001" in frontend_url or "127.0.0.1:8001" in frontend_url:
+        frontend_url = "http://localhost:5174"
+    return RedirectResponse(f"{frontend_url}/#/settings?dropbox=connected")
 
 
 @router.get("/browse")
