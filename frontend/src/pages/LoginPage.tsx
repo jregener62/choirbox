@@ -80,6 +80,12 @@ export function LoginPage() {
         <p className="auth-footer">
           Noch kein Konto? Du brauchst einen Einladungslink von deinem Chorleiter.
         </p>
+
+        <p className="auth-footer auth-legal">
+          <a href="/impressum" target="_blank" rel="noopener noreferrer">Impressum</a>
+          {' · '}
+          <a href="/datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a>
+        </p>
       </div>
     </div>
   )

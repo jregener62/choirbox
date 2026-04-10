@@ -584,6 +584,13 @@ export function SettingsPage() {
             <span>Abmelden</span>
           </button>
         </section>
+
+        {/* -- Rechtliches -- */}
+        <section className="settings-legal">
+          <a href="/impressum" target="_blank" rel="noopener noreferrer">Impressum</a>
+          <span aria-hidden="true"> · </span>
+          <a href="/datenschutz" target="_blank" rel="noopener noreferrer">Datenschutz</a>
+        </section>
       </div>
     </div>
   )

@@ -2904,6 +2904,29 @@ textarea::placeholder {
   cursor: pointer;
 }
 
+.auth-legal {
+  margin-top: var(--space-2);
+  font-size: var(--text-2xs);
+  opacity: 0.75;
+}
+
+.settings-legal {
+  margin-top: var(--space-6);
+  text-align: center;
+  font-size: var(--text-2xs);
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+.settings-legal a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.settings-legal a:hover {
+  text-decoration: underline;
+}
+
 /* -- PWA Install Guide -- */
 
 .pwa-guide-overlay {

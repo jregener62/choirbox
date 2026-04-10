@@ -159,6 +159,16 @@ def index():
     return {"message": "ChoirBox API running. Frontend not built yet — run: cd frontend && npm run build"}
 
 
+@app.get("/impressum")
+def impressum():
+    return FileResponse(str(BASE / "static" / "impressum.html"))
+
+
+@app.get("/datenschutz")
+def datenschutz():
+    return FileResponse(str(BASE / "static" / "datenschutz.html"))
+
+
 @app.on_event("startup")
 async def on_startup():
     import backend.models  # noqa: F401
