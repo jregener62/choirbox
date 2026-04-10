@@ -151,3 +151,19 @@ def index():
 async def on_startup():
     import backend.models  # noqa: F401
     create_db_and_tables()
+
+    # One-shot migration: encrypt any legacy plaintext Dropbox refresh token.
+    from backend.database import get_session
+    from backend.models.app_settings import AppSettings
+    from backend.utils.crypto import encrypt, is_encrypted
+
+    with next(get_session()) as session:
+        settings = session.get(AppSettings, 1)
+        if (
+            settings
+            and settings.dropbox_refresh_token
+            and not is_encrypted(settings.dropbox_refresh_token)
+        ):
+            settings.dropbox_refresh_token = encrypt(settings.dropbox_refresh_token)
+            session.add(settings)
+            session.commit()

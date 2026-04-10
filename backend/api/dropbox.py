@@ -165,8 +165,9 @@ async def dropbox_callback(
             acct_data = acct_resp.json()
             account_email = acct_data.get("email", "")
 
+    from backend.utils.crypto import encrypt
     settings = _get_or_create_settings(session)
-    settings.dropbox_refresh_token = refresh_token
+    settings.dropbox_refresh_token = encrypt(refresh_token)
     settings.dropbox_account_id = account_id
     settings.dropbox_account_email = account_email
     settings.dropbox_connected_at = datetime.utcnow()
