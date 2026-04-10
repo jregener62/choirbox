@@ -1,5 +1,6 @@
 from pathlib import Path
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, RedirectResponse
 from backend.database import create_db_and_tables
@@ -98,6 +99,17 @@ class SecurityHeadersMiddleware:
 app = FastAPI(title="ChoirBox", version="0.1.0")
 app.add_middleware(CacheControlMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "https://cantabox.de",
+        "http://localhost:5174",   # Vite Dev Server
+        "http://localhost:8001",   # Backend Dev
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # API routes
 app.include_router(auth_router, prefix="/api")
