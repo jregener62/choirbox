@@ -16,9 +16,9 @@ export function FolderImportIcon({ size = 24 }: FolderImportIconProps) {
     >
       {/* Folder body */}
       <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8l-2-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2z" />
-      {/* Arrow pointing right into folder */}
-      <path d="M8 13h6" />
-      <path d="M12 10l3 3-3 3" />
+      {/* Plus sign */}
+      <path d="M12 11v6" />
+      <path d="M9 14h6" />
     </svg>
   )
 }
