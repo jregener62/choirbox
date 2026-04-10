@@ -91,14 +91,8 @@ def _record_login_attempt(ip: str):
     _login_attempts.setdefault(ip, []).append(time.time())
 
 
-def get_current_user(request: Request, session: Session = Depends(get_session)) -> Optional[User]:
-    """Extract current user from Authorization header."""
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        token = auth[7:]
-    else:
-        token = request.query_params.get("token", "")
-
+def _resolve_token_to_user(token: str, session: Session) -> Optional[User]:
+    """Look up an active session token and return the associated user."""
     if not token:
         return None
     st = session.get(SessionToken, token)
@@ -112,9 +106,44 @@ def get_current_user(request: Request, session: Session = Depends(get_session)) 
     return session.get(User, st.user_id)
 
 
+def get_current_user(request: Request, session: Session = Depends(get_session)) -> Optional[User]:
+    """Extract current user from Authorization header.
+
+    Tokens MUST be sent via the Authorization header — query-string tokens
+    are not accepted here, since they leak into server logs and browser
+    history. Specific streaming endpoints that need query-string tokens
+    (e.g. <img src> for PDF page rendering, <a href download>) use the
+    dedicated `require_user_query` dependency instead.
+    """
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        token = auth[7:]
+    else:
+        token = ""
+    return _resolve_token_to_user(token, session)
+
+
 def require_user(request: Request, session: Session = Depends(get_session)) -> User:
     """Require authenticated user — raises 401 if not logged in."""
     user = get_current_user(request, session)
+    if not user:
+        raise HTTPException(401, "Not authenticated")
+    return user
+
+
+def require_user_query(request: Request, session: Session = Depends(get_session)) -> User:
+    """Like require_user, but also accepts the token via ?token= query param.
+
+    Use ONLY for endpoints embedded as <img src>, <a href download>, or
+    similar contexts where the browser cannot send Authorization headers.
+    Prefer the Authorization header for normal API calls.
+    """
+    auth = request.headers.get("Authorization", "")
+    if auth.startswith("Bearer "):
+        token = auth[7:]
+    else:
+        token = request.query_params.get("token", "")
+    user = _resolve_token_to_user(token, session)
     if not user:
         raise HTTPException(401, "Not authenticated")
     return user
