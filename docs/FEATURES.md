@@ -1527,3 +1527,33 @@ Textdateien mit U+2028 (Line Separator) wurden im Viewer ohne Zeilenumbrueche da
 ### Topbar scrollt auf Settings & Admin-Seiten mit dem Inhalt weg
 
 Der Topheader (`.topbar`) der Settings-Seite war `position: static` und scrollte beim Scrollen der Seite mit nach oben aus dem Viewport. Gleiches galt fuer alle Admin-Unterseiten (Nutzer, Labels, Sektionsvorlagen, Choere), die das gleiche Layout-Pattern (plain `<div>` Wrapper im `.main-content`-Scroll-Container) nutzen. Fix: `.topbar` ist jetzt global `position: sticky; top: 0; z-index: 10` — bleibt am oberen Rand kleben, waehrend der Inhalt darunter scrollt. `.topbar--hidden` ueberschreibt das weiterhin mit `position: absolute` fuer den Fullscreen-Modus im PDF-Viewer.
+
+## Sicherheit
+
+### Security Headers Middleware
+
+Jede HTTP-Response setzt jetzt baseline Security-Header: `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`, `Permissions-Policy: camera=(), microphone=(self), geolocation=()` und eine `Content-Security-Policy`, die nur Self-Origin sowie die Dropbox- und GitHub-API-Domains erlaubt. `microphone=(self)` ist erlaubt, weil der `useRecorder`-Hook MediaRecorder fuer Aufnahmen nutzt. HSTS wird bewusst nicht in der App gesetzt, sondern muss vom Reverse-Proxy (Caddy/nginx) konfiguriert werden.
+
+### Query-String-Token entfernt
+
+`get_current_user` akzeptiert nur noch Tokens via `Authorization: Bearer`-Header. Der frueher unterstuetzte `?token=...`-Fallback landete in Server-Logs, Browser-History und Referer-Headern. Fuer die wenigen Endpoints, die wegen `<img src>` (PDF-Page-Rendering) bzw. `<a href download>` (Download-Link) keine Custom Header senden koennen, gibt es eine separate `require_user_query`-Dependency. Sie wird nur von `/api/documents/{id}/page/{page}` und `/api/documents/{id}/download` verwendet.
+
+### SECRET_KEY ohne vorhersagbaren Default
+
+Der hartcodierte Dev-Default `"dev-secret-change-in-production"` wurde entfernt. Bei fehlendem `SECRET_KEY` in der `.env` wird zur Laufzeit ein zufaelliger 32-Byte-Hex-Key erzeugt und eine Warning ausgegeben. So kann auch eine versehentlich nicht gesetzte Production-Konfiguration nicht mehr mit einem bekannten Default-Schluessel laufen.
+
+### Dropbox Refresh Token in der DB verschluesselt
+
+Der Dropbox Refresh Token wird vor dem Speichern symmetrisch verschluesselt (Fernet, Key per SHA256 aus `SECRET_KEY` abgeleitet). Beim Lesen entschluesselt der `dropbox_service` automatisch. Eine einmalige Migration in `on_startup` verschluesselt vorhandene Klartext-Tokens beim ersten Start. Backward-Compat: alte Klartext-Tokens funktionieren weiter, bis sie beim naechsten Reconnect (oder durch die Migration) verschluesselt sind.
+
+### CORS Whitelist
+
+`CORSMiddleware` mit expliziter Origin-Whitelist (`https://cantabox.de`, `http://localhost:5174`, `http://localhost:8001`). Andere Origins werden vom Browser-CORS-Mechanismus blockiert.
+
+### OAuth Callback Redirect dynamisch
+
+Der Dropbox-OAuth-Callback nutzt jetzt `request.base_url`, um das Redirect-Ziel dynamisch zu bestimmen. In Production landet der Nutzer wieder auf `https://cantabox.de`, in Development auf Vite (`http://localhost:5174`). Der frueher hartcodierte `localhost:5174`-Redirect wurde entfernt.
+
+### Impressum und Datenschutzerklaerung
+
+Statische Seiten unter `/impressum` und `/datenschutz` mit Platzhalter-Inhalten gemaess TMG/DSGVO. Werden vom Backend ausgeliefert; im Dev-Mode leitet der Vite-Proxy beide Pfade ans Backend weiter. Links sind im Footer der Login-Seite und am Ende der Settings-Seite verlinkt (jeweils in neuem Tab).

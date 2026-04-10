@@ -19,6 +19,14 @@ export default defineConfig({
         target: apiTarget,
         changeOrigin: true,
       },
+      '/impressum': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
+      '/datenschutz': {
+        target: apiTarget,
+        changeOrigin: true,
+      },
     },
   },
   build: {

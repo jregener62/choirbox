@@ -13,7 +13,7 @@ from backend.models.choir import Choir
 from backend.models.document import Document
 from backend.models.user import User
 from backend.models.user_chord_preference import UserChordPreference
-from backend.api.auth import require_user, require_role
+from backend.api.auth import require_user, require_user_query, require_role
 from backend.schemas import ActionResponse
 from backend.services import document_service
 from backend.services.dropbox_service import get_dropbox_service
@@ -461,10 +461,14 @@ def _safe_filename(title: str) -> str:
 async def document_page(
     doc_id: int,
     page: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_user_query),
     session: Session = Depends(get_session),
 ):
-    """Render a PDF page as JPEG. Fetches PDF from Dropbox on cache miss."""
+    """Render a PDF page as JPEG. Fetches PDF from Dropbox on cache miss.
+
+    Uses require_user_query because the frontend embeds these URLs as
+    <img src> and the browser cannot send Authorization headers there.
+    """
     doc = document_service.get_document(doc_id, session)
     if not doc or doc.file_type != "pdf":
         raise HTTPException(404, "Kein PDF vorhanden")
@@ -502,10 +506,15 @@ async def document_page(
 @router.get("/{doc_id}/download")
 async def download_document(
     doc_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_user_query),
     session: Session = Depends(get_session),
 ):
-    """Redirect to Dropbox temporary link for download."""
+    """Redirect to Dropbox temporary link for download.
+
+    Uses require_user_query because the frontend embeds this URL as an
+    <a href download> and the browser cannot send Authorization headers
+    on plain link clicks.
+    """
     doc = document_service.get_document(doc_id, session)
     if not doc:
         raise HTTPException(404, "Dokument nicht gefunden")

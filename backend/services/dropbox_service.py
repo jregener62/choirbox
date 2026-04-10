@@ -355,7 +355,13 @@ class DropboxService:
 
 def get_dropbox_service(session: Session) -> Optional[DropboxService]:
     """Get a DropboxService instance from app settings, or None if not connected."""
+    from backend.utils.crypto import decrypt, is_encrypted
     settings = session.get(AppSettings, 1)
     if not settings or not settings.dropbox_refresh_token:
         return None
-    return DropboxService(refresh_token=settings.dropbox_refresh_token)
+    raw_token = settings.dropbox_refresh_token
+    # Backward compat: legacy plaintext tokens are still accepted; they get
+    # re-encrypted on the next OAuth reconnect (or via the startup migration).
+    if is_encrypted(raw_token):
+        raw_token = decrypt(raw_token)
+    return DropboxService(refresh_token=raw_token)
