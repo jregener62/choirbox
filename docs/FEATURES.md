@@ -1467,6 +1467,16 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Service Worker brach Audio-Streaming auf Prod
+
+Nach dem PWA-Asset-Fix (`/sw.js` wird seitdem korrekt ausgeliefert) registrierte sich der Service Worker erstmals tatsaechlich auf Prod. Sein `fetch`-Handler fing aber **alle** Requests im Scope ab — auch cross-origin Requests an die Dropbox-CDN. HTML5-Audio braucht fuer Streaming HTTP-Range-Requests (206 Partial Content), die durch das Durchreichen via `event.respondWith(fetch(request))` brachen. Folge: `audio.play()` wurde rejected, Duration blieb 0:00, der Play-Button reagierte sichtbar nicht. Auf localhost trat der Bug nicht auf, weil der SW per `import.meta.env.PROD` nur in Production-Builds registriert wird.
+
+**Fix:**
+
+- `frontend/public/sw.js`: Cross-Origin-Requests werden vor `respondWith` komplett abgegeben (`new URL(request.url).origin !== self.location.origin → return`). Audio-Streams gehen damit wieder direkt vom Browser an die Dropbox-CDN, ohne SW-Umweg.
+- Cache-Name auf `choirbox-v3` gebumpt, damit User-Browser den alten kaputten SW ersetzen.
+- `frontend/src/hooks/useAudioPlayer.ts`: `error`-Listener auf dem Audio-Element ergaenzt, beide `play().catch(...)` loggen jetzt den Grund. Vorher schluckte der Hook jeden Lade-/Play-Fehler stillschweigend.
+
 ### Favoriten, Notizen und Labels verschwanden bei jedem Datei-Rename
 
 Die User-Daten-Tabellen `favorites`, `notes` und `user_labels` referenzierten die jeweilige Datei nur ueber `dropbox_path` (String). Wurde eine Datei in Dropbox umbenannt, fand der Resync-Cleanup-Sweep den alten Pfad nicht mehr im Listing und loeschte den Row.

@@ -81,6 +81,12 @@ export function useAudioPlayer() {
       usePlayerStore.getState().setPlaying(false)
       usePlayerStore.getState().setCurrentTime(0)
     })
+
+    audio.addEventListener('error', () => {
+      const err = audio.error
+      console.error('Audio element error:', err?.code, err?.message, 'src:', audio.currentSrc)
+      usePlayerStore.getState().setPlaying(false)
+    })
   }, [])
 
   // Load new track when path changes
@@ -101,7 +107,8 @@ export function useAudioPlayer() {
         audio.load()
         // If play was requested before src was ready, start now
         if (usePlayerStore.getState().isPlaying) {
-          audio.play().catch(() => {
+          audio.play().catch((err) => {
+            console.error('Audio play() rejected (deferred):', err)
             usePlayerStore.getState().setPlaying(false)
           })
         }
@@ -118,7 +125,8 @@ export function useAudioPlayer() {
     if (!audio.src) return
 
     if (isPlaying && audio.paused) {
-      audio.play().catch(() => {
+      audio.play().catch((err) => {
+        console.error('Audio play() rejected:', err)
         usePlayerStore.getState().setPlaying(false)
       })
     } else if (!isPlaying && !audio.paused) {
