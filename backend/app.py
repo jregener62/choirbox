@@ -47,8 +47,57 @@ class CacheControlMiddleware:
         await self.app(scope, receive, send_with_cache)
 
 
+class SecurityHeadersMiddleware:
+    """Set baseline security headers on every HTTP response.
+
+    HSTS is intentionally not set here — that belongs to the reverse proxy
+    (Caddy/nginx) so it can be tuned per environment.
+    microphone=(self) is allowed because the app uses MediaRecorder for
+    user-uploaded audio recordings.
+    """
+
+    _SECURITY_HEADERS = [
+        (b"x-content-type-options", b"nosniff"),
+        (b"x-frame-options", b"DENY"),
+        (b"referrer-policy", b"strict-origin-when-cross-origin"),
+        (b"permissions-policy", b"camera=(), microphone=(self), geolocation=()"),
+        (
+            b"content-security-policy",
+            (
+                b"default-src 'self'; "
+                b"script-src 'self' 'unsafe-inline'; "
+                b"style-src 'self' 'unsafe-inline'; "
+                b"img-src 'self' data: blob: https://dl.dropboxusercontent.com; "
+                b"media-src 'self' blob: https://*.dropboxusercontent.com; "
+                b"connect-src 'self' https://api.dropboxapi.com https://content.dropboxapi.com https://api.github.com"
+            ),
+        ),
+    ]
+
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        async def send_with_security(message):
+            if message["type"] == "http.response.start":
+                headers = list(message.get("headers", []))
+                existing = {name for name, _ in headers}
+                for name, value in self._SECURITY_HEADERS:
+                    if name not in existing:
+                        headers.append((name, value))
+                message["headers"] = headers
+            await send(message)
+
+        await self.app(scope, receive, send_with_security)
+
+
 app = FastAPI(title="ChoirBox", version="0.1.0")
 app.add_middleware(CacheControlMiddleware)
+app.add_middleware(SecurityHeadersMiddleware)
 
 # API routes
 app.include_router(auth_router, prefix="/api")
