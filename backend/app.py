@@ -137,6 +137,31 @@ if REACT_ASSETS.exists():
         name="react-assets",
     )
 
+# PWA-Icons (Vite kopiert frontend/public/icons/ nach static/react/icons/)
+REACT_ICONS = REACT_DIST / "icons"
+if REACT_ICONS.exists():
+    app.mount(
+        "/icons",
+        StaticFiles(directory=str(REACT_ICONS)),
+        name="react-icons",
+    )
+
+
+# PWA-Top-Level-Dateien (manifest, service worker, favicon)
+@app.get("/manifest.json")
+def pwa_manifest():
+    return FileResponse(str(REACT_DIST / "manifest.json"))
+
+
+@app.get("/sw.js")
+def service_worker():
+    return FileResponse(str(REACT_DIST / "sw.js"))
+
+
+@app.get("/icon.svg")
+def favicon_svg():
+    return FileResponse(str(REACT_DIST / "icon.svg"))
+
 
 # Static mockups/files
 MOCKUPS_DIR = BASE / "docs" / "mockups"
