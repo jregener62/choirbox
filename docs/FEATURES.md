@@ -1467,6 +1467,17 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### FK-Constraints in SQLite bisher deaktiviert — stille Orphans
+
+`backend/database.py` setzte beim Connect zwar `journal_mode=WAL` und `busy_timeout`, aber **nicht** `PRAGMA foreign_keys=ON`. Damit ignoriert SQLite alle Foreign-Key-Definitionen aus den SQLModels. Folge: Beim Loeschen von Documents/Users/Labels blieben Orphans in `user_chord_preferences`, `user_selected_documents`, `session_tokens` etc. zurueck — bei Production-DB lokal 79 Stueck.
+
+**Fix (Phase 1 Datenmodell-Stabilisierung):** PRAGMA foreign_keys=ON ist jetzt im Connect-Listener aktiv. Zwei neue Skripte zur einmaligen Aufraeumung:
+
+- `python -m scripts.audit_orphans` — zaehlt Orphans pro FK, exit 1 wenn welche gefunden werden
+- `python -m scripts.clean_orphans [--dry-run]` — loescht nachweislich tote Verweise
+
+Vor Deploy auf Staging/Prod: erst `audit_orphans`, dann `clean_orphans --dry-run`, dann echtes Cleanup, dann den Phase-1-Commit deployen.
+
 ### Annotationen verschwanden bei jedem Datei-Rename in Dropbox
 
 Wenn eine PDF in Dropbox umbenannt wurde, hat der naechste Sync ein `delete_document` auf die alte Datei ausgefuehrt. `delete_document` hat dabei alle zugehoerigen `Annotation`-Eintraege mit geloescht — obwohl die Datei inhaltlich identisch war und auf der neuen Datei wieder angezeigt werden sollte. Folge: jede Umbenennung war datenzerstoerend.

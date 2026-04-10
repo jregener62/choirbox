@@ -11,6 +11,9 @@ if DATABASE_URL.startswith("sqlite"):
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA journal_mode=WAL")
         cursor.execute("PRAGMA busy_timeout=30000")
+        # FK-Constraints durchsetzen — sonst sammeln sich stille Orphans, weil
+        # SQLite FK-Definitionen ohne dieses PRAGMA komplett ignoriert.
+        cursor.execute("PRAGMA foreign_keys=ON")
         cursor.close()
 
 
