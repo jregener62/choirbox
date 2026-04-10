@@ -30,6 +30,7 @@ static/react/
 # OS
 .DS_Store
 Thumbs.db
+.fuse_hidden*
 
 # Claude Code
 .claude/
