@@ -306,12 +306,105 @@ def _strip_root(display_path: str, root: str) -> str:
     return rel
 
 
+async def _count_document_sync_delta(
+    folder_path: str, user: User, session: Session, dbx,
+) -> tuple[int, int, int]:
+    """Dry-Run-Variante von _sync_documents_from_dropbox.
+
+    Vergleicht einen .tx-Ordner zwischen Dropbox und DB und zaehlt, wie viele
+    Dokumente neu hinzugefuegt, aktualisiert oder entfernt wuerden. Schreibt
+    nichts in die DB.
+    """
+    from backend.api.documents import _dropbox_folder_path
+    from backend.models.document import Document
+    from backend.services import document_service
+
+    tx_folder = _dropbox_folder_path(folder_path, user, session)
+    try:
+        texte_entries = await dbx.list_folder(tx_folder)
+    except Exception:
+        texte_entries = []
+
+    entries = [
+        e for e in texte_entries
+        if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", ""))
+    ]
+
+    existing = {
+        d.original_name: d.content_hash
+        for d in session.exec(
+            select(Document).where(Document.folder_path == folder_path)
+        ).all()
+    }
+
+    added = updated = removed = 0
+    dbx_names: set[str] = set()
+    for entry in entries:
+        name = entry.get("name", "")
+        if not document_service.detect_file_type(name):
+            continue
+        dbx_names.add(name)
+        dbx_hash = entry.get("content_hash")
+        if name not in existing:
+            added += 1
+        elif existing[name] != dbx_hash:
+            updated += 1
+
+    for name in existing:
+        if name not in dbx_names:
+            removed += 1
+
+    return added, updated, removed
+
+
+def _backup_sqlite_db(keep: int = 5) -> str | None:
+    """Kopiert choirbox.db nach choirbox.db.bak-<timestamp> und behaelt nur die
+    letzten `keep` Backups. Gibt den Pfad des neuen Backups zurueck, oder None,
+    wenn die DB keine SQLite-Datei ist."""
+    from pathlib import Path
+    import shutil
+    from datetime import datetime as _dt
+
+    from backend.config import DATABASE_URL
+
+    if not DATABASE_URL.startswith("sqlite:///"):
+        return None
+
+    db_path = Path(DATABASE_URL.removeprefix("sqlite:///"))
+    if not db_path.exists():
+        return None
+
+    ts = _dt.utcnow().strftime("%Y%m%d-%H%M%S")
+    backup_path = db_path.with_name(f"{db_path.name}.bak-{ts}")
+    shutil.copy2(db_path, backup_path)
+
+    # Nur die letzten `keep` Backups behalten
+    backups = sorted(
+        db_path.parent.glob(f"{db_path.name}.bak-*"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    for old in backups[keep:]:
+        try:
+            old.unlink()
+        except OSError:
+            pass
+
+    return str(backup_path)
+
+
 @router.post("/resync")
 async def resync_all(
+    dry_run: bool = False,
     user: User = Depends(require_admin),
     session: Session = Depends(get_session),
 ):
-    """Full sync: scan the choir's Dropbox recursively and reconcile all DB records."""
+    """Full sync: scan the choir's Dropbox recursively and reconcile all DB records.
+
+    Mit `?dry_run=true` laeuft der Resync als Simulation: es wird nur gezaehlt,
+    welche Aenderungen vorgenommen wuerden, aber nichts in die DB geschrieben und
+    kein DB-Backup erstellt.
+    """
     from backend.models.document import Document
     from backend.models.audio_duration import AudioDuration
     from backend.models.favorite import Favorite
@@ -328,6 +421,16 @@ async def resync_all(
     dbx = get_dropbox_service(session)
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
+
+    # --- Step 0: Vor echtem Resync DB-Backup ziehen ---
+    backup_file: str | None = None
+    if not dry_run:
+        try:
+            backup_file = _backup_sqlite_db()
+        except Exception:
+            # Backup-Fehler darf den Resync nicht blockieren, aber wir wollen
+            # wissen, dass es schiefging.
+            backup_file = None
 
     # --- Step 1: Recursive listing of entire choir Dropbox ---
     root = _get_root_folder(user, session)
@@ -362,34 +465,50 @@ async def resync_all(
             if get_reserved_type(e.get("name", "")) == "texte":
                 texte_folder_paths.add(rel)
 
-    stats = {"synced_folders": 0, "added": 0, "updated": 0, "removed": 0}
+    stats = {
+        "dry_run": dry_run,
+        "synced_folders": 0,
+        "added": 0,
+        "updated": 0,
+        "removed": 0,
+    }
+    if backup_file:
+        stats["backup_file"] = backup_file
 
     # --- Step 2: Sync documents (.tx folders) ---
     for fp in texte_folder_paths:
-        before = {
-            d.original_name: d.content_hash
-            for d in session.exec(
-                select(Document).where(Document.folder_path == fp)
-            ).all()
-        }
+        if dry_run:
+            added, updated, removed = await _count_document_sync_delta(
+                fp, user, session, dbx,
+            )
+            stats["added"] += added
+            stats["updated"] += updated
+            stats["removed"] += removed
+        else:
+            before = {
+                d.original_name: d.content_hash
+                for d in session.exec(
+                    select(Document).where(Document.folder_path == fp)
+                ).all()
+            }
 
-        await _sync_documents_from_dropbox(fp, user, session)
+            await _sync_documents_from_dropbox(fp, user, session)
 
-        after = {
-            d.original_name: d.content_hash
-            for d in session.exec(
-                select(Document).where(Document.folder_path == fp)
-            ).all()
-        }
+            after = {
+                d.original_name: d.content_hash
+                for d in session.exec(
+                    select(Document).where(Document.folder_path == fp)
+                ).all()
+            }
 
-        for name in after:
-            if name not in before:
-                stats["added"] += 1
-            elif after[name] != before[name]:
-                stats["updated"] += 1
-        for name in before:
-            if name not in after:
-                stats["removed"] += 1
+            for name in after:
+                if name not in before:
+                    stats["added"] += 1
+                elif after[name] != before[name]:
+                    stats["updated"] += 1
+            for name in before:
+                if name not in after:
+                    stats["removed"] += 1
         stats["synced_folders"] += 1
 
     # Clean up documents whose .tx folder no longer exists in Dropbox
@@ -400,27 +519,34 @@ async def resync_all(
         for doc in session.exec(
             select(Document).where(Document.folder_path == fp)
         ).all():
-            document_service.delete_document(doc.id, session)
+            if not dry_run:
+                document_service.delete_document(doc.id, session)
             stats["removed"] += 1
 
     # --- Step 3: Parse file metadata (audio + documents) ---
     from backend.models.audio_meta import AudioMeta
     from backend.services.audio_meta_service import sync_audio_meta, MEDIA_EXTENSIONS
     media_paths = [p for p in dbx_file_paths if any(p.lower().endswith(ext) for ext in MEDIA_EXTENSIONS)]
-    meta_count = sync_audio_meta(session, user.choir_id, media_paths)
-    stats["meta_synced"] = meta_count
+    if dry_run:
+        # Nur zaehlen, wie viele Medien AudioMeta haetten
+        stats["meta_synced"] = len(media_paths)
+    else:
+        meta_count = sync_audio_meta(session, user.choir_id, media_paths)
+        stats["meta_synced"] = meta_count
 
     # --- Step 4: Clean up orphaned records for deleted files/folders ---
     # AudioMeta
     for meta in session.exec(select(AudioMeta)).all():
         if meta.dropbox_path not in dbx_file_paths:
-            session.delete(meta)
+            if not dry_run:
+                session.delete(meta)
             stats["removed"] += 1
 
     # AudioDurations
     for dur in session.exec(select(AudioDuration)).all():
         if dur.dropbox_path not in dbx_file_paths:
-            session.delete(dur)
+            if not dry_run:
+                session.delete(dur)
             stats["removed"] += 1
 
     # Favorites
@@ -431,27 +557,34 @@ async def resync_all(
             else fav.dropbox_path in dbx_file_paths
         )
         if not valid:
-            session.delete(fav)
+            if not dry_run:
+                session.delete(fav)
             stats["removed"] += 1
 
     # UserLabels
     for ul in session.exec(select(UserLabel)).all():
         if ul.dropbox_path not in dbx_file_paths:
-            session.delete(ul)
+            if not dry_run:
+                session.delete(ul)
             stats["removed"] += 1
 
     # Notes
     for note in session.exec(select(Note)).all():
         if note.dropbox_path not in dbx_file_paths:
-            session.delete(note)
+            if not dry_run:
+                session.delete(note)
             stats["removed"] += 1
 
     # Sections
     for sec in session.exec(select(Section)).all():
         if sec.folder_path not in dbx_folder_paths:
-            session.delete(sec)
+            if not dry_run:
+                session.delete(sec)
             stats["removed"] += 1
 
-    session.commit()
+    if dry_run:
+        session.rollback()
+    else:
+        session.commit()
 
     return ActionResponse.success(data=stats)

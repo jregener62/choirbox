@@ -57,6 +57,38 @@ export function SettingsPage() {
   const [resyncing, setResyncing] = useState(false)
   const [resyncResult, setResyncResult] = useState('')
 
+  type ResyncResponse = {
+    dry_run?: boolean
+    synced_folders: number
+    added: number
+    updated: number
+    removed: number
+    meta_synced?: number
+    backup_file?: string
+  }
+
+  const runResync = useCallback(async (dryRun: boolean) => {
+    setResyncing(true)
+    setResyncResult('')
+    try {
+      const url = dryRun ? '/admin/resync?dry_run=true' : '/admin/resync'
+      const data = await api<ResyncResponse>(url, { method: 'POST' })
+      const parts: string[] = []
+      if (data.added) parts.push(`${data.added} neu`)
+      if (data.updated) parts.push(`${data.updated} aktualisiert`)
+      if (data.removed) parts.push(`${data.removed} entfernt`)
+      const prefix = dryRun ? 'Simulation: ' : ''
+      setResyncResult(
+        `${prefix}${data.synced_folders} Ordner geprueft` +
+        (parts.length ? ` (${parts.join(', ')})` : ' — alles aktuell')
+      )
+    } catch (err) {
+      setResyncResult(err instanceof Error ? err.message : 'Fehler bei der Synchronisation')
+    } finally {
+      setResyncing(false)
+    }
+  }, [])
+
   // Load Dropbox status
   const loadDropboxStatus = useCallback(async () => {
     setDbxLoading(true)
@@ -545,25 +577,15 @@ export function SettingsPage() {
               <button
                 className="settings-nav-item"
                 disabled={resyncing}
-                onClick={async () => {
-                  setResyncing(true)
-                  setResyncResult('')
-                  try {
-                    const data = await api<{ synced_folders: number; added: number; updated: number; removed: number }>('/admin/resync', { method: 'POST' })
-                    const parts = []
-                    if (data.added) parts.push(`${data.added} neu`)
-                    if (data.updated) parts.push(`${data.updated} aktualisiert`)
-                    if (data.removed) parts.push(`${data.removed} entfernt`)
-                    setResyncResult(
-                      `${data.synced_folders} Ordner synchronisiert` +
-                      (parts.length ? ` (${parts.join(', ')})` : ' — alles aktuell')
-                    )
-                  } catch (err) {
-                    setResyncResult(err instanceof Error ? err.message : 'Fehler bei der Synchronisation')
-                  } finally {
-                    setResyncing(false)
-                  }
-                }}
+                onClick={() => runResync(true)}
+              >
+                <RefreshCw size={18} className={resyncing ? 'spinning' : ''} />
+                <span>{resyncing ? 'Pruefe...' : 'Resync simulieren (Dry-Run)'}</span>
+              </button>
+              <button
+                className="settings-nav-item"
+                disabled={resyncing}
+                onClick={() => runResync(false)}
               >
                 <RefreshCw size={18} className={resyncing ? 'spinning' : ''} />
                 <span>{resyncing ? 'Synchronisiere...' : 'Dropbox Re-Sync'}</span>

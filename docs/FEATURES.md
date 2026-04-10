@@ -448,6 +448,8 @@ Vollstaendiger Abgleich aller DB-Records gegen den Dropbox-Inhalt des Chors. Adm
 - **Dokumente**: Sync aller Texte-Subordner (neu, geaendert, geloescht)
 - **Verwaiste Records bereinigen**: AudioDurations, Favoriten, Labels, Notizen, Sektionen fuer Dateien/Ordner die in Dropbox nicht mehr existieren
 - Ergebnis-Anzeige: Anzahl synchronisierter Ordner + Aenderungen
+- **Dry-Run-Modus**: Button "Resync simulieren (Dry-Run)" laesst den kompletten Vergleich laufen, schreibt aber nichts in die DB. Anzeige wird mit "Simulation: ..." prefixed. Backend-Endpoint: `POST /admin/resync?dry_run=true`.
+- **DB-Backup vor Resync**: Vor jedem echten (nicht-simulierten) Resync wird `choirbox.db` automatisch nach `choirbox.db.bak-<timestamp>` kopiert. Es bleiben immer nur die letzten 5 Backups erhalten.
 
 ### PDF-Rendering (ohne Disk-Storage)
 
@@ -1464,6 +1466,12 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### Annotationen verschwanden bei jedem Datei-Rename in Dropbox
+
+Wenn eine PDF in Dropbox umbenannt wurde, hat der naechste Sync ein `delete_document` auf die alte Datei ausgefuehrt. `delete_document` hat dabei alle zugehoerigen `Annotation`-Eintraege mit geloescht — obwohl die Datei inhaltlich identisch war und auf der neuen Datei wieder angezeigt werden sollte. Folge: jede Umbenennung war datenzerstoerend.
+
+**Fix (Phase 0 Datenmodell-Stabilisierung):** `delete_document` loescht keine Annotationen mehr. Die Annotationen bleiben als verwaiste Eintraege stehen, bis Phase 2 sie ueber die stabile `dropbox_file_id` wieder am neuen Document-Row matcht. Bis dahin: nichts mehr verlieren.
 
 ### GlobalPlayerBar nicht theme-faehig im Hellmodus
 

@@ -286,13 +286,11 @@ def delete_document(doc_id: int, session: Session) -> bool:
     for h in hidden:
         session.delete(h)
 
-    # Delete annotations for this document
-    from backend.models.annotation import Annotation
-    annotations = session.exec(
-        select(Annotation).where(Annotation.document_id == doc_id)
-    ).all()
-    for a in annotations:
-        session.delete(a)
+    # Annotationen werden hier bewusst NICHT geloescht. Ein Rename in Dropbox
+    # loest heute einen delete_document auf der alten Datei aus, der frueher
+    # saemtliche Annotationen mit vernichtet hat. Bis der Sync in Phase 2 ueber
+    # dropbox_file_id laeuft, bleiben Annotationen stehen und werden dann am
+    # neuen Document wieder korrekt verknuepft.
 
     session.delete(document)
     session.commit()
