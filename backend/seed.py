@@ -35,7 +35,7 @@ def _seed_default_choir(session: Session) -> str:
         return existing.id
 
     settings = session.get(AppSettings, 1)
-    invite_code = (settings.registration_code if settings else None) or REGISTRATION_CODE or "ChoirBox2026"
+    invite_code = (settings.registration_code if settings else None) or REGISTRATION_CODE or "CantaBox2026"
 
     choir = Choir(
         name="Mein Chor",

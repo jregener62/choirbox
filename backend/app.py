@@ -96,7 +96,7 @@ class SecurityHeadersMiddleware:
         await self.app(scope, receive, send_with_security)
 
 
-app = FastAPI(title="ChoirBox", version="0.1.0")
+app = FastAPI(title="CantaBox", version="0.1.0")
 app.add_middleware(CacheControlMiddleware)
 app.add_middleware(SecurityHeadersMiddleware)
 app.add_middleware(
@@ -156,7 +156,7 @@ def index():
     react_index = REACT_DIST / "index.html"
     if react_index.exists():
         return FileResponse(str(react_index))
-    return {"message": "ChoirBox API running. Frontend not built yet — run: cd frontend && npm run build"}
+    return {"message": "CantaBox API running. Frontend not built yet — run: cd frontend && npm run build"}
 
 
 @app.get("/impressum")

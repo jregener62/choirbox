@@ -8,7 +8,7 @@ from backend.models.user import User
 def test_app_imports():
     """The FastAPI app must be importable without side effects in tests."""
     from backend.app import app
-    assert app.title == "ChoirBox"
+    assert app.title == "CantaBox"
 
 
 def test_engine_creates_all_tables(engine):

@@ -1,6 +1,6 @@
 {
-  "name": "Cantabox",
-  "short_name": "Cantabox",
+  "name": "CantaBox",
+  "short_name": "CantaBox",
   "description": "Übe Chorstimmen mit Audio-Dateien aus der geteilten Dropbox",
   "start_url": "/",
   "scope": "/",

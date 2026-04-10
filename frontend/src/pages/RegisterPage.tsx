@@ -37,7 +37,7 @@ export function RegisterPage() {
             <div className="auth-logo-icon">
               <Music size={24} />
             </div>
-            <h1 className="auth-title">Cantabox</h1>
+            <h1 className="auth-title">CantaBox</h1>
           </div>
           <p style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
             Du brauchst einen Einladungslink von deinem Chorleiter, um ein Konto zu erstellen.
@@ -59,7 +59,7 @@ export function RegisterPage() {
             <div className="auth-logo-icon">
               <Music size={24} />
             </div>
-            <h1 className="auth-title">Cantabox</h1>
+            <h1 className="auth-title">CantaBox</h1>
           </div>
           <div className="auth-error">{choirError}</div>
           <p className="auth-footer">
@@ -101,7 +101,7 @@ export function RegisterPage() {
           <div className="auth-logo-icon">
             <Music size={24} />
           </div>
-          <h1 className="auth-title">Cantabox</h1>
+          <h1 className="auth-title">CantaBox</h1>
           <p className="auth-subtitle">Konto erstellen</p>
           {choirName && (
             <p style={{ marginTop: 'var(--space-2)', opacity: 0.8 }}>

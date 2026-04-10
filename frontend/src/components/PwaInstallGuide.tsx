@@ -41,10 +41,10 @@ export function PwaInstallGuide() {
         </button>
 
         <div className="pwa-guide-header">
-          <img src="/icons/icon-96x96.png" alt="Cantabox" className="pwa-guide-icon" />
-          <h2>Cantabox installieren</h2>
+          <img src="/icons/icon-96x96.png" alt="CantaBox" className="pwa-guide-icon" />
+          <h2>CantaBox installieren</h2>
           <p className="pwa-guide-subtitle">
-            Installiere Cantabox auf deinem Handy fuer den schnellen Zugriff — ohne App Store.
+            Installiere CantaBox auf deinem Handy fuer den schnellen Zugriff — ohne App Store.
           </p>
         </div>
 

@@ -33,7 +33,7 @@ export function LoginPage() {
           <div className="auth-logo-icon">
             <Music size={24} />
           </div>
-          <h1 className="auth-title">Cantabox</h1>
+          <h1 className="auth-title">CantaBox</h1>
           <p className="auth-subtitle">Anmelden</p>
         </div>
 
