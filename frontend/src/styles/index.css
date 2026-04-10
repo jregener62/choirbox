@@ -550,11 +550,11 @@ textarea::placeholder {
   right: var(--space-3);
   z-index: 50;
   padding-top: var(--space-2);
-  background: #252D40;
+  background: var(--bg-secondary);
   color: var(--text-primary);
   border-radius: var(--radius-2xl);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
-  border: 1px solid rgba(148,163,184,0.08);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 .global-player--hidden {
@@ -698,13 +698,13 @@ textarea::placeholder {
 .seek-bar-track {
   position: relative;
   height: 3px;
-  background: rgba(138, 144, 160, 0.4);
+  background: var(--bg-tertiary);
   border-radius: 1.5px;
 }
 
 .seek-bar-played {
   height: 100%;
-  background: rgba(228,232,238,0.5);
+  background: var(--accent);
   border-radius: 1.5px;
 }
 
@@ -714,7 +714,7 @@ textarea::placeholder {
   width: 14px;
   height: 14px;
   border-radius: var(--radius-full);
-  background: #E4E8EE;
+  background: var(--text-primary);
   transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 2;
@@ -790,7 +790,7 @@ textarea::placeholder {
 
 /* Skip buttons — outline only */
 .gpc-btn-skip {
-  color: rgba(228,232,238,0.8);
+  color: var(--text-secondary);
   opacity: 1;
 }
 
@@ -800,7 +800,7 @@ textarea::placeholder {
   height: 48px;
   border-radius: var(--radius-full);
   background: transparent;
-  border: 2px solid rgba(228,232,238,0.4);
+  border: 2px solid var(--text-secondary);
   color: var(--text-primary);
   cursor: pointer;
   display: flex;

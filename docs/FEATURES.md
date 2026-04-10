@@ -1465,6 +1465,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### GlobalPlayerBar nicht theme-faehig im Hellmodus
+
+Der Floating Global Player nutzte hartkodierte dunkle Farben (`#252D40` Hintergrund, `rgba(228,232,238,...)` Buttons/Slider), waehrend die inneren Buttons mit dem theme-abhaengigen `var(--text-secondary)` arbeiteten. Folge im Hellmodus: Player blieb dunkel, Icons (Dokument, Loop, Marker, Skip-Label) wurden mit dunkelgrauem Text auf dunklem Hintergrund nahezu unsichtbar. Fix: Alle hartkodierten Werte in `.global-player`, `.seek-bar-*`, `.gpc-btn-skip` und `.gpc-btn-play` durch Theme-Tokens ersetzt (`--bg-secondary`, `--bg-tertiary`, `--accent`, `--text-primary`, `--text-secondary`, `--shadow-lg`, `--border`) — analog zum bereits korrekten `.top-player-bar`.
+
 ### Erster Text/Chordsheet per Paste-Upload nicht als ausgewaehlt markiert
 
 Beim Hochladen eines `.txt` oder `.cho` ueber das "Text einfuegen" / "Chordsheet einfuegen" Modal wurde das Dokument zwar in der DB registriert, aber nie als `UserSelectedDocument` markiert. Folge: `selected_doc` blieb `null`, der Klick auf den Song oeffnete nicht den DocViewer, sondern lief in die Subfolder-Fallback-Kette. Der `/upload`-Endpoint hatte die Auto-Select-Logik inline, der `/paste-text`-Endpoint jedoch nicht.
