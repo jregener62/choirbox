@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Music, Eye, EyeOff } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 
 export function LoginPage() {
@@ -31,7 +31,7 @@ export function LoginPage() {
       <div className="auth-card">
         <div className="auth-logo">
           <div className="auth-logo-icon">
-            <Music size={24} />
+            <img src="/icons/bird-white.png" alt="" width={28} height={28} />
           </div>
           <h1 className="auth-title">CantaBox</h1>
           <p className="auth-subtitle">Anmelden</p>
