@@ -1,8 +1,10 @@
+/* Paper-Style: Viewer bleibt in Hell und Dunkel weiss mit dunklem Text. */
 .cho-viewer-wrap {
   flex: 1;
   overflow: auto;
   padding: var(--space-3) var(--space-4);
-  background: var(--bg-primary);
+  background: #ffffff;
+  color: #1a1f2e;
 }
 
 .cho-viewer-content {
@@ -11,8 +13,29 @@
 
 .cho-viewer-name {
   font-size: var(--text-sm);
-  color: var(--text-muted);
+  color: #6e7486;
   margin-bottom: var(--space-2);
   padding-bottom: var(--space-2);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Chord-Sheet-Inhalte innerhalb des Paper-Wraps: dunkler Text auf weiss,
+   unabhaengig vom App-Theme. */
+.cho-viewer-wrap .chord-text {
+  color: #1a1f2e;
+}
+
+.cho-viewer-wrap .chord-symbol {
+  color: #4f46e5;
+}
+
+.cho-viewer-wrap .chord-section-label {
+  color: #4a5064;
+  background: #e4e7ee;
+}
+
+.cho-viewer-wrap .chord-section-chorus .chord-section-label,
+.cho-viewer-wrap .chord-section-label.chord-section-chorus {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.12);
 }

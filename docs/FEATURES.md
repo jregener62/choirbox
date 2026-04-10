@@ -543,6 +543,7 @@ So liegt die Datei immer im standardisierten ChordPro-Format auf der Disk und ka
 - Akkorde werden ueber den Textzeilen in Monospace-Font positioniert (spaltentreu)
 - Sektions-Header (`[Verse]`, `[Chorus]`, etc.) farblich abgesetzt
 - Liest BEIDE Formate transparent: ChordPro UND Plain (Backwards-Compat)
+- **Paper-Style**: `.cho`- und `.txt`-Viewer rendern unabhaengig vom App-Theme immer mit dunklem Text auf weissem "Papier"-Hintergrund — sowohl in Hell als auch in Dunkel. So bleibt der Lese-Komfort wie bei einem echten Notenblatt erhalten.
 
 ### Transposition (Auto-Save)
 
