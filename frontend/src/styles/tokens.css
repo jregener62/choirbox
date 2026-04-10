@@ -52,20 +52,20 @@
   --radius-pill: 9999px;
   --radius-full: 50%;
 
-  /* --- Box Shadows --- */
-  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.2);
-  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.2);
-  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.25);
+  /* --- Box Shadows (Light Theme) --- */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.10);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.14);
 
   /* --- Colors: Light Theme (default) --- */
-  --bg-primary: #EEF0F4;
-  --bg-secondary: #E2E5EC;
-  --bg-tertiary: #D6DAE2;
-  --bg-elevated: #DADDE5;
+  --bg-primary: #F0F2F6;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #E4E7EE;
+  --bg-elevated: #FFFFFF;
   --text-primary: #1A1F2E;
-  --text-secondary: #5A6170;
-  --text-muted: #8A90A0;
-  --border: rgba(0,0,0,0.07);
+  --text-secondary: #4A5064;
+  --text-muted: #6E7486;
+  --border: rgba(0,0,0,0.12);
   --accent: #6366f1;
   --accent-hover: #4f46e5;
   --danger: #dc2626;
@@ -91,6 +91,9 @@
 
 /* --- Colors: Dark Theme --- */
 [data-theme="dark"] {
+  --shadow-sm: 0 1px 4px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.35);
   --bg-primary: #1E2538;
   --bg-secondary: #2A3348;
   --bg-tertiary: #354050;

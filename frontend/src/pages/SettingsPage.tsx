@@ -22,7 +22,7 @@ interface AdminSettings {
 export function SettingsPage() {
   const user = useAuthStore((s) => s.user)
   const logout = useAuthStore((s) => s.logout)
-  const { theme, toggleTheme, zoomLevel, setZoomLevel } = useAppStore()
+  const { theme, setTheme, zoomLevel, setZoomLevel } = useAppStore()
   const navigate = useNavigate()
   const location = useLocation()
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
@@ -359,9 +359,20 @@ export function SettingsPage() {
           <div className="settings-rows">
             <div className="settings-row">
               <span>Theme</span>
-              <button className="btn btn-secondary" onClick={toggleTheme}>
-                {theme === 'dark' ? 'Hell' : 'Dunkel'}
-              </button>
+              <div className="zoom-selector">
+                <button
+                  className={`zoom-btn ${theme === 'light' ? 'active' : ''}`}
+                  onClick={() => setTheme('light')}
+                >
+                  Hell
+                </button>
+                <button
+                  className={`zoom-btn ${theme === 'dark' ? 'active' : ''}`}
+                  onClick={() => setTheme('dark')}
+                >
+                  Dunkel
+                </button>
+              </div>
             </div>
             <div className="settings-row">
               <span>Schriftgroesse</span>
