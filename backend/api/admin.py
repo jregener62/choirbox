@@ -455,25 +455,31 @@ async def resync_all(
     texte_folder_paths: set[str] = set()
     # path → file_id Mapping fuer .song-Ordner (stabiler Anker fuer Phase 3)
     song_folder_ids: dict[str, str] = {}
+    # Phase 4: file_id-Sets fuer ID-basierte Orphan-Erkennung
+    dbx_file_ids: set[str] = set()
+    dbx_folder_ids: set[str] = set()
 
     from backend.services.folder_types import is_song_folder
 
     for e in entries:
         rel = _strip_root(e.get("path_display", ""), root)
         tag = e.get(".tag", "")
+        file_id = e.get("id")
         if tag == "file":
             dbx_file_paths.add(rel)
+            if file_id:
+                dbx_file_ids.add(file_id)
         elif tag == "folder":
             dbx_folder_paths.add(rel)
+            if file_id:
+                dbx_folder_ids.add(file_id)
             name = e.get("name", "")
             # Track Texte folders for document sync
             if get_reserved_type(name) == "texte":
                 texte_folder_paths.add(rel)
             # Track .song folders for the songs-Tabelle
-            if is_song_folder(name):
-                file_id = e.get("id")
-                if file_id:
-                    song_folder_ids[rel] = file_id
+            if is_song_folder(name) and file_id:
+                song_folder_ids[rel] = file_id
 
     stats = {
         "dry_run": dry_run,
@@ -582,49 +588,81 @@ async def resync_all(
         stats["meta_synced"] = meta_count
 
     # --- Step 4: Clean up orphaned records for deleted files/folders ---
-    # AudioMeta
+    # Phase-4-Strategie: Wenn ein Row eine stabile ID hat (audio_file_id /
+    # target_file_id / dropbox_file_id auf documents/songs), wird per ID
+    # gematcht — der Pfad spielt fuer die Orphan-Entscheidung dann keine
+    # Rolle mehr (Renames bleiben erhalten). Nur Rows ohne ID fallen auf
+    # den alten Pfad-Vergleich zurueck.
+
+    # AudioMeta — bisher nur Pfad-basiert (Phase 5 stellt auf id um)
     for meta in session.exec(select(AudioMeta)).all():
         if meta.dropbox_path not in dbx_file_paths:
             if not dry_run:
                 session.delete(meta)
             stats["removed"] += 1
 
-    # AudioDurations
+    # AudioDurations — bisher nur Pfad-basiert
     for dur in session.exec(select(AudioDuration)).all():
         if dur.dropbox_path not in dbx_file_paths:
             if not dry_run:
                 session.delete(dur)
             stats["removed"] += 1
 
-    # Favorites
+    # Favorites — primaer per ID
     for fav in session.exec(select(Favorite)).all():
-        valid = (
-            fav.dropbox_path in dbx_folder_paths
-            if fav.entry_type == "folder"
-            else fav.dropbox_path in dbx_file_paths
-        )
+        et = fav.entry_type or "file"
+        if fav.audio_file_id:
+            valid = fav.audio_file_id in dbx_file_ids
+        elif fav.document_id is not None:
+            doc = session.get(Document, fav.document_id)
+            valid = doc is not None
+        elif fav.song_id is not None:
+            from backend.models.song import Song as _S
+            s = session.get(_S, fav.song_id)
+            valid = s is not None and s.status == "active"
+        else:
+            # Legacy: nur Pfad
+            valid = (
+                fav.dropbox_path in dbx_folder_paths
+                if et in ("folder", "song")
+                else fav.dropbox_path in dbx_file_paths
+            )
         if not valid:
             if not dry_run:
                 session.delete(fav)
             stats["removed"] += 1
 
-    # UserLabels
+    # UserLabels — primaer per target_file_id
     for ul in session.exec(select(UserLabel)).all():
-        if ul.dropbox_path not in dbx_file_paths:
+        if ul.target_file_id:
+            valid = ul.target_file_id in dbx_file_ids
+        else:
+            valid = ul.dropbox_path in dbx_file_paths
+        if not valid:
             if not dry_run:
                 session.delete(ul)
             stats["removed"] += 1
 
-    # Notes
+    # Notes — primaer per target_file_id
     for note in session.exec(select(Note)).all():
-        if note.dropbox_path not in dbx_file_paths:
+        if note.target_file_id:
+            valid = note.target_file_id in dbx_file_ids
+        else:
+            valid = note.dropbox_path in dbx_file_paths
+        if not valid:
             if not dry_run:
                 session.delete(note)
             stats["removed"] += 1
 
-    # Sections
+    # Sections — bevorzugt ueber song_id (Status=active reicht)
     for sec in session.exec(select(Section)).all():
-        if sec.folder_path not in dbx_folder_paths:
+        if sec.song_id is not None:
+            from backend.models.song import Song as _S
+            s = session.get(_S, sec.song_id)
+            valid = s is not None and s.status == "active"
+        else:
+            valid = sec.folder_path in dbx_folder_paths
+        if not valid:
             if not dry_run:
                 session.delete(sec)
             stats["removed"] += 1
@@ -635,3 +673,271 @@ async def resync_all(
         session.commit()
 
     return ActionResponse.success(data=stats)
+
+
+# ---------------------------------------------------------------------------
+# Datenpflege: Orphan-Verwaltung (Phase 4)
+# ---------------------------------------------------------------------------
+
+@router.get("/datacare/orphans")
+def list_orphans(
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Liefert Orphans pro Tabelle.
+
+    - songs: Songs mit status='orphan'. Pro Eintrag die Anzahl angehaengter
+      Sections, Documents, Favorites, Notes, UserLabels, UserSelectedDocuments.
+    - documents: Documents ohne dropbox_file_id (Backfill nicht aufgeloest).
+    - user_data: Favorites/Notes/UserLabels ohne stabile ID (Legacy).
+    """
+    from backend.models.document import Document
+    from backend.models.favorite import Favorite
+    from backend.models.note import Note
+    from backend.models.section import Section
+    from backend.models.song import Song
+    from backend.models.user_chord_preference import UserChordPreference
+    from backend.models.user_hidden_document import UserHiddenDocument
+    from backend.models.user_label import UserLabel
+    from backend.models.user_selected_document import UserSelectedDocument
+    from backend.models.annotation import Annotation
+    from backend.services import document_service  # noqa: F401
+
+    # User-Scoping: nur Choere des aktuellen Admins (Songs gehoeren keinem
+    # einzelnen User, aber wir filtern Documents/Sections nach Pfad-Praefix
+    # waere zu fragil — Phase 4 macht das choir-uebergreifend; in der Praxis
+    # hat ein Admin nur einen Choir).
+
+    orphan_songs = session.exec(
+        select(Song).where(Song.status == "orphan").order_by(Song.folder_path)
+    ).all()
+
+    def _song_summary(s: Song) -> dict:
+        sec_count = len(session.exec(
+            select(Section).where(Section.song_id == s.id)
+        ).all())
+        doc_count = len(session.exec(
+            select(Document).where(Document.song_id == s.id)
+        ).all())
+        fav_count = len(session.exec(
+            select(Favorite).where(Favorite.song_id == s.id)
+        ).all())
+        return {
+            "id": s.id,
+            "folder_path": s.folder_path,
+            "name": s.name,
+            "dropbox_file_id": s.dropbox_file_id,
+            "sections": sec_count,
+            "documents": doc_count,
+            "favorites": fav_count,
+        }
+
+    orphan_documents = session.exec(
+        select(Document).where(Document.dropbox_file_id == None)  # noqa: E711
+    ).all()
+
+    def _doc_summary(d: Document) -> dict:
+        ann_count = len(session.exec(
+            select(Annotation).where(Annotation.document_id == d.id)
+        ).all())
+        chord_count = len(session.exec(
+            select(UserChordPreference).where(UserChordPreference.document_id == d.id)
+        ).all())
+        sel_count = len(session.exec(
+            select(UserSelectedDocument).where(UserSelectedDocument.document_id == d.id)
+        ).all())
+        hidden_count = len(session.exec(
+            select(UserHiddenDocument).where(UserHiddenDocument.document_id == d.id)
+        ).all())
+        return {
+            "id": d.id,
+            "folder_path": d.folder_path,
+            "original_name": d.original_name,
+            "annotations": ann_count,
+            "chord_prefs": chord_count,
+            "selections": sel_count,
+            "hidden": hidden_count,
+        }
+
+    legacy_favorites = session.exec(
+        select(Favorite).where(
+            Favorite.audio_file_id == None,  # noqa: E711
+            Favorite.document_id == None,  # noqa: E711
+            Favorite.song_id == None,  # noqa: E711
+        )
+    ).all()
+    legacy_notes = session.exec(
+        select(Note).where(Note.target_file_id == None)  # noqa: E711
+    ).all()
+    legacy_user_labels = session.exec(
+        select(UserLabel).where(UserLabel.target_file_id == None)  # noqa: E711
+    ).all()
+
+    return {
+        "songs": [_song_summary(s) for s in orphan_songs],
+        "documents": [_doc_summary(d) for d in orphan_documents],
+        "user_data": {
+            "favorites": [
+                {"id": f.id, "user_id": f.user_id, "dropbox_path": f.dropbox_path,
+                 "entry_type": f.entry_type or "file"}
+                for f in legacy_favorites
+            ],
+            "notes": [
+                {"id": n.id, "user_id": n.user_id, "dropbox_path": n.dropbox_path}
+                for n in legacy_notes
+            ],
+            "user_labels": [
+                {"id": u.id, "user_id": u.user_id, "dropbox_path": u.dropbox_path,
+                 "label_id": u.label_id}
+                for u in legacy_user_labels
+            ],
+        },
+    }
+
+
+@router.delete("/datacare/song/{song_id}")
+def delete_orphan_song(
+    song_id: int,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Loescht einen orphan-Song endgueltig samt Sections/Documents/Favorites/etc.
+
+    Documents-Loeschung ueber document_service.delete_document, damit alle
+    abhaengigen Per-User-Settings (UserSelectedDocument, UserChordPreference,
+    UserHiddenDocument, Annotation) sauber mit aufgeraeumt werden.
+    """
+    from backend.models.song import Song
+    from backend.models.document import Document
+    from backend.models.favorite import Favorite
+    from backend.models.section import Section
+    from backend.services import document_service
+
+    song = session.get(Song, song_id)
+    if not song or song.status != "orphan":
+        raise HTTPException(404, "Orphan-Song nicht gefunden")
+
+    counts = {"sections": 0, "documents": 0, "favorites": 0}
+    for sec in session.exec(select(Section).where(Section.song_id == song_id)).all():
+        session.delete(sec)
+        counts["sections"] += 1
+    for d in session.exec(select(Document).where(Document.song_id == song_id)).all():
+        document_service.delete_document(d.id, session)
+        counts["documents"] += 1
+    for f in session.exec(select(Favorite).where(Favorite.song_id == song_id)).all():
+        session.delete(f)
+        counts["favorites"] += 1
+    session.delete(song)
+    session.commit()
+    return ActionResponse.success(data=counts)
+
+
+@router.post("/datacare/song/{song_id}/reactivate")
+async def reactivate_orphan_song(
+    song_id: int,
+    data: dict,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Bindet einen orphan-Song an einen anderen Dropbox-Ordnerpfad an.
+
+    Body: { "folder_path": "..." } — der choir-relative Pfad eines Ordners,
+    der noch eine gueltige Dropbox-File-ID hat. Wir holen die ID per
+    get_metadata, ueberschreiben dropbox_file_id und folder_path und setzen
+    den Status zurueck auf 'active'.
+    """
+    from backend.models.song import Song
+    from backend.api.documents import _dropbox_folder_path
+    from backend.services.dropbox_service import get_dropbox_service
+    from backend.services import song_service
+
+    new_path = (data.get("folder_path") or "").strip().lstrip("/")
+    if not new_path:
+        raise HTTPException(400, "folder_path erforderlich")
+
+    song = session.get(Song, song_id)
+    if not song or song.status != "orphan":
+        raise HTTPException(404, "Orphan-Song nicht gefunden")
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox nicht verbunden")
+
+    full = _dropbox_folder_path(new_path, user, session)
+    meta = await dbx.get_metadata(full)
+    if not meta or meta.get(".tag") != "folder":
+        raise HTTPException(404, "Dropbox-Ordner nicht gefunden")
+
+    file_id = meta.get("id")
+    song.folder_path = new_path
+    song.dropbox_file_id = file_id
+    song.status = "active"
+    song.name = song_service._name_from_path(new_path)
+    session.add(song)
+    session.commit()
+    return ActionResponse.success(data={"id": song.id, "folder_path": new_path})
+
+
+@router.delete("/datacare/document/{doc_id}")
+def delete_orphan_document(
+    doc_id: int,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    """Loescht ein Document, das beim Backfill keine Dropbox-File-ID kriegen
+    konnte (Datei in Dropbox bereits weg)."""
+    from backend.models.document import Document
+    from backend.services import document_service
+
+    doc = session.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(404, "Dokument nicht gefunden")
+    if doc.dropbox_file_id:
+        raise HTTPException(400, "Dokument hat eine gueltige Dropbox-ID, kein Orphan")
+    document_service.delete_document(doc_id, session)
+    return ActionResponse.success()
+
+
+@router.delete("/datacare/user-data/favorite/{favorite_id}")
+def delete_orphan_favorite(
+    favorite_id: int,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    from backend.models.favorite import Favorite
+    fav = session.get(Favorite, favorite_id)
+    if not fav:
+        raise HTTPException(404, "Favorit nicht gefunden")
+    session.delete(fav)
+    session.commit()
+    return ActionResponse.success()
+
+
+@router.delete("/datacare/user-data/note/{note_id}")
+def delete_orphan_note(
+    note_id: int,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    from backend.models.note import Note
+    n = session.get(Note, note_id)
+    if not n:
+        raise HTTPException(404, "Notiz nicht gefunden")
+    session.delete(n)
+    session.commit()
+    return ActionResponse.success()
+
+
+@router.delete("/datacare/user-data/user-label/{ul_id}")
+def delete_orphan_user_label(
+    ul_id: int,
+    user: User = Depends(require_admin),
+    session: Session = Depends(get_session),
+):
+    from backend.models.user_label import UserLabel
+    u = session.get(UserLabel, ul_id)
+    if not u:
+        raise HTTPException(404, "Label-Zuweisung nicht gefunden")
+    session.delete(u)
+    session.commit()
+    return ActionResponse.success()

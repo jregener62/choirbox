@@ -6,7 +6,7 @@ from datetime import datetime
 import httpx
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import HTMLResponse, RedirectResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from backend.config import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REDIRECT_URI
 from backend.database import get_session
@@ -957,6 +957,81 @@ async def dropbox_rename(
         session.commit()
     from backend.services.audio_meta_service import sync_audio_meta
     sync_audio_meta(session, user.choir_id, [new_user_path])
+
+    # Phase 4: pfad-basierte User-Daten umhaengen, damit Renames keine
+    # Favoriten/Notizen/Labels mehr verwaisen lassen. Funktioniert sowohl fuer
+    # einzelne Dateien als auch fuer Ordner (Praefix-Replacement). User-Daten
+    # mit stabiler ID werden nicht angefasst — die zeigen sowieso ueber die
+    # ID auf das richtige Asset.
+    from backend.models.favorite import Favorite as _Fav
+    from backend.models.note import Note as _Note
+    from backend.models.user_label import UserLabel as _UL
+    from backend.models.section import Section as _Sec
+
+    is_folder = (result.get(".tag") == "folder")
+    old_path = path
+    new_path = new_user_path
+
+    def _swap(p: str) -> str:
+        if p == old_path:
+            return new_path
+        if is_folder and p.startswith(old_path + "/"):
+            return new_path + p[len(old_path):]
+        return p
+
+    for fav in session.exec(select(Favorite).where(
+        (Favorite.dropbox_path == old_path) |
+        (Favorite.dropbox_path.like(old_path + "/%"))
+    )).all():
+        fav.dropbox_path = _swap(fav.dropbox_path)
+        if not is_folder:
+            import os as _os
+            fav.file_name = _os.path.basename(fav.dropbox_path)
+        session.add(fav)
+    for n in session.exec(select(_Note).where(
+        (_Note.dropbox_path == old_path) |
+        (_Note.dropbox_path.like(old_path + "/%"))
+    )).all():
+        n.dropbox_path = _swap(n.dropbox_path)
+        session.add(n)
+    for u in session.exec(select(_UL).where(
+        (_UL.dropbox_path == old_path) |
+        (_UL.dropbox_path.like(old_path + "/%"))
+    )).all():
+        u.dropbox_path = _swap(u.dropbox_path)
+        session.add(u)
+    if is_folder:
+        for s in session.exec(select(_Sec).where(
+            (_Sec.folder_path == old_path) |
+            (_Sec.folder_path.like(old_path + "/%"))
+        )).all():
+            s.folder_path = _swap(s.folder_path)
+            session.add(s)
+        # Auch Documents/UserSelectedDocuments/Songs umhaengen
+        from backend.models.document import Document as _Doc
+        from backend.models.user_selected_document import UserSelectedDocument as _USD
+        from backend.models.song import Song as _Song
+        for d in session.exec(select(_Doc).where(
+            (_Doc.folder_path == old_path) |
+            (_Doc.folder_path.like(old_path + "/%"))
+        )).all():
+            d.folder_path = _swap(d.folder_path)
+            if d.dropbox_path:
+                d.dropbox_path = _swap(d.dropbox_path)
+            session.add(d)
+        for usd in session.exec(select(_USD).where(
+            (_USD.folder_path == old_path) |
+            (_USD.folder_path.like(old_path + "/%"))
+        )).all():
+            usd.folder_path = _swap(usd.folder_path)
+            session.add(usd)
+        for song in session.exec(select(_Song).where(
+            (_Song.folder_path == old_path) |
+            (_Song.folder_path.like(old_path + "/%"))
+        )).all():
+            song.folder_path = _swap(song.folder_path)
+            session.add(song)
+    session.commit()
 
     return ActionResponse.success(data={
         "name": result.get("name", new_name),

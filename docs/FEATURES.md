@@ -1467,6 +1467,30 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Favoriten, Notizen und Labels verschwanden bei jedem Datei-Rename
+
+Die User-Daten-Tabellen `favorites`, `notes` und `user_labels` referenzierten die jeweilige Datei nur ueber `dropbox_path` (String). Wurde eine Datei in Dropbox umbenannt, fand der Resync-Cleanup-Sweep den alten Pfad nicht mehr im Listing und loeschte den Row.
+
+**Fix (Phase 4 Datenmodell-Stabilisierung):**
+
+- `favorites`: neue Spalten `song_id`, `document_id`, `audio_file_id`. `entry_type` erweitert um `'song' | 'document' | 'audio'` (legacy `'file'/'folder'` bleiben lesbar).
+- `notes`: neue Spalte `target_file_id` (Dropbox-File-ID).
+- `user_labels`: neue Spalte `target_file_id`.
+- Neuer Service `path_resolver.resolve()` uebersetzt einen choir-relativen Pfad in einen stabilen Anker (Song/Document/Audio-File-ID). Wird beim Anlegen jedes neuen Favorit/Note/UserLabel aufgerufen.
+- `dropbox_rename`: hat bisher nur `AudioMeta` umgehaengt. Schreibt jetzt Pfad-Caches aller pfad-basierten User-Daten (Favoriten, Notizen, UserLabels, Sections, Documents, UserSelectedDocuments, Songs) auf den neuen Pfad um. Funktioniert sowohl fuer einzelne Dateien (Pfad-Match) als auch fuer Ordner (Praefix-Replacement).
+- `resync_all` Cleanup-Sweep: Favoriten/Notes/UserLabels werden primaer ueber ihre stabile ID gegen Dropbox abgeglichen. Nur Legacy-Rows ohne ID fallen auf den Pfad-Vergleich zurueck.
+- Neues Skript `python -m scripts.user_data_backfill [--dry-run]` resolved bestehende Favorite/Note/UserLabel/UserSelectedDocument-Rows einmalig auf ihre Dropbox-IDs (braucht aktive Dropbox-Verbindung pro Chor).
+
+### Admin-Bereich "Datenpflege"
+
+Neue Admin-Seite unter `/admin/datacare` (Settings → Wartung → Datenpflege). Drei Tabs:
+
+1. **Songs** — listet `songs`-Rows mit `status='orphan'` (Ordner in Dropbox nicht mehr auffindbar, aber User-Daten zeigen noch hin). Pro Eintrag wird die Anzahl angehaengter Sections, Documents und Favoriten gezeigt. Aktionen: **Wiederfinden** (per Pfad-Eingabe an einen anderen Dropbox-Ordner anbinden, Status zurueck auf `active`) oder **Endgueltig loeschen** (samt aller abhaengigen Rows ueber `document_service.delete_document`).
+2. **Dokumente** — Documents ohne `dropbox_file_id` (Backfill nicht aufgeloest). Aktion: **Endgueltig loeschen**.
+3. **User-Daten** — Legacy-Favoriten/Notes/UserLabels ohne stabile ID. Aktion: einzeln **Loeschen**.
+
+Backend-Endpoints unter `/admin/datacare/...`. Nur fuer Admins.
+
 ### Folder-Renames in Dropbox loeschten Sections und Document-Bezuege
 
 Wurde ein .song-Ordner in Dropbox umbenannt (z.B. `Fragile.song` → `Fragile - Sting.song`), erkannte der Sync das nicht: alle `Section`s mit dem alten `folder_path` sowie alle `Document`s im darunter liegenden `Texte`-Ordner wurden vom Cleanup-Sweep als verwaist betrachtet und geloescht. Folge: Lyrics, Marker und Annotationen waren bei jeder Umbenennung futsch.

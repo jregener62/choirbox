@@ -558,6 +558,13 @@ export function SettingsPage() {
                 <span>Sektionsvorlagen</span>
                 <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
               </button>
+              {isAdmin && (
+                <button className="settings-nav-item" onClick={() => navigate('/admin/datacare')}>
+                  <RefreshCw size={18} />
+                  <span>Datenpflege</span>
+                  <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+                </button>
+              )}
               {isDeveloper && (
                 <button className="settings-nav-item" onClick={() => navigate('/admin/choirs')}>
                   <Music size={18} />

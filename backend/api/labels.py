@@ -9,8 +9,19 @@ from backend.models.label import Label
 from backend.models.user_label import UserLabel
 from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
+from backend.services import path_resolver
+from backend.services.dropbox_service import get_dropbox_service
 
 router = APIRouter(prefix="/labels", tags=["labels"])
+
+
+async def _resolve_target_file_id(rel_path: str, user: User, session: Session) -> str | None:
+    """Holt die Dropbox-File-ID fuer einen choir-relativen Pfad. None bei Miss."""
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        return None
+    target = await path_resolver.resolve(rel_path, "file", user, session, dbx)
+    return target.dropbox_file_id
 
 
 @router.get("")
@@ -118,7 +129,7 @@ def get_my_labels(
 
 
 @router.post("/my")
-def assign_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+async def assign_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
     dropbox_path = data.get("dropbox_path", "").strip()
     label_id = data.get("label_id")
     if not dropbox_path or not label_id:
@@ -140,7 +151,13 @@ def assign_label(data: dict, user: User = Depends(require_user), session: Sessio
     if existing:
         return ActionResponse.success(data={"id": existing.id, "already_exists": True})
 
-    assignment = UserLabel(user_id=user.id, dropbox_path=dropbox_path, label_id=label_id)
+    target_file_id = await _resolve_target_file_id(dropbox_path, user, session)
+    assignment = UserLabel(
+        user_id=user.id,
+        dropbox_path=dropbox_path,
+        target_file_id=target_file_id,
+        label_id=label_id,
+    )
     session.add(assignment)
     session.commit()
     session.refresh(assignment)
@@ -148,7 +165,7 @@ def assign_label(data: dict, user: User = Depends(require_user), session: Sessio
 
 
 @router.post("/my/toggle")
-def toggle_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+async def toggle_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
     """Toggle label assignment: add if not exists, remove if exists."""
     dropbox_path = data.get("dropbox_path", "").strip()
     label_id = data.get("label_id")
@@ -171,7 +188,13 @@ def toggle_label(data: dict, user: User = Depends(require_user), session: Sessio
         label = session.get(Label, label_id)
         if not label:
             raise HTTPException(404, "Label not found")
-        assignment = UserLabel(user_id=user.id, dropbox_path=dropbox_path, label_id=label_id)
+        target_file_id = await _resolve_target_file_id(dropbox_path, user, session)
+        assignment = UserLabel(
+            user_id=user.id,
+            dropbox_path=dropbox_path,
+            target_file_id=target_file_id,
+            label_id=label_id,
+        )
         session.add(assignment)
         session.commit()
         return ActionResponse.success(data={"assigned": True, "id": assignment.id})

@@ -9,8 +9,20 @@ from backend.models.user import User
 from backend.models.note import Note
 from backend.api.auth import require_user, require_role
 from backend.schemas import ActionResponse
+from backend.services import path_resolver
+from backend.services.dropbox_service import get_dropbox_service
 
 router = APIRouter(prefix="/notes", tags=["notes"])
+
+
+async def _resolve_target_file_id(rel_path: str, user: User, session: Session) -> str | None:
+    """Holt die Dropbox-File-ID fuer einen choir-relativen Pfad. Gibt None zurueck,
+    wenn die Datei nicht (mehr) existiert oder keine Dropbox-Verbindung besteht."""
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        return None
+    target = await path_resolver.resolve(rel_path, "file", user, session, dbx)
+    return target.dropbox_file_id
 
 
 @router.get("")
@@ -40,7 +52,7 @@ def list_notes(
 
 
 @router.put("")
-def save_note(
+async def save_note(
     data: dict,
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
@@ -76,11 +88,15 @@ def save_note(
     if existing:
         existing.text = text
         existing.updated_at = now
+        if not existing.target_file_id:
+            existing.target_file_id = await _resolve_target_file_id(dropbox_path, user, session)
         session.add(existing)
     else:
+        target_file_id = await _resolve_target_file_id(dropbox_path, user, session)
         existing = Note(
             user_id=user.id,
             dropbox_path=dropbox_path,
+            target_file_id=target_file_id,
             section_id=section_id,
             text=text,
             created_at=now,
@@ -99,7 +115,7 @@ def save_note(
 
 
 @router.put("/bulk")
-def save_notes_bulk(
+async def save_notes_bulk(
     data: dict,
     user: User = Depends(require_role("pro-member")),
     session: Session = Depends(get_session),
@@ -114,6 +130,7 @@ def save_notes_bulk(
         raise HTTPException(400, "notes must be a list")
 
     now = datetime.utcnow()
+    target_file_id = await _resolve_target_file_id(dropbox_path, user, session)
 
     for n_data in notes_data:
         section_id = n_data.get("section_id")
@@ -136,11 +153,14 @@ def save_notes_bulk(
         elif existing:
             existing.text = text
             existing.updated_at = now
+            if not existing.target_file_id and target_file_id:
+                existing.target_file_id = target_file_id
             session.add(existing)
         else:
             note = Note(
                 user_id=user.id,
                 dropbox_path=dropbox_path,
+                target_file_id=target_file_id,
                 section_id=section_id,
                 text=text,
                 created_at=now,
