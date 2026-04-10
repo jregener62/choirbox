@@ -130,10 +130,23 @@ async def _sync_documents_from_dropbox(
     Matching erfolgt primaer ueber dropbox_file_id (stabil ueber Rename/Move),
     sekundaer ueber Name (Backfill-Pfad fuer Documents, die noch keine ID haben).
     """
+    from backend.services import song_service
+    from backend.services.folder_types import get_song_folder_path
+
     try:
         dbx = get_dropbox_service(session)
         if not dbx:
             return
+
+        # --- songs-Tabelle pflegen: passender .song-Eltern-Ordner ---
+        song_path = get_song_folder_path(folder_path)
+        song_id_for_docs: int | None = None
+        if song_path:
+            song_dropbox_path = _dropbox_folder_path(song_path, user, session)
+            song_meta = await dbx.get_metadata(song_dropbox_path)
+            song_file_id = song_meta.get("id") if song_meta else None
+            song = song_service.upsert_song(session, song_path, song_file_id)
+            song_id_for_docs = song.id
 
         # Scan the .tx folder directly
         tx_folder = _dropbox_folder_path(folder_path, user, session)
@@ -209,6 +222,9 @@ async def _sync_documents_from_dropbox(
                 if doc.dropbox_path != rel_path:
                     doc.dropbox_path = rel_path
                     changed = True
+                if song_id_for_docs and doc.song_id != song_id_for_docs:
+                    doc.song_id = song_id_for_docs
+                    changed = True
                 if changed:
                     session.add(doc)
                     session.commit()
@@ -252,6 +268,7 @@ async def _sync_documents_from_dropbox(
                         content_hash=dbx_hash,
                         dropbox_path=rel_path,
                         dropbox_file_id=dbx_id,
+                        song_id=song_id_for_docs,
                     )
                     matched_doc_ids.add(new_doc.id)
                     if dbx_id:
@@ -269,6 +286,7 @@ async def _sync_documents_from_dropbox(
                     content_hash=dbx_hash,
                     dropbox_path=rel_path,
                     dropbox_file_id=dbx_id,
+                    song_id=song_id_for_docs,
                 )
                 matched_doc_ids.add(new_doc.id)
                 if dbx_id:
@@ -770,11 +788,13 @@ def select_document(
 
     if existing:
         existing.document_id = document_id
+        existing.song_id = doc.song_id
         session.add(existing)
     else:
         session.add(UserSelectedDocument(
             user_id=user.id,
             folder_path=folder_path,
+            song_id=doc.song_id,
             document_id=document_id,
         ))
     session.commit()

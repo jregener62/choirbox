@@ -1467,6 +1467,16 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Folder-Renames in Dropbox loeschten Sections und Document-Bezuege
+
+Wurde ein .song-Ordner in Dropbox umbenannt (z.B. `Fragile.song` → `Fragile - Sting.song`), erkannte der Sync das nicht: alle `Section`s mit dem alten `folder_path` sowie alle `Document`s im darunter liegenden `Texte`-Ordner wurden vom Cleanup-Sweep als verwaist betrachtet und geloescht. Folge: Lyrics, Marker und Annotationen waren bei jeder Umbenennung futsch.
+
+**Fix (Phase 3 Datenmodell-Stabilisierung):** Neue Tabelle `songs` als stabiler Anker — Spalten `id`, `folder_path`, `name`, `dropbox_file_id` (unique nullable), `status` ('active' | 'orphan'), `updated_at`. `documents`, `sections` und `user_selected_documents` haben jetzt eine optionale `song_id`-FK.
+
+Der Resync identifiziert beim rekursiven Listing alle `.song`-Ordner per Dropbox-File-ID und upserted sie ueber `song_service.upsert_song`. Beim Folder-Rename wird der `songs`-Row gefunden (per stabiler ID) und sein `folder_path`/`name` aktualisiert — die zugehoerigen Sections und Documents bleiben ueber `song_id` verbunden, ohne neue Pfade ueberall durchpropagieren zu muessen. Songs ohne Match in Dropbox werden auf `status='orphan'` gesetzt (Phase-4-Admin-UI raeumt sie spaeter auf).
+
+`_sync_documents_from_dropbox` haengt neue Documents direkt an die richtige `song_id`. `auto_select_if_first_doc` und der `/documents/select`-Endpoint setzen die `song_id` auf `UserSelectedDocument` mit.
+
 ### Datei-Renames in Dropbox loeschten Document-Row, Annotationen und Transponierungen
 
 Vor Phase 2 hat `_sync_documents_from_dropbox` Documents ueber den Dateinamen gematcht. Bei einem Rename in Dropbox tauchte der alte Name nicht mehr in der Listing-Antwort auf → Sync rief `delete_document` auf der alten Datei auf → die neue Datei wurde als komplett neues Document angelegt. Folge: handschriftliche Annotationen, ChordPro-Transponierungen und alle Per-User-Settings auf der umbenannten Datei waren weg.

@@ -8,6 +8,9 @@ from sqlmodel import SQLModel, Field
 class Section(SQLModel, table=True):
     __tablename__ = "sections"
     id: Optional[int] = Field(default=None, primary_key=True)
+    # FK auf songs.id — stabiler Anker, ueberlebt Folder-Renames in Dropbox.
+    # Nullable solange der Backfill noch laeuft.
+    song_id: Optional[int] = Field(default=None, foreign_key="songs.id", index=True)
     folder_path: str = Field(max_length=1000, index=True)
     label: str = Field(max_length=50)
     color: str = Field(max_length=7)

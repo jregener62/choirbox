@@ -453,6 +453,10 @@ async def resync_all(
     dbx_file_paths: set[str] = set()
     dbx_folder_paths: set[str] = set()
     texte_folder_paths: set[str] = set()
+    # path → file_id Mapping fuer .song-Ordner (stabiler Anker fuer Phase 3)
+    song_folder_ids: dict[str, str] = {}
+
+    from backend.services.folder_types import is_song_folder
 
     for e in entries:
         rel = _strip_root(e.get("path_display", ""), root)
@@ -461,9 +465,15 @@ async def resync_all(
             dbx_file_paths.add(rel)
         elif tag == "folder":
             dbx_folder_paths.add(rel)
+            name = e.get("name", "")
             # Track Texte folders for document sync
-            if get_reserved_type(e.get("name", "")) == "texte":
+            if get_reserved_type(name) == "texte":
                 texte_folder_paths.add(rel)
+            # Track .song folders for the songs-Tabelle
+            if is_song_folder(name):
+                file_id = e.get("id")
+                if file_id:
+                    song_folder_ids[rel] = file_id
 
     stats = {
         "dry_run": dry_run,
@@ -510,6 +520,43 @@ async def resync_all(
                 if name not in after:
                     stats["removed"] += 1
         stats["synced_folders"] += 1
+
+    # --- Step 2b: songs-Tabelle pflegen + Sections/Documents an song_id binden ---
+    from backend.models.song import Song
+    from backend.services import song_service
+
+    matched_song_ids: set[int] = set()
+    for fp, file_id in song_folder_ids.items():
+        if dry_run:
+            existing = song_service.get_song_by_file_id(session, file_id)
+            if not existing:
+                stats["added"] += 1
+            elif existing.folder_path != fp or existing.status == "orphan":
+                stats["updated"] += 1
+            continue
+        song = song_service.upsert_song(session, fp, file_id)
+        matched_song_ids.add(song.id)
+        # Sections und Documents im selben Pfad an song_id binden
+        for sec in session.exec(
+            select(Section).where(Section.folder_path == fp)
+        ).all():
+            if sec.song_id != song.id:
+                sec.song_id = song.id
+                session.add(sec)
+        for d in session.exec(
+            select(Document).where(Document.folder_path.like(fp + "/%"))
+        ).all():
+            if d.song_id != song.id:
+                d.song_id = song.id
+                session.add(d)
+        if matched_song_ids:
+            session.commit()
+
+    # Songs ohne Match in den dbx-IDs als orphan markieren
+    if not dry_run:
+        for song in session.exec(select(Song).where(Song.status == "active")).all():
+            if song.dropbox_file_id and song.dropbox_file_id not in song_folder_ids.values():
+                song_service.mark_orphan(session, song)
 
     # Clean up documents whose .tx folder no longer exists in Dropbox
     db_doc_folders = set(

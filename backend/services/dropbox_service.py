@@ -296,6 +296,16 @@ class DropboxService:
         })
         return result["link"]
 
+    async def get_metadata(self, dropbox_path: str) -> dict | None:
+        """Hole die Metadaten (inkl. stabiler `id`) zu einer Dropbox-Datei oder
+        einem Ordner. Gibt None zurueck, wenn der Pfad nicht existiert."""
+        try:
+            return await self.api_call("files/get_metadata", {"path": dropbox_path})
+        except RuntimeError as e:
+            if "path/not_found" in str(e) or "not_found" in str(e):
+                return None
+            raise
+
     async def delete_file(self, dropbox_path: str) -> dict:
         """Delete a file or folder from Dropbox."""
         return await self.api_call("files/delete_v2", {"path": dropbox_path})

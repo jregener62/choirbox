@@ -122,6 +122,7 @@ def register_pdf(
     content_hash: str | None = None,
     dropbox_path: str | None = None,
     dropbox_file_id: str | None = None,
+    song_id: int | None = None,
 ) -> Document:
     """Validate a PDF, count pages, and register in DB. No local file storage."""
     if len(content) > MAX_PDF_SIZE:
@@ -143,6 +144,7 @@ def register_pdf(
         content_hash=content_hash,
         dropbox_path=dropbox_path or build_dropbox_path(folder_path, original_name),
         dropbox_file_id=dropbox_file_id,
+        song_id=song_id,
         uploaded_by=user_id,
     )
     session.add(document)
@@ -165,6 +167,7 @@ def register_document(
     content_hash: str | None = None,
     dropbox_path: str | None = None,
     dropbox_file_id: str | None = None,
+    song_id: int | None = None,
 ) -> Document:
     """Register a non-PDF document (video/txt) — metadata only."""
     document = Document(
@@ -175,6 +178,7 @@ def register_document(
         content_hash=content_hash,
         dropbox_path=dropbox_path or build_dropbox_path(folder_path, original_name),
         dropbox_file_id=dropbox_file_id,
+        song_id=song_id,
         uploaded_by=user_id,
     )
     session.add(document)
@@ -210,6 +214,7 @@ def auto_select_if_first_doc(
     session.add(UserSelectedDocument(
         user_id=user_id,
         folder_path=song_path,
+        song_id=doc.song_id,
         document_id=doc.id,
     ))
     session.commit()

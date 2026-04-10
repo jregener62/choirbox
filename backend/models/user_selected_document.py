@@ -14,5 +14,8 @@ class UserSelectedDocument(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: str = Field(foreign_key="users.id", index=True)
     folder_path: str = Field(max_length=1000)
+    # FK auf songs.id — stabiler Anker, ueberlebt Folder-Renames in Dropbox.
+    # Nullable, weil Backfill aus folder_path noch laeuft.
+    song_id: Optional[int] = Field(default=None, foreign_key="songs.id", index=True)
     document_id: int = Field(foreign_key="documents.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)

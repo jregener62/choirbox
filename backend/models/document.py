@@ -9,6 +9,10 @@ class Document(SQLModel, table=True):
     __tablename__ = "documents"
 
     id: Optional[int] = Field(default=None, primary_key=True)
+    # FK auf songs.id — verweist auf den .song-Ordner, zu dem dieses Dokument
+    # gehoert. Nullable, weil Backfill und Loose-Documents (ausserhalb von
+    # .song-Ordnern) noch unterstuetzt werden.
+    song_id: Optional[int] = Field(default=None, foreign_key="songs.id", index=True)
     folder_path: str = Field(max_length=1000, index=True)
     file_type: str = Field(max_length=10)  # 'pdf', 'video', 'txt'
     original_name: str = Field(max_length=500)
