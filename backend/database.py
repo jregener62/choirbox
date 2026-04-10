@@ -65,6 +65,7 @@ def _migrate(eng):
         ("section_presets", "choir_id", "VARCHAR(36)"),
         ("documents", "content_hash", "VARCHAR(64)"),
         ("documents", "dropbox_path", "VARCHAR(1000)"),
+        ("documents", "dropbox_file_id", "VARCHAR(128)"),
         ("labels", "shortcode", "VARCHAR(10)"),
         ("labels", "aliases", "VARCHAR(200)"),
         ("section_presets", "shortcode", "VARCHAR(20)"),
@@ -78,6 +79,14 @@ def _migrate(eng):
             existing = [c["name"] for c in insp.get_columns(table)]
             if column not in existing:
                 conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+
+        # Partial unique index auf documents.dropbox_file_id (nur wenn nicht NULL),
+        # damit Backfill und parallele Sync-Laeufe nie doppelte IDs anlegen.
+        if "documents" in tables:
+            conn.execute(text(
+                "CREATE UNIQUE INDEX IF NOT EXISTS ux_documents_dropbox_file_id "
+                "ON documents(dropbox_file_id) WHERE dropbox_file_id IS NOT NULL"
+            ))
 
     # --- Migrate pdf_files → documents ---
     _migrate_pdf_to_documents(eng, tables)

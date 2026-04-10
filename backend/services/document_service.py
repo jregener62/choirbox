@@ -13,6 +13,7 @@ import fitz  # PyMuPDF
 from sqlmodel import Session, select
 
 from backend.models.document import Document
+from backend.models.user_chord_preference import UserChordPreference
 from backend.models.user_hidden_document import UserHiddenDocument
 from backend.models.user_selected_document import UserSelectedDocument
 
@@ -120,6 +121,7 @@ def register_pdf(
     session: Session,
     content_hash: str | None = None,
     dropbox_path: str | None = None,
+    dropbox_file_id: str | None = None,
 ) -> Document:
     """Validate a PDF, count pages, and register in DB. No local file storage."""
     if len(content) > MAX_PDF_SIZE:
@@ -140,6 +142,7 @@ def register_pdf(
         page_count=page_count,
         content_hash=content_hash,
         dropbox_path=dropbox_path or build_dropbox_path(folder_path, original_name),
+        dropbox_file_id=dropbox_file_id,
         uploaded_by=user_id,
     )
     session.add(document)
@@ -161,6 +164,7 @@ def register_document(
     session: Session,
     content_hash: str | None = None,
     dropbox_path: str | None = None,
+    dropbox_file_id: str | None = None,
 ) -> Document:
     """Register a non-PDF document (video/txt) — metadata only."""
     document = Document(
@@ -170,6 +174,7 @@ def register_document(
         file_size=file_size,
         content_hash=content_hash,
         dropbox_path=dropbox_path or build_dropbox_path(folder_path, original_name),
+        dropbox_file_id=dropbox_file_id,
         uploaded_by=user_id,
     )
     session.add(document)
@@ -277,20 +282,33 @@ def delete_document(doc_id: int, session: Session) -> bool:
     _clear_cached_pdf(doc_id)
     clear_render_cache()
 
-    # Delete hidden document entries
-    hidden = session.exec(
-        select(UserHiddenDocument).where(
-            UserHiddenDocument.document_id == doc_id
-        )
-    ).all()
-    for h in hidden:
+    # FK-abhaengige User-Daten aufraeumen — bei aktivem PRAGMA foreign_keys=ON
+    # wuerde session.delete(document) sonst mit FOREIGN KEY constraint failed
+    # abbrechen. delete_document wird ab Phase 2 NICHT mehr bei Renames
+    # aufgerufen (das ID-Matching im Sync absorbiert die), sondern nur noch bei
+    # echten Datei-Loeschungen — daher ist das Mitloeschen aller User-Daten
+    # hier semantisch korrekt.
+    from backend.models.annotation import Annotation
+
+    for h in session.exec(
+        select(UserHiddenDocument).where(UserHiddenDocument.document_id == doc_id)
+    ).all():
         session.delete(h)
 
-    # Annotationen werden hier bewusst NICHT geloescht. Ein Rename in Dropbox
-    # loest heute einen delete_document auf der alten Datei aus, der frueher
-    # saemtliche Annotationen mit vernichtet hat. Bis der Sync in Phase 2 ueber
-    # dropbox_file_id laeuft, bleiben Annotationen stehen und werden dann am
-    # neuen Document wieder korrekt verknuepft.
+    for s in session.exec(
+        select(UserSelectedDocument).where(UserSelectedDocument.document_id == doc_id)
+    ).all():
+        session.delete(s)
+
+    for c in session.exec(
+        select(UserChordPreference).where(UserChordPreference.document_id == doc_id)
+    ).all():
+        session.delete(c)
+
+    for a in session.exec(
+        select(Annotation).where(Annotation.document_id == doc_id)
+    ).all():
+        session.delete(a)
 
     session.delete(document)
     session.commit()

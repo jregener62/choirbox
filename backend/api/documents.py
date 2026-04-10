@@ -126,6 +126,9 @@ async def _sync_documents_from_dropbox(
     """Sync Dropbox .tx folder with documents DB.
 
     folder_path is the .tx folder path (e.g. '/Song.song/texte.tx').
+
+    Matching erfolgt primaer ueber dropbox_file_id (stabil ueber Rename/Move),
+    sekundaer ueber Name (Backfill-Pfad fuer Documents, die noch keine ID haben).
     """
     try:
         dbx = get_dropbox_service(session)
@@ -146,13 +149,17 @@ async def _sync_documents_from_dropbox(
             if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", ""))
         ]
 
-        # Build lookup of existing documents by name
-        existing = {
-            d.original_name: d
-            for d in session.exec(
-                select(Document).where(Document.folder_path == folder_path)
-            ).all()
+        # Build lookups: primaer per file_id, sekundaer per Name (im selben Folder)
+        all_in_folder = session.exec(
+            select(Document).where(Document.folder_path == folder_path)
+        ).all()
+        by_id: dict[str, Document] = {
+            d.dropbox_file_id: d for d in all_in_folder if d.dropbox_file_id
         }
+        by_name: dict[str, Document] = {d.original_name: d for d in all_in_folder}
+
+        matched_doc_ids: set[int] = set()
+        matched_dbx_ids: set[str] = set()
 
         for entry in entries:
             name = entry.get("name", "")
@@ -162,19 +169,53 @@ async def _sync_documents_from_dropbox(
 
             dbx_hash = entry.get("content_hash")
             dbx_size = entry.get("size", 0)
-            doc = existing.get(name)
-
+            dbx_id = entry.get("id")
             rel_path = document_service.build_dropbox_path(folder_path, name)
 
-            if doc and doc.content_hash == dbx_hash:
-                # Backfill dropbox_path for existing rows
-                if not doc.dropbox_path:
+            # 1. Match per file_id (gleicher Folder + ID bekannt)
+            doc = by_id.get(dbx_id) if dbx_id else None
+
+            # 2. Fallback: Suche im gesamten Choir nach derselben file_id (Datei
+            # wurde aus einem anderen Texte-Ordner per Move hierher verschoben)
+            if not doc and dbx_id:
+                doc = session.exec(
+                    select(Document).where(Document.dropbox_file_id == dbx_id)
+                ).first()
+
+            # 3. Letzter Fallback: Name-Match im selben Folder (Backfill: Document
+            # existiert noch ohne file_id, weil Sync vor Phase 2 lief)
+            if not doc:
+                doc = by_name.get(name)
+                if doc and doc.dropbox_file_id and doc.dropbox_file_id != dbx_id:
+                    # Name-Kollision aber andere file_id → kein Match, behandle wie neu
+                    doc = None
+
+            if doc:
+                matched_doc_ids.add(doc.id)
+                if dbx_id:
+                    matched_dbx_ids.add(dbx_id)
+
+                changed = False
+                # Backfill / Rename absorbieren
+                if not doc.dropbox_file_id and dbx_id:
+                    doc.dropbox_file_id = dbx_id
+                    changed = True
+                if doc.original_name != name:
+                    doc.original_name = name
+                    changed = True
+                if doc.folder_path != folder_path:
+                    doc.folder_path = folder_path
+                    changed = True
+                if doc.dropbox_path != rel_path:
                     doc.dropbox_path = rel_path
+                    changed = True
+                if changed:
                     session.add(doc)
                     session.commit()
-                continue  # Unchanged
 
-            if doc and doc.content_hash != dbx_hash:
+                if doc.content_hash == dbx_hash:
+                    continue
+
                 # --- File changed → update ---
                 if file_type == "pdf":
                     try:
@@ -193,10 +234,6 @@ async def _sync_documents_from_dropbox(
                         pass
                 else:
                     document_service.update_document_hash(doc, dbx_hash, dbx_size, session)
-                if not doc.dropbox_path:
-                    doc.dropbox_path = rel_path
-                    session.add(doc)
-                    session.commit()
                 continue
 
             # --- New file → register ---
@@ -206,7 +243,7 @@ async def _sync_documents_from_dropbox(
                     async with httpx.AsyncClient() as client:
                         resp = await client.get(link)
                         resp.raise_for_status()
-                    document_service.register_pdf(
+                    new_doc = document_service.register_pdf(
                         content=resp.content,
                         folder_path=folder_path,
                         original_name=name,
@@ -214,11 +251,15 @@ async def _sync_documents_from_dropbox(
                         session=session,
                         content_hash=dbx_hash,
                         dropbox_path=rel_path,
+                        dropbox_file_id=dbx_id,
                     )
+                    matched_doc_ids.add(new_doc.id)
+                    if dbx_id:
+                        matched_dbx_ids.add(dbx_id)
                 except Exception:
                     pass
             else:
-                document_service.register_document(
+                new_doc = document_service.register_document(
                     folder_path=folder_path,
                     file_type=file_type,
                     original_name=name,
@@ -227,13 +268,27 @@ async def _sync_documents_from_dropbox(
                     session=session,
                     content_hash=dbx_hash,
                     dropbox_path=rel_path,
+                    dropbox_file_id=dbx_id,
                 )
+                matched_doc_ids.add(new_doc.id)
+                if dbx_id:
+                    matched_dbx_ids.add(dbx_id)
 
         # --- Files removed from Dropbox → delete from DB ---
-        dbx_doc_names = {e.get("name", "") for e in entries}
-        for name, doc in existing.items():
-            if name not in dbx_doc_names:
-                document_service.delete_document(doc.id, session)
+        # Wichtig: Nur Documents loeschen, die wirklich nicht mehr in diesem
+        # Folder existieren UND deren file_id (falls gesetzt) auch im Choir
+        # nirgends mehr auftaucht. Documents mit file_id, die zwar nicht hier
+        # sind, koennten in einen anderen Ordner verschoben sein und werden
+        # vom resync_all-Folder-Sweep behandelt.
+        for doc in all_in_folder:
+            if doc.id in matched_doc_ids:
+                continue
+            if doc.dropbox_file_id:
+                # Wenn die file_id noch irgendwo (auch in einem anderen Folder)
+                # gematcht wurde, ist es ein Move — nicht loeschen.
+                if doc.dropbox_file_id in matched_dbx_ids:
+                    continue
+            document_service.delete_document(doc.id, session)
 
     except Exception:
         pass  # Sync failure must never block listing

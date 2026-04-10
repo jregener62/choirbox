@@ -1467,6 +1467,14 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Datei-Renames in Dropbox loeschten Document-Row, Annotationen und Transponierungen
+
+Vor Phase 2 hat `_sync_documents_from_dropbox` Documents ueber den Dateinamen gematcht. Bei einem Rename in Dropbox tauchte der alte Name nicht mehr in der Listing-Antwort auf → Sync rief `delete_document` auf der alten Datei auf → die neue Datei wurde als komplett neues Document angelegt. Folge: handschriftliche Annotationen, ChordPro-Transponierungen und alle Per-User-Settings auf der umbenannten Datei waren weg.
+
+**Fix (Phase 2 Datenmodell-Stabilisierung):** `documents` hat eine neue Spalte `dropbox_file_id` (Dropbox-stabile ID, ueberlebt Rename und Move). Der Sync matcht jetzt primaer ueber diese ID und absorbiert Renames stillschweigend (nur `original_name`, `folder_path`, `dropbox_path` werden aktualisiert, die `documents.id` bleibt). Documents werden nur noch geloescht, wenn die Dropbox-File-ID wirklich verschwunden ist. Beim ersten Sync nach dem Update wird die `dropbox_file_id` per Name-Match befuellt (Backfill). Partial Unique Index `ux_documents_dropbox_file_id` verhindert Doubletten.
+
+`delete_document` raeumt ab Phase 2 zusaetzlich `UserChordPreference` und `UserSelectedDocument` mit auf — bisher blieben das Orphans nach jeder Document-Loeschung. Annotationen werden ebenfalls mit geloescht, weil `delete_document` jetzt nur noch bei *echter* Loeschung in Dropbox aufgerufen wird (Renames werden vom ID-Matching abgefangen).
+
 ### FK-Constraints in SQLite bisher deaktiviert — stille Orphans
 
 `backend/database.py` setzte beim Connect zwar `journal_mode=WAL` und `busy_timeout`, aber **nicht** `PRAGMA foreign_keys=ON`. Damit ignoriert SQLite alle Foreign-Key-Definitionen aus den SQLModels. Folge: Beim Loeschen von Documents/Users/Labels blieben Orphans in `user_chord_preferences`, `user_selected_documents`, `session_tokens` etc. zurueck — bei Production-DB lokal 79 Stueck.
