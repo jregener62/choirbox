@@ -1,14 +1,22 @@
 /** Types fuer die Guest-Link-API. */
 
-export type GuestLinkStatus = 'active' | 'consumed' | 'revoked' | 'expired'
+export type GuestLinkStatus = 'active' | 'revoked' | 'expired' | 'exhausted'
 
 export interface GuestLinkItem {
   id: number
   label: string | null
   created_at: string
   expires_at: string
-  consumed_at: string | null
-  consumed_by_ip: string | null
+  /** Maximale Einloesungen. `null` = unbegrenzt (Multi-Use). */
+  max_uses: number | null
+  /** Bisherige Einloesungen. */
+  uses_count: number
+  /** Zeitstempel der ersten Einloesung (oder null wenn noch nie benutzt). */
+  first_used_at: string | null
+  /** Zeitstempel der letzten Einloesung. */
+  last_used_at: string | null
+  /** IP der letzten Einloesung. */
+  last_used_ip: string | null
   revoked_at: string | null
   status: GuestLinkStatus
 }
@@ -17,6 +25,14 @@ export interface GuestLinkItem {
 export interface GuestLinkCreateResponse extends GuestLinkItem {
   token: string
   redeem_path: string
+}
+
+/** Request-Body fuer POST /api/guest-links. */
+export interface GuestLinkCreateRequest {
+  label?: string | null
+  ttl_minutes?: number
+  /** `null` oder weglassen -> unbegrenzt. Zahl >= 1 -> Limit. */
+  max_uses?: number | null
 }
 
 /** Response von POST /api/guest-links/redeem. */

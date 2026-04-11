@@ -44,7 +44,11 @@ router = APIRouter(prefix="/guest-links", tags=["guest-links"])
 # ---------------------------------------------------------------------------
 
 _redeem_attempts: dict[str, list[float]] = {}
-REDEEM_MAX_ATTEMPTS = 10
+# Grosszuegig dimensioniert: Bei einem Liederabend sitzen ggf. 30
+# Leute hinter derselben Chor-WLAN-IP und loesen den Link parallel ein.
+# Erfolgreiche Einloesungen zaehlen ohnehin NICHT ins Limit — nur
+# fehlerhafte Versuche (ungueltig/abgelaufen/verbraucht).
+REDEEM_MAX_ATTEMPTS = 30
 REDEEM_WINDOW = 60  # seconds
 
 
@@ -71,8 +75,11 @@ def _link_to_dict(link) -> dict:
         "label": link.label,
         "created_at": link.created_at.isoformat(),
         "expires_at": link.expires_at.isoformat(),
-        "consumed_at": link.consumed_at.isoformat() if link.consumed_at else None,
-        "consumed_by_ip": link.consumed_by_ip,
+        "max_uses": link.max_uses,
+        "uses_count": link.uses_count,
+        "first_used_at": link.first_used_at.isoformat() if link.first_used_at else None,
+        "last_used_at": link.last_used_at.isoformat() if link.last_used_at else None,
+        "last_used_ip": link.last_used_ip,
         "revoked_at": link.revoked_at.isoformat() if link.revoked_at else None,
         "status": link_status(link),
     }
@@ -128,9 +135,22 @@ def create_guest_link(
         except (TypeError, ValueError):
             raise HTTPException(400, "ttl_minutes muss eine Zahl sein")
 
+    max_uses_raw = data.get("max_uses")
+    max_uses: Optional[int]
+    if max_uses_raw in (None, "", 0):
+        # Leeres Feld / 0 = unbegrenzt (Multi-Use).
+        max_uses = None
+    else:
+        try:
+            max_uses = int(max_uses_raw)
+        except (TypeError, ValueError):
+            raise HTTPException(400, "max_uses muss eine Zahl sein")
+        if max_uses < 1:
+            raise HTTPException(400, "max_uses muss mindestens 1 sein")
+
     try:
         link, plaintext_token = create_link(
-            session, user, label=label, ttl_minutes=ttl_minutes
+            session, user, label=label, ttl_minutes=ttl_minutes, max_uses=max_uses
         )
     except GuestLinkError as e:
         raise HTTPException(400, str(e))

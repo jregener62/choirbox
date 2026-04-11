@@ -76,7 +76,10 @@ def test_create_link_returns_plaintext_once(
     assert token  # plaintext returned exactly once here
     assert len(token) >= 32  # 256-bit base64 token
     assert link.label == "Probe"
-    assert link.consumed_at is None
+    assert link.uses_count == 0
+    assert link.max_uses is None  # Default: unlimited (Multi-Use)
+    assert link.first_used_at is None
+    assert link.last_used_at is None
     assert link.revoked_at is None
     # DB stores only the hash, not the plaintext
     assert link.token_hash == hashlib.sha256(token.encode()).hexdigest()
@@ -91,23 +94,71 @@ def test_redeem_link_happy_path(
     _, guest = redeem_link(session, token, "1.2.3.4", "TestAgent")
     assert guest.role == "guest"
     assert guest.choir_id == test_choir.id
-    # Refresh link from DB — consumed_at should be set with audit
+    # Refresh link from DB — first redemption audit should be set
     session.refresh(link)
-    assert link.consumed_at is not None
-    assert link.consumed_by_ip == "1.2.3.4"
-    assert link.consumed_by_ua == "TestAgent"
+    assert link.uses_count == 1
+    assert link.first_used_at is not None
+    assert link.last_used_at is not None
+    assert link.last_used_ip == "1.2.3.4"
+    assert link.last_used_ua == "TestAgent"
 
 
-def test_redeem_consumed_link_fails(
+def test_multi_use_link_can_be_redeemed_repeatedly(
+    session: Session, user_factory: Callable[..., tuple[User, dict]]
+):
+    """Default-Modus: unbegrenzt einloesbar bis expires_at (Liederabend)."""
+    admin, _ = user_factory(role="admin")
+    link, token = create_link(session, admin)  # max_uses=None -> unlimited
+
+    first_used: datetime | None = None
+    for i in range(5):
+        redeem_link(session, token, f"10.0.0.{i}", f"Agent {i}")
+    session.refresh(link)
+    assert link.uses_count == 5
+    assert link.max_uses is None
+    first_used = link.first_used_at
+    assert first_used is not None
+    # last_used_ip wird bei jeder Einloesung aktualisiert
+    assert link.last_used_ip == "10.0.0.4"
+
+
+def test_single_use_link_still_works_via_max_uses_1(
+    session: Session, user_factory: Callable[..., tuple[User, dict]]
+):
+    """Einmal-Modus bleibt im Service verfuegbar (max_uses=1)."""
+    from backend.services.guest_link_service import GuestLinkError
+
+    admin, _ = user_factory(role="admin")
+    link, token = create_link(session, admin, max_uses=1)
+    assert link.max_uses == 1
+    redeem_link(session, token, "1.1.1.1", "ua")
+    with pytest.raises(GuestLinkError, match="exhausted"):
+        redeem_link(session, token, "1.1.1.1", "ua")
+
+
+def test_max_uses_n_exhausts_after_n_redemptions(
+    session: Session, user_factory: Callable[..., tuple[User, dict]]
+):
+    """Einstellbares Limit — nach N Einloesungen ist Schluss."""
+    from backend.services.guest_link_service import GuestLinkError
+
+    admin, _ = user_factory(role="admin")
+    _, token = create_link(session, admin, max_uses=3)
+    redeem_link(session, token, "1.1.1.1", "ua")
+    redeem_link(session, token, "1.1.1.2", "ua")
+    redeem_link(session, token, "1.1.1.3", "ua")
+    with pytest.raises(GuestLinkError, match="exhausted"):
+        redeem_link(session, token, "1.1.1.4", "ua")
+
+
+def test_create_with_max_uses_zero_is_invalid(
     session: Session, user_factory: Callable[..., tuple[User, dict]]
 ):
     from backend.services.guest_link_service import GuestLinkError
 
     admin, _ = user_factory(role="admin")
-    _, token = create_link(session, admin)
-    redeem_link(session, token, "1.1.1.1", "ua")
-    with pytest.raises(GuestLinkError, match="consumed"):
-        redeem_link(session, token, "1.1.1.1", "ua")
+    with pytest.raises(GuestLinkError, match="max_uses_invalid"):
+        create_link(session, admin, max_uses=0)
 
 
 def test_redeem_revoked_link_fails(
@@ -316,13 +367,50 @@ def test_redeem_invalid_token_returns_410(client: TestClient):
     assert r.status_code == 410
 
 
-def test_redeem_already_consumed_returns_410(client: TestClient, admin):
+def test_redeem_exhausted_link_returns_410(client: TestClient, admin):
+    """max_uses=1 ueber die API — nach erster Einloesung 410 Gone."""
     _, headers = admin
-    r = client.post("/api/guest-links", json={}, headers=headers)
+    r = client.post("/api/guest-links", json={"max_uses": 1}, headers=headers)
     token = r.json()["data"]["token"]
     client.post("/api/guest-links/redeem", json={"token": token})
     r2 = client.post("/api/guest-links/redeem", json={"token": token})
     assert r2.status_code == 410
+
+
+def test_multi_use_link_can_be_redeemed_twice_via_http(client: TestClient, admin):
+    """Default-Multi-Use: zweite Einloesung liefert eine weitere Session."""
+    _, headers = admin
+    r = client.post("/api/guest-links", json={}, headers=headers)
+    token = r.json()["data"]["token"]
+    r1 = client.post("/api/guest-links/redeem", json={"token": token})
+    r2 = client.post("/api/guest-links/redeem", json={"token": token})
+    assert r1.status_code == 200
+    assert r2.status_code == 200
+    # Zwei verschiedene Session-Tokens
+    assert r1.json()["token"] != r2.json()["token"]
+    # Liste zeigt uses_count == 2
+    r3 = client.get("/api/guest-links", headers=headers)
+    assert r3.json()[0]["uses_count"] == 2
+
+
+def test_create_link_with_max_uses_ten(client: TestClient, admin):
+    """Admin kann einstellbares Limit setzen — hier 10 Einloesungen."""
+    _, headers = admin
+    r = client.post(
+        "/api/guest-links",
+        json={"label": "Liederabend", "max_uses": 10},
+        headers=headers,
+    )
+    assert r.status_code == 200
+    data = r.json()["data"]
+    assert data["max_uses"] == 10
+    assert data["uses_count"] == 0
+
+
+def test_create_link_with_invalid_max_uses_returns_400(client: TestClient, admin):
+    _, headers = admin
+    r = client.post("/api/guest-links", json={"max_uses": -5}, headers=headers)
+    assert r.status_code == 400
 
 
 # ---------------------------------------------------------------------------

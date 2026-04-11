@@ -81,6 +81,15 @@ def _migrate(eng):
         ("users", "can_report_bugs", "BOOLEAN DEFAULT 0"),
         ("app_settings", "guest_link_ttl_minutes", "INTEGER DEFAULT 60"),
         ("session_tokens", "expires_at", "DATETIME"),
+        # Guest-Link Multi-Use Umbau: neue Spalten hinzufuegen. Die alten
+        # Spalten (consumed_at, consumed_by_ip, consumed_by_ua) bleiben in
+        # der DB als Dead-Columns — SQLModel liest sie nicht mehr.
+        ("guest_links", "max_uses", "INTEGER"),
+        ("guest_links", "uses_count", "INTEGER DEFAULT 0"),
+        ("guest_links", "first_used_at", "DATETIME"),
+        ("guest_links", "last_used_at", "DATETIME"),
+        ("guest_links", "last_used_ip", "VARCHAR(64)"),
+        ("guest_links", "last_used_ua", "VARCHAR(255)"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:

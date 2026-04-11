@@ -7,13 +7,16 @@ keine DB-Manipulationen.
 Sicherheits-Prinzipien:
     * Klartext-Token nur bei create_link im Rueckgabewert; DB speichert
       ausschliesslich sha256(token).
-    * Konfigurierbare TTL aus AppSettings (Default 60 min, Bereich 15
-      min - 24 h).
+    * Konfigurierbare Link-TTL aus AppSettings (Default 60 min, Bereich
+      15 min - 24 h).
     * Gast-Session nach Einloesung hat fix 2h TTL (unabhaengig von der
-      Link-TTL).
-    * One-time use: beim Einloesen wird consumed_at atomar gesetzt.
-    * Audit-Log: consumed_by_ip, consumed_by_ua werden beim Einloesen
-      mitgeschrieben.
+      Link-TTL und von ``max_uses``).
+    * Standardmaessig **mehrfach einloesbar** (``max_uses=None``). Ueber
+      ``max_uses=1`` wird ein klassischer Einmal-Code erzeugt — das ist
+      fuer die aktuelle UI nicht verfuegbar, bleibt aber im Service,
+      damit spaetere Demo-Versionen den Einmal-Modus nutzen koennen.
+    * Audit-Log: last_used_ip, last_used_ua (letzte Einloesung) werden
+      bei jeder Einloesung ueberschrieben; first_used_at bleibt konstant.
 """
 
 from __future__ import annotations
@@ -34,7 +37,7 @@ from backend.models.user import User
 # Code, nicht in den Settings, weil das ein Sicherheits-Parameter ist.
 GUEST_SESSION_TTL_SECONDS = 2 * 3600
 
-# Erlaubte TTL-Spanne fuer Guest-Links (via Settings konfigurierbar)
+# Erlaubte TTL-Spanne fuer Guest-Links (via Settings konfigurierbar).
 MIN_LINK_TTL_MINUTES = 15
 MAX_LINK_TTL_MINUTES = 24 * 60
 
@@ -107,8 +110,13 @@ def create_link(
     creator: User,
     label: Optional[str] = None,
     ttl_minutes: Optional[int] = None,
+    max_uses: Optional[int] = None,
 ) -> tuple[GuestLink, str]:
     """Create a new guest link and return (model, plaintext_token).
+
+    ``max_uses`` defaults to ``None`` (unlimited — Multi-Use). Pass
+    ``max_uses=1`` for a classic single-use code. Any other positive
+    integer caps the redemptions.
 
     The plaintext token is returned **once** here — the caller (router)
     is responsible for passing it back to the admin UI. After this call
@@ -123,6 +131,8 @@ def create_link(
         raise GuestLinkError(
             f"ttl_out_of_range:{MIN_LINK_TTL_MINUTES}-{MAX_LINK_TTL_MINUTES}"
         )
+    if max_uses is not None and max_uses < 1:
+        raise GuestLinkError("max_uses_invalid")
 
     # Ensure the shared guest user exists for this choir
     choir = session.get(Choir, creator.choir_id)
@@ -137,6 +147,7 @@ def create_link(
         label=(label or None),
         created_by_user_id=creator.id,
         expires_at=datetime.utcnow() + timedelta(minutes=effective_ttl),
+        max_uses=max_uses,
     )
     session.add(link)
     session.commit()
@@ -178,10 +189,10 @@ def redeem_link(
     """Consume a guest-link token and return (link, guest_user).
 
     Raises GuestLinkError with one of:
-        * ``invalid`` — token not found (wrong or never existed)
-        * ``consumed`` — already redeemed
-        * ``revoked`` — manually invalidated by admin
-        * ``expired`` — past expires_at
+        * ``invalid``   — token not found (wrong or never existed)
+        * ``revoked``   — manually invalidated by admin
+        * ``expired``   — past expires_at
+        * ``exhausted`` — max_uses reached
 
     The caller should map all of these to the same HTTP status (410 Gone)
     with the same error message to avoid leaking information about which
@@ -195,12 +206,12 @@ def redeem_link(
         raise GuestLinkError("invalid")
 
     now = datetime.utcnow()
-    if link.consumed_at is not None:
-        raise GuestLinkError("consumed")
     if link.revoked_at is not None:
         raise GuestLinkError("revoked")
     if link.expires_at < now:
         raise GuestLinkError("expired")
+    if link.max_uses is not None and link.uses_count >= link.max_uses:
+        raise GuestLinkError("exhausted")
 
     choir = session.get(Choir, link.choir_id)
     if not choir:
@@ -208,10 +219,13 @@ def redeem_link(
 
     guest_user = get_or_create_guest_user(session, choir)
 
-    # Mark consumed + audit log
-    link.consumed_at = now
-    link.consumed_by_ip = (request_ip or "")[:64] or None
-    link.consumed_by_ua = (request_ua or "")[:255] or None
+    # Count this redemption + audit log.
+    link.uses_count += 1
+    if link.first_used_at is None:
+        link.first_used_at = now
+    link.last_used_at = now
+    link.last_used_ip = (request_ip or "")[:64] or None
+    link.last_used_ua = (request_ua or "")[:255] or None
     session.add(link)
     session.commit()
     session.refresh(link)
@@ -223,8 +237,8 @@ def link_status(link: GuestLink) -> str:
     """Return a user-facing status string for the admin UI."""
     if link.revoked_at is not None:
         return "revoked"
-    if link.consumed_at is not None:
-        return "consumed"
     if link.expires_at < datetime.utcnow():
         return "expired"
+    if link.max_uses is not None and link.uses_count >= link.max_uses:
+        return "exhausted"
     return "active"

@@ -13,11 +13,14 @@ import type {
 /**
  * Admin-Seite zum Verwalten von Gast-Zugangs-Codes.
  *
- * - Listet alle vorhandenen Codes des eigenen Chors
- * - Erzeugt neue Codes mit Label + TTL
- * - Widerruft aktive Codes
- * - Zeigt den Klartext-Code nur einmal direkt nach Erstellung an (wie
- *   das Backend ihn liefert) — danach nie wieder.
+ * Der Admin erzeugt einen Link mit Label, Gueltigkeit (TTL) und
+ * optionalem Nutzungs-Limit (max_uses). Der Link ist standardmaessig
+ * mehrfach einloesbar (Liederabend: ein Link fuer alle), kann aber mit
+ * einem Limit versehen werden, damit z.B. maximal 10 Einloesungen
+ * zulaessig sind.
+ *
+ * Der Klartext-Code wird direkt nach Erstellung einmalig angezeigt und
+ * liegt danach nur noch als Hash in der DB.
  */
 export function GuestLinksPage() {
   const navigate = useNavigate()
@@ -30,6 +33,8 @@ export function GuestLinksPage() {
   // Create form
   const [label, setLabel] = useState('')
   const [ttlMinutes, setTtlMinutes] = useState<number>(60)
+  const [limitEnabled, setLimitEnabled] = useState<boolean>(false)
+  const [maxUses, setMaxUses] = useState<number>(10)
   const [creating, setCreating] = useState(false)
 
   // Last-created-link banner (zeigt den Klartext-Token genau einmal)
@@ -49,7 +54,6 @@ export function GuestLinksPage() {
 
   useEffect(() => {
     loadLinks()
-    // TTL-config ist public — kein Auth noetig
     fetch('/api/guest-links/ttl-config')
       .then((r) => r.json())
       .then((c: GuestLinkTtlConfig) => {
@@ -59,8 +63,6 @@ export function GuestLinksPage() {
   }, [loadLinks])
 
   const absoluteRedeemUrl = (redeemPath: string) => {
-    // redeemPath ist "/guest/<token>". Wir wollen einen kompletten URL,
-    // der im HashRouter funktioniert: https://host/#/guest/<token>
     const origin = window.location.origin
     return `${origin}/#${redeemPath}`
   }
@@ -74,6 +76,7 @@ export function GuestLinksPage() {
         body: {
           label: label.trim() || null,
           ttl_minutes: ttlMinutes,
+          max_uses: limitEnabled ? maxUses : null,
         },
       })
       setFreshLink(data)
@@ -125,8 +128,8 @@ export function GuestLinksPage() {
     switch (s) {
       case 'active':
         return 'aktiv'
-      case 'consumed':
-        return 'eingeloest'
+      case 'exhausted':
+        return 'verbraucht'
       case 'revoked':
         return 'widerrufen'
       case 'expired':
@@ -138,12 +141,19 @@ export function GuestLinksPage() {
     switch (s) {
       case 'active':
         return '#10b981'
-      case 'consumed':
+      case 'exhausted':
         return 'var(--text-muted)'
       case 'revoked':
       case 'expired':
         return 'var(--danger)'
     }
+  }
+
+  const usageLabel = (l: GuestLinkItem) => {
+    if (l.max_uses == null) {
+      return `${l.uses_count} Einloesungen`
+    }
+    return `${l.uses_count}/${l.max_uses} Einloesungen`
   }
 
   return (
@@ -208,7 +218,10 @@ export function GuestLinksPage() {
             </button>
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 8 }}>
-            Gueltig bis {formatDateTime(freshLink.expires_at)} · Einmal einloesbar
+            Gueltig bis {formatDateTime(freshLink.expires_at)}
+            {freshLink.max_uses != null
+              ? ` · bis zu ${freshLink.max_uses} Einloesungen`
+              : ' · beliebig oft einloesbar'}
           </div>
         </div>
       )}
@@ -229,7 +242,7 @@ export function GuestLinksPage() {
           <input
             type="text"
             className="auth-input"
-            placeholder="z.B. Probenbesuch Oktober"
+            placeholder="z.B. Liederabend Oktober"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             maxLength={200}
@@ -248,6 +261,41 @@ export function GuestLinksPage() {
             max={ttlConfig?.max_minutes ?? 1440}
             onChange={(e) => setTtlMinutes(parseInt(e.target.value, 10) || 60)}
           />
+        </div>
+        <div style={{ marginBottom: 10 }}>
+          <label
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              fontSize: 12,
+              color: 'var(--text-muted)',
+              cursor: 'pointer',
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={limitEnabled}
+              onChange={(e) => setLimitEnabled(e.target.checked)}
+            />
+            Einloesungen begrenzen
+          </label>
+          {limitEnabled && (
+            <input
+              type="number"
+              className="auth-input"
+              value={maxUses}
+              min={1}
+              max={1000}
+              onChange={(e) => setMaxUses(Math.max(1, parseInt(e.target.value, 10) || 1))}
+              style={{ marginTop: 6 }}
+            />
+          )}
+          {!limitEnabled && (
+            <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+              Ohne Limit: beliebig oft einloesbar bis zum Ablauf.
+            </div>
+          )}
         </div>
         <button
           className="btn btn-primary"
@@ -271,10 +319,12 @@ export function GuestLinksPage() {
               <div className="file-meta">
                 <span style={{ color: statusColor(l.status) }}>{statusLabel(l.status)}</span>
                 {' · '}
+                {usageLabel(l)}
+                {' · '}
                 erstellt {formatDateTime(l.created_at)}
                 {l.status === 'active' && ` · gueltig bis ${formatDateTime(l.expires_at)}`}
-                {l.consumed_at && ` · eingeloest ${formatDateTime(l.consumed_at)}`}
-                {l.consumed_by_ip && ` (${l.consumed_by_ip})`}
+                {l.last_used_at && ` · zuletzt ${formatDateTime(l.last_used_at)}`}
+                {l.last_used_ip && ` (${l.last_used_ip})`}
               </div>
             </div>
             {l.status === 'active' && (

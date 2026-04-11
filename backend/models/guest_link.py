@@ -1,18 +1,27 @@
-"""Guest-Link-Modell — Einmal-URL-Code fuer Gastzugaenge.
+"""Guest-Link-Modell — mehrfach einloesbarer URL-Code fuer Gastzugaenge.
 
-Ein GuestLink ist ein vom Admin/Chorleiter erzeugter Token, der einem
-Unbekannten temporaeren Read-Only-Zugang zum Chor gibt. Der Klartext-
-Token wird **nie** in der DB gespeichert — stattdessen der SHA256-Hash,
-damit ein DB-Leak oder Log-Leak keine gueltigen Codes offenlegt.
+Ein GuestLink ist ein vom Admin/Chorleiter erzeugter Token, der unbekannten
+Gaesten temporaeren Read-Only-Zugang zum Chor gibt. Der Klartext-Token wird
+**nie** in der DB gespeichert — stattdessen der SHA256-Hash, damit ein
+DB-Leak oder Log-Leak keine gueltigen Codes offenlegt.
+
+Standardmaessig ist ein Link **mehrfach einloesbar** bis zum ``expires_at``
+(Liederabend-Szenario: ein Link fuer alle). Ueber ``max_uses`` kann der
+Admin ein Maximum setzen; ``max_uses=1`` ergibt einen klassischen
+Einmal-Code (aktuell nicht aus der UI ausloesbar, aber im Service
+verfuegbar — spaeter z.B. fuer Demo-Versionen mit Login als Member).
 
 Lifecycle:
-    * created_at — beim POST /api/guest-links
-    * expires_at — created_at + ttl_minutes (aus AppSettings oder Override)
-    * consumed_at — beim POST /api/guest-links/redeem (one-time use!)
-    * revoked_at — wenn Admin den Link manuell invalidiert
+    * created_at   — beim POST /api/guest-links
+    * expires_at   — created_at + ttl_minutes (aus AppSettings oder Override)
+    * first_used_at — gesetzt bei der ersten erfolgreichen Einloesung
+    * last_used_at — bei jeder Einloesung aktualisiert
+    * revoked_at   — wenn Admin den Link manuell invalidiert
 
 Ein Link ist "aktiv einloesbar", wenn:
-    consumed_at IS NULL AND revoked_at IS NULL AND expires_at > NOW()
+    revoked_at IS NULL
+    AND expires_at > NOW()
+    AND (max_uses IS NULL OR uses_count < max_uses)
 """
 
 from datetime import datetime
@@ -32,8 +41,7 @@ class GuestLink(SQLModel, table=True):
     # sha256(token) — Klartext ist NUR in der Create-Response sichtbar.
     token_hash: str = Field(unique=True, index=True, max_length=64)
 
-    # Freies Label zur Identifikation in der Admin-UI
-    # ("Probenbesuch Oktober 2026" o.ae.)
+    # Freies Label zur Identifikation in der Admin-UI.
     label: Optional[str] = Field(default=None, max_length=200)
 
     created_at: datetime = Field(default_factory=datetime.utcnow)
@@ -42,10 +50,22 @@ class GuestLink(SQLModel, table=True):
     # Harte Deadline
     expires_at: datetime = Field(index=True)
 
-    # Einmal-Einloesung
-    consumed_at: Optional[datetime] = Field(default=None)
-    consumed_by_ip: Optional[str] = Field(default=None, max_length=64)
-    consumed_by_ua: Optional[str] = Field(default=None, max_length=255)
+    # Nutzungs-Modus:
+    #   None   -> unbegrenzt einloesbar (Multi-Use, Default)
+    #   1      -> Einmal-Code (Legacy-Modus)
+    #   N > 1  -> bis zu N Einloesungen
+    max_uses: Optional[int] = Field(default=None)
+    uses_count: int = Field(default=0)
 
-    # Manuelle Invalidierung durch Admin
+    # Erste und letzte Einloesung (fuer Admin-Ansicht). Nach der ersten
+    # Einloesung wird first_used_at nicht mehr ueberschrieben; last_used_*
+    # wird bei jeder Einloesung aktualisiert.
+    first_used_at: Optional[datetime] = Field(default=None)
+    last_used_at: Optional[datetime] = Field(default=None)
+    last_used_ip: Optional[str] = Field(default=None, max_length=64)
+    last_used_ua: Optional[str] = Field(default=None, max_length=255)
+
+    # Manuelle Invalidierung durch Admin — stoppt alle weiteren
+    # Einloesungen, laesst aber bereits ausgestellte Gast-Sessions bis
+    # zum Ablauf ihrer 2h-TTL weiterlaufen.
     revoked_at: Optional[datetime] = Field(default=None)

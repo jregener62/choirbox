@@ -205,38 +205,56 @@ Regressionstests).
 *Developer (6) hat alle Rechte + Dropbox-Verbindung, Choere verwalten, Chor-Wechsel.*
 *Bug-Reporting (Edge Tab): Unabhaengig von der Rolle — per `can_report_bugs`-Flag vom Developer individuell vergeben.*
 
-### Gast-Zugang per Einmal-URL-Code
+### Gast-Zugang per URL-Code (Multi-Use)
 
-Admins koennen temporaeren Gast-Zugang fuer Aussenstehende ("Probenbesuch",
-Interessenten, Dirigenten anderer Choere) vergeben, ohne einen regulaeren
-User anzulegen.
+Admins koennen temporaeren Gast-Zugang fuer Aussenstehende vergeben —
+Liederabend, Probenbesuch, Interessenten — ohne fuer jeden Gast einen
+regulaeren User anzulegen. Ein Link kann von beliebig vielen Personen
+parallel genutzt werden; jede Einloesung erzeugt eine eigene 2h-Gast-
+Session.
 
 **Flow:**
 
 1. Admin oeffnet *Einstellungen → Verwaltung → Gast-Zugaenge*.
-2. Admin erzeugt einen Link mit optionalem Label und gewaehlter Gueltigkeit
-   (Default 60 Minuten, Bereich 15 min – 24 h aus `AppSettings`).
+2. Admin erzeugt einen Link mit optionalem Label, gewaehlter Gueltigkeit
+   (Default 60 Minuten, Bereich 15 min – 24 h aus `AppSettings`) und
+   **optionalem Limit fuer die Anzahl der Einloesungen** (z.B. 10 —
+   danach ist der Link `exhausted`, egal ob die TTL noch laeuft).
 3. Der Klartext-Code wird **einmalig** direkt nach dem Erstellen angezeigt
    (Copy-Button). Danach ist er nie wieder sichtbar — nur der SHA256-Hash
    steht in der DB.
 4. Der Link hat das Format `https://cantabox.de/#/guest/<token>`
    (path-basiert, damit der Token nicht im Referer-Header leakt).
-5. Der Gast klickt auf den Link, die Redeem-Page schickt den Code automatisch
-   ans Backend. Bei Erfolg wird der Gast in die App mit einer 2h-Session
-   (nicht 7 Tage wie normale User) eingeloggt.
-6. **Einmal-Einloesung**: der Code wird sofort als `consumed` markiert, inkl.
-   IP und User-Agent fuer den Audit-Log. Ein zweiter Klick auf denselben
-   Link fuehrt zu HTTP 410 Gone.
+5. Der Admin teilt den Link (z.B. im Chor-Chat). Jeder Klick schickt den
+   Code an den Backend. Bei Erfolg wird der Gast mit einer frischen
+   2h-Session eingeloggt. Mehrere Leute koennen parallel aus demselben
+   Link eine Session ziehen.
+6. Ablauf-Bedingungen (einheitlich HTTP 410 Gone):
+   - `revoked`   — Admin hat den Link manuell widerrufen
+   - `expired`   — TTL abgelaufen
+   - `exhausted` — Nutzungs-Limit erreicht (nur bei gesetztem `max_uses`)
+   - `invalid`   — Token unbekannt
+
+**Einmal-Code-Modus (bleibt im Code verfuegbar):**
+
+Ueber `max_uses=1` erzeugt der Service einen klassischen Wegwerf-Code.
+In der aktuellen Admin-UI ist das nicht angeboten — der Modus bleibt
+aber im Code-Pfad aktiv und kann spaeter z.B. von einer Demo-Variante
+mit Login als Member genutzt werden.
 
 **Sicherheit:**
 
 - 256-bit-Token aus `secrets.token_urlsafe(32)` — keine kurzen Codes
 - Nur Hash in der DB; der Klartext existiert nur in der Create-Response
-- Rate-Limit auf Redeem-Endpoint: 10 Versuche pro Minute pro IP
-- Einheitliche 410-Antwort fuer alle Fehler-Faelle (invalid, consumed,
-  revoked, expired) — Angreifer kann nicht unterscheiden, welcher Zustand
-  vorliegt
-- Admin kann aktive Codes jederzeit widerrufen (`revoked_at`)
+- Rate-Limit auf Redeem-Endpoint: 30 Versuche pro Minute pro IP
+  (erlaubt einem kompletten Chor mit Fehlversuchen das parallele
+  Einloesen). Erfolgreiche Einloesungen zaehlen nicht ins Limit.
+- Einheitliche 410-Antwort fuer alle Fehler-Faelle — Angreifer kann nicht
+  unterscheiden, welcher Zustand vorliegt
+- `max_uses` als optionales Nutzungs-Limit: bei versehentlichem Leak
+  bleibt der Schaden auf maximal `max_uses` Fremdnutzer begrenzt
+- Admin kann aktive Links jederzeit widerrufen (`revoked_at`) —
+  bestehende 2h-Sessions laufen bis zu ihrem TTL-Ende weiter
 - Guest-User (`role="guest"`) ist **shared per Chor**: ein `User`-Row pro
   Chor mit `username="_guest_<choir_id>"`, wird vom Seed automatisch
   angelegt. Passwort-Login ist fuer diese User hart blockiert.
