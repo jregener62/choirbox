@@ -203,6 +203,11 @@ def create_choir(data: dict, user: User = Depends(require_permission("choirs.man
     session.add(admin_user)
     session.commit()
 
+    # Shared Gast-User fuer diesen Chor anlegen — der wird beim Einloesen
+    # eines Guest-Links wiederverwendet.
+    from backend.services.guest_link_service import get_or_create_guest_user
+    get_or_create_guest_user(session, choir)
+
     return ActionResponse.success(data={"id": choir.id, "name": choir.name, "admin_username": admin_username})
 
 

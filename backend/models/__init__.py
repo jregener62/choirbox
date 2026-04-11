@@ -18,3 +18,4 @@ from backend.models.audio_meta import AudioMeta  # noqa: F401
 from backend.models.user_selected_document import UserSelectedDocument  # noqa: F401
 from backend.models.user_chord_preference import UserChordPreference  # noqa: F401
 from backend.models.song import Song  # noqa: F401
+from backend.models.guest_link import GuestLink  # noqa: F401

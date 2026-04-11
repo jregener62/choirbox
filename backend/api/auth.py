@@ -57,9 +57,21 @@ def _verify_password(password: str, password_hash: str) -> bool:
         return False
 
 
-def _create_token(user_id: str, session: Session) -> str:
-    """Create a new session token and persist it in the database."""
-    st = SessionToken(user_id=user_id)
+def _create_token(
+    user_id: str,
+    session: Session,
+    max_age_seconds: Optional[int] = None,
+) -> str:
+    """Create a new session token and persist it in the database.
+
+    If ``max_age_seconds`` is given, the token gets a hard ``expires_at``
+    timestamp — used for guest sessions with short TTL (e.g. 2h). Otherwise
+    the global ``TOKEN_MAX_AGE`` applies (7 days).
+    """
+    expires_at: Optional[datetime] = None
+    if max_age_seconds is not None:
+        expires_at = datetime.utcnow() + timedelta(seconds=max_age_seconds)
+    st = SessionToken(user_id=user_id, expires_at=expires_at)
     session.add(st)
     session.commit()
     session.refresh(st)
@@ -67,12 +79,30 @@ def _create_token(user_id: str, session: Session) -> str:
 
 
 def _cleanup_expired_tokens(session: Session):
-    """Remove expired tokens from the database."""
-    cutoff = datetime.utcnow() - timedelta(seconds=TOKEN_MAX_AGE)
-    expired = session.exec(select(SessionToken).where(SessionToken.created_at < cutoff)).all()
-    for st in expired:
+    """Remove expired tokens from the database.
+
+    Removes both long-lived tokens past the global TTL and custom-TTL
+    tokens past their ``expires_at``.
+    """
+    now = datetime.utcnow()
+    cutoff = now - timedelta(seconds=TOKEN_MAX_AGE)
+    # Long-lived: no expires_at set, created before cutoff
+    long_expired = session.exec(
+        select(SessionToken).where(
+            SessionToken.expires_at.is_(None),  # type: ignore[union-attr]
+            SessionToken.created_at < cutoff,
+        )
+    ).all()
+    # Custom-TTL: expires_at set and in the past
+    short_expired = session.exec(
+        select(SessionToken).where(
+            SessionToken.expires_at.is_not(None),  # type: ignore[union-attr]
+            SessionToken.expires_at < now,
+        )
+    ).all()
+    for st in list(long_expired) + list(short_expired):
         session.delete(st)
-    if expired:
+    if long_expired or short_expired:
         session.commit()
 
 
@@ -93,17 +123,28 @@ def _record_login_attempt(ip: str):
 
 
 def _resolve_token_to_user(token: str, session: Session) -> Optional[User]:
-    """Look up an active session token and return the associated user."""
+    """Look up an active session token and return the associated user.
+
+    Respects per-token ``expires_at`` if set (guest sessions), otherwise
+    falls back to the global ``TOKEN_MAX_AGE``.
+    """
     if not token:
         return None
     st = session.get(SessionToken, token)
     if not st:
         return None
-    cutoff = datetime.utcnow() - timedelta(seconds=TOKEN_MAX_AGE)
-    if st.created_at < cutoff:
-        session.delete(st)
-        session.commit()
-        return None
+    now = datetime.utcnow()
+    if st.expires_at is not None:
+        if now > st.expires_at:
+            session.delete(st)
+            session.commit()
+            return None
+    else:
+        cutoff = now - timedelta(seconds=TOKEN_MAX_AGE)
+        if st.created_at < cutoff:
+            session.delete(st)
+            session.commit()
+            return None
     return session.get(User, st.user_id)
 
 
@@ -212,6 +253,13 @@ def login(data: dict, request: Request, session: Session = Depends(get_session))
 
     user = session.exec(select(User).where(User.username == username)).first()
     if not user or not _verify_password(password, user.password_hash):
+        _record_login_attempt(ip)
+        raise HTTPException(401, "Invalid credentials")
+
+    # Gast-User (role=guest) koennen sich nicht per Passwort einloggen —
+    # der Zugang erfolgt ausschliesslich ueber einen eingeloesten
+    # Guest-Link (POST /api/guest-links/redeem).
+    if user.role == "guest":
         _record_login_attempt(ip)
         raise HTTPException(401, "Invalid credentials")
 

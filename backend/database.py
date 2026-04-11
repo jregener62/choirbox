@@ -79,6 +79,8 @@ def _migrate(eng):
         ("section_presets", "shortcode", "VARCHAR(20)"),
         ("section_presets", "max_num", "INTEGER DEFAULT 0"),
         ("users", "can_report_bugs", "BOOLEAN DEFAULT 0"),
+        ("app_settings", "guest_link_ttl_minutes", "INTEGER DEFAULT 60"),
+        ("session_tokens", "expires_at", "DATETIME"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:

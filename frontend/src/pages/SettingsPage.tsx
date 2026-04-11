@@ -565,6 +565,13 @@ export function SettingsPage() {
                   <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
                 </button>
               )}
+              {isAdmin && (
+                <button className="settings-nav-item" onClick={() => navigate('/admin/guest-links')}>
+                  <Link size={18} />
+                  <span>Gast-Zugaenge</span>
+                  <ChevronRight size={16} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+                </button>
+              )}
               {isDeveloper && (
                 <button className="settings-nav-item" onClick={() => navigate('/admin/choirs')}>
                   <Music size={18} />

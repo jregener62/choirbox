@@ -5,6 +5,7 @@ import { usePolicyStore } from '@/stores/policyStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { LoginPage } from '@/pages/LoginPage.tsx'
 import { RegisterPage } from '@/pages/RegisterPage.tsx'
+import { GuestRedeemPage } from '@/pages/GuestRedeemPage.tsx'
 import { AppShell } from '@/components/layout/AppShell.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
@@ -16,6 +17,7 @@ import { LabelsPage } from '@/pages/admin/LabelsPage.tsx'
 import { SectionPresetsPage } from '@/pages/admin/SectionPresetsPage.tsx'
 import { ChoirsPage } from '@/pages/admin/ChoirsPage.tsx'
 import { DataCarePage } from '@/pages/admin/DataCarePage.tsx'
+import { GuestLinksPage } from '@/pages/admin/GuestLinksPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -53,6 +55,7 @@ function AppRoutes() {
       <Route path="/admin/labels" element={<LabelsPage />} />
       <Route path="/admin/section-presets" element={<SectionPresetsPage />} />
       <Route path="/admin/datacare" element={<DataCarePage />} />
+      <Route path="/admin/guest-links" element={<GuestLinksPage />} />
       {hasMinRole(userRole, 'developer') && <Route path="/admin/choirs" element={<ChoirsPage />} />}
     </Routes>
   )
@@ -65,6 +68,7 @@ export function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/join/:inviteCode" element={<RegisterPage />} />
+        <Route path="/guest/:token" element={<GuestRedeemPage />} />
         <Route
           path="/*"
           element={

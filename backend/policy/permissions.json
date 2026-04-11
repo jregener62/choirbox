@@ -18,7 +18,8 @@
         "upload",
         "user_management",
         "multi_choir",
-        "feedback"
+        "feedback",
+        "guest_access"
       ]
     }
   },
@@ -105,6 +106,10 @@
     "feedback": {
       "description": "Bug-Reports an GitHub senden (zusaetzlicher Auxiliary-Check: can_report_bugs-Flag am User).",
       "permissions": ["feedback.submit"]
+    },
+    "guest_access": {
+      "description": "Gastzugaenge per Einmal-URL-Code erstellen, listen und widerrufen.",
+      "permissions": ["guest_links.manage"]
     }
   },
 
@@ -160,7 +165,8 @@
     "choirs.manage":           { "min_role": "developer",  "description": "Choere anlegen/wechseln/loeschen" },
     "dropbox.connect":         { "min_role": "developer",  "description": "Dropbox OAuth-Flow ausloesen" },
 
-    "feedback.submit":         { "min_role": "member",     "description": "Bug-Reports an GitHub senden (plus can_report_bugs-Flag)" }
+    "feedback.submit":         { "min_role": "member",     "description": "Bug-Reports an GitHub senden (plus can_report_bugs-Flag)" },
+    "guest_links.manage":      { "min_role": "admin",      "description": "Gastzugangs-Codes erstellen, listen, widerrufen" }
   },
 
   "public_routes": [
@@ -168,7 +174,9 @@
     "POST /api/auth/register",
     "POST /api/auth/logout",
     "GET /api/auth/choir-info",
-    "GET /api/dropbox/callback"
+    "GET /api/dropbox/callback",
+    "GET /api/guest-links/ttl-config",
+    "POST /api/guest-links/redeem"
   ],
 
   "routes": {
@@ -264,6 +272,10 @@
     "POST /api/admin/choirs/{choir_id}/switch":                     "choirs.manage",
 
     "GET /api/feedback/issues":                                     "feedback.submit",
-    "POST /api/feedback":                                           "feedback.submit"
+    "POST /api/feedback":                                           "feedback.submit",
+
+    "GET /api/guest-links":                                         "guest_links.manage",
+    "POST /api/guest-links":                                        "guest_links.manage",
+    "DELETE /api/guest-links/{link_id}":                            "guest_links.manage"
   }
 }

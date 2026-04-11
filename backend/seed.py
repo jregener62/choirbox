@@ -26,6 +26,16 @@ def seed():
         _seed_default_labels(session, choir_id)
         _seed_default_section_presets(session, choir_id)
         _assign_orphans(session, choir_id)
+        _seed_guest_users(session)
+
+
+def _seed_guest_users(session: Session):
+    """Ensure every choir has its shared guest user (role=guest)."""
+    from backend.services.guest_link_service import ensure_guest_users_for_all_choirs
+
+    created = ensure_guest_users_for_all_choirs(session)
+    if created:
+        logger.info("%d Gast-User angelegt (shared per Chor)", created)
 
 
 def _seed_default_choir(session: Session) -> str:

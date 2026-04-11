@@ -29,6 +29,7 @@ interface AuthState {
     username: string
     password: string
   }) => Promise<void>
+  redeemGuestLink: (token: string) => Promise<void>
   logout: () => void
   restoreSession: () => void
 }
@@ -73,6 +74,25 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(`${STORAGE_PREFIX}token`, result.token)
     localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(result.user))
     set({ token: result.token, user: result.user })
+    void usePolicyStore.getState().loadPolicy()
+  },
+
+  redeemGuestLink: async (token) => {
+    const response = await fetch('/api/guest-links/redeem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token }),
+    })
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}))
+      throw new Error(
+        (err as { detail?: string }).detail || 'Gast-Link konnte nicht eingeloest werden',
+      )
+    }
+    const data = (await response.json()) as LoginResponse
+    localStorage.setItem(`${STORAGE_PREFIX}token`, data.token)
+    localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(data.user))
+    set({ token: data.token, user: data.user })
     void usePolicyStore.getState().loadPolicy()
   },
 

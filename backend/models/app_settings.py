@@ -11,4 +11,7 @@ class AppSettings(SQLModel, table=True):
     dropbox_account_id: Optional[str] = Field(default=None, max_length=200)
     dropbox_account_email: Optional[str] = Field(default=None, max_length=255)
     dropbox_connected_at: Optional[datetime] = Field(default=None)
+    # Gast-Zugang: TTL eines frisch erzeugten Einmal-Codes in Minuten.
+    # Bereich: 15 Minuten bis 24 Stunden. Default 60.
+    guest_link_ttl_minutes: int = Field(default=60)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

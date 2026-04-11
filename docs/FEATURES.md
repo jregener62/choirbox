@@ -150,13 +150,18 @@ Distribution → Features → Permissions → Routes
 
 ### Berechtigungsmatrix
 
+**Hinweis:** Die Matrix ist seit der Policy-Einfuehrung automatisch durch
+`backend/policy/permissions.json` enforct. Bei Abweichungen zwischen dieser
+Matrix und der JSON gilt die JSON (siehe `test_policy.py` fuer die
+Regressionstests).
+
 | Element                       | beta-tester (5) | admin (4) | chorleiter (3) | pro-member (2) | member (1) | guest (0) |
 | ----------------------------- | :-------------: | :-------: | :------------: | :------------: | :--------: | :-------: |
 | **BrowsePage**                |                 |           |                |                |            |           |
-| Browse, Play, Stream          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Browse, Play, Stream          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Favoriten (Herz)              |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| Filter (Labels)               |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| Suche                         |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Filter (Labels lesen)         |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
+| Suche                         |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Label zuweisen (Tag)          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
 | Aufnehmen (Mic-Icon)          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Kebab-Menue (⋮)               |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
@@ -167,21 +172,22 @@ Distribution → Features → Permissions → Routes
 | Umbenennen (Stift)            |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Ordner loeschen               |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
 | **GlobalPlayer**              |                 |           |                |                |            |           |
-| Wiedergabe + Voice Bricks     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| Viewer-Button                 |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Wiedergabe + Voice Bricks     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
+| Viewer-Button                 |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | **ViewerPage**                |                 |           |                |                |            |           |
-| Dokument anzeigen             |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Dokument anzeigen             |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | PDF hochladen/loeschen        |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Notizen/Lyrics bearbeiten     |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Section-Editor                |        ✓        |     —     |       —        |       —        |     —      |     —     |
 | **Chord Sheets (.cho)**       |                 |           |                |                |            |           |
-| Chord Sheets ansehen          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| Transposition (auto-save)     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
+| Chord Sheets ansehen          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
+| Transposition (auto-save)     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Annotationen (Stift)          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
 | Chordsheet einfuegen (Paste)  |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | .cho-Datei hochladen          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
-| Chord Sheet loeschen          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Chord Sheet loeschen          |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
 | **SettingsPage**              |                 |           |                |                |            |           |
+| Profil lesen                  |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Profil, Passwort, Theme, Zoom |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
 | Labels verwalten              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Sektionsvorlagen              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
@@ -189,6 +195,7 @@ Distribution → Features → Permissions → Routes
 | Einladungslink + Copy         |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
 | Chor-Ordner                   |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
 | Dropbox Re-Sync               |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Gast-Zugaenge verwalten       |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
 | Dropbox-Verbindung            |        —        |     —     |       —        |       —        |     —      |     —     |
 | Choere verwalten              |        —        |     —     |       —        |       —        |     —      |     —     |
 | **FileSettingsPage**          |                 |           |                |                |            |           |
@@ -197,6 +204,67 @@ Distribution → Features → Permissions → Routes
 
 *Developer (6) hat alle Rechte + Dropbox-Verbindung, Choere verwalten, Chor-Wechsel.*
 *Bug-Reporting (Edge Tab): Unabhaengig von der Rolle — per `can_report_bugs`-Flag vom Developer individuell vergeben.*
+
+### Gast-Zugang per Einmal-URL-Code
+
+Admins koennen temporaeren Gast-Zugang fuer Aussenstehende ("Probenbesuch",
+Interessenten, Dirigenten anderer Choere) vergeben, ohne einen regulaeren
+User anzulegen.
+
+**Flow:**
+
+1. Admin oeffnet *Einstellungen → Verwaltung → Gast-Zugaenge*.
+2. Admin erzeugt einen Link mit optionalem Label und gewaehlter Gueltigkeit
+   (Default 60 Minuten, Bereich 15 min – 24 h aus `AppSettings`).
+3. Der Klartext-Code wird **einmalig** direkt nach dem Erstellen angezeigt
+   (Copy-Button). Danach ist er nie wieder sichtbar — nur der SHA256-Hash
+   steht in der DB.
+4. Der Link hat das Format `https://cantabox.de/#/guest/<token>`
+   (path-basiert, damit der Token nicht im Referer-Header leakt).
+5. Der Gast klickt auf den Link, die Redeem-Page schickt den Code automatisch
+   ans Backend. Bei Erfolg wird der Gast in die App mit einer 2h-Session
+   (nicht 7 Tage wie normale User) eingeloggt.
+6. **Einmal-Einloesung**: der Code wird sofort als `consumed` markiert, inkl.
+   IP und User-Agent fuer den Audit-Log. Ein zweiter Klick auf denselben
+   Link fuehrt zu HTTP 410 Gone.
+
+**Sicherheit:**
+
+- 256-bit-Token aus `secrets.token_urlsafe(32)` — keine kurzen Codes
+- Nur Hash in der DB; der Klartext existiert nur in der Create-Response
+- Rate-Limit auf Redeem-Endpoint: 10 Versuche pro Minute pro IP
+- Einheitliche 410-Antwort fuer alle Fehler-Faelle (invalid, consumed,
+  revoked, expired) — Angreifer kann nicht unterscheiden, welcher Zustand
+  vorliegt
+- Admin kann aktive Codes jederzeit widerrufen (`revoked_at`)
+- Guest-User (`role="guest"`) ist **shared per Chor**: ein `User`-Row pro
+  Chor mit `username="_guest_<choir_id>"`, wird vom Seed automatisch
+  angelegt. Passwort-Login ist fuer diese User hart blockiert.
+- Die Gast-Session-TTL (2 h) ist im Code fix (`GUEST_SESSION_TTL_SECONDS`),
+  nicht in den Settings — Schutz vor versehentlicher Ueberdehnung.
+
+**Was Gaeste duerfen** (via Policy, Distribution `full`):
+
+Browse, Suche, Audio-Stream, Dokumente lesen (PDF/TXT/CHO), Chord-Sheets
+transponieren, Song-Abschnitte lesen (Cycle-Play), Labels lesen (fuer die
+Filter-UI), Player-State speichern, Eigenes Profil lesen.
+
+**Was Gaeste NICHT duerfen**: Favoriten setzen, Annotations schreiben,
+Notizen schreiben, Labels verwalten, Dateien hochladen/umbenennen/loeschen,
+Ordner verwalten, Profil aendern, Passwort aendern (kritisch bei geteiltem
+Gast-User!), Nutzerverwaltung, Chor-Settings.
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/models/guest_link.py` | GuestLink-Modell (id, choir_id, token_hash, expires_at, consumed_*, revoked_at) |
+| `backend/services/guest_link_service.py` | Business-Logik: create/redeem/revoke/list, get_or_create_guest_user |
+| `backend/api/guest_links.py` | FastAPI-Router, Rate-Limit, Audit-IP-Extraktion, einheitliche 410-Antworten |
+| `backend/api/auth.py` | `_create_token(max_age_seconds=...)` fuer kurze Gast-Sessions, Passwort-Login blockiert fuer `role=guest` |
+| `backend/models/session_token.py` | `expires_at`-Spalte fuer per-Token-TTL |
+| `backend/seed.py` | Legt Gast-User fuer jeden Chor beim Start automatisch an |
+| `frontend/src/pages/GuestRedeemPage.tsx` | Einloese-Seite unter `/guest/:token` |
+| `frontend/src/pages/admin/GuestLinksPage.tsx` | Admin-UI zum Erstellen/Listen/Widerrufen |
+| `backend/tests/test_guest_links.py` | 22 Tests fuer alle Flows und Fehler-Faelle |
 
 ### Logout
 

@@ -13,3 +13,7 @@ class SessionToken(SQLModel, table=True):
     )
     user_id: str = Field(foreign_key="users.id", index=True)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Optional: harte Session-Ablaufzeit. Wenn None -> globaler Default
+    # TOKEN_MAX_AGE (7 Tage) aus backend.api.auth gilt. Wird fuer Gast-
+    # Sessions mit kurzer TTL (z.B. 2h) verwendet.
+    expires_at: Optional[datetime] = Field(default=None, index=True)
