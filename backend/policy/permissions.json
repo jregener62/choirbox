@@ -1,0 +1,266 @@
+{
+  "version": 1,
+  "_comment": "ChoirBox Permission Policy — zentraler Ort fuer Rollen-, Feature- und Endpoint-Berechtigungen. Geaendert wird hier, nicht im Router-Code. Jede FastAPI-Route muss entweder in 'routes' oder in 'public_routes' auftauchen, sonst scheitert der Start-Check.",
+
+  "distributions": {
+    "full": {
+      "description": "Alle Features aktiviert — Standard-Deployment (Dev, Staging, Production).",
+      "features": [
+        "core",
+        "browse",
+        "player",
+        "transposition",
+        "favorites",
+        "labels",
+        "annotations",
+        "notes",
+        "sections",
+        "upload",
+        "user_management",
+        "multi_choir",
+        "feedback"
+      ]
+    }
+  },
+
+  "roles": {
+    "guest":       { "level": 0, "description": "Eingeloggter Gast — nur Browse/Play/Transposition.",         "bypass_distribution": false },
+    "member":      { "level": 1, "description": "Standard-Chormitglied.",                                     "bypass_distribution": false },
+    "pro-member":  { "level": 2, "description": "Erweiterte Verwaltungsrechte (Labels, Sections, Upload).",   "bypass_distribution": false },
+    "chorleiter":  { "level": 3, "description": "Chorleitung (Datei- und Ordnerverwaltung).",                 "bypass_distribution": false },
+    "admin":       { "level": 4, "description": "Chor-Admin (Nutzer, Settings, Datacare).",                   "bypass_distribution": false },
+    "beta-tester": { "level": 5, "description": "Beta-Tester (entspricht Admin plus Test-Features).",         "bypass_distribution": false },
+    "developer":   { "level": 6, "description": "Entwickler — Multi-Chor, Dropbox-OAuth, umgeht Distribution.","bypass_distribution": true }
+  },
+
+  "features": {
+    "core": {
+      "description": "Authentifizierung, Profil, Session-Basis. In jeder Distribution Pflicht.",
+      "permissions": ["profile.read", "profile.write", "profile.password"]
+    },
+    "browse": {
+      "description": "Dropbox-Navigation, Suche, Audio- und Dokumenten-Streaming.",
+      "permissions": [
+        "dropbox.status",
+        "browse.read",
+        "browse.search",
+        "stream.play",
+        "audio.metadata.cache",
+        "documents.list",
+        "documents.read"
+      ]
+    },
+    "player": {
+      "description": "Server-seitiger Player-State (welcher Track ist gerade ausgewaehlt).",
+      "permissions": ["player.state"]
+    },
+    "transposition": {
+      "description": "Chord-Sheets transponieren (per-user-Preference).",
+      "permissions": ["transposition.read", "transposition.write"]
+    },
+    "favorites": {
+      "description": "Persoenliche Favoriten-Liste.",
+      "permissions": ["favorites.read", "favorites.write"]
+    },
+    "labels": {
+      "description": "Labels: globales Lesen (fuer Filter), Verwaltung, per-User-Zuweisungen.",
+      "permissions": ["labels.read", "labels.manage", "labels.my.read", "labels.my.write"]
+    },
+    "annotations": {
+      "description": "Chord-Annotationen (Akkord-Ueberschriften auf Chord-Sheets).",
+      "permissions": ["annotations.read", "annotations.write"]
+    },
+    "notes": {
+      "description": "Per-User Notizen zu Tracks und Abschnitten.",
+      "permissions": ["notes.read", "notes.write"]
+    },
+    "sections": {
+      "description": "Song-Abschnitte (Cycle-Play) und wiederverwendbare Abschnitts-Vorlagen.",
+      "permissions": [
+        "sections.read",
+        "sections.manage",
+        "sections.presets.read",
+        "sections.presets.manage"
+      ]
+    },
+    "upload": {
+      "description": "Dateien hochladen, umbenennen, loeschen, Ordner verwalten, Per-User-Hide.",
+      "permissions": [
+        "documents.upload",
+        "documents.rename",
+        "documents.delete",
+        "documents.hide",
+        "folders.create",
+        "folders.delete"
+      ]
+    },
+    "user_management": {
+      "description": "Nutzer, Settings und Datacare im eigenen Chor verwalten.",
+      "permissions": ["users.manage", "settings.manage", "datacare.manage"]
+    },
+    "multi_choir": {
+      "description": "Mehrere Choere verwalten, Dropbox-OAuth durchfuehren.",
+      "permissions": ["choirs.manage", "dropbox.connect"]
+    },
+    "feedback": {
+      "description": "Bug-Reports an GitHub senden (zusaetzlicher Auxiliary-Check: can_report_bugs-Flag am User).",
+      "permissions": ["feedback.submit"]
+    }
+  },
+
+  "permissions": {
+    "profile.read":            { "min_role": "guest",      "description": "Eigenes Profil lesen" },
+    "profile.write":           { "min_role": "member",     "description": "Eigenes Profil aendern (Display-Name, Voice-Part)" },
+    "profile.password":        { "min_role": "member",     "description": "Eigenes Passwort aendern" },
+
+    "dropbox.status":          { "min_role": "guest",      "description": "Dropbox-Verbindungsstatus lesen" },
+    "browse.read":             { "min_role": "guest",      "description": "Dropbox-Ordner durchsuchen" },
+    "browse.search":           { "min_role": "guest",      "description": "Dropbox durchsuchen" },
+    "stream.play":             { "min_role": "guest",      "description": "Audio streamen" },
+    "audio.metadata.cache":    { "min_role": "guest",      "description": "Audio-Dauer im Cache speichern (Client-initiiert)" },
+    "documents.list":          { "min_role": "guest",      "description": "Dokumentliste anzeigen" },
+    "documents.read":          { "min_role": "guest",      "description": "Dokument anzeigen (PDF, TXT, Chord-Sheet)" },
+
+    "player.state":            { "min_role": "guest",      "description": "Player-State speichern (selected track)" },
+
+    "transposition.read":      { "min_role": "guest",      "description": "Chord-Preference lesen" },
+    "transposition.write":     { "min_role": "guest",      "description": "Chord-Preference schreiben (transponieren)" },
+
+    "favorites.read":          { "min_role": "member",     "description": "Favoriten lesen" },
+    "favorites.write":         { "min_role": "member",     "description": "Favoriten setzen/entfernen" },
+
+    "labels.read":             { "min_role": "guest",      "description": "Labels anzeigen (fuer Filter-UI)" },
+    "labels.manage":           { "min_role": "pro-member", "description": "Labels anlegen/aendern/loeschen" },
+    "labels.my.read":          { "min_role": "member",     "description": "Eigene Label-Zuweisungen lesen" },
+    "labels.my.write":         { "min_role": "member",     "description": "Eigene Label-Zuweisungen aendern" },
+
+    "annotations.read":        { "min_role": "member",     "description": "Chord-Annotationen lesen" },
+    "annotations.write":       { "min_role": "member",     "description": "Chord-Annotationen schreiben" },
+
+    "notes.read":              { "min_role": "member",     "description": "Eigene Notizen lesen" },
+    "notes.write":             { "min_role": "pro-member", "description": "Notizen schreiben (globale Lyrics-Verwaltung)" },
+
+    "sections.read":           { "min_role": "guest",      "description": "Song-Abschnitte lesen (fuer Cycle-Play)" },
+    "sections.manage":         { "min_role": "pro-member", "description": "Song-Abschnitte bearbeiten" },
+    "sections.presets.read":   { "min_role": "member",     "description": "Abschnitts-Vorlagen lesen" },
+    "sections.presets.manage": { "min_role": "pro-member", "description": "Abschnitts-Vorlagen verwalten" },
+
+    "documents.upload":        { "min_role": "pro-member", "description": "Dateien hochladen / Chord-Sheets einfuegen" },
+    "documents.rename":        { "min_role": "pro-member", "description": "Dateien umbenennen" },
+    "documents.delete":        { "min_role": "chorleiter", "description": "Dateien endgueltig loeschen" },
+    "documents.hide":          { "min_role": "member",     "description": "Dateien fuer sich selbst ausblenden" },
+    "folders.create":          { "min_role": "admin",      "description": "Neue Dropbox-Ordner anlegen" },
+    "folders.delete":          { "min_role": "chorleiter", "description": "Dropbox-Ordner loeschen" },
+
+    "users.manage":            { "min_role": "admin",      "description": "Nutzer im eigenen Chor verwalten" },
+    "settings.manage":         { "min_role": "admin",      "description": "Chor-Settings, Invite-Codes, Resync" },
+    "datacare.manage":         { "min_role": "admin",      "description": "Datenbank-Wartung (Orphans, Soft-Delete)" },
+
+    "choirs.manage":           { "min_role": "developer",  "description": "Choere anlegen/wechseln/loeschen" },
+    "dropbox.connect":         { "min_role": "developer",  "description": "Dropbox OAuth-Flow ausloesen" },
+
+    "feedback.submit":         { "min_role": "member",     "description": "Bug-Reports an GitHub senden (plus can_report_bugs-Flag)" }
+  },
+
+  "public_routes": [
+    "POST /api/auth/login",
+    "POST /api/auth/register",
+    "POST /api/auth/logout",
+    "GET /api/auth/choir-info",
+    "GET /api/dropbox/callback"
+  ],
+
+  "routes": {
+    "GET /api/auth/me":                                             "profile.read",
+    "PUT /api/auth/me":                                             "profile.write",
+    "PUT /api/auth/me/password":                                    "profile.password",
+
+    "GET /api/dropbox/status":                                      "dropbox.status",
+    "GET /api/dropbox/browse":                                      "browse.read",
+    "GET /api/dropbox/search":                                      "browse.search",
+    "GET /api/dropbox/stream":                                      "stream.play",
+    "POST /api/dropbox/duration":                                   "audio.metadata.cache",
+    "GET /api/dropbox/authorize":                                   "dropbox.connect",
+    "POST /api/dropbox/disconnect":                                 "dropbox.connect",
+    "POST /api/dropbox/upload":                                     "documents.upload",
+    "DELETE /api/dropbox/file":                                     "documents.delete",
+    "POST /api/dropbox/folder":                                     "folders.create",
+    "DELETE /api/dropbox/folder":                                   "folders.delete",
+    "POST /api/dropbox/rename":                                     "documents.rename",
+
+    "GET /api/documents/list":                                      "documents.list",
+    "POST /api/documents/upload":                                   "documents.upload",
+    "POST /api/documents/paste-text":                               "documents.upload",
+    "GET /api/documents/{doc_id}/page/{page}":                      "documents.read",
+    "GET /api/documents/{doc_id}/download":                         "documents.read",
+    "GET /api/documents/{doc_id}/stream":                           "documents.read",
+    "GET /api/documents/{doc_id}/content":                          "documents.read",
+    "POST /api/documents/{doc_id}/rename":                          "documents.rename",
+    "DELETE /api/documents/{doc_id}":                               "documents.delete",
+    "POST /api/documents/{doc_id}/hide":                            "documents.hide",
+    "DELETE /api/documents/{doc_id}/hide":                          "documents.hide",
+    "POST /api/documents/select":                                   "player.state",
+    "DELETE /api/documents/select":                                 "player.state",
+    "GET /api/documents/selected":                                  "player.state",
+    "GET /api/documents/{doc_id}/chord-preference":                 "transposition.read",
+    "PUT /api/documents/{doc_id}/chord-preference":                 "transposition.write",
+
+    "GET /api/favorites":                                           "favorites.read",
+    "POST /api/favorites":                                          "favorites.write",
+    "DELETE /api/favorites/{favorite_id}":                          "favorites.write",
+    "POST /api/favorites/toggle":                                   "favorites.write",
+
+    "GET /api/labels":                                              "labels.read",
+    "POST /api/labels":                                             "labels.manage",
+    "PUT /api/labels/{label_id}":                                   "labels.manage",
+    "DELETE /api/labels/{label_id}":                                "labels.manage",
+    "GET /api/labels/my":                                           "labels.my.read",
+    "POST /api/labels/my":                                          "labels.my.write",
+    "POST /api/labels/my/toggle":                                   "labels.my.write",
+    "DELETE /api/labels/my/{assignment_id}":                        "labels.my.write",
+
+    "GET /api/annotations":                                         "annotations.read",
+    "PUT /api/annotations":                                         "annotations.write",
+    "DELETE /api/annotations":                                      "annotations.write",
+    "DELETE /api/annotations/all":                                  "annotations.write",
+
+    "GET /api/notes":                                               "notes.read",
+    "PUT /api/notes":                                               "notes.write",
+    "PUT /api/notes/bulk":                                          "notes.write",
+
+    "GET /api/sections":                                            "sections.read",
+    "POST /api/sections":                                           "sections.manage",
+    "POST /api/sections/bulk":                                      "sections.manage",
+    "PUT /api/sections/{section_id}":                               "sections.manage",
+    "PUT /api/sections/lyrics":                                     "sections.manage",
+    "DELETE /api/sections/{section_id}":                            "sections.manage",
+
+    "GET /api/section-presets":                                     "sections.presets.read",
+    "POST /api/section-presets":                                    "sections.presets.manage",
+    "PUT /api/section-presets/{preset_id}":                         "sections.presets.manage",
+    "DELETE /api/section-presets/{preset_id}":                      "sections.presets.manage",
+
+    "GET /api/admin/users":                                         "users.manage",
+    "POST /api/admin/users":                                        "users.manage",
+    "PUT /api/admin/users/{user_id}":                               "users.manage",
+    "DELETE /api/admin/users/{user_id}":                            "users.manage",
+    "GET /api/admin/settings":                                      "settings.manage",
+    "PUT /api/admin/settings":                                      "settings.manage",
+    "POST /api/admin/resync":                                       "settings.manage",
+    "GET /api/admin/datacare/orphans":                              "datacare.manage",
+    "DELETE /api/admin/datacare/song/{song_id}":                    "datacare.manage",
+    "POST /api/admin/datacare/song/{song_id}/reactivate":           "datacare.manage",
+    "DELETE /api/admin/datacare/document/{doc_id}":                 "datacare.manage",
+    "DELETE /api/admin/datacare/user-data/favorite/{favorite_id}":  "datacare.manage",
+    "DELETE /api/admin/datacare/user-data/note/{note_id}":          "datacare.manage",
+    "DELETE /api/admin/datacare/user-data/user-label/{ul_id}":      "datacare.manage",
+    "GET /api/admin/choirs":                                        "choirs.manage",
+    "POST /api/admin/choirs":                                       "choirs.manage",
+    "PUT /api/admin/choirs/{choir_id}":                             "choirs.manage",
+    "DELETE /api/admin/choirs/{choir_id}":                          "choirs.manage",
+    "POST /api/admin/choirs/{choir_id}/switch":                     "choirs.manage",
+
+    "GET /api/feedback/issues":                                     "feedback.submit",
+    "POST /api/feedback":                                           "feedback.submit"
+  }
+}

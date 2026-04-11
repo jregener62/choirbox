@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.favorite import Favorite
-from backend.api.auth import require_user
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 from backend.services import path_resolver
 from backend.services.dropbox_service import get_dropbox_service
@@ -34,7 +34,7 @@ async def _resolve_or_legacy(rel_path: str, hint: str, user: User, session: Sess
 
 
 @router.get("")
-def list_favorites(user: User = Depends(require_user), session: Session = Depends(get_session)):
+def list_favorites(user: User = Depends(require_permission("favorites.read")), session: Session = Depends(get_session)):
     favorites = session.exec(
         select(Favorite).where(Favorite.user_id == user.id).order_by(Favorite.created_at.desc())
     ).all()
@@ -59,7 +59,7 @@ def list_favorites(user: User = Depends(require_user), session: Session = Depend
 
 
 @router.post("")
-async def add_favorite(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+async def add_favorite(data: dict, user: User = Depends(require_permission("favorites.write")), session: Session = Depends(get_session)):
     dropbox_path = data.get("dropbox_path", "").strip()
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
@@ -94,7 +94,7 @@ async def add_favorite(data: dict, user: User = Depends(require_user), session: 
 @router.delete("/{favorite_id}")
 def remove_favorite(
     favorite_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("favorites.write")),
     session: Session = Depends(get_session),
 ):
     favorite = session.get(Favorite, favorite_id)
@@ -106,7 +106,7 @@ def remove_favorite(
 
 
 @router.post("/toggle")
-async def toggle_favorite(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+async def toggle_favorite(data: dict, user: User = Depends(require_permission("favorites.write")), session: Session = Depends(get_session)):
     """Toggle favorite: add if not exists, remove if exists. Returns new state."""
     dropbox_path = data.get("dropbox_path", "").strip()
     if not dropbox_path:

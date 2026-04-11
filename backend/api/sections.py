@@ -8,7 +8,7 @@ from backend.database import get_session
 from backend.models.user import User
 from backend.models.section import Section
 from backend.models.note import Note
-from backend.api.auth import require_user, require_role
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/sections", tags=["sections"])
@@ -17,7 +17,7 @@ router = APIRouter(prefix="/sections", tags=["sections"])
 @router.get("")
 def list_sections(
     folder: str,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("sections.read")),
     session: Session = Depends(get_session),
 ):
     sections = session.exec(
@@ -45,7 +45,7 @@ def list_sections(
 @router.post("/bulk")
 def create_sections_bulk(
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
     folder_path = data.get("folder_path", "").strip()
@@ -91,7 +91,7 @@ def create_sections_bulk(
 @router.post("")
 def create_section(
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
     folder_path = data.get("folder_path", "").strip()
@@ -128,7 +128,7 @@ def create_section(
 @router.put("/lyrics")
 def save_lyrics_bulk(
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
     """Bulk save lyrics for multiple sections at once."""
@@ -156,7 +156,7 @@ def save_lyrics_bulk(
 def update_section(
     section_id: int,
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
     section = session.get(Section, section_id)
@@ -188,7 +188,7 @@ def update_section(
 @router.delete("/{section_id}")
 def delete_section(
     section_id: int,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
     section = session.get(Section, section_id)

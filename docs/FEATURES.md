@@ -74,14 +74,14 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 
 ### Rollen-Hierarchie
 
-5-stufiges Rollensystem mit aufsteigenden Berechtigungen. Jede hoehere Rolle erbt alle Rechte der niedrigeren.
+7-stufiges Rollensystem mit aufsteigenden Berechtigungen. Jede hoehere Rolle erbt alle Rechte der niedrigeren.
 
 | Rolle         | Level | Beschreibung                                                                  |
 | ------------- | ----- | ----------------------------------------------------------------------------- |
-| `guest`       | 0     | Registriert, eingeschraenkt                                                   |
-| `member`      | 1     | Standard-Chormitglied (Browsen, Streamen, Upload, Favoriten)                  |
-| `pro-member`  | 2     | Kann Labels und Sections verwalten                                            |
-| `chorleiter`  | 3     | Erweiterte Verwaltungsrechte                                                  |
+| `guest`       | 0     | Registriert, eingeschraenkt — nur Browsen/Play/Transposition                  |
+| `member`      | 1     | Standard-Chormitglied (Browsen, Streamen, Favoriten, Annotationen)            |
+| `pro-member`  | 2     | Kann Labels und Sections verwalten, Dateien hochladen/umbenennen              |
+| `chorleiter`  | 3     | Erweiterte Verwaltungsrechte (Datei/Ordner loeschen)                          |
 | `admin`       | 4     | Voller Zugriff (Nutzer, Einladungslink, Settings) innerhalb des eigenen Chors |
 | `beta-tester` | 5     | Beta-Features (z.B. Section-Editor)                                           |
 | `developer`   | 6     | Instanz-Verwaltung: Choere erstellen/wechseln, Dropbox OAuth                  |
@@ -89,14 +89,64 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 - Neue Registrierungen erhalten automatisch die Rolle `member`
 - Rollen sind pro Chor (User gehoert zu genau einem Chor)
 - Admin kann Rollen ueber die Nutzerverwaltung aendern (Dropdown mit allen Rollen)
-- Developer kann neue Choere erstellen, zwischen Choeren wechseln und die Dropbox-Verbindung verwalten
-- Backend: `require_role("pro-member")` als Dependency fuer rollenbasierte Endpunkte
-- Frontend: `hasMinRole(userRole, "pro-member")` fuer UI-Sichtbarkeit
+- Developer kann neue Choere erstellen, zwischen Choeren wechseln, die Dropbox-Verbindung verwalten und bypasst den Distribution-Check (fuer Testing)
+- Backend: `require_permission("<permission>")` als Dependency fuer endpoint-basierte Enforcement — definiert in `backend/policy/permissions.json`
+- Frontend: `hasMinRole(userRole, "pro-member")` fuer UI-Sichtbarkeit (wird in Zukunft durch Policy-basiertes Feature-Gating ergaenzt)
 
 | Datei | Rolle |
 |-------|-------|
-| `backend/api/auth.py` | `ROLE_HIERARCHY`, `require_role()`, `require_admin` |
+| `backend/policy/permissions.json` | Zentrale Policy: Rollen, Features, Permissions, Route-Mapping |
+| `backend/policy/engine.py` | `PolicyEngine`, `get_policy()`, Start-Check |
+| `backend/policy/dependencies.py` | `require_permission()`, `require_permission_query()` |
+| `backend/api/auth.py` | `ROLE_HIERARCHY` / `VALID_ROLES` (lazy-loaded aus Policy) |
 | `frontend/src/utils/roles.ts` | `hasMinRole()`, `ROLE_LABELS`, `ALL_ROLES` |
+
+### Permission-Policy (zentrale JSON)
+
+Saemtliche Berechtigungen — welche Rolle welche Permission hat und welcher
+FastAPI-Endpoint welche Permission erfordert — sind in
+`backend/policy/permissions.json` zentralisiert. Aenderungen an der
+Berechtigungsmatrix geschehen dort, nicht verstreut ueber die Router-Dateien.
+
+**Struktur (vierstufig):**
+
+```
+Distribution → Features → Permissions → Routes
+```
+
+- **Distribution**: welche Feature-Sets sind in diesem Deployment aktiv?
+  (konfiguriert ueber `CHOIRBOX_DISTRIBUTION` in `.env`, Default: `full`).
+  Ermoeglicht spaeter verschiedene Pakete (z.B. `demo`, `basis`, `pro`).
+- **Feature**: Bundle von verwandten Permissions (z.B. `favorites`,
+  `labels`, `upload`). Marketing-Ebene fuer Distribution-Definition.
+- **Permission**: einzelnes Recht mit Min-Rolle (z.B. `documents.delete` →
+  mindestens `chorleiter`).
+- **Route**: HTTP-Methode + Pfad → Permission-Mapping.
+
+**Konsistenz-Garantien:**
+
+- Beim App-Start wird geprueft, dass jede registrierte FastAPI-Route
+  entweder als `protected` oder `public` in der Policy steht. Fehlt ein
+  Eintrag → Start-Fail (konfigurierbar ueber `CHOIRBOX_POLICY_STRICT`).
+- Jede Permission muss in genau einem Feature stehen (verhindert
+  Doppelzuweisungen).
+- Jede Route muss eine bekannte Permission referenzieren.
+- `developer` umgeht den Distribution-Check (Flag `bypass_distribution`
+  in der Rollen-Definition), alle anderen Rollen nicht.
+
+**Fehler-Codes bei Ablehnung:**
+
+- `401 Not authenticated` — kein/ungueltiger Token
+- `403 permission_denied` — Rolle reicht nicht aus
+- `403 feature_not_available` — Feature ist in der aktiven Distribution
+  nicht aktiviert (z.B. Pro-Feature in Demo-Instanz)
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/policy/permissions.json` | Quelle der Wahrheit fuer Rollen/Permissions/Routes |
+| `backend/policy/engine.py` | Loader + `PolicyEngine.can()` + Start-Check |
+| `backend/policy/dependencies.py` | `require_permission()` als FastAPI-Dependency |
+| `backend/tests/test_policy.py` | 41 Regressionstests (Engine + HTTP-Enforcement) |
 
 ### Berechtigungsmatrix
 
@@ -1470,6 +1520,27 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### Permission-System: zentrale Policy statt verstreuter require_role-Calls
+
+Die Rollen-Enforcement war urspruenglich auf ~12 Router-Dateien verstreut als `require_user` / `require_role("pro-member")` / `require_admin`-Dependencies. Das hatte drei Probleme:
+
+1. Aenderungen an Berechtigungen erforderten, 80+ Endpoints manuell abzugleichen — fehleranfaellig und ohne zentrale Uebersicht.
+2. `DELETE /api/documents/{id}` erlaubte `pro-member`, die FEATURES.md-Matrix forderte aber `chorleiter+` (GAP #1 — stille Diskrepanz seit langem).
+3. Die zukuenftige Einfuehrung von Distributionen (Demo/Basis/Pro o.ae.) war nicht vorbereitet — haette einen erneuten Rundumschlag ueber alle Router erzwungen.
+
+**Struktureller Fix:**
+
+Einfuehrung einer vierstufigen Policy-Struktur (`Distribution → Feature → Permission → Route`) in `backend/policy/permissions.json` als alleinige Quelle der Wahrheit. Neue FastAPI-Dependency `require_permission("...")` ersetzt `require_user` / `require_role` in allen 80+ Endpoints. Beim App-Start prueft ein Konsistenz-Check, dass jede registrierte Route in der Policy steht — neue Endpoints ohne Policy-Eintrag scheitern am Startup statt still durchzurutschen.
+
+- `backend/policy/permissions.json` — eine JSON mit `roles`, `features`, `permissions`, `routes`, `public_routes`
+- `backend/policy/engine.py` — `PolicyEngine.can(role, perm)` + `validate_routes_against_policy(app)` Start-Check
+- `backend/policy/dependencies.py` — `require_permission()` / `require_permission_query()` mit differenzierten Fehler-Codes (`permission_denied` vs. `feature_not_available`)
+- `CHOIRBOX_DISTRIBUTION` in `.env` waehlt aktive Distribution (Default `full`); `developer` umgeht den Distribution-Check fuer Test-Zwecke
+- 80+ Endpoints in `favorites.py`, `labels.py`, `annotations.py`, `notes.py`, `sections.py`, `section_presets.py`, `documents.py`, `dropbox.py`, `admin.py`, `feedback.py`, `auth.py` migriert
+- `ROLE_HIERARCHY` / `VALID_ROLES` in `auth.py` sind jetzt Lazy-Loader, die die Werte aus der Policy ziehen — eliminiert Drift
+- GAP #1 behoben: `DELETE /api/documents/{id}` und `DELETE /api/dropbox/file` brauchen jetzt `documents.delete` (Min-Rolle `chorleiter`), passt damit zur FEATURES.md-Matrix
+- 41 neue Tests in `backend/tests/test_policy.py` decken Engine (25 parametrisierte Rollen × Permissions), Start-Check, Distribution-Feature-Gating, Developer-Bypass und HTTP-Enforcement am lebenden FastAPI-Client ab — inkl. Regressionstest, dass `pro-member` keine Dokumente loeschen kann und `chorleiter` schon
 
 ### Back-zur-Suche fiel auf Root zurueck nach DocViewer-Zwischenstopp
 

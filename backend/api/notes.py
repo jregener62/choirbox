@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.note import Note
-from backend.api.auth import require_user, require_role
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 from backend.services import path_resolver
 from backend.services.dropbox_service import get_dropbox_service
@@ -28,7 +28,7 @@ async def _resolve_target_file_id(rel_path: str, user: User, session: Session) -
 @router.get("")
 def list_notes(
     path: str,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("notes.read")),
     session: Session = Depends(get_session),
 ):
     """Get all notes for a track (track-level + section-level) for current user."""
@@ -54,7 +54,7 @@ def list_notes(
 @router.put("")
 async def save_note(
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("notes.write")),
     session: Session = Depends(get_session),
 ):
     """Upsert a note. section_id=null for track-level note."""
@@ -117,7 +117,7 @@ async def save_note(
 @router.put("/bulk")
 async def save_notes_bulk(
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("notes.write")),
     session: Session = Depends(get_session),
 ):
     """Bulk save notes for a track (track note + section notes at once)."""

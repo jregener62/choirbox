@@ -8,7 +8,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.annotation import Annotation
-from backend.api.auth import require_user, require_role
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/annotations", tags=["annotations"])
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/annotations", tags=["annotations"])
 def get_annotations(
     doc_id: int,
     page: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("annotations.read")),
     session: Session = Depends(get_session),
 ):
     annotation = session.exec(
@@ -36,7 +36,7 @@ def get_annotations(
 @router.put("")
 def upsert_annotations(
     data: dict,
-    user: User = Depends(require_role("member")),
+    user: User = Depends(require_permission("annotations.write")),
     session: Session = Depends(get_session),
 ):
     doc_id = data.get("doc_id")
@@ -81,7 +81,7 @@ def upsert_annotations(
 def delete_page_annotations(
     doc_id: int,
     page: int,
-    user: User = Depends(require_role("member")),
+    user: User = Depends(require_permission("annotations.write")),
     session: Session = Depends(get_session),
 ):
     annotation = session.exec(
@@ -101,7 +101,7 @@ def delete_page_annotations(
 @router.delete("/all")
 def delete_all_annotations(
     doc_id: int,
-    user: User = Depends(require_role("member")),
+    user: User = Depends(require_permission("annotations.write")),
     session: Session = Depends(get_session),
 ):
     annotations = session.exec(

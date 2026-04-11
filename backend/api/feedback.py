@@ -5,14 +5,18 @@ from sqlmodel import Session
 
 from backend.database import get_session
 from backend.models.user import User
-from backend.api.auth import require_user
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 from backend.services import github_service
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
 
 
-def _require_bug_reporter(user: User = Depends(require_user)) -> User:
+def _require_bug_reporter(
+    user: User = Depends(require_permission("feedback.submit")),
+) -> User:
+    # Auxiliary check on top of the policy: bug-reporting additionally
+    # requires the per-user 'can_report_bugs' flag (orthogonal to the role).
     if not user.can_report_bugs:
         raise HTTPException(403, "Keine Berechtigung fuer Bug-Reporting")
     return user

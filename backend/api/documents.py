@@ -13,7 +13,7 @@ from backend.models.choir import Choir
 from backend.models.document import Document
 from backend.models.user import User
 from backend.models.user_chord_preference import UserChordPreference
-from backend.api.auth import require_user, require_user_query, require_role
+from backend.policy import require_permission, require_permission_query
 from backend.schemas import ActionResponse
 from backend.services import document_service
 from backend.services.dropbox_service import get_dropbox_service
@@ -63,7 +63,7 @@ def _dropbox_folder_path(folder_path: str, user: User, session: Session) -> str:
 @router.get("/list")
 async def list_documents(
     folder: str,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("documents.list")),
     session: Session = Depends(get_session),
 ):
     texte_path = await _resolve_texte_folder(folder, user, session)
@@ -321,7 +321,7 @@ async def upload_document(
     file: UploadFile = File(...),
     folder_path: str = Form(...),
     song_folder_name: str | None = Form(None),
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("documents.upload")),
     session: Session = Depends(get_session),
 ):
     import logging
@@ -424,7 +424,7 @@ class PasteTextBody(BaseModel):
 @router.post("/paste-text")
 async def paste_text(
     body: PasteTextBody,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("documents.upload")),
     session: Session = Depends(get_session),
 ):
     """Create a text-based document (.txt or .cho) from pasted content.
@@ -534,13 +534,13 @@ def _safe_filename(title: str) -> str:
 async def document_page(
     doc_id: int,
     page: int,
-    user: User = Depends(require_user_query),
+    user: User = Depends(require_permission_query("documents.read")),
     session: Session = Depends(get_session),
 ):
     """Render a PDF page as JPEG. Fetches PDF from Dropbox on cache miss.
 
-    Uses require_user_query because the frontend embeds these URLs as
-    <img src> and the browser cannot send Authorization headers there.
+    Uses require_permission_query because the frontend embeds these URLs
+    as <img src> and the browser cannot send Authorization headers there.
     """
     doc = document_service.get_document(doc_id, session)
     if not doc or doc.file_type != "pdf":
@@ -579,14 +579,14 @@ async def document_page(
 @router.get("/{doc_id}/download")
 async def download_document(
     doc_id: int,
-    user: User = Depends(require_user_query),
+    user: User = Depends(require_permission_query("documents.read")),
     session: Session = Depends(get_session),
 ):
     """Redirect to Dropbox temporary link for download.
 
-    Uses require_user_query because the frontend embeds this URL as an
-    <a href download> and the browser cannot send Authorization headers
-    on plain link clicks.
+    Uses require_permission_query because the frontend embeds this URL
+    as an <a href download> and the browser cannot send Authorization
+    headers on plain link clicks.
     """
     doc = document_service.get_document(doc_id, session)
     if not doc:
@@ -607,7 +607,7 @@ async def download_document(
 @router.get("/{doc_id}/stream")
 async def stream_document(
     doc_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("documents.read")),
     session: Session = Depends(get_session),
 ):
     """Get a temporary Dropbox link for streaming video/txt content."""
@@ -630,7 +630,7 @@ async def stream_document(
 @router.get("/{doc_id}/content")
 async def get_text_content(
     doc_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("documents.read")),
     session: Session = Depends(get_session),
 ):
     """Get the text content of a TXT or CHO document via Dropbox."""
@@ -662,7 +662,7 @@ async def get_text_content(
 async def rename_document(
     doc_id: int,
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("documents.rename")),
     session: Session = Depends(get_session),
 ):
     new_name = (data.get("new_name") or "").strip()
@@ -707,7 +707,7 @@ async def rename_document(
 @router.delete("/{doc_id}")
 async def delete_document(
     doc_id: int,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("documents.delete")),
     session: Session = Depends(get_session),
 ):
     doc = document_service.get_document(doc_id, session)
@@ -730,7 +730,7 @@ async def delete_document(
 @router.post("/{doc_id}/hide")
 def hide_document(
     doc_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("documents.hide")),
     session: Session = Depends(get_session),
 ):
     doc = document_service.get_document(doc_id, session)
@@ -743,7 +743,7 @@ def hide_document(
 @router.delete("/{doc_id}/hide")
 def unhide_document(
     doc_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("documents.hide")),
     session: Session = Depends(get_session),
 ):
     doc = document_service.get_document(doc_id, session)
@@ -760,7 +760,7 @@ def unhide_document(
 @router.post("/select")
 def select_document(
     body: dict,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("player.state")),
     session: Session = Depends(get_session),
 ):
     folder_path = body.get("folder_path", "").strip()
@@ -804,7 +804,7 @@ def select_document(
 @router.delete("/select")
 def deselect_document(
     folder: str,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("player.state")),
     session: Session = Depends(get_session),
 ):
     from backend.models.user_selected_document import UserSelectedDocument
@@ -823,7 +823,7 @@ def deselect_document(
 @router.get("/selected")
 async def get_selected_document(
     folder: str,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("player.state")),
     session: Session = Depends(get_session),
 ):
     from backend.models.user_selected_document import UserSelectedDocument
@@ -867,7 +867,7 @@ class ChordPreferenceBody(BaseModel):
 @router.get("/{doc_id}/chord-preference")
 def get_chord_preference(
     doc_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("transposition.read")),
     session: Session = Depends(get_session),
 ):
     doc = document_service.get_document(doc_id, session)
@@ -886,7 +886,7 @@ def get_chord_preference(
 def set_chord_preference(
     doc_id: int,
     body: ChordPreferenceBody,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("transposition.write")),
     session: Session = Depends(get_session),
 ):
     doc = document_service.get_document(doc_id, session)

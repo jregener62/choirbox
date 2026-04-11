@@ -13,7 +13,7 @@ from backend.database import get_session
 from backend.models.app_settings import AppSettings
 from backend.models.choir import Choir
 from backend.models.user import User
-from backend.api.auth import require_user, require_admin, require_role
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/dropbox", tags=["dropbox"])
@@ -81,7 +81,7 @@ def _get_or_create_settings(session: Session) -> AppSettings:
 
 @router.get("/status")
 def dropbox_status(
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("dropbox.status")),
     session: Session = Depends(get_session),
 ):
     settings = _get_or_create_settings(session)
@@ -95,7 +95,7 @@ def dropbox_status(
 
 
 @router.get("/authorize")
-def dropbox_authorize(user: User = Depends(require_role("developer"))):
+def dropbox_authorize(user: User = Depends(require_permission("dropbox.connect"))):
     if not DROPBOX_APP_KEY or not DROPBOX_APP_SECRET:
         raise HTTPException(400, "Dropbox App Key and App Secret must be configured in .env.")
 
@@ -189,7 +189,7 @@ async def dropbox_callback(
 async def dropbox_browse(
     path: str = "",
     refresh: bool = False,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("browse.read")),
     session: Session = Depends(get_session),
 ):
     """List files/folders at a Dropbox path with folder-type awareness."""
@@ -512,7 +512,7 @@ async def dropbox_browse(
 @router.get("/search")
 async def dropbox_search(
     q: str = "",
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("browse.search")),
     session: Session = Depends(get_session),
 ):
     """Search root level only (non-recursive). Includes files and folders; .song folders shown with stripped display name."""
@@ -611,7 +611,7 @@ async def dropbox_search(
 @router.get("/stream")
 async def dropbox_stream(
     path: str = "",
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("stream.play")),
     session: Session = Depends(get_session),
 ):
     """Get a temporary streaming link for audio playback (4h valid)."""
@@ -640,7 +640,7 @@ async def dropbox_upload(
     file: UploadFile = File(...),
     target_path: str = Form(...),
     song_folder_name: str | None = Form(None),
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("documents.upload")),
     session: Session = Depends(get_session),
 ):
     """Upload a recording/video to Dropbox. Audio → MP3, Video → compressed MP4."""
@@ -813,7 +813,7 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
 @router.delete("/file")
 async def dropbox_delete_file(
     path: str = "",
-    user: User = Depends(require_role("chorleiter")),
+    user: User = Depends(require_permission("documents.delete")),
     session: Session = Depends(get_session),
 ):
     """Delete a file from Dropbox. Requires Chorleiter or Admin role."""
@@ -854,7 +854,7 @@ async def dropbox_delete_file(
 @router.post("/folder")
 async def dropbox_create_folder(
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("folders.create")),
     session: Session = Depends(get_session),
 ):
     """Create a new folder in Dropbox. Requires Admin role."""
@@ -896,7 +896,7 @@ async def dropbox_create_folder(
 @router.delete("/folder")
 async def dropbox_delete_folder(
     path: str = "",
-    user: User = Depends(require_role("chorleiter")),
+    user: User = Depends(require_permission("folders.delete")),
     session: Session = Depends(get_session),
 ):
     """Delete a folder from Dropbox. .song folders (chorleiter+) are moved to Trash; others (admin) must be empty."""
@@ -955,7 +955,7 @@ async def dropbox_delete_folder(
 @router.post("/rename")
 async def dropbox_rename(
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("documents.rename")),
     session: Session = Depends(get_session),
 ):
     """Rename a file or folder in Dropbox. Requires Pro-Member role."""
@@ -1085,7 +1085,7 @@ async def dropbox_rename(
 @router.post("/duration")
 def report_duration(
     data: dict,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("audio.metadata.cache")),
     session: Session = Depends(get_session),
 ):
     """Cache a track's audio duration (reported by the frontend)."""
@@ -1102,7 +1102,7 @@ def report_duration(
 
 @router.post("/disconnect")
 def dropbox_disconnect(
-    user: User = Depends(require_role("developer")),
+    user: User = Depends(require_permission("dropbox.connect")),
     session: Session = Depends(get_session),
 ):
     settings = _get_or_create_settings(session)

@@ -7,14 +7,15 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.choir import Choir
 from backend.models.user import User
-from backend.api.auth import require_admin, require_role, _hash_password, _valid_voice_parts, VALID_ROLES
+from backend.api.auth import _hash_password, _valid_voice_parts, VALID_ROLES
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.get("/users")
-def list_users(user: User = Depends(require_admin), session: Session = Depends(get_session)):
+def list_users(user: User = Depends(require_permission("users.manage")), session: Session = Depends(get_session)):
     users = session.exec(select(User).where(User.choir_id == user.choir_id).order_by(User.created_at)).all()
     return [
         {
@@ -32,7 +33,7 @@ def list_users(user: User = Depends(require_admin), session: Session = Depends(g
 
 
 @router.post("/users")
-def create_user(data: dict, user: User = Depends(require_admin), session: Session = Depends(get_session)):
+def create_user(data: dict, user: User = Depends(require_permission("users.manage")), session: Session = Depends(get_session)):
     username = data.get("username", "").strip()
     password = data.get("password", "")
     voice_part = data.get("voice_part", "").strip()
@@ -69,7 +70,7 @@ def create_user(data: dict, user: User = Depends(require_admin), session: Sessio
 def update_user(
     user_id: str,
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("users.manage")),
     session: Session = Depends(get_session),
 ):
     target = session.get(User, user_id)
@@ -101,7 +102,7 @@ def update_user(
 @router.delete("/users/{user_id}")
 def delete_user(
     user_id: str,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("users.manage")),
     session: Session = Depends(get_session),
 ):
     target = session.get(User, user_id)
@@ -116,7 +117,7 @@ def delete_user(
 
 
 @router.get("/settings")
-def get_settings(user: User = Depends(require_admin), session: Session = Depends(get_session)):
+def get_settings(user: User = Depends(require_permission("settings.manage")), session: Session = Depends(get_session)):
     choir = session.get(Choir, user.choir_id) if user.choir_id else None
     return {
         "invite_code": choir.invite_code if choir else None,
@@ -125,7 +126,7 @@ def get_settings(user: User = Depends(require_admin), session: Session = Depends
 
 
 @router.put("/settings")
-def update_settings(data: dict, user: User = Depends(require_admin), session: Session = Depends(get_session)):
+def update_settings(data: dict, user: User = Depends(require_permission("settings.manage")), session: Session = Depends(get_session)):
     if not user.choir_id:
         raise HTTPException(400, "Kein Chor zugeordnet")
     choir = session.get(Choir, user.choir_id)
@@ -150,7 +151,7 @@ def update_settings(data: dict, user: User = Depends(require_admin), session: Se
 # -- Choir management (developer only) --
 
 @router.get("/choirs")
-def list_choirs(user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+def list_choirs(user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
     choirs = session.exec(select(Choir).order_by(Choir.created_at)).all()
     return [
         {
@@ -165,7 +166,7 @@ def list_choirs(user: User = Depends(require_role("developer")), session: Sessio
 
 
 @router.post("/choirs")
-def create_choir(data: dict, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+def create_choir(data: dict, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
     name = data.get("name", "").strip()
     invite_code = data.get("invite_code", "").strip()
     dropbox_root_folder = data.get("dropbox_root_folder", "").strip() or None
@@ -206,7 +207,7 @@ def create_choir(data: dict, user: User = Depends(require_role("developer")), se
 
 
 @router.put("/choirs/{choir_id}")
-def update_choir(choir_id: str, data: dict, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+def update_choir(choir_id: str, data: dict, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
     choir = session.get(Choir, choir_id)
     if not choir:
         raise HTTPException(404, "Chor nicht gefunden")
@@ -229,7 +230,7 @@ def update_choir(choir_id: str, data: dict, user: User = Depends(require_role("d
 
 
 @router.delete("/choirs/{choir_id}")
-def delete_choir(choir_id: str, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+def delete_choir(choir_id: str, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
     """Delete a choir and ALL associated DB data (users, labels, etc.)."""
     from backend.models.favorite import Favorite
     from backend.models.user_label import UserLabel
@@ -273,7 +274,7 @@ def delete_choir(choir_id: str, user: User = Depends(require_role("developer")),
 
 
 @router.post("/choirs/{choir_id}/switch")
-def switch_choir(choir_id: str, user: User = Depends(require_role("developer")), session: Session = Depends(get_session)):
+def switch_choir(choir_id: str, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
     """Switch the developer's active choir."""
     choir = session.get(Choir, choir_id)
     if not choir:
@@ -396,7 +397,7 @@ def _backup_sqlite_db(keep: int = 5) -> str | None:
 @router.post("/resync")
 async def resync_all(
     dry_run: bool = False,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("settings.manage")),
     session: Session = Depends(get_session),
 ):
     """Full sync: scan the choir's Dropbox recursively and reconcile all DB records.
@@ -681,7 +682,7 @@ async def resync_all(
 
 @router.get("/datacare/orphans")
 def list_orphans(
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     """Liefert Orphans pro Tabelle.
@@ -798,7 +799,7 @@ def list_orphans(
 @router.delete("/datacare/song/{song_id}")
 def delete_orphan_song(
     song_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     """Loescht einen orphan-Song endgueltig samt Sections/Documents/Favorites/etc.
@@ -836,7 +837,7 @@ def delete_orphan_song(
 async def reactivate_orphan_song(
     song_id: int,
     data: dict,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     """Bindet einen orphan-Song an einen anderen Dropbox-Ordnerpfad an.
@@ -881,7 +882,7 @@ async def reactivate_orphan_song(
 @router.delete("/datacare/document/{doc_id}")
 def delete_orphan_document(
     doc_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     """Loescht ein Document, das beim Backfill keine Dropbox-File-ID kriegen
@@ -901,7 +902,7 @@ def delete_orphan_document(
 @router.delete("/datacare/user-data/favorite/{favorite_id}")
 def delete_orphan_favorite(
     favorite_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     from backend.models.favorite import Favorite
@@ -916,7 +917,7 @@ def delete_orphan_favorite(
 @router.delete("/datacare/user-data/note/{note_id}")
 def delete_orphan_note(
     note_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     from backend.models.note import Note
@@ -931,7 +932,7 @@ def delete_orphan_note(
 @router.delete("/datacare/user-data/user-label/{ul_id}")
 def delete_orphan_user_label(
     ul_id: int,
-    user: User = Depends(require_admin),
+    user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
     from backend.models.user_label import UserLabel

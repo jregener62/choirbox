@@ -6,20 +6,20 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.user import User
 from backend.models.section_preset import SectionPreset
-from backend.api.auth import require_user, require_role
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/section-presets", tags=["section-presets"])
 
 
 @router.get("")
-def list_presets(user: User = Depends(require_user), session: Session = Depends(get_session)):
+def list_presets(user: User = Depends(require_permission("sections.presets.read")), session: Session = Depends(get_session)):
     presets = session.exec(select(SectionPreset).where(SectionPreset.choir_id == user.choir_id).order_by(SectionPreset.sort_order)).all()
     return [{"id": p.id, "name": p.name, "color": p.color, "sort_order": p.sort_order, "shortcode": p.shortcode, "max_num": p.max_num} for p in presets]
 
 
 @router.post("")
-def create_preset(data: dict, user: User = Depends(require_role("pro-member")), session: Session = Depends(get_session)):
+def create_preset(data: dict, user: User = Depends(require_permission("sections.presets.manage")), session: Session = Depends(get_session)):
     name = data.get("name", "").strip()
     if not name:
         raise HTTPException(400, "name is required")
@@ -42,7 +42,7 @@ def create_preset(data: dict, user: User = Depends(require_role("pro-member")), 
 def update_preset(
     preset_id: int,
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.presets.manage")),
     session: Session = Depends(get_session),
 ):
     preset = session.get(SectionPreset, preset_id)
@@ -65,7 +65,7 @@ def update_preset(
 @router.delete("/{preset_id}")
 def delete_preset(
     preset_id: int,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("sections.presets.manage")),
     session: Session = Depends(get_session),
 ):
     preset = session.get(SectionPreset, preset_id)

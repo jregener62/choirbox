@@ -7,7 +7,7 @@ from backend.database import get_session
 from backend.models.user import User
 from backend.models.label import Label
 from backend.models.user_label import UserLabel
-from backend.api.auth import require_user, require_role
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 from backend.services import path_resolver
 from backend.services.dropbox_service import get_dropbox_service
@@ -25,7 +25,7 @@ async def _resolve_target_file_id(rel_path: str, user: User, session: Session) -
 
 
 @router.get("")
-def list_labels(user: User = Depends(require_user), session: Session = Depends(get_session)):
+def list_labels(user: User = Depends(require_permission("labels.read")), session: Session = Depends(get_session)):
     labels = session.exec(select(Label).where(Label.choir_id == user.choir_id).order_by(Label.sort_order)).all()
     return [
         {
@@ -42,7 +42,7 @@ def list_labels(user: User = Depends(require_user), session: Session = Depends(g
 
 
 @router.post("")
-def create_label(data: dict, user: User = Depends(require_role("pro-member")), session: Session = Depends(get_session)):
+def create_label(data: dict, user: User = Depends(require_permission("labels.manage")), session: Session = Depends(get_session)):
     name = data.get("name", "").strip()
     if not name:
         raise HTTPException(400, "name is required")
@@ -66,7 +66,7 @@ def create_label(data: dict, user: User = Depends(require_role("pro-member")), s
 def update_label(
     label_id: int,
     data: dict,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("labels.manage")),
     session: Session = Depends(get_session),
 ):
     label = session.get(Label, label_id)
@@ -92,7 +92,7 @@ def update_label(
 @router.delete("/{label_id}")
 def delete_label(
     label_id: int,
-    user: User = Depends(require_role("pro-member")),
+    user: User = Depends(require_permission("labels.manage")),
     session: Session = Depends(get_session),
 ):
     label = session.get(Label, label_id)
@@ -114,7 +114,7 @@ def delete_label(
 @router.get("/my")
 def get_my_labels(
     path: str = "",
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("labels.my.read")),
     session: Session = Depends(get_session),
 ):
     """Get labels assigned by the current user, optionally filtered by dropbox_path."""
@@ -129,7 +129,7 @@ def get_my_labels(
 
 
 @router.post("/my")
-async def assign_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+async def assign_label(data: dict, user: User = Depends(require_permission("labels.my.write")), session: Session = Depends(get_session)):
     dropbox_path = data.get("dropbox_path", "").strip()
     label_id = data.get("label_id")
     if not dropbox_path or not label_id:
@@ -165,7 +165,7 @@ async def assign_label(data: dict, user: User = Depends(require_user), session: 
 
 
 @router.post("/my/toggle")
-async def toggle_label(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+async def toggle_label(data: dict, user: User = Depends(require_permission("labels.my.write")), session: Session = Depends(get_session)):
     """Toggle label assignment: add if not exists, remove if exists."""
     dropbox_path = data.get("dropbox_path", "").strip()
     label_id = data.get("label_id")
@@ -203,7 +203,7 @@ async def toggle_label(data: dict, user: User = Depends(require_user), session: 
 @router.delete("/my/{assignment_id}")
 def remove_label_assignment(
     assignment_id: int,
-    user: User = Depends(require_user),
+    user: User = Depends(require_permission("labels.my.write")),
     session: Session = Depends(get_session),
 ):
     assignment = session.get(UserLabel, assignment_id)

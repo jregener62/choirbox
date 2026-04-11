@@ -17,6 +17,7 @@ from backend.models.choir import Choir
 from backend.models.user import User
 from backend.models.app_settings import AppSettings
 from backend.models.session_token import SessionToken
+from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 logger = logging.getLogger(__name__)
@@ -107,13 +108,11 @@ def _resolve_token_to_user(token: str, session: Session) -> Optional[User]:
 
 
 def get_current_user(request: Request, session: Session = Depends(get_session)) -> Optional[User]:
-    """Extract current user from Authorization header.
+    """Resolve the current user from the ``Authorization: Bearer`` header.
 
-    Tokens MUST be sent via the Authorization header — query-string tokens
-    are not accepted here, since they leak into server logs and browser
-    history. Specific streaming endpoints that need query-string tokens
-    (e.g. <img src> for PDF page rendering, <a href download>) use the
-    dedicated `require_user_query` dependency instead.
+    Returns ``None`` if no (valid) token is present. Used internally by the
+    policy-dependency layer — router code should use
+    :func:`backend.policy.require_permission` instead of calling this directly.
     """
     auth = request.headers.get("Authorization", "")
     if auth.startswith("Bearer "):
@@ -123,47 +122,63 @@ def get_current_user(request: Request, session: Session = Depends(get_session)) 
     return _resolve_token_to_user(token, session)
 
 
-def require_user(request: Request, session: Session = Depends(get_session)) -> User:
-    """Require authenticated user — raises 401 if not logged in."""
-    user = get_current_user(request, session)
-    if not user:
-        raise HTTPException(401, "Not authenticated")
-    return user
+# Role-Hierarchie und gueltige Rollen — Quelle der Wahrheit ist die Policy.
+# Diese Dict/Set werden beim ersten Zugriff aus dem Policy-Engine generiert,
+# damit es keine Drift zwischen Code und permissions.json gibt.
+def _load_roles_from_policy() -> tuple[dict[str, int], set[str]]:
+    from backend.policy import get_policy
+    p = get_policy()
+    hierarchy = {name: role.level for name, role in p.all_roles.items()}
+    return hierarchy, set(hierarchy.keys())
 
 
-def require_user_query(request: Request, session: Session = Depends(get_session)) -> User:
-    """Like require_user, but also accepts the token via ?token= query param.
+class _LazyRoleHierarchy(dict):
+    _loaded = False
 
-    Use ONLY for endpoints embedded as <img src>, <a href download>, or
-    similar contexts where the browser cannot send Authorization headers.
-    Prefer the Authorization header for normal API calls.
-    """
-    auth = request.headers.get("Authorization", "")
-    if auth.startswith("Bearer "):
-        token = auth[7:]
-    else:
-        token = request.query_params.get("token", "")
-    user = _resolve_token_to_user(token, session)
-    if not user:
-        raise HTTPException(401, "Not authenticated")
-    return user
+    def _ensure(self):
+        if not self._loaded:
+            hierarchy, _ = _load_roles_from_policy()
+            super().update(hierarchy)
+            self._loaded = True
 
+    def __getitem__(self, key):
+        self._ensure()
+        return super().__getitem__(key)
 
-ROLE_HIERARCHY = {"guest": 0, "member": 1, "pro-member": 2, "chorleiter": 3, "admin": 4, "beta-tester": 5, "developer": 6}
-VALID_ROLES = set(ROLE_HIERARCHY.keys())
+    def get(self, key, default=None):
+        self._ensure()
+        return super().get(key, default)
 
+    def __contains__(self, key):
+        self._ensure()
+        return super().__contains__(key)
 
-def require_role(min_role: str):
-    """Factory: returns a dependency that requires a minimum role level."""
-    def dependency(request: Request, session: Session = Depends(get_session)) -> User:
-        user = require_user(request, session)
-        if ROLE_HIERARCHY.get(user.role, 0) < ROLE_HIERARCHY[min_role]:
-            raise HTTPException(403, "Keine Berechtigung")
-        return user
-    return dependency
+    def __iter__(self):
+        self._ensure()
+        return super().__iter__()
 
 
-require_admin = require_role("admin")
+class _LazyValidRoles(set):
+    _loaded = False
+
+    def _ensure(self):
+        if not self._loaded:
+            _, roles = _load_roles_from_policy()
+            for r in roles:
+                super().add(r)
+            self._loaded = True
+
+    def __contains__(self, item):
+        self._ensure()
+        return super().__contains__(item)
+
+    def __iter__(self):
+        self._ensure()
+        return super().__iter__()
+
+
+ROLE_HIERARCHY = _LazyRoleHierarchy()
+VALID_ROLES = _LazyValidRoles()
 
 
 def _user_response(user: User, session: Session) -> dict:
@@ -212,12 +227,19 @@ def login(data: dict, request: Request, session: Session = Depends(get_session))
 
 
 @router.get("/me")
-def get_me(user: User = Depends(require_user), session: Session = Depends(get_session)):
+def get_me(
+    user: User = Depends(require_permission("profile.read")),
+    session: Session = Depends(get_session),
+):
     return _user_response(user, session)
 
 
 @router.put("/me")
-def update_me(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+def update_me(
+    data: dict,
+    user: User = Depends(require_permission("profile.write")),
+    session: Session = Depends(get_session),
+):
     if "display_name" in data:
         user.display_name = data["display_name"]
     if "voice_part" in data and data["voice_part"]:
@@ -231,7 +253,11 @@ def update_me(data: dict, user: User = Depends(require_user), session: Session =
 
 
 @router.put("/me/password")
-def change_password(data: dict, user: User = Depends(require_user), session: Session = Depends(get_session)):
+def change_password(
+    data: dict,
+    user: User = Depends(require_permission("profile.password")),
+    session: Session = Depends(get_session),
+):
     old_password = data.get("old_password", "")
     new_password = data.get("new_password", "")
     if not old_password or not new_password:

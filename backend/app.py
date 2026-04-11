@@ -199,6 +199,12 @@ async def on_startup():
     import backend.models  # noqa: F401
     create_db_and_tables()
 
+    # Policy: laden und Routen-Konsistenz pruefen. Jede FastAPI-Route muss
+    # in permissions.json als protected oder public gelistet sein.
+    from backend.policy import get_policy, validate_routes_against_policy
+    get_policy()
+    validate_routes_against_policy(app)
+
     # One-shot migration: encrypt any legacy plaintext Dropbox refresh token.
     from backend.database import get_session
     from backend.models.app_settings import AppSettings
