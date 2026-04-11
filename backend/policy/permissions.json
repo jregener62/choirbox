@@ -36,7 +36,7 @@
   "features": {
     "core": {
       "description": "Authentifizierung, Profil, Session-Basis. In jeder Distribution Pflicht.",
-      "permissions": ["profile.read", "profile.write", "profile.password"]
+      "permissions": ["profile.read", "profile.write", "profile.password", "policy.read"]
     },
     "browse": {
       "description": "Dropbox-Navigation, Suche, Audio- und Dokumenten-Streaming.",
@@ -112,6 +112,7 @@
     "profile.read":            { "min_role": "guest",      "description": "Eigenes Profil lesen" },
     "profile.write":           { "min_role": "member",     "description": "Eigenes Profil aendern (Display-Name, Voice-Part)" },
     "profile.password":        { "min_role": "member",     "description": "Eigenes Passwort aendern" },
+    "policy.read":             { "min_role": "guest",      "description": "Aktive Policy (Distribution, Features, erlaubte Permissions) lesen" },
 
     "dropbox.status":          { "min_role": "guest",      "description": "Dropbox-Verbindungsstatus lesen" },
     "browse.read":             { "min_role": "guest",      "description": "Dropbox-Ordner durchsuchen" },
@@ -174,6 +175,8 @@
     "GET /api/auth/me":                                             "profile.read",
     "PUT /api/auth/me":                                             "profile.write",
     "PUT /api/auth/me/password":                                    "profile.password",
+
+    "GET /api/policy/active":                                       "policy.read",
 
     "GET /api/dropbox/status":                                      "dropbox.status",
     "GET /api/dropbox/browse":                                      "browse.read",

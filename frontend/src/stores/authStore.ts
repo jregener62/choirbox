@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import type { User, LoginResponse } from '@/types/index'
+import { usePolicyStore } from '@/stores/policyStore'
 
 const STORAGE_PREFIX = 'choirbox_'
 
@@ -52,6 +53,8 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(`${STORAGE_PREFIX}token`, data.token)
     localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(data.user))
     set({ token: data.token, user: data.user })
+    // Policy sofort nachziehen, damit UI-Gating direkt greift.
+    void usePolicyStore.getState().loadPolicy()
   },
 
   register: async (data) => {
@@ -70,6 +73,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(`${STORAGE_PREFIX}token`, result.token)
     localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(result.user))
     set({ token: result.token, user: result.user })
+    void usePolicyStore.getState().loadPolicy()
   },
 
   logout: () => {
@@ -83,6 +87,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(`${STORAGE_PREFIX}token`)
     localStorage.removeItem(`${STORAGE_PREFIX}user`)
     set({ token: null, user: null })
+    usePolicyStore.getState().clear()
   },
 
   restoreSession: () => {

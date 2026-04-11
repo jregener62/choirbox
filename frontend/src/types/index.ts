@@ -1,8 +1,17 @@
+export type UserRole =
+  | 'guest'
+  | 'member'
+  | 'pro-member'
+  | 'chorleiter'
+  | 'admin'
+  | 'beta-tester'
+  | 'developer'
+
 export interface User {
   id: string
   username: string
   display_name: string
-  role: 'guest' | 'member' | 'pro-member' | 'chorleiter' | 'admin'
+  role: UserRole
   voice_part: string
   choir_id: string | null
   choir_name: string | null

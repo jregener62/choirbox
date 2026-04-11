@@ -1,5 +1,7 @@
+import { useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { usePolicyStore } from '@/stores/policyStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { LoginPage } from '@/pages/LoginPage.tsx'
 import { RegisterPage } from '@/pages/RegisterPage.tsx'
@@ -18,7 +20,18 @@ import { DataCarePage } from '@/pages/admin/DataCarePage.tsx'
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
   const mustChangePw = useAuthStore((s) => s.user?.must_change_password)
+  const policy = usePolicyStore((s) => s.policy)
+  const loadPolicy = usePolicyStore((s) => s.loadPolicy)
   const location = useLocation()
+
+  // Policy nachladen, sobald der User eingeloggt ist. Laeuft einmal beim
+  // Mount und jedes Mal, wenn sich das Token aendert (Login/Logout).
+  useEffect(() => {
+    if (token && !policy) {
+      void loadPolicy()
+    }
+  }, [token, policy, loadPolicy])
+
   if (!token) return <Navigate to="/login" replace />
   if (mustChangePw && location.pathname !== '/settings') return <Navigate to="/settings" replace />
   return <>{children}</>

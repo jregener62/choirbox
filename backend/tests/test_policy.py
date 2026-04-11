@@ -231,3 +231,63 @@ def test_admin_cannot_manage_choirs(client: TestClient, admin):
     r = client.get("/api/admin/choirs", headers=headers)
     assert r.status_code == 403
     assert r.json()["detail"]["error"] == "permission_denied"
+
+
+# ---------------------------------------------------------------------------
+# GET /api/policy/active — das Frontend sieht hier, was es darf
+# ---------------------------------------------------------------------------
+
+def test_policy_active_endpoint_requires_auth(client: TestClient):
+    r = client.get("/api/policy/active")
+    assert r.status_code == 401
+
+
+def test_policy_active_for_member(client: TestClient, member):
+    _, headers = member
+    r = client.get("/api/policy/active", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+
+    # Shape
+    assert body["distribution"]["name"] == "full"
+    assert "core" in body["distribution"]["active_features"]
+    assert body["user"]["role"] == "member"
+    assert body["user"]["bypass_distribution"] is False
+
+    # Member darf favorites.write, nicht labels.manage
+    allowed = set(body["user"]["allowed_permissions"])
+    assert "favorites.write" in allowed
+    assert "browse.read" in allowed
+    assert "labels.manage" not in allowed
+    assert "documents.delete" not in allowed
+
+    # allowed_features beinhaltet favorites (weil member->favorites.write)
+    assert "favorites" in body["user"]["allowed_features"]
+
+
+def test_policy_active_for_guest(client: TestClient, user_factory):
+    _, headers = user_factory(role="guest")
+    r = client.get("/api/policy/active", headers=headers)
+    assert r.status_code == 200
+    body = r.json()
+
+    assert body["user"]["role"] == "guest"
+    allowed = set(body["user"]["allowed_permissions"])
+    # Gast darf Browse/Stream/Transpose
+    assert "browse.read" in allowed
+    assert "stream.play" in allowed
+    assert "transposition.write" in allowed
+    # Gast darf NICHTS Persistentes (Favoriten, Annotations, Profil-Write)
+    assert "favorites.write" not in allowed
+    assert "annotations.write" not in allowed
+    assert "profile.write" not in allowed
+    assert "profile.password" not in allowed
+
+
+def test_policy_active_for_developer(client: TestClient, user_factory):
+    _, headers = user_factory(role="developer")
+    r = client.get("/api/policy/active", headers=headers)
+    body = r.json()
+    assert body["user"]["bypass_distribution"] is True
+    # Developer darf choirs.manage
+    assert "choirs.manage" in body["user"]["allowed_permissions"]
