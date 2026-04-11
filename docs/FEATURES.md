@@ -228,7 +228,7 @@ Konzert im Juni/           (Container)
 - Dropbox-Ordnerstruktur hierarchisch durchsuchbar
 - Header zeigt den Chor-Namen prominent statt "Dateien"
 - Breadcrumb-Navigation mit Chor-Name als Root und klickbaren Pfadteilen (Endungen gestripped). Innerhalb von `.song`-Ordnern: Zurueck-Button zum Elternordner.
-- **Song Card Header** innerhalb von `.song`-Ordnern: Zeigt Song-Name + Subfolder-Badges (gleiche Badges wie in der Browse-Liste). Aktiver Subfolder wird mit Label-Text + farbigem Unterstrich hervorgehoben. Inaktive Badges zeigen nur Icon + Anzahl und sind klickbar zum Wechseln. Konsistente Darstellung bei 1 oder mehreren Subfoldern.
+- **Song Card Header** innerhalb von `.song`-Ordnern: Zeigt Song-Name + Multi-Button-Leiste (gleiche Buttons wie in der Browse-Liste). Aktiver Subfolder wird mit kraeftigerer Hintergrundfuellung + Glow-Schatten + Label-Text hervorgehoben. Inaktive Buttons zeigen nur Icon + Anzahl in dezenter Typ-Farbe und sind klickbar zum Wechseln. Konsistente Darstellung bei 1 oder mehreren Subfoldern.
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
 - **Card-Layout**: Alle Dateien und .song-Ordner werden als Cards mit Rahmen und Abstand dargestellt
@@ -241,7 +241,7 @@ Konzert im Juni/           (Container)
   - **Zeile 4:** Kommentar (kursiv) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
 - **Backend Filename-Parsing**: Metadaten (voice_keys, section_keys, song_name, free_text) werden im Backend geparst und in `audio_meta`-Tabelle gecacht. Lazy Parsing beim Browse, Batch-Parsing beim Re-Sync. Invalidierung bei Label/Preset-Aenderungen.
 - **.song Ordner bekommen zusaetzlich:**
-  - **Brick-Zeile:** Klickbare Bricks mit farbigem Rand fuer Schnellzugriff auf Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo). Bricks zeigen Icon + Dateianzahl. Der Sprung in den DocViewer fuer einen ausgewaehlten Text erfolgt ueber den Song-Zeilen-Klick selbst (siehe Priorisierung unter Global Player).
+  - **Multi-Button-Leiste:** Breite, klickbare Buttons fuer Schnellzugriff auf die Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo). Buttons fuellen die Card-Breite (`flex: 1`), zeigen Icon + Dateianzahl, und navigieren direkt in den jeweiligen Unterordner. Die Song-Kachel selbst ist nicht klickbar — Navigation erfolgt ausschliesslich ueber die Multi-Button-Leiste oder das Drei-Punkte-Menu. In der Root-Ansicht ist kein Button als aktiv markiert.
   - **Labels:** Persoenliche Labels (Schwierig, Ueben etc.) per Swipe zuweisbar
 - Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
 - Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen
@@ -396,7 +396,7 @@ Videos werden beim Upload automatisch server-seitig per ffmpeg re-encodiert:
 Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent in DB).
 
 - **Texte-Ordner** ist ein normaler, navigierbarer Ordner — alle User koennen ihn betreten
-- **Klick auf .song-Zeile**: Oeffnet bei vorhandenem `selected_doc` direkt den DocViewer (siehe Klick-Priorisierung unter Global Player).
+- **Navigation in eine .song**: Erfolgt ausschliesslich ueber die Multi-Button-Leiste auf der Song-Kachel. Der Button "Texte" oeffnet den Texte-Unterordner (bei genau einem Text springt der Texte-Unterordner sofort zum DocViewer).
 - **0 Texte**: Texte-Ordner wird nicht angezeigt
 - **1 Text**: Beim Upload automatisch ausgewaehlt (persistent). Kann per Swipe-Action abgewaehlt werden (z.B. bei nicht-musikbezogenen Texten wie Anweisungen, Aufstellung etc.)
 - **2+ Texte**: Texte-Ordner als navigierbarer Ordner, Auswahl per Swipe-Action im Texte-Ordner
@@ -623,7 +623,7 @@ Der Audio-Player ist ein schwebendes, abgerundetes Overlay-Element (`position: f
 
 - **Sichtbarkeit**: Eingeblendet sobald ein Track geladen ist — auf allen Seiten (Browse, Viewer, Texte-Tab, Videos-Tab, Settings, etc.). Ausgeblendet auf Login und im PDF-Fullscreen-Modus.
 - **Design**: Abgerundeter Container (`border-radius: 16px`), eigene Hintergrundfarbe (`#252D40`), dezenter Schatten. Outline-Style fuer Play/Skip-Buttons.
-- **Klick auf .song-Eintrag**: Springt direkt ins passende Ziel, ohne die Subfolder-Zwischenebene zu zeigen. Priorisierung: (1) Ausgewaehlter Text → DocViewer direkt, (2) erster gefuellter Subfolder in der Reihenfolge Audio > Multitrack > Videos, (3) genau ein Text ohne explizite Auswahl → DocViewer direkt, (4) mehrere Texte ohne Auswahl → Texte-Liste. Beim Audio-Ziel werden alle Audio-Dateien geladen, erster Track gesetzt (ohne Autoplay), Voice Bricks erscheinen. Subfolder-Badges in der Song-Zeile erlauben einen gezielten Sprung in einen bestimmten Ordner.
+- **Navigation in eine .song**: Die Song-Kachel selbst ist kein Button — Klicks ausserhalb der Multi-Button-Leiste haben keine Wirkung. Der Sprung in einen Unterordner erfolgt ueber die Buttons (Texte/Audio/Videos/Multitrack) auf der Kachel. Beim Audio-Sprung werden alle Audio-Dateien geladen, erster Track gesetzt (ohne Autoplay), Voice Bricks erscheinen. Beim Texte-Sprung mit genau einem Text wird direkt in den DocViewer navigiert.
 - **Aktiver .song**: Bekommt Indigo-Rahmen und statisches Lautsprecher-Icon vor dem Titel in der Browse-Liste.
 
 ### Voice Bricks

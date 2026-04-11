@@ -234,50 +234,12 @@ export function BrowsePage() {
     }
   }
 
-  const handleSongClick = (entry: DropboxEntry) => {
-    if (searchOpen && searchQuery.length >= 2) {
-      searchReturnQueryRef.current = searchQuery
-    }
-    closeSearch()
-
-    // 1) Ausgewaehlter Text -> direkt DocViewer mit diesem Text
-    if (entry.selected_doc) {
-      const docFolder = entry.selected_doc.path.split('/').slice(0, -1).join('/')
-      navigate(`/doc-viewer?folder=${encodeURIComponent(docFolder)}&name=${encodeURIComponent(entry.selected_doc.name)}`)
-      return
-    }
-
-    // 2) Audio/Multitrack/Videos haben Vorrang, wenn gefuellt
-    for (const type of ['audio', 'multitrack', 'videos'] as const) {
-      const sf = entry.sub_folders?.find((s) => s.type === type)
-      if (sf) {
-        loadFolder(sf.path)
-        return
-      }
-    }
-
-    // 3) Nur /Texte uebrig
-    const texteSf = entry.sub_folders?.find((s) => s.type === 'texte')
-    if (texteSf) {
-      // Genau ein Text -> DocViewer direkt (auto-select greift im DocViewer)
-      if (texteSf.count === 1) {
-        navigate(`/doc-viewer?folder=${encodeURIComponent(texteSf.path)}`)
-        return
-      }
-      // Mehrere Texte ohne Auswahl -> /Texte-Liste zur Auswahl
-      loadFolder(texteSf.path)
-      return
-    }
-
-    // 4) Song ohne Inhalt -> Song-Folder selbst oeffnen
-    loadFolder(entry.path)
-  }
-
   const handleEntryClick = (entry: DropboxEntry) => {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
     if (entry.type === 'folder' && isSongFolder(entry.name)) {
-      handleSongClick(entry)
+      // Song-Kachel ist nicht mehr klickbar — nur die Multi-Button-Leiste navigiert
+      return
     } else if (entry.type === 'folder' && entry.folder_type === 'texte') {
       if (searchOpen && searchQuery.length >= 2) {
         searchReturnQueryRef.current = searchQuery
@@ -627,7 +589,7 @@ export function BrowsePage() {
                       className={`meta-brick meta-brick--${sf.type}${isActive ? ' meta-brick--active' : ''}`}
                       onClick={() => loadFolder(sf.path)}
                     >
-                      {createElement(config.icon, { size: 14 })}
+                      {createElement(config.icon, { size: 16 })}
                       {isActive && <span className="meta-brick__label">{sf.name}</span>}
                       {sf.count}
                     </button>
@@ -833,7 +795,7 @@ export function BrowsePage() {
                                 loadFolder(sf.path)
                               }}
                             >
-                              {createElement(getFolderTypeConfig(sf.type).icon, { size: 14 })}
+                              {createElement(getFolderTypeConfig(sf.type).icon, { size: 16 })}
                               {sf.count}
                             </button>
                           ))}
@@ -899,10 +861,11 @@ export function BrowsePage() {
             </>
           )
 
+          const isSongFolderEntry = entry.folder_type === 'song'
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
-                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongSelected ? ' file-item--song-selected' : ''}`}
+                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongSelected ? ' file-item--song-selected' : ''}${isSongFolderEntry ? ' file-item--non-clickable' : ''}`}
                 data-path={entry.path}
                 onClick={() => handleEntryClick(entry)}
                 onTouchStart={handleSwipeStart}
