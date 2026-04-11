@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
 import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2 } from 'lucide-react'
 import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -34,7 +34,15 @@ interface SearchResponse {
 
 export function BrowsePage() {
   const navigate = useNavigate()
-  const browsePath = useAppStore((s) => s.browsePath)
+  const [searchParams] = useSearchParams()
+  const location = useLocation()
+  // URL-driven state: `p` = browse path, `q` = search query (presence ⇒ search mode).
+  // Mutually exclusive in terms of display, so React Router history carries the whole
+  // navigation context — browser back / navigate(-1) returns to the previous state.
+  const urlQuery = searchParams.get('q')
+  const browsePath = searchParams.get('p') || ''
+  const searchOpen = urlQuery !== null
+  const searchQuery = urlQuery || ''
   const highlightPath = useAppStore((s) => s.highlightPath)
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
@@ -84,25 +92,45 @@ export function BrowsePage() {
   const [filterOpen, setFilterOpen] = useState(false)
   const [showFavorites, setShowFavorites] = useState(false)
 
-  // Search state
-  const [searchOpen, setSearchOpen] = useState(false)
-  const [searchQuery, setSearchQuery] = useState('')
+  // Search state — searchOpen + searchQuery are derived from URL above
   const [searchResults, setSearchResults] = useState<DropboxEntry[]>([])
   const [searching, setSearching] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  // Saved query for "back to search results" after navigating into an entry from search.
-  // State (not ref) so the breadcrumb label re-renders when it changes.
-  const [searchReturnQuery, setSearchReturnQuery] = useState<string | null>(null)
 
-  const loadFolder = useCallback((path: string, forceRefresh = false) => {
+  const loadFolder = useCallback((path: string, forceRefresh = false, opts?: { fromSearch?: boolean }) => {
     setRevealedPath(null)
     setShowFavorites(false)
-    storeLoadFolder(path, forceRefresh)
-  }, [storeLoadFolder])
+    // Check whether the target matches the logical browse state already in the URL.
+    // Pathname can be '/' (initial route) or '/browse' — both render BrowsePage,
+    // so we compare the logical browse path (URL param `p`) not the pathname.
+    const currentParams = new URLSearchParams(location.search)
+    const currentP = currentParams.get('p') || ''
+    const currentQ = currentParams.get('q')
+    const alreadyOnPath = currentP === path && currentQ === null
+    if (alreadyOnPath) {
+      // No navigation needed — just refetch if requested
+      if (forceRefresh) storeLoadFolder(path, true)
+      return
+    }
+    if (forceRefresh) {
+      // Ensure the URL-driven fetch delivers fresh data after navigation
+      useBrowseStore.getState().invalidate(path)
+    }
+    navigate(
+      { pathname: '/browse', search: path ? `?p=${encodeURIComponent(path)}` : '' },
+      opts?.fromSearch ? { state: { fromSearch: true } } : undefined,
+    )
+  }, [navigate, storeLoadFolder, location.search])
+
+  // URL is the single source of truth for the browse path: whenever `p` changes
+  // (including on mount, on back/forward, or on a brick click), re-fetch via the
+  // store. storeLoadFolder cache-hits are instant, so this is cheap.
+  useEffect(() => {
+    storeLoadFolder(browsePath)
+  }, [browsePath, storeLoadFolder])
 
   useEffect(() => {
-    loadFolder(browsePath)
     if (!favsLoaded) loadFavs()
     if (!labelsLoaded) loadLabels()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -150,31 +178,24 @@ export function BrowsePage() {
   }, [searchQuery])
 
   const openSearch = () => {
-    setSearchOpen(true)
+    // Push a history entry for the search overlay so closing/back restores the
+    // previous folder. fromPath is stored on the history entry and used by
+    // closeSearchExplicit to return there.
+    navigate(
+      { pathname: '/browse', search: '?q=' },
+      { state: { fromPath: browsePath } },
+    )
     setTimeout(() => searchRef.current?.focus(), 100)
   }
 
-  const closeSearch = () => {
-    setSearchOpen(false)
-    setSearchQuery('')
-    setSearchResults([])
-  }
-
   const closeSearchExplicit = () => {
-    setSearchReturnQuery(null)
-    closeSearch()
-  }
-
-  const handleBackFromSong = (parentPath: string) => {
-    if (searchReturnQuery) {
-      const savedQuery = searchReturnQuery
-      setSearchReturnQuery(null)
-      loadFolder('')
-      setSearchOpen(true)
-      setSearchQuery(savedQuery)
-      setTimeout(() => searchRef.current?.focus(), 100)
+    const state = location.state as { fromPath?: string } | null
+    if (state?.fromPath !== undefined) {
+      // Search was opened via openSearch() — unwind that push
+      navigate(-1)
     } else {
-      loadFolder(parentPath)
+      // Direct deep link to /browse?q=... — no history to unwind, go to root
+      navigate({ pathname: '/browse', search: '' }, { replace: true })
     }
   }
 
@@ -242,19 +263,11 @@ export function BrowsePage() {
       // Song-Kachel ist nicht mehr klickbar — nur die Multi-Button-Leiste navigiert
       return
     } else if (entry.type === 'folder' && entry.folder_type === 'texte') {
-      if (searchOpen && searchQuery.length >= 2) {
-        setSearchReturnQuery(searchQuery)
-      }
-      closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
-      loadFolder(entry.path)
+      loadFolder(entry.path, false, { fromSearch: searchOpen && searchQuery.length >= 2 })
     } else if (entry.type === 'folder') {
-      if (searchOpen && searchQuery.length >= 2) {
-        setSearchReturnQuery(searchQuery)
-      }
-      closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
-      loadFolder(entry.path)
+      loadFolder(entry.path, false, { fromSearch: searchOpen && searchQuery.length >= 2 })
     } else if (entry.type === 'document') {
       // entry.path is like /Song.song/Texte/mytext.txt — parent is the Texte folder
       const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
@@ -315,9 +328,6 @@ export function BrowsePage() {
   // Detect if we're inside a .song folder (or its reserved subfolder)
   const songAncestorIdx = browseSegments.findIndex((s) => isSongFolder(s))
   const isInsideSong = songAncestorIdx >= 0
-  const songParentPath = isInsideSong && songAncestorIdx > 0
-    ? '/' + browseSegments.slice(0, songAncestorIdx).join('/')
-    : ''
 
   // Remember the last visited .song folder path
   if (isInsideSong) {
@@ -475,7 +485,13 @@ export function BrowsePage() {
                 {/* Center group */}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
                   <button className="player-header-btn" style={showFavorites ? { color: 'var(--accent)' } : undefined} onClick={() => {
-                    if (!showFavorites) { useAppStore.getState().setBrowsePath(''); setShowFavorites(true) } else { setShowFavorites(false) }
+                    if (!showFavorites) {
+                      // Favoriten view lives at root — navigate there so breadcrumb + pathParts match
+                      navigate({ pathname: '/browse', search: '' })
+                      setShowFavorites(true)
+                    } else {
+                      setShowFavorites(false)
+                    }
                   }}>
                     <Heart size={18} fill={showFavorites ? 'currentColor' : 'none'} />
                   </button>
@@ -521,7 +537,10 @@ export function BrowsePage() {
                   className="search-input"
                   type="text"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => navigate(
+                    { pathname: '/browse', search: `?q=${encodeURIComponent(e.target.value)}` },
+                    { replace: true, state: location.state },
+                  )}
                   placeholder="Dateien suchen..."
                   autoFocus
                 />
@@ -536,9 +555,11 @@ export function BrowsePage() {
           /* Inside .song: back button only (all roles) */
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-              <span className="breadcrumb-item" onClick={() => handleBackFromSong(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span className="breadcrumb-item" onClick={() => navigate(-1)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <ChevronLeft size={16} />
-                {searchReturnQuery ? 'Suche' : stripFolderExtension(browseSegments[songAncestorIdx] || '')}
+                {(location.state as { fromSearch?: boolean } | null)?.fromSearch
+                  ? 'Suche'
+                  : stripFolderExtension(browseSegments[songAncestorIdx] || '')}
               </span>
             </div>
           </div>
@@ -793,11 +814,7 @@ export function BrowsePage() {
                               className={`meta-brick meta-brick--${sf.type}`}
                               onClick={(e) => {
                                 e.stopPropagation()
-                                if (searchOpen && searchQuery.length >= 2) {
-                                  setSearchReturnQuery(searchQuery)
-                                }
-                                closeSearch()
-                                loadFolder(sf.path)
+                                loadFolder(sf.path, false, { fromSearch: searchOpen && searchQuery.length >= 2 })
                               }}
                             >
                               {createElement(getFolderTypeConfig(sf.type).icon, { size: 16 })}

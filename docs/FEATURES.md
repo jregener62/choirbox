@@ -299,13 +299,15 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - `.song`-Ordner werden nicht durchsucht (Inhalte bleiben unsichtbar), erscheinen aber selbst als Treffer mit gestripptem Display-Name
 - Folder-Treffer sind eingeschlossen (vorher nur Files): Trash und reservierte Folders (Texte/Audio/Videos/Multitrack) werden ausgeblendet
 - `.song`-Treffer werden mit `sub_folders` + `selected_doc` enrichet, damit der Klick automatisch in den Audio/Texte-Subfolder springt und der Song-Header (Name + Badges) wie beim normalen Browse sichtbar wird
-- **Back-zur-Suche**: Klick auf ein Suchergebnis (auch auf die Multi-Brick-Buttons innerhalb einer `.song`-Kachel) merkt sich die Query in `searchReturnQuery` (State). Im Song wird der Back-Breadcrumb als **"< Suche"** gelabelt und reaktiviert beim Klick die Suche mit der gespeicherten Query. X-Button (`closeSearchExplicit`) verwirft die gespeicherte Query.
+- **URL-getriebener Browse-/Such-State**: Browse-Pfad und Such-Query leben ausschliesslich in den URL-Search-Params (`/browse?p=<path>` oder `/browse?q=<query>`) — Single Source of Truth. Jede Navigation pusht eine echte React-Router-History-Entry, sodass Browser-Back / `navigate(-1)` / DocViewer-Back automatisch zum vorherigen Zustand (inkl. Suche) zurueckkehren. `useSearchParams` + `useLocation` ersetzen lokale useState-Flags fuer `searchOpen`/`searchQuery`.
+- **Back-zur-Suche**: Klick auf ein `.song`-Brick-Suchergebnis pusht eine Navigation mit `location.state: {fromSearch: true}`. Im Song wird der Back-Breadcrumb als **"< Suche"** gelabelt (basierend auf `location.state.fromSearch`) und ruft `navigate(-1)` auf, was die Such-URL wiederherstellt. Greift strukturell auch nach Zwischenstopp im DocViewer, weil die History ueber alle Router-Navigationen konsistent bleibt.
+- `closeSearchExplicit` (X-Button) unwindet den Search-Push via `navigate(-1)` wenn `state.fromPath` vorhanden, sonst Fallback `navigate('/browse', {replace})`.
 - Debounced (300ms Verzoegerung beim Tippen)
 - Mindestens 2 Zeichen erforderlich, case-insensitive Substring-Match auf Dateiname
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/BrowsePage.tsx` | Such-UI, Debounce, `searchReturnQuery`-State, `handleBackFromSong`, konditionales Breadcrumb-Label |
+| `frontend/src/pages/BrowsePage.tsx` | URL-getriebene Search/Browse-State, `loadFolder` als Navigate-Wrapper, `openSearch`/`closeSearchExplicit`, `useSearchParams`/`useLocation`, konditionales "< Suche"-Breadcrumb |
 | `backend/api/dropbox.py` | `GET /dropbox/search` (nicht-rekursives `list_folder` + `.song`-Enrichment) |
 | `backend/services/dropbox_service.py` | `list_folder()` mit 5-Min-Cache |
 
@@ -1469,15 +1471,22 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
-### Back-zur-Suche griff nicht beim Song-Klick aus Suchtreffern
+### Back-zur-Suche fiel auf Root zurueck nach DocViewer-Zwischenstopp
 
-Commit `e947691` hatte das Feature "Back-zur-Suche" eingefuehrt (`searchReturnQueryRef` + `handleBackFromSong`). Der darauffolgende Commit `366413c` ("Song-Kachel als Multi-Button-Segmented-Control") hat `handleSongClick` entfernt und die `.song`-Kachel insgesamt nicht mehr klickbar gemacht — die Navigation laeuft seitdem ausschliesslich ueber die Meta-Brick-Buttons. Diese Buttons riefen aber nur `loadFolder(sf.path)` auf, ohne die Such-Query zu sichern. Ergebnis: Nach einem Klick auf ein Song-Suchergebnis fiel der Back-Button im Song auf `loadFolder(parentPath)` zurueck (keine Suche), und das Breadcrumb-Label zeigte den Song-Namen.
+Das ursprungliche Feature in `e947691` hat `searchReturnQuery` in lokalem React-State gehalten, das erste Followup `3c6801c` hat die Meta-Brick-Handler zum State ueberfuhrt. Beides patchte das Symptom aber nicht die Ursache: `BrowsePage` hatte eine eigene interne State-Machine (`loadFolder`, `searchOpen`), die voellig am React-Router-History-Mechanismus vorbeilief. Jede Router-Navigation (zum DocViewer) unmountete die Page und verwarf den State. Folge: Back aus dem DocViewer landete auf Root, nicht in der Suche.
 
-**Fix:**
+**Struktureller Fix:**
 
-- `frontend/src/pages/BrowsePage.tsx`: `searchReturnQueryRef` (Ref) → `searchReturnQuery` (State), damit das Breadcrumb-Label reaktiv ist.
-- Die Meta-Brick-onClick-Handler in Such-Trefferlisten setzen jetzt `setSearchReturnQuery(searchQuery)` und rufen `closeSearch()` auf, bevor sie `loadFolder(sf.path)` triggern.
-- Das Back-Breadcrumb im Song rendert **"< Suche"**, wenn `searchReturnQuery` gesetzt ist, sonst wie bisher den Song-Namen.
+Browse-Pfad und Such-State leben jetzt ausschliesslich in den URL-Search-Params (`/browse?p=<path>` oder `/browse?q=<query>`). Jede Navigation pusht eine echte React-Router-History-Entry, dadurch funktioniert `navigate(-1)` / Browser-Back / DocViewer-Back automatisch und unwindet Schritt fuer Schritt bis zurueck zur Suche.
+
+- `searchOpen`/`searchQuery`/`searchReturnQuery` (lokaler State) → `useSearchParams` + `useLocation` als Single Source of Truth
+- `loadFolder(path, forceRefresh, opts)` ist jetzt ein Navigate-Wrapper; gleicher logischer Pfad → direct `storeLoadFolder`-Refresh ohne Navigate, anderer Pfad → `navigate()` push
+- `openSearch()` pusht `/browse?q=` mit `state: {fromPath}`, `closeSearchExplicit()` unwindet via `navigate(-1)` (Fallback `navigate('/browse', {replace})`)
+- `handleBackFromSong` entfernt, Song-Back-Breadcrumb ruft `navigate(-1)`
+- Breadcrumb-Label liest `location.state.fromSearch` und rendert `"< Suche"` (sonst Song-Name)
+- `handleEntryClick` und Meta-Brick-onClicks propagieren `{fromSearch: searchOpen && len>=2}` an `loadFolder`
+- `isSameLogicalPath`-Check vergleicht URL-Param `p` statt `location.pathname`, damit `/` und `/browse` mit gleichen Params als identisch gelten (sonst haette der Refresh-Button am initialen `/`-Route eine neue History-Entry gepusht)
+- Favoriten-Toggle navigiert zu `/browse` statt direkt `store.browsePath = ''` zu setzen (sonst divergiert URL und Store)
 
 ### Service Worker brach Audio-Streaming auf Prod
 
