@@ -295,17 +295,19 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 
 ### Suche
 
-- Volltextsuche ueber alle Dropbox-Dateien
+- **Root-Level only** (nicht-rekursiv): Suche durchsucht ausschliesslich die direkten Children des Chor-Roots, keine Subfolder
+- `.song`-Ordner werden nicht durchsucht (Inhalte bleiben unsichtbar), erscheinen aber selbst als Treffer mit gestripptem Display-Name
+- Folder-Treffer sind eingeschlossen (vorher nur Files): Trash und reservierte Folders (Texte/Audio/Videos/Multitrack) werden ausgeblendet
+- `.song`-Treffer werden mit `sub_folders` + `selected_doc` enrichet, damit der Klick automatisch in den Audio/Texte-Subfolder springt und der Song-Header (Name + Badges) wie beim normalen Browse sichtbar wird
+- **Back-zur-Suche**: Klick auf Suchergebnis merkt sich die Query (`searchReturnQueryRef`); Back-Button im Song reaktiviert die Suche mit der gespeicherten Query und zeigt die Trefferliste wieder. X-Button (`closeSearchExplicit`) loescht die Ref.
 - Debounced (300ms Verzoegerung beim Tippen)
-- Mindestens 2 Zeichen erforderlich
-- Ergebnisse zeigen Dateiname und vollstaendigen Pfad
-- Suche schliesst: zurueck zur Ordneransicht
+- Mindestens 2 Zeichen erforderlich, case-insensitive Substring-Match auf Dateiname
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/BrowsePage.tsx` | Such-UI und Debounce-Logik |
-| `backend/api/dropbox.py` | `GET /dropbox/search` |
-| `backend/services/dropbox_service.py` | `search()` (max. 50 Ergebnisse) |
+| `frontend/src/pages/BrowsePage.tsx` | Such-UI, Debounce, `searchReturnQueryRef`, `handleBackFromSong` |
+| `backend/api/dropbox.py` | `GET /dropbox/search` (nicht-rekursives `list_folder` + `.song`-Enrichment) |
+| `backend/services/dropbox_service.py` | `list_folder()` mit 5-Min-Cache |
 
 ---
 

@@ -91,6 +91,8 @@ export function BrowsePage() {
   const [searching, setSearching] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
+  // Saved query for "back to search results" after navigating into an entry from search
+  const searchReturnQueryRef = useRef<string | null>(null)
 
   const loadFolder = useCallback((path: string, forceRefresh = false) => {
     setRevealedPath(null)
@@ -157,6 +159,24 @@ export function BrowsePage() {
     setSearchResults([])
   }
 
+  const closeSearchExplicit = () => {
+    searchReturnQueryRef.current = null
+    closeSearch()
+  }
+
+  const handleBackFromSong = (parentPath: string) => {
+    if (searchReturnQueryRef.current) {
+      const savedQuery = searchReturnQueryRef.current
+      searchReturnQueryRef.current = null
+      loadFolder('')
+      setSearchOpen(true)
+      setSearchQuery(savedQuery)
+      setTimeout(() => searchRef.current?.focus(), 100)
+    } else {
+      loadFolder(parentPath)
+    }
+  }
+
   // Swipe-to-delete handlers
   const handleSwipeStart = (e: React.TouchEvent) => {
     swipeStartRef.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
@@ -215,6 +235,9 @@ export function BrowsePage() {
   }
 
   const handleSongClick = (entry: DropboxEntry) => {
+    if (searchOpen && searchQuery.length >= 2) {
+      searchReturnQueryRef.current = searchQuery
+    }
     closeSearch()
 
     // 1) Ausgewaehlter Text -> direkt DocViewer mit diesem Text
@@ -256,10 +279,16 @@ export function BrowsePage() {
     if (entry.type === 'folder' && isSongFolder(entry.name)) {
       handleSongClick(entry)
     } else if (entry.type === 'folder' && entry.folder_type === 'texte') {
+      if (searchOpen && searchQuery.length >= 2) {
+        searchReturnQueryRef.current = searchQuery
+      }
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
     } else if (entry.type === 'folder') {
+      if (searchOpen && searchQuery.length >= 2) {
+        searchReturnQueryRef.current = searchQuery
+      }
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
@@ -533,7 +562,7 @@ export function BrowsePage() {
                   placeholder="Dateien suchen..."
                   autoFocus
                 />
-                <button className="player-header-btn" onClick={closeSearch}>
+                <button className="player-header-btn" onClick={closeSearchExplicit}>
                   <X size={18} />
                 </button>
               </div>
@@ -544,7 +573,7 @@ export function BrowsePage() {
           /* Inside .song: back button only (all roles) */
           <div className="topbar" style={{ minHeight: 36, padding: '4px 16px' }}>
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
-              <span className="breadcrumb-item" onClick={() => loadFolder(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <span className="breadcrumb-item" onClick={() => handleBackFromSong(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <ChevronLeft size={16} />
                 {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
               </span>

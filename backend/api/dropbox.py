@@ -515,9 +515,15 @@ async def dropbox_search(
     user: User = Depends(require_user),
     session: Session = Depends(get_session),
 ):
-    """Search for MP3 files and folders by name."""
+    """Search root level only (non-recursive). Includes files and folders; .song folders shown with stripped display name."""
     from backend.services.dropbox_service import get_dropbox_service
-    from backend.services.folder_types import parse_folder_name, is_reserved_name
+    from backend.services.folder_types import (
+        parse_folder_name, is_reserved_name, TRASH_FOLDER_NAME, RESERVED_FOLDERS,
+    )
+    from backend.services.document_service import ALL_DOC_EXTENSIONS
+    from sqlmodel import select as sql_select
+    from backend.models.user_selected_document import UserSelectedDocument
+    from backend.models.document import Document as DocModel
 
     if not q or len(q) < 2:
         raise HTTPException(400, "Search query must be at least 2 characters")
@@ -527,23 +533,28 @@ async def dropbox_search(
         raise HTTPException(400, "Dropbox not connected")
 
     root_folder = _get_root_folder(user, session)
-    search_path = ("/" + root_folder) if root_folder else ""
+    root_path = ("/" + root_folder) if root_folder else ""
 
     try:
-        results = await dbx.search(q, path=search_path)
+        results = await dbx.list_folder(root_path)
     except RuntimeError as e:
         raise HTTPException(500, str(e))
 
-    from backend.services.document_service import ALL_DOC_EXTENSIONS
     media_exts = (".mp3", ".webm", ".m4a", ".mp4")
     allowed_exts = media_exts + ALL_DOC_EXTENSIONS
+    q_lower = q.lower()
     entries = []
     for e in results:
         tag = e.get(".tag", "")
         name = e.get("name", "")
+        if q_lower not in name.lower():
+            continue
         if tag == "folder":
+            # Skip Trash and reserved folders (.song folders are included but not descended into)
+            if name.lower() == TRASH_FOLDER_NAME.lower():
+                continue
             if is_reserved_name(name):
-                continue  # Don't show reserved folders in search results
+                continue
             display_name, folder_type = parse_folder_name(name)
             entries.append({
                 "name": name,
@@ -561,6 +572,38 @@ async def dropbox_search(
                 "type": entry_type,
                 "size": e.get("size", 0),
             })
+
+    # Enrich .song folder entries with sub_folders + selected_doc so the
+    # frontend can auto-navigate into Audio/Texte/Videos and show the
+    # song-card header (matching regular browse behavior).
+    for song in [e for e in entries if e.get("folder_type") == "song"]:
+        sub_folders = []
+        selected_doc = None
+        song_dbx = _to_dropbox_path(song["path"], root_folder)
+        for reserved_name, meta in RESERVED_FOLDERS.items():
+            reserved_type = meta["type"]
+            sub_path = f"{song_dbx}/{reserved_name}"
+            sub_entries = await _get_children(None, dbx, sub_path)
+            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            if count > 0:
+                user_sub_path = f"{song['path']}/{reserved_name}"
+                sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
+        try:
+            texte_path = f"{song['path']}/Texte"
+            sel = session.exec(
+                sql_select(UserSelectedDocument).where(
+                    UserSelectedDocument.user_id == user.id,
+                    UserSelectedDocument.folder_path == song["path"],
+                )
+            ).first()
+            if sel:
+                doc = session.get(DocModel, sel.document_id)
+                if doc:
+                    selected_doc = {"name": doc.original_name, "path": f"{texte_path}/{doc.original_name}", "doc_id": doc.id}
+        except Exception:
+            pass
+        song["sub_folders"] = sub_folders
+        song["selected_doc"] = selected_doc
 
     return {"query": q, "entries": entries}
 
