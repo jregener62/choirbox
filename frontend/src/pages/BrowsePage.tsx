@@ -54,6 +54,10 @@ export function BrowsePage() {
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
   const guest = isGuest(user?.role)
   const logout = useAuthStore((s) => s.logout)
+  const sessionExpiresAt = useAuthStore((s) => s.sessionExpiresAt)
+  const guestExpiryLabel = guest && sessionExpiresAt
+    ? sessionExpiresAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
+    : null
   const { currentEntries: entries, currentSongSubFolders: songSubFolders, loading, refreshing, error: browseError, loadFolder: storeLoadFolder } = useBrowseStore()
   const [mutationError, setMutationError] = useState('')
   const error = browseError || mutationError
@@ -486,16 +490,35 @@ export function BrowsePage() {
                     <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
                   </button>
                   {guest ? (
-                    <button
-                      className="player-header-btn"
-                      title="Gast-Session beenden"
-                      onClick={() => {
-                        logout()
-                        navigate('/login', { replace: true })
-                      }}
-                    >
-                      <LogOut size={18} />
-                    </button>
+                    <>
+                      <button
+                        className="player-header-btn"
+                        title={
+                          guestExpiryLabel
+                            ? `Gast-Session laeuft ab um ${guestExpiryLabel} — jetzt abmelden`
+                            : 'Gast-Session beenden'
+                        }
+                        onClick={() => {
+                          logout()
+                          navigate('/login', { replace: true })
+                        }}
+                      >
+                        <LogOut size={18} />
+                      </button>
+                      {guestExpiryLabel && (
+                        <span
+                          style={{
+                            fontSize: 11,
+                            color: 'var(--text-muted)',
+                            padding: '0 4px',
+                            whiteSpace: 'nowrap',
+                          }}
+                          title={`Gast-Session laeuft ab um ${guestExpiryLabel}`}
+                        >
+                          bis {guestExpiryLabel}
+                        </span>
+                      )}
+                    </>
                   ) : (
                     <button className="player-header-btn" onClick={() => navigate('/settings')}>
                       <Settings size={18} />

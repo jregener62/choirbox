@@ -22,7 +22,15 @@ export async function apiUpload<T = unknown>(
     })
 
     if (response.status === 401 && token) {
-      useAuthStore.getState().logout()
+      // Gaeste landen auf /guest-expired mit einer freundlichen Meldung,
+      // statt auf /login (wo sie kein Passwort haben, um sich neu
+      // einzuloggen).
+      const role = useAuthStore.getState().user?.role
+      if (role === 'guest') {
+        useAuthStore.getState().expireGuestSession()
+      } else {
+        useAuthStore.getState().logout()
+      }
       throw new ApiError(401, 'Session expired')
     }
 
@@ -80,7 +88,15 @@ export async function api<T = unknown>(
     })
 
     if (response.status === 401 && token) {
-      useAuthStore.getState().logout()
+      // Gaeste landen auf /guest-expired mit einer freundlichen Meldung,
+      // statt auf /login (wo sie kein Passwort haben, um sich neu
+      // einzuloggen).
+      const role = useAuthStore.getState().user?.role
+      if (role === 'guest') {
+        useAuthStore.getState().expireGuestSession()
+      } else {
+        useAuthStore.getState().logout()
+      }
       throw new ApiError(401, 'Session expired')
     }
 
