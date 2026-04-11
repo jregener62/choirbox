@@ -1626,6 +1626,14 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Rename von Dateien/Ordnern warf 500 (NameError Favorite)
+
+Nach dem Phase-4-Fix fuer "User-Daten an stabile Anker binden" (`0a48503`) referenzierte `backend/api/dropbox.py` das Modell `Favorite` direkt in der `select()`-Query, obwohl der lokale Funktions-Import als `Favorite as _Fav` eingebracht wurde. `Favorite` ist auf Modulebene nicht importiert — jeder `/dropbox/rename`-Aufruf warf damit nach dem erfolgreichen Dropbox-Move einen `NameError: name 'Favorite' is not defined`, die DB-Transaktion lief nie, FastAPI antwortete 500. Sichtbar wurde es zuerst beim Umbenennen von Dokumenten in `/Texte`, betraf aber alle Rename-Operationen.
+
+**Fix:**
+
+- `backend/api/dropbox.py`: Die drei `Favorite`-Referenzen im Favoriten-Migrations-Loop auf das vorhandene Alias `_Fav` umgestellt, konsistent mit `_Note`/`_UL`/`_Sec` direkt darunter.
+
 ### Permission-System: zentrale Policy statt verstreuter require_role-Calls
 
 Die Rollen-Enforcement war urspruenglich auf ~12 Router-Dateien verstreut als `require_user` / `require_role("pro-member")` / `require_admin`-Dependencies. Das hatte drei Probleme:

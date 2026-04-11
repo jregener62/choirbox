@@ -1022,9 +1022,9 @@ async def dropbox_rename(
             return new_path + p[len(old_path):]
         return p
 
-    for fav in session.exec(select(Favorite).where(
-        (Favorite.dropbox_path == old_path) |
-        (Favorite.dropbox_path.like(old_path + "/%"))
+    for fav in session.exec(select(_Fav).where(
+        (_Fav.dropbox_path == old_path) |
+        (_Fav.dropbox_path.like(old_path + "/%"))
     )).all():
         fav.dropbox_path = _swap(fav.dropbox_path)
         if not is_folder:
