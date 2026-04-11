@@ -1,12 +1,14 @@
-import { ChevronsDown, Plus, Minus } from 'lucide-react'
+import { ChevronsDown, Plus, Minus, ChevronUp, ChevronDown } from 'lucide-react'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS } from '@/stores/playerStore.ts'
 
 interface AutoScrollStepperProps {
   faded?: boolean
   onInteract?: () => void
+  onPageUp?: () => void
+  onPageDown?: () => void
 }
 
-export function AutoScrollStepper({ faded = false, onInteract }: AutoScrollStepperProps) {
+export function AutoScrollStepper({ faded = false, onInteract, onPageUp, onPageDown }: AutoScrollStepperProps) {
   const enabled = usePlayerStore((s) => s.autoScrollEnabled)
   const speedIdx = usePlayerStore((s) => s.autoScrollSpeedIdx)
   const setEnabled = usePlayerStore((s) => s.setAutoScrollEnabled)
@@ -26,6 +28,14 @@ export function AutoScrollStepper({ faded = false, onInteract }: AutoScrollStepp
   }
   const handlePlus = () => {
     setSpeedIdx(speedIdx + 1)
+    onInteract?.()
+  }
+  const handlePageUp = () => {
+    onPageUp?.()
+    onInteract?.()
+  }
+  const handlePageDown = () => {
+    onPageDown?.()
     onInteract?.()
   }
 
@@ -67,6 +77,29 @@ export function AutoScrollStepper({ faded = false, onInteract }: AutoScrollStepp
       >
         <Plus size={14} />
       </button>
+      {(onPageUp || onPageDown) && (
+        <>
+          <div className="autoscroll-stepper-divider" />
+          <button
+            type="button"
+            className="autoscroll-stepper-btn"
+            onClick={handlePageUp}
+            disabled={!onPageUp}
+            aria-label="Eine Seite nach oben"
+          >
+            <ChevronUp size={16} />
+          </button>
+          <button
+            type="button"
+            className="autoscroll-stepper-btn"
+            onClick={handlePageDown}
+            disabled={!onPageDown}
+            aria-label="Eine Seite nach unten"
+          >
+            <ChevronDown size={16} />
+          </button>
+        </>
+      )}
     </div>
   )
 }

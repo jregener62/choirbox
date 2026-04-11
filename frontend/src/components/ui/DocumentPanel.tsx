@@ -128,6 +128,14 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     if (pdfFullscreen) resetFadeTimer()
   }, [pdfFullscreen, resetFadeTimer])
 
+  // Manuelles Page up/down im Vollbild — springt einen Viewport (mit kleinem Overlap)
+  const handlePageScroll = useCallback((direction: 'up' | 'down') => {
+    const el = scrollContainerRef.current
+    if (!el) return
+    const step = Math.max(el.clientHeight - 40, 40)
+    el.scrollBy({ top: direction === 'down' ? step : -step, behavior: 'smooth' })
+  }, [])
+
   // Autoscroll: nur im Vollbild, nur bei Text/Chord/PDF, pausiert wenn Audio geladen aber nicht spielt
   const isScrollableType = activeDoc?.file_type === 'pdf' || activeDoc?.file_type === 'txt' || activeDoc?.file_type === 'cho'
   const autoScrollActive =
@@ -399,6 +407,8 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         <AutoScrollStepper
           faded={fabFaded}
           onInteract={resetFadeTimer}
+          onPageUp={() => handlePageScroll('up')}
+          onPageDown={() => handlePageScroll('down')}
         />
       )}
       {(isPdf || isTxt || isCho) && (
