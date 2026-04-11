@@ -22,15 +22,23 @@ export const useLabelsStore = create<LabelsState>((set, get) => ({
   loaded: false,
 
   load: async () => {
+    // /labels ist fuer Gaeste freigegeben, /labels/my nicht. Die zwei
+    // Calls daher unabhaengig voneinander laufen lassen, sonst bricht
+    // ein 403 auf /labels/my die gesamte Labels-Ladung — dann haette
+    // auch die Filter-UI keine Labels mehr.
     try {
-      const [labels, assignments] = await Promise.all([
-        api<Label[]>('/labels'),
-        api<UserLabelAssignment[]>('/labels/my'),
-      ])
-      set({ labels, assignments, loaded: true })
+      const labels = await api<Label[]>('/labels')
+      set({ labels })
     } catch {
-      set({ loaded: true })
+      // ignore
     }
+    try {
+      const assignments = await api<UserLabelAssignment[]>('/labels/my')
+      set({ assignments })
+    } catch {
+      // Gast / kein Zugriff — assignments bleibt leer, kein Fehler
+    }
+    set({ loaded: true })
   },
 
   getLabelsForPath: (dropboxPath: string) => {

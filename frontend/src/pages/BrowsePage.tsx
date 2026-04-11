@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
-import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2 } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut } from 'lucide-react'
 import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
@@ -20,7 +20,7 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useShareTarget } from '@/hooks/useShareTarget'
 import { useAuthStore } from '@/stores/authStore.ts'
-import { hasMinRole } from '@/utils/roles.ts'
+import { hasMinRole, isGuest } from '@/utils/roles.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import { stripFolderExtension, isReservedName, isSongFolder } from '@/utils/folderTypes.ts'
 import { getFolderTypeConfig } from '@/utils/folderTypeConfig'
@@ -52,6 +52,8 @@ export function BrowsePage() {
   const canDelete = hasMinRole(user?.role ?? 'guest', 'chorleiter')
   const isAdmin = hasMinRole(user?.role ?? 'guest', 'admin')
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
+  const guest = isGuest(user?.role)
+  const logout = useAuthStore((s) => s.logout)
   const { currentEntries: entries, currentSongSubFolders: songSubFolders, loading, refreshing, error: browseError, loadFolder: storeLoadFolder } = useBrowseStore()
   const [mutationError, setMutationError] = useState('')
   const error = browseError || mutationError
@@ -131,7 +133,12 @@ export function BrowsePage() {
   }, [browsePath, storeLoadFolder])
 
   useEffect(() => {
-    if (!favsLoaded) loadFavs()
+    // Gaeste haben weder Favoriten noch eigene Label-Zuweisungen auf dem Server.
+    // load() wuerde 403 liefern — schon bevor wir das UI verstecken, wollen
+    // wir die Requests gar nicht absetzen.
+    if (!guest) {
+      if (!favsLoaded) loadFavs()
+    }
     if (!labelsLoaded) loadLabels()
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -478,23 +485,38 @@ export function BrowsePage() {
                   <button className="player-header-btn" onClick={() => loadFolder(browsePath, true)}>
                     <RefreshCw size={18} className={refreshing ? 'spin' : ''} />
                   </button>
-                  <button className="player-header-btn" onClick={() => navigate('/settings')}>
-                    <Settings size={18} />
-                  </button>
+                  {guest ? (
+                    <button
+                      className="player-header-btn"
+                      title="Gast-Session beenden"
+                      onClick={() => {
+                        logout()
+                        navigate('/login', { replace: true })
+                      }}
+                    >
+                      <LogOut size={18} />
+                    </button>
+                  ) : (
+                    <button className="player-header-btn" onClick={() => navigate('/settings')}>
+                      <Settings size={18} />
+                    </button>
+                  )}
                 </div>
                 {/* Center group */}
                 <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
-                  <button className="player-header-btn" style={showFavorites ? { color: 'var(--accent)' } : undefined} onClick={() => {
-                    if (!showFavorites) {
-                      // Favoriten view lives at root — navigate there so breadcrumb + pathParts match
-                      navigate({ pathname: '/browse', search: '' })
-                      setShowFavorites(true)
-                    } else {
-                      setShowFavorites(false)
-                    }
-                  }}>
-                    <Heart size={18} fill={showFavorites ? 'currentColor' : 'none'} />
-                  </button>
+                  {!guest && (
+                    <button className="player-header-btn" style={showFavorites ? { color: 'var(--accent)' } : undefined} onClick={() => {
+                      if (!showFavorites) {
+                        // Favoriten view lives at root — navigate there so breadcrumb + pathParts match
+                        navigate({ pathname: '/browse', search: '' })
+                        setShowFavorites(true)
+                      } else {
+                        setShowFavorites(false)
+                      }
+                    }}>
+                      <Heart size={18} fill={showFavorites ? 'currentColor' : 'none'} />
+                    </button>
+                  )}
                   <button className="player-header-btn" onClick={openSearch}>
                     <Search size={18} />
                   </button>
@@ -896,7 +918,7 @@ export function BrowsePage() {
                 {itemContent}
               </div>
               <div className="swipe-actions">
-                {entry.folder_type === 'song' && (
+                {!guest && entry.folder_type === 'song' && (
                   <button
                     className="swipe-action-btn swipe-action-fav"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); toggleFav(entry.path, 'folder') }}
@@ -912,7 +934,7 @@ export function BrowsePage() {
                     <Check size={18} />
                   </button>
                 )}
-                {(isFile || isDoc || entry.folder_type === 'song') && !isTexteFolder && !isInsideSong && (
+                {!guest && (isFile || isDoc || entry.folder_type === 'song') && !isTexteFolder && !isInsideSong && (
                   <button
                     className="swipe-action-btn swipe-action-label"
                     onClick={(e) => { e.stopPropagation(); setRevealedPath(null); setSwipeLabelPath(swipeLabelPath === entry.path ? null : entry.path) }}

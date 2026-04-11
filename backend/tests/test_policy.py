@@ -60,16 +60,22 @@ def test_every_permission_belongs_to_exactly_one_feature():
 @pytest.mark.parametrize(
     "role, perm, expected",
     [
-        # Guest — darf Browsen, Streamen, Transponieren
+        # Guest — darf Browsen, Streamen, Dokumente lesen, Labels als Filter
         ("guest", "browse.read", True),
         ("guest", "stream.play", True),
-        ("guest", "transposition.write", True),
+        ("guest", "documents.read", True),
+        ("guest", "labels.read", True),
+        ("guest", "sections.read", True),
         ("guest", "profile.read", True),
-        # Guest — darf NICHT schreiben, nicht ins Profil, keine Passwoerter
+        # Guest — darf NICHTS persistieren (kein per-user State)
         ("guest", "favorites.write", False),
         ("guest", "profile.write", False),
         ("guest", "profile.password", False),
         ("guest", "annotations.read", False),
+        ("guest", "annotations.write", False),
+        ("guest", "transposition.read", False),
+        ("guest", "transposition.write", False),
+        ("guest", "player.state", False),
         # Member
         ("member", "favorites.write", True),
         ("member", "annotations.write", True),
@@ -273,15 +279,19 @@ def test_policy_active_for_guest(client: TestClient, user_factory):
 
     assert body["user"]["role"] == "guest"
     allowed = set(body["user"]["allowed_permissions"])
-    # Gast darf Browse/Stream/Transpose
+    # Gast darf Browse/Stream/Documents/Labels-lesen
     assert "browse.read" in allowed
     assert "stream.play" in allowed
-    assert "transposition.write" in allowed
-    # Gast darf NICHTS Persistentes (Favoriten, Annotations, Profil-Write)
+    assert "documents.read" in allowed
+    assert "labels.read" in allowed
+    # Gast darf NICHTS Persistentes — keinerlei per-User-Daten auf dem Server
     assert "favorites.write" not in allowed
     assert "annotations.write" not in allowed
     assert "profile.write" not in allowed
     assert "profile.password" not in allowed
+    assert "transposition.read" not in allowed
+    assert "transposition.write" not in allowed
+    assert "player.state" not in allowed
 
 
 def test_policy_active_for_developer(client: TestClient, user_factory):

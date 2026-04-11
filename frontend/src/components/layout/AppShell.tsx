@@ -11,6 +11,7 @@ import { useLabelsStore } from '@/hooks/useLabels.ts'
 import { useBrowseStore } from '@/stores/browseStore.ts'
 import { useAppStore } from '@/stores/appStore.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
+import { isGuest } from '@/utils/roles.ts'
 
 // Routes where audio playback should persist (song context)
 const SONG_CONTEXT_ROUTES = ['/', '/browse', '/viewer', '/doc-viewer', '/sections']
@@ -20,6 +21,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [footerEl, setFooterEl] = useState<HTMLDivElement | null>(null)
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
+  const guest = isGuest(user?.role)
 
   useEffect(() => {
     setFooterEl(footerRef.current)
@@ -37,9 +39,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const handler = () => {
       if (document.visibilityState === 'visible') {
+        const currentUser = useAuthStore.getState().user
+        const isGuestUser = isGuest(currentUser?.role)
         const { loaded: favsLoaded } = useFavoritesStore.getState()
         const { loaded: labelsLoaded } = useLabelsStore.getState()
-        if (favsLoaded) useFavoritesStore.getState().load()
+        // Favoriten sind fuer Gaeste nicht verfuegbar (403) — nicht reloaden.
+        if (!isGuestUser && favsLoaded) useFavoritesStore.getState().load()
         if (labelsLoaded) useLabelsStore.getState().load()
         // Refresh current browse folder in background
         const browsePath = useAppStore.getState().browsePath
@@ -53,11 +58,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <FooterPortalProvider targetRef={footerEl}>
       <div className="app-shell">
-        <PwaInstallGuide />
+        {/* PWA-Install-Prompt bekommen Gaeste nicht zu sehen — eine 2h-Session
+            fuer einen Proben-Link gehoert nicht auf den Homescreen. */}
+        {!guest && <PwaInstallGuide />}
         <div className="main-content">
           {children}
         </div>
-        <FloatingRecorder />
+        {/* Aufnahme-Recorder ist pro-member+. Gaeste sehen ihn nicht. */}
+        {!guest && <FloatingRecorder />}
         {user?.can_report_bugs && <EdgeBugTab />}
         <GlobalPlayerBar />
         <div ref={footerRef} className="footer-slot" />

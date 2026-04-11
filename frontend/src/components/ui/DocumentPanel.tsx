@@ -1,6 +1,7 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
@@ -65,6 +66,8 @@ function getDistance(t1: Touch, t2: Touch) {
 
 export function DocumentPanel({ folderPath, canUpload = false, document: externalDoc, emptyHint }: DocumentPanelProps) {
   const token = useAuthStore((s) => s.token)
+  const userRole = useAuthStore((s) => s.user?.role)
+  const guest = isGuest(userRole)
   const { documents, activeDocId, loading, uploading, upload } = useDocumentsStore()
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentTime = usePlayerStore((s) => s.currentTime)
@@ -348,8 +351,10 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         />
       )}
 
-      {/* FABs — PDF/CHO: Draw + Fullscreen, TXT/CHO: Zoom + Fullscreen, CHO: Transpose */}
-      {(isPdf || isCho) && (
+      {/* FABs — PDF/CHO: Draw + Fullscreen, TXT/CHO: Zoom + Fullscreen, CHO: Transpose.
+          Annotations sind ein per-User-Feature (annotations.write = member+) —
+          Gaeste sehen den Zeichenmodus-FAB nicht. */}
+      {!guest && (isPdf || isCho) && (
         <button
           className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={() => setDrawingMode(!drawingMode)}

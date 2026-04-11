@@ -127,10 +127,10 @@
     "documents.list":          { "min_role": "guest",      "description": "Dokumentliste anzeigen" },
     "documents.read":          { "min_role": "guest",      "description": "Dokument anzeigen (PDF, TXT, Chord-Sheet)" },
 
-    "player.state":            { "min_role": "guest",      "description": "Player-State speichern (selected track)" },
+    "player.state":            { "min_role": "member",     "description": "Player-State speichern (selected track, per-user)" },
 
-    "transposition.read":      { "min_role": "guest",      "description": "Chord-Preference lesen" },
-    "transposition.write":     { "min_role": "guest",      "description": "Chord-Preference schreiben (transponieren)" },
+    "transposition.read":      { "min_role": "member",     "description": "Chord-Preference lesen (per-user)" },
+    "transposition.write":     { "min_role": "member",     "description": "Chord-Preference schreiben (per-user)" },
 
     "favorites.read":          { "min_role": "member",     "description": "Favoriten lesen" },
     "favorites.write":         { "min_role": "member",     "description": "Favoriten setzen/entfernen" },
