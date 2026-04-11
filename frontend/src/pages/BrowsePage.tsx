@@ -91,8 +91,9 @@ export function BrowsePage() {
   const [searching, setSearching] = useState(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const debounceRef = useRef<ReturnType<typeof setTimeout>>(undefined)
-  // Saved query for "back to search results" after navigating into an entry from search
-  const searchReturnQueryRef = useRef<string | null>(null)
+  // Saved query for "back to search results" after navigating into an entry from search.
+  // State (not ref) so the breadcrumb label re-renders when it changes.
+  const [searchReturnQuery, setSearchReturnQuery] = useState<string | null>(null)
 
   const loadFolder = useCallback((path: string, forceRefresh = false) => {
     setRevealedPath(null)
@@ -160,14 +161,14 @@ export function BrowsePage() {
   }
 
   const closeSearchExplicit = () => {
-    searchReturnQueryRef.current = null
+    setSearchReturnQuery(null)
     closeSearch()
   }
 
   const handleBackFromSong = (parentPath: string) => {
-    if (searchReturnQueryRef.current) {
-      const savedQuery = searchReturnQueryRef.current
-      searchReturnQueryRef.current = null
+    if (searchReturnQuery) {
+      const savedQuery = searchReturnQuery
+      setSearchReturnQuery(null)
       loadFolder('')
       setSearchOpen(true)
       setSearchQuery(savedQuery)
@@ -242,14 +243,14 @@ export function BrowsePage() {
       return
     } else if (entry.type === 'folder' && entry.folder_type === 'texte') {
       if (searchOpen && searchQuery.length >= 2) {
-        searchReturnQueryRef.current = searchQuery
+        setSearchReturnQuery(searchQuery)
       }
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
       loadFolder(entry.path)
     } else if (entry.type === 'folder') {
       if (searchOpen && searchQuery.length >= 2) {
-        searchReturnQueryRef.current = searchQuery
+        setSearchReturnQuery(searchQuery)
       }
       closeSearch()
       useAppStore.getState().setBrowseReturnTo(null)
@@ -537,7 +538,7 @@ export function BrowsePage() {
             <div className="breadcrumb" style={{ flex: 1, padding: 0, border: 'none', background: 'none' }}>
               <span className="breadcrumb-item" onClick={() => handleBackFromSong(songParentPath)} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <ChevronLeft size={16} />
-                {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
+                {searchReturnQuery ? 'Suche' : stripFolderExtension(browseSegments[songAncestorIdx] || '')}
               </span>
             </div>
           </div>
@@ -792,6 +793,10 @@ export function BrowsePage() {
                               className={`meta-brick meta-brick--${sf.type}`}
                               onClick={(e) => {
                                 e.stopPropagation()
+                                if (searchOpen && searchQuery.length >= 2) {
+                                  setSearchReturnQuery(searchQuery)
+                                }
+                                closeSearch()
                                 loadFolder(sf.path)
                               }}
                             >

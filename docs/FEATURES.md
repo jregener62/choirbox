@@ -299,13 +299,13 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - `.song`-Ordner werden nicht durchsucht (Inhalte bleiben unsichtbar), erscheinen aber selbst als Treffer mit gestripptem Display-Name
 - Folder-Treffer sind eingeschlossen (vorher nur Files): Trash und reservierte Folders (Texte/Audio/Videos/Multitrack) werden ausgeblendet
 - `.song`-Treffer werden mit `sub_folders` + `selected_doc` enrichet, damit der Klick automatisch in den Audio/Texte-Subfolder springt und der Song-Header (Name + Badges) wie beim normalen Browse sichtbar wird
-- **Back-zur-Suche**: Klick auf Suchergebnis merkt sich die Query (`searchReturnQueryRef`); Back-Button im Song reaktiviert die Suche mit der gespeicherten Query und zeigt die Trefferliste wieder. X-Button (`closeSearchExplicit`) loescht die Ref.
+- **Back-zur-Suche**: Klick auf ein Suchergebnis (auch auf die Multi-Brick-Buttons innerhalb einer `.song`-Kachel) merkt sich die Query in `searchReturnQuery` (State). Im Song wird der Back-Breadcrumb als **"< Suche"** gelabelt und reaktiviert beim Klick die Suche mit der gespeicherten Query. X-Button (`closeSearchExplicit`) verwirft die gespeicherte Query.
 - Debounced (300ms Verzoegerung beim Tippen)
 - Mindestens 2 Zeichen erforderlich, case-insensitive Substring-Match auf Dateiname
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/BrowsePage.tsx` | Such-UI, Debounce, `searchReturnQueryRef`, `handleBackFromSong` |
+| `frontend/src/pages/BrowsePage.tsx` | Such-UI, Debounce, `searchReturnQuery`-State, `handleBackFromSong`, konditionales Breadcrumb-Label |
 | `backend/api/dropbox.py` | `GET /dropbox/search` (nicht-rekursives `list_folder` + `.song`-Enrichment) |
 | `backend/services/dropbox_service.py` | `list_folder()` mit 5-Min-Cache |
 
@@ -1468,6 +1468,16 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### Back-zur-Suche griff nicht beim Song-Klick aus Suchtreffern
+
+Commit `e947691` hatte das Feature "Back-zur-Suche" eingefuehrt (`searchReturnQueryRef` + `handleBackFromSong`). Der darauffolgende Commit `366413c` ("Song-Kachel als Multi-Button-Segmented-Control") hat `handleSongClick` entfernt und die `.song`-Kachel insgesamt nicht mehr klickbar gemacht — die Navigation laeuft seitdem ausschliesslich ueber die Meta-Brick-Buttons. Diese Buttons riefen aber nur `loadFolder(sf.path)` auf, ohne die Such-Query zu sichern. Ergebnis: Nach einem Klick auf ein Song-Suchergebnis fiel der Back-Button im Song auf `loadFolder(parentPath)` zurueck (keine Suche), und das Breadcrumb-Label zeigte den Song-Namen.
+
+**Fix:**
+
+- `frontend/src/pages/BrowsePage.tsx`: `searchReturnQueryRef` (Ref) → `searchReturnQuery` (State), damit das Breadcrumb-Label reaktiv ist.
+- Die Meta-Brick-onClick-Handler in Such-Trefferlisten setzen jetzt `setSearchReturnQuery(searchQuery)` und rufen `closeSearch()` auf, bevor sie `loadFolder(sf.path)` triggern.
+- Das Back-Breadcrumb im Song rendert **"< Suche"**, wenn `searchReturnQuery` gesetzt ist, sonst wie bisher den Song-Namen.
 
 ### Service Worker brach Audio-Streaming auf Prod
 
