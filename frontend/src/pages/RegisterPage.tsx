@@ -2,6 +2,11 @@ import { useState, useEffect, type FormEvent } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Eye, EyeOff } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
+import {
+  PasswordStrengthMeter,
+  evaluatePassword,
+  MIN_PASSWORD_LENGTH,
+} from '@/components/ui/PasswordStrengthMeter.tsx'
 
 export function RegisterPage() {
   const { inviteCode } = useParams<{ inviteCode: string }>()
@@ -71,10 +76,20 @@ export function RegisterPage() {
     )
   }
 
+  const pwCheck = evaluatePassword(password, [username])
+
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault()
     setError('')
 
+    if (!pwCheck.acceptable) {
+      setError(
+        pwCheck.tooShort
+          ? `Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben`
+          : 'Passwort ist zu schwach'
+      )
+      return
+    }
     if (password !== passwordConfirm) {
       setError('Passwoerter stimmen nicht ueberein')
       return
@@ -143,6 +158,7 @@ export function RegisterPage() {
                 {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
+            <PasswordStrengthMeter password={password} userInputs={[username]} />
           </div>
           <div className="auth-field">
             <label className="auth-label">Passwort wiederholen</label>
@@ -156,7 +172,12 @@ export function RegisterPage() {
             />
           </div>
 
-          <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>
+          <button
+            className="btn btn-primary"
+            style={{ width: '100%' }}
+            type="submit"
+            disabled={loading || !pwCheck.acceptable || password !== passwordConfirm}
+          >
             {loading ? 'Wird erstellt...' : 'Konto erstellen'}
           </button>
         </form>

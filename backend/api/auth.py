@@ -26,6 +26,8 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 TOKEN_MAX_AGE = 7 * 24 * 3600  # 7 days in seconds
 
+MIN_PASSWORD_LENGTH = 10
+
 # Rate limiting for login: ip -> list of attempt timestamps
 _login_attempts: dict[str, list[float]] = {}
 LOGIN_MAX_ATTEMPTS = 5
@@ -312,8 +314,8 @@ def change_password(
         raise HTTPException(400, "Old and new password required")
     if not _verify_password(old_password, user.password_hash):
         raise HTTPException(401, "Current password is incorrect")
-    if len(new_password) < 4:
-        raise HTTPException(400, "New password must be at least 4 characters")
+    if len(new_password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
 
     user.password_hash = _hash_password(new_password)
     user.must_change_password = False
@@ -360,8 +362,8 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
         raise HTTPException(400, "Einladungscode erforderlich")
     if not username or not password:
         raise HTTPException(400, "Username and password required")
-    if len(password) < 4:
-        raise HTTPException(400, "Password must be at least 4 characters")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
     # Look up choir by invite code
     choir = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
     if not choir:

@@ -14,7 +14,8 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 
 - Einladungslink-Format: `/#/join/<invite_code>` — identifiziert den Chor automatisch
 - Pflichtfelder: Benutzername, Anzeigename, Passwort, Stimme (dynamisch aus Stimme-Labels des Chors)
-- Passwort mindestens 4 Zeichen
+- Passwort mindestens 10 Zeichen, zxcvbn-Score >= 2 ("Maessig") erforderlich
+- Live-Staerkemeter (rot/orange/gruen) mit deutschen Verbesserungs-Hinweisen (zxcvbn-ts)
 - Passwort-Hashing: PBKDF2-HMAC-SHA256 (100.000 Iterationen)
 - Benutzername muss eindeutig sein (ueber alle Choere hinweg)
 - User wird automatisch dem Chor des Einladungslinks zugewiesen
@@ -49,7 +50,7 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 
 - Anzeigename aendern
 - Stimme wechseln (dynamisch aus Stimme-Labels des Chors)
-- Passwort aendern (altes Passwort muss bestaetigt werden, neues min. 4 Zeichen)
+- Passwort aendern (altes Passwort bestaetigen, neues min. 10 Zeichen + Staerke-Score >= 2, mit Live-Staerkemeter)
 - Chor-Name wird im Profil angezeigt
 
 | Datei | Rolle |

@@ -6,6 +6,11 @@ import { useAppStore, ZOOM_LABELS, type ZoomLevel } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
 import { hasMinRole, ROLE_LABELS, type Role } from '@/utils/roles.ts'
 import { useLabelsStore } from '@/hooks/useLabels.ts'
+import {
+  PasswordStrengthMeter,
+  evaluatePassword,
+  MIN_PASSWORD_LENGTH,
+} from '@/components/ui/PasswordStrengthMeter.tsx'
 
 interface DropboxStatus {
   connected: boolean
@@ -170,14 +175,20 @@ export function SettingsPage() {
     }
   }
 
+  const newPwCheck = evaluatePassword(newPw, [user?.username || '', user?.display_name || ''])
+
   // Change password
   const changePassword = async () => {
-    if (newPw !== newPwConfirm) {
-      setMessage('Passwoerter stimmen nicht ueberein')
+    if (!newPwCheck.acceptable) {
+      setMessage(
+        newPwCheck.tooShort
+          ? `Passwort muss mindestens ${MIN_PASSWORD_LENGTH} Zeichen haben`
+          : 'Passwort ist zu schwach'
+      )
       return
     }
-    if (newPw.length < 4) {
-      setMessage('Passwort muss mindestens 4 Zeichen haben')
+    if (newPw !== newPwConfirm) {
+      setMessage('Passwoerter stimmen nicht ueberein')
       return
     }
     try {
@@ -359,14 +370,23 @@ export function SettingsPage() {
               </div>
               <div className="auth-field">
                 <label className="auth-label">Neues Passwort</label>
-                <input className="auth-input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+                <input className="auth-input" type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} autoComplete="new-password" />
+                <PasswordStrengthMeter
+                  password={newPw}
+                  userInputs={[user?.username || '', user?.display_name || '']}
+                />
               </div>
               <div className="auth-field">
                 <label className="auth-label">Neues Passwort wiederholen</label>
-                <input className="auth-input" type="password" value={newPwConfirm} onChange={(e) => setNewPwConfirm(e.target.value)} />
+                <input className="auth-input" type="password" value={newPwConfirm} onChange={(e) => setNewPwConfirm(e.target.value)} autoComplete="new-password" />
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-primary" style={{ flex: 1 }} onClick={changePassword}>
+                <button
+                  className="btn btn-primary"
+                  style={{ flex: 1 }}
+                  onClick={changePassword}
+                  disabled={!newPwCheck.acceptable || newPw !== newPwConfirm || !oldPw}
+                >
                   Passwort aendern
                 </button>
                 {!mustChangePw && (

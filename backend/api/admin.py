@@ -7,7 +7,7 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.choir import Choir
 from backend.models.user import User
-from backend.api.auth import _hash_password, _valid_voice_parts, VALID_ROLES
+from backend.api.auth import _hash_password, _valid_voice_parts, VALID_ROLES, MIN_PASSWORD_LENGTH
 from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
@@ -40,6 +40,8 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
 
     if not username or not password:
         raise HTTPException(400, "Username and password required")
+    if len(password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
     valid_parts = _valid_voice_parts(session, user.choir_id)
     if valid_parts and voice_part not in valid_parts:
         raise HTTPException(400, f"Stimmgruppe muss eine der folgenden sein: {', '.join(sorted(valid_parts))}")
@@ -91,6 +93,8 @@ def update_user(
             setattr(target, field, data[field])
 
     if "password" in data and data["password"]:
+        if len(data["password"]) < MIN_PASSWORD_LENGTH:
+            raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
         target.password_hash = _hash_password(data["password"])
 
     target.updated_at = datetime.utcnow()
@@ -197,6 +201,8 @@ def create_choir(data: dict, user: User = Depends(require_permission("choirs.man
         raise HTTPException(400, "name und invite_code sind erforderlich")
     if not admin_username or not admin_password:
         raise HTTPException(400, "Admin-Benutzername und -Passwort sind erforderlich")
+    if len(admin_password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
 
     existing = session.exec(select(Choir).where(Choir.invite_code == invite_code)).first()
     if existing:
