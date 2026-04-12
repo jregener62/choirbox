@@ -33,7 +33,7 @@ export function GuestLinksPage() {
 
   // Create form
   const [label, setLabel] = useState('')
-  const [ttlMinutes, setTtlMinutes] = useState<number>(60)
+  const [ttlMinutes, setTtlMinutes] = useState<number | string>(60)
   const [limitEnabled, setLimitEnabled] = useState<boolean>(false)
   const [maxUses, setMaxUses] = useState<number>(10)
   const [viewMode, setViewMode] = useState<'songs' | 'texts'>('songs')
@@ -77,7 +77,7 @@ export function GuestLinksPage() {
         method: 'POST',
         body: {
           label: label.trim() || null,
-          ttl_minutes: ttlMinutes,
+          ttl_minutes: typeof ttlMinutes === 'number' ? ttlMinutes : 60,
           max_uses: limitEnabled ? maxUses : null,
           view_mode: viewMode,
         },
@@ -282,7 +282,14 @@ export function GuestLinksPage() {
             value={ttlMinutes}
             min={ttlConfig?.min_minutes ?? 15}
             max={ttlConfig?.max_minutes ?? 1440}
-            onChange={(e) => setTtlMinutes(parseInt(e.target.value, 10) || 60)}
+            onChange={(e) => {
+              const raw = e.target.value;
+              setTtlMinutes(raw === '' ? '' : parseInt(raw, 10) || '');
+            }}
+            onBlur={() => {
+              const n = typeof ttlMinutes === 'number' ? ttlMinutes : parseInt(String(ttlMinutes), 10);
+              setTtlMinutes(isNaN(n) || n < 1 ? 60 : n);
+            }}
           />
         </div>
         <div style={{ marginBottom: 10 }}>
