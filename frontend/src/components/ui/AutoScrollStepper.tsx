@@ -1,5 +1,5 @@
 import { ChevronsDown, Plus, Minus, ChevronUp, ChevronDown } from 'lucide-react'
-import { usePlayerStore, AUTO_SCROLL_SPEEDS } from '@/stores/playerStore.ts'
+import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_DEFAULT_IDX } from '@/stores/playerStore.ts'
 
 interface AutoScrollStepperProps {
   faded?: boolean
@@ -14,7 +14,8 @@ export function AutoScrollStepper({ faded = false, onInteract, onPageUp, onPageD
   const setEnabled = usePlayerStore((s) => s.setAutoScrollEnabled)
   const setSpeedIdx = usePlayerStore((s) => s.setAutoScrollSpeedIdx)
 
-  const speed = AUTO_SCROLL_SPEEDS[speedIdx]
+  const step = speedIdx - AUTO_SCROLL_DEFAULT_IDX
+  const stepLabel = step > 0 ? `+${step}` : `${step}`
   const isMin = speedIdx === 0
   const isMax = speedIdx === AUTO_SCROLL_SPEEDS.length - 1
 
@@ -66,7 +67,7 @@ export function AutoScrollStepper({ faded = false, onInteract, onPageUp, onPageD
       <span
         className={`autoscroll-stepper-value${enabled ? '' : ' autoscroll-stepper-value--off'}`}
       >
-        {enabled ? `${speed}×` : 'Aus'}
+        {enabled ? stepLabel : 'Aus'}
       </span>
       <button
         type="button"

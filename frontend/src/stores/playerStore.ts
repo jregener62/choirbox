@@ -7,8 +7,12 @@ export interface Marker {
   label: string
 }
 
-export const AUTO_SCROLL_SPEEDS = [0.1, 0.25, 0.5, 0.75, 1, 1.25, 1.5, 1.75, 2, 2.5, 3, 4, 5] as const
-export const AUTO_SCROLL_DEFAULT_IDX = 4
+export const AUTO_SCROLL_SPEEDS = [
+  0.10, 0.19, 0.28, 0.37, 0.46, 0.55, 0.64, 0.73, 0.82, 0.91,
+  1.00,
+  1.10, 1.20, 1.30, 1.40, 1.50, 1.60, 1.70, 1.80, 1.90, 2.00,
+] as const
+export const AUTO_SCROLL_DEFAULT_IDX = 10
 export const AUTO_SCROLL_BASE_PX_PER_SEC = 30
 
 interface PlayerState {
