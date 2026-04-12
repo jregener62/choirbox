@@ -41,6 +41,9 @@ GUEST_SESSION_TTL_SECONDS = 2 * 3600
 MIN_LINK_TTL_MINUTES = 15
 MAX_LINK_TTL_MINUTES = 24 * 60
 
+# Erlaubte Ansichts-Modi fuer Gast-Sessions.
+VALID_VIEW_MODES = {"songs", "texts"}
+
 
 class GuestLinkError(Exception):
     """Raised for expected service-level failures."""
@@ -111,6 +114,7 @@ def create_link(
     label: Optional[str] = None,
     ttl_minutes: Optional[int] = None,
     max_uses: Optional[int] = None,
+    view_mode: str = "songs",
 ) -> tuple[GuestLink, str]:
     """Create a new guest link and return (model, plaintext_token).
 
@@ -133,6 +137,8 @@ def create_link(
         )
     if max_uses is not None and max_uses < 1:
         raise GuestLinkError("max_uses_invalid")
+    if view_mode not in VALID_VIEW_MODES:
+        raise GuestLinkError(f"view_mode_invalid:{','.join(sorted(VALID_VIEW_MODES))}")
 
     # Ensure the shared guest user exists for this choir
     choir = session.get(Choir, creator.choir_id)
@@ -148,6 +154,7 @@ def create_link(
         created_by_user_id=creator.id,
         expires_at=datetime.utcnow() + timedelta(minutes=effective_ttl),
         max_uses=max_uses,
+        view_mode=view_mode,
     )
     session.add(link)
     session.commit()

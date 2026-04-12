@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
-import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut, Headphones } from 'lucide-react'
 import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
@@ -21,6 +21,7 @@ import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useShareTarget } from '@/hooks/useShareTarget'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole, isGuest } from '@/utils/roles.ts'
+import { useViewModeStore, type ViewMode } from '@/stores/viewModeStore.ts'
 import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import { stripFolderExtension, isReservedName, isSongFolder } from '@/utils/folderTypes.ts'
 import { getFolderTypeConfig } from '@/utils/folderTypeConfig'
@@ -55,6 +56,10 @@ export function BrowsePage() {
   const guest = isGuest(user?.role)
   const logout = useAuthStore((s) => s.logout)
   const sessionExpiresAt = useAuthStore((s) => s.sessionExpiresAt)
+  const viewMode = useViewModeStore((s) => s.mode)
+  const viewModeLocked = useViewModeStore((s) => s.locked)
+  const setViewMode = useViewModeStore((s) => s.setMode)
+  const isTexteMode = viewMode === 'texts'
   const guestExpiryLabel = guest && sessionExpiresAt
     ? sessionExpiresAt.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })
     : null
@@ -271,6 +276,11 @@ export function BrowsePage() {
     if (didSwipeRef.current) { didSwipeRef.current = false; return }
     if (revealedPath) { setRevealedPath(null); return }
     if (entry.type === 'folder' && isSongFolder(entry.name)) {
+      if (isTexteMode) {
+        // Texte-Modus: Song-Klick navigiert direkt in den Texte-Unterordner
+        loadFolder(entry.path + '/Texte', false, { fromSearch: searchOpen && searchQuery.length >= 2 })
+        return
+      }
       // Song-Kachel ist nicht mehr klickbar — nur die Multi-Button-Leiste navigiert
       return
     } else if (entry.type === 'folder' && entry.folder_type === 'texte') {
@@ -451,6 +461,31 @@ export function BrowsePage() {
     <div className="browse-page">
       {/* Sticky header area */}
       <div className="browse-header">
+        {/* View-Bar: Song/Texte-Umschaltung — nur sichtbar fuer Members+
+            auf Root-Level (nicht im Song-Ordner, nicht fuer Gaeste mit
+            gelocktm Modus). Nutzt das gleiche meta-brick-Styling wie
+            der Song-Header Segmented-Control. */}
+        {!isInsideSong && !searchOpen && !viewModeLocked && (
+          <div className="view-bar">
+            <div className="meta-bricks">
+              <button
+                className={`meta-brick meta-brick--songs${!isTexteMode ? ' meta-brick--active' : ''}`}
+                onClick={() => setViewMode('songs')}
+              >
+                <Headphones size={16} />
+                {!isTexteMode && <span className="meta-brick__label">Songs</span>}
+              </button>
+              <button
+                className={`meta-brick meta-brick--texte${isTexteMode ? ' meta-brick--active' : ''}`}
+                onClick={() => setViewMode('texts')}
+              >
+                <FileText size={16} />
+                {isTexteMode && <span className="meta-brick__label">Texte</span>}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Topbar: search mode or normal with breadcrumb */}
         {isInsideSong ? (
           /* Inside .song: simplified header — sync left, mic+upload right */
@@ -553,26 +588,28 @@ export function BrowsePage() {
                     </button>
                   )}
                 </div>
-                {/* Right group */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  {isProMember && (
-                    <button className="player-header-btn" onClick={() => {
-                      const songFolder = deriveSongFolderPath(browsePath)
-                      if (songFolder) {
-                        useRecordingStore.getState().startSession(songFolder)
-                      } else {
-                        useRecordingStore.getState().startRootSession(browsePath || '/')
-                      }
-                    }}>
-                      <Mic size={18} />
-                    </button>
-                  )}
-                  {isProMember && (
-                    <button className="player-header-btn" onClick={() => setUploadChoiceOpen(true)} title="Hinzufuegen">
-                      <FolderImportIcon size={18} />
-                    </button>
-                  )}
-                </div>
+                {/* Right group — Mic/Upload nur im Song-Modus (im Texte-Modus nicht relevant) */}
+                {!isTexteMode && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                    {isProMember && (
+                      <button className="player-header-btn" onClick={() => {
+                        const songFolder = deriveSongFolderPath(browsePath)
+                        if (songFolder) {
+                          useRecordingStore.getState().startSession(songFolder)
+                        } else {
+                          useRecordingStore.getState().startRootSession(browsePath || '/')
+                        }
+                      }}>
+                        <Mic size={18} />
+                      </button>
+                    )}
+                    {isProMember && (
+                      <button className="player-header-btn" onClick={() => setUploadChoiceOpen(true)} title="Hinzufuegen">
+                        <FolderImportIcon size={18} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <div className="search-bar" style={{ flex: 1 }}>
@@ -640,14 +677,20 @@ export function BrowsePage() {
         )}
 
         {/* Song Card with subfolder badges (replaces SegmentedControl) */}
-        {!searchOpen && showSegmentedControl && (
+        {!searchOpen && showSegmentedControl && (() => {
+          // Sortierung: Texte zuerst, dann Audio, dann Videos, dann Rest
+          const SUB_ORDER: Record<string, number> = { texte: 0, audio: 1, videos: 2, multitrack: 3 }
+          const sorted = [...songSubFolders].sort(
+            (a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99)
+          )
+          return (
           <div className="song-card-header">
             <div className="song-card-header__info">
               <div className="song-card-header__name">
                 {stripFolderExtension(browseSegments[songAncestorIdx] || '')}
               </div>
               <div className="meta-bricks">
-                {songSubFolders.map((sf) => {
+                {sorted.map((sf) => {
                   const config = getFolderTypeConfig(sf.type)
                   const isActive = sf.name.toLowerCase() === activeSubfolderName?.toLowerCase()
                   return (
@@ -665,7 +708,8 @@ export function BrowsePage() {
               </div>
             </div>
           </div>
-        )}
+          )
+        })()}
 
         {/* Label filter bar — toggleable */}
         {!isSearching && filterOpen && hasAnyLabels && labels.length > 0 && (
@@ -849,11 +893,16 @@ export function BrowsePage() {
                 {/* .song folder: brick row (first sub-line) + user labels */}
                 {entry.folder_type === 'song' && (() => {
                   const songLabels = getLabelsForPath(entry.path).filter((l) => l.category !== 'Stimme')
+                  // Texte-Modus: nur Texte-Bricks zeigen, sortiert Texte zuerst
+                  const SUB_ORDER: Record<string, number> = { texte: 0, audio: 1, videos: 2, multitrack: 3 }
+                  const visibleSubs = isTexteMode
+                    ? (entry.sub_folders || []).filter((sf) => sf.type === 'texte')
+                    : [...(entry.sub_folders || [])].sort((a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99))
                   return (
                     <>
-                      {entry.sub_folders?.length && (
+                      {visibleSubs.length > 0 && (
                         <div className="meta-bricks">
-                          {entry.sub_folders.map((sf) => (
+                          {visibleSubs.map((sf) => (
                             <button
                               key={sf.type}
                               className={`meta-brick meta-brick--${sf.type}`}
@@ -932,7 +981,7 @@ export function BrowsePage() {
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
-                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongSelected ? ' file-item--song-selected' : ''}${isSongFolderEntry ? ' file-item--non-clickable' : ''}`}
+                className={`swipe-content file-item ${isActive ? 'file-item--active' : ''}${isSongSelected ? ' file-item--song-selected' : ''}${isSongFolderEntry && !isTexteMode ? ' file-item--non-clickable' : ''}`}
                 data-path={entry.path}
                 onClick={() => handleEntryClick(entry)}
                 onTouchStart={handleSwipeStart}

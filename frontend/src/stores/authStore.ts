@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import type { User, LoginResponse } from '@/types/index'
 import { usePolicyStore } from '@/stores/policyStore'
+import { useViewModeStore } from '@/stores/viewModeStore'
 
 const STORAGE_PREFIX = 'choirbox_'
 const EXPIRES_KEY = `${STORAGE_PREFIX}session_expires_at`
@@ -9,6 +10,8 @@ const GUEST_EXPIRED_FLAG = `${STORAGE_PREFIX}guest_session_expired`
 interface GuestRedeemApiResponse extends LoginResponse {
   /** Seconds until the guest session expires (~7200 = 2h). */
   expires_in?: number
+  /** Ansichts-Modus: "songs" (alles) oder "texts" (nur Texte). */
+  view_mode?: string
 }
 
 function loadStoredSession(): {
@@ -149,6 +152,9 @@ export const useAuthStore = create<AuthState>((set) => ({
     sessionStorage.removeItem(GUEST_EXPIRED_FLAG)
     set({ token: data.token, user: data.user, sessionExpiresAt: expiresAt })
     void usePolicyStore.getState().loadPolicy()
+    // Ansichts-Modus aus dem Link uebernehmen und sperren.
+    const vm = data.view_mode === 'texts' ? 'texts' : 'songs'
+    useViewModeStore.getState().lockMode(vm)
   },
 
   logout: () => {
@@ -162,6 +168,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     clearStoredSession()
     set({ token: null, user: null, sessionExpiresAt: null })
     usePolicyStore.getState().clear()
+    useViewModeStore.getState().reset()
   },
 
   expireGuestSession: () => {

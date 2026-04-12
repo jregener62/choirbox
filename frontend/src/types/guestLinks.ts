@@ -17,6 +17,8 @@ export interface GuestLinkItem {
   last_used_at: string | null
   /** IP der letzten Einloesung. */
   last_used_ip: string | null
+  /** Ansichtsmodus: "songs" (alles) oder "texts" (nur Texte). */
+  view_mode: 'songs' | 'texts'
   revoked_at: string | null
   status: GuestLinkStatus
 }

@@ -80,6 +80,7 @@ def _link_to_dict(link) -> dict:
         "first_used_at": link.first_used_at.isoformat() if link.first_used_at else None,
         "last_used_at": link.last_used_at.isoformat() if link.last_used_at else None,
         "last_used_ip": link.last_used_ip,
+        "view_mode": link.view_mode,
         "revoked_at": link.revoked_at.isoformat() if link.revoked_at else None,
         "status": link_status(link),
     }
@@ -148,9 +149,12 @@ def create_guest_link(
         if max_uses < 1:
             raise HTTPException(400, "max_uses muss mindestens 1 sein")
 
+    view_mode = (data.get("view_mode") or "songs").strip()
+
     try:
         link, plaintext_token = create_link(
-            session, user, label=label, ttl_minutes=ttl_minutes, max_uses=max_uses
+            session, user, label=label, ttl_minutes=ttl_minutes,
+            max_uses=max_uses, view_mode=view_mode,
         )
     except GuestLinkError as e:
         raise HTTPException(400, str(e))
@@ -196,11 +200,8 @@ def redeem_guest_link(
 
     ua = request.headers.get("User-Agent", "")[:255]
     try:
-        _, guest_user = redeem_link(session, token, ip, ua)
+        redeemed_link, guest_user = redeem_link(session, token, ip, ua)
     except GuestLinkError:
-        # Einheitliche Fehlermeldung — Angreifer soll nicht unterscheiden
-        # koennen zwischen "falsch", "schon benutzt", "widerrufen",
-        # "abgelaufen".
         _record_redeem_attempt(ip)
         raise HTTPException(410, "Gast-Link ungueltig oder abgelaufen")
 
@@ -212,4 +213,5 @@ def redeem_guest_link(
         "token": session_token,
         "user": _user_response(guest_user, session),
         "expires_in": GUEST_SESSION_TTL_SECONDS,
+        "view_mode": redeemed_link.view_mode,
     }

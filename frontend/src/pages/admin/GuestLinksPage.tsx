@@ -35,6 +35,7 @@ export function GuestLinksPage() {
   const [ttlMinutes, setTtlMinutes] = useState<number>(60)
   const [limitEnabled, setLimitEnabled] = useState<boolean>(false)
   const [maxUses, setMaxUses] = useState<number>(10)
+  const [viewMode, setViewMode] = useState<'songs' | 'texts'>('songs')
   const [creating, setCreating] = useState(false)
 
   // Last-created-link banner (zeigt den Klartext-Token genau einmal)
@@ -77,6 +78,7 @@ export function GuestLinksPage() {
           label: label.trim() || null,
           ttl_minutes: ttlMinutes,
           max_uses: limitEnabled ? maxUses : null,
+          view_mode: viewMode,
         },
       })
       setFreshLink(data)
@@ -222,6 +224,10 @@ export function GuestLinksPage() {
             {freshLink.max_uses != null
               ? ` · bis zu ${freshLink.max_uses} Einloesungen`
               : ' · beliebig oft einloesbar'}
+            {' · '}
+            {freshLink.view_mode === 'texts'
+              ? 'Nur Texte'
+              : 'Alles'}
           </div>
         </div>
       )}
@@ -297,6 +303,35 @@ export function GuestLinksPage() {
             </div>
           )}
         </div>
+        <div style={{ marginBottom: 10 }}>
+          <label style={{ fontSize: 12, color: 'var(--text-muted)', display: 'block', marginBottom: 6 }}>
+            Gaeste sehen
+          </label>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <button
+              className={`meta-brick meta-brick--songs${viewMode === 'songs' ? ' meta-brick--active' : ''}`}
+              style={{ flex: 1, minHeight: 36 }}
+              onClick={() => setViewMode('songs')}
+              type="button"
+            >
+              Alles
+            </button>
+            <button
+              className={`meta-brick meta-brick--texte${viewMode === 'texts' ? ' meta-brick--active' : ''}`}
+              style={{ flex: 1, minHeight: 36 }}
+              onClick={() => setViewMode('texts')}
+              type="button"
+            >
+              Nur Texte
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>
+            {viewMode === 'songs'
+              ? 'Songs, Audio, Texte, Videos — voller Zugang ohne Schreibrechte.'
+              : 'Nur Texte und Chord-Sheets — kein Audio. Ideal fuer Jam-Sessions.'}
+          </div>
+        </div>
+
         <button
           className="btn btn-primary"
           style={{ width: '100%' }}
@@ -323,6 +358,7 @@ export function GuestLinksPage() {
                 {' · '}
                 erstellt {formatDateTime(l.created_at)}
                 {l.status === 'active' && ` · gueltig bis ${formatDateTime(l.expires_at)}`}
+                {l.view_mode === 'texts' ? ' · Nur Texte' : ''}
                 {l.last_used_at && ` · zuletzt ${formatDateTime(l.last_used_at)}`}
                 {l.last_used_ip && ` (${l.last_used_ip})`}
               </div>

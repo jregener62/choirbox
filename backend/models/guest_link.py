@@ -65,6 +65,11 @@ class GuestLink(SQLModel, table=True):
     last_used_ip: Optional[str] = Field(default=None, max_length=64)
     last_used_ua: Optional[str] = Field(default=None, max_length=255)
 
+    # Ansichts-Modus fuer die Gast-Session:
+    #   "songs" (Default) — voller Zugang (Song-Ordner + Audio + Texte)
+    #   "texts"           — nur Texte/Chord-Sheets/PDFs, kein Audio
+    view_mode: str = Field(default="songs", max_length=10)
+
     # Manuelle Invalidierung durch Admin — stoppt alle weiteren
     # Einloesungen, laesst aber bereits ausgestellte Gast-Sessions bis
     # zum Ablauf ihrer 2h-TTL weiterlaufen.
