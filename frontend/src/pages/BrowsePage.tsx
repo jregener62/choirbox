@@ -799,7 +799,10 @@ export function BrowsePage() {
           const isVideoFile = fileExt === 'mp4' || fileExt === 'webm' || fileExt === 'mov'
           const isSelectedText = entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)
 
+          const isSongFolderEntry = entry.folder_type === 'song'
+
           const folderIcon = entry.type === 'folder' ? (
+            entry.folder_type === 'song' && isTexteMode ? <FileText size={18} /> :
             entry.folder_type === 'song' ? <Music size={18} /> :
             entry.folder_type ? createElement(getFolderTypeConfig(entry.folder_type).icon, { size: 18 }) :
             <Folder size={18} />
@@ -845,6 +848,10 @@ export function BrowsePage() {
                   <div className="playing-bars">
                     <span /><span /><span />
                   </div>
+                </span>
+              ) : isTexteMode && isSongFolderEntry ? (
+                <span className="file-type-badge file-type-badge--texte">
+                  <FileText size={16} />
                 </span>
               ) : entry.type === 'folder' && entry.folder_type !== 'song' ? (
                 <span className={`file-type-badge ${
@@ -893,29 +900,39 @@ export function BrowsePage() {
                 {/* .song folder: brick row (first sub-line) + user labels */}
                 {entry.folder_type === 'song' && (() => {
                   const songLabels = getLabelsForPath(entry.path).filter((l) => l.category !== 'Stimme')
-                  // Texte-Modus: nur Texte-Bricks zeigen, sortiert Texte zuerst
                   const SUB_ORDER: Record<string, number> = { texte: 0, audio: 1, videos: 2, multitrack: 3 }
-                  const visibleSubs = isTexteMode
-                    ? (entry.sub_folders || []).filter((sf) => sf.type === 'texte')
-                    : [...(entry.sub_folders || [])].sort((a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99))
+                  const sortedSubs = [...(entry.sub_folders || [])].sort((a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99))
+                  const texteSub = sortedSubs.find((sf) => sf.type === 'texte')
                   return (
                     <>
-                      {visibleSubs.length > 0 && (
-                        <div className="meta-bricks">
-                          {visibleSubs.map((sf) => (
-                            <button
-                              key={sf.type}
-                              className={`meta-brick meta-brick--${sf.type}`}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                loadFolder(sf.path, false, { fromSearch: searchOpen && searchQuery.length >= 2 })
-                              }}
-                            >
-                              {createElement(getFolderTypeConfig(sf.type).icon, { size: 16 })}
-                              {sf.count}
-                            </button>
-                          ))}
-                        </div>
+                      {isTexteMode ? (
+                        /* Texte-Modus: einfacher Text statt meta-bricks */
+                        texteSub && texteSub.count > 0 ? (
+                          <div className="file-meta" style={{ color: 'var(--color-texte, #c7d2fe)' }}>
+                            {texteSub.count === 1 ? '1 Text' : `${texteSub.count} Texte`}
+                          </div>
+                        ) : (
+                          <div className="file-meta">Keine Texte</div>
+                        )
+                      ) : (
+                        /* Song-Modus: meta-bricks wie bisher, sortiert Texte/Audio/Video */
+                        sortedSubs.length > 0 && (
+                          <div className="meta-bricks">
+                            {sortedSubs.map((sf) => (
+                              <button
+                                key={sf.type}
+                                className={`meta-brick meta-brick--${sf.type}`}
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  loadFolder(sf.path, false, { fromSearch: searchOpen && searchQuery.length >= 2 })
+                                }}
+                              >
+                                {createElement(getFolderTypeConfig(sf.type).icon, { size: 16 })}
+                                {sf.count}
+                              </button>
+                            ))}
+                          </div>
+                        )
                       )}
                       {songLabels.length > 0 && (
                         <div className="meta-line3">
@@ -977,7 +994,6 @@ export function BrowsePage() {
             </>
           )
 
-          const isSongFolderEntry = entry.folder_type === 'song'
           return (
             <li key={entry.path} className={`swipe-wrapper ${isRevealed ? 'swipe-revealed' : ''}`}>
               <div
