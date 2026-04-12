@@ -58,5 +58,5 @@ export interface GuestRedeemResponse {
 export interface GuestLinkTtlConfig {
   min_minutes: number
   max_minutes: number
-  guest_session_ttl_seconds: number
+  max_guest_session_ttl_seconds: number
 }

@@ -27,7 +27,7 @@ from backend.models.choir import Choir
 from backend.models.guest_link import GuestLink
 from backend.models.user import User
 from backend.services.guest_link_service import (
-    GUEST_SESSION_TTL_SECONDS,
+    MAX_GUEST_SESSION_TTL_SECONDS,
     create_link,
     get_or_create_guest_user,
     redeem_link,
@@ -205,9 +205,9 @@ def test_create_ttl_out_of_range_fails(
 
     admin, _ = user_factory(role="admin")
     with pytest.raises(GuestLinkError, match="ttl_out_of_range"):
-        create_link(session, admin, ttl_minutes=5)
+        create_link(session, admin, ttl_minutes=30)
     with pytest.raises(GuestLinkError, match="ttl_out_of_range"):
-        create_link(session, admin, ttl_minutes=2000)
+        create_link(session, admin, ttl_minutes=3000)
 
 
 # ---------------------------------------------------------------------------
@@ -305,7 +305,9 @@ def test_redeem_happy_path_http(client: TestClient, admin):
     assert r2.status_code == 200
     body = r2.json()
     assert body["token"]
-    assert body["expires_in"] == GUEST_SESSION_TTL_SECONDS
+    # Session-TTL == verbleibende Link-Laufzeit. Default-AppSettings setzt
+    # guest_link_ttl_minutes=60, also ~3600s (minus Testlaufzeit).
+    assert 3000 <= body["expires_in"] <= 3600
     assert body["user"]["role"] == "guest"
 
 
@@ -442,9 +444,9 @@ def test_ttl_config_is_public(client: TestClient):
     r = client.get("/api/guest-links/ttl-config")
     assert r.status_code == 200
     body = r.json()
-    assert body["min_minutes"] == 15
-    assert body["max_minutes"] == 24 * 60
-    assert body["guest_session_ttl_seconds"] == GUEST_SESSION_TTL_SECONDS
+    assert body["min_minutes"] == 60
+    assert body["max_minutes"] == 36 * 60
+    assert body["max_guest_session_ttl_seconds"] == MAX_GUEST_SESSION_TTL_SECONDS
 
 
 # ---------------------------------------------------------------------------
@@ -454,13 +456,13 @@ def test_ttl_config_is_public(client: TestClient):
 def test_guest_session_has_short_expiry(
     session: Session, test_choir: Choir, user_factory
 ):
-    """Die Gast-Session muss ein ``expires_at`` haben, das in ca. 2h
-    liegt — nicht die 7 Tage der normalen Session."""
+    """Die Gast-Session muss ein ``expires_at`` haben — also keine
+    7-Tage-Langzeit-Session wie bei regulaeren Nutzern."""
     from backend.api.auth import _create_token
     from backend.models.session_token import SessionToken
 
     guest = get_or_create_guest_user(session, test_choir)
-    token = _create_token(guest.id, session, max_age_seconds=GUEST_SESSION_TTL_SECONDS)
+    token = _create_token(guest.id, session, max_age_seconds=2 * 3600)
     st = session.get(SessionToken, token)
     assert st is not None
     assert st.expires_at is not None

@@ -14,6 +14,7 @@ Sicherheit siehe backend/services/guest_link_service.py.
 from __future__ import annotations
 
 import time
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -25,7 +26,7 @@ from backend.models.user import User
 from backend.policy import require_permission
 from backend.schemas import ActionResponse
 from backend.services.guest_link_service import (
-    GUEST_SESSION_TTL_SECONDS,
+    MAX_GUEST_SESSION_TTL_SECONDS,
     MAX_LINK_TTL_MINUTES,
     MIN_LINK_TTL_MINUTES,
     GuestLinkError,
@@ -103,7 +104,7 @@ def get_ttl_config():
     return {
         "min_minutes": MIN_LINK_TTL_MINUTES,
         "max_minutes": MAX_LINK_TTL_MINUTES,
-        "guest_session_ttl_seconds": GUEST_SESSION_TTL_SECONDS,
+        "max_guest_session_ttl_seconds": MAX_GUEST_SESSION_TTL_SECONDS,
     }
 
 
@@ -205,13 +206,16 @@ def redeem_guest_link(
         _record_redeem_attempt(ip)
         raise HTTPException(410, "Gast-Link ungueltig oder abgelaufen")
 
-    # Gast-Session mit kurzer TTL
+    # Gast-Session laeuft genau bis zum Link-Ablauf — damit der Admin
+    # ueber die Link-TTL auch die Session-Dauer steuern kann.
+    remaining = int((redeemed_link.expires_at - datetime.utcnow()).total_seconds())
+    session_ttl = max(60, min(remaining, MAX_GUEST_SESSION_TTL_SECONDS))
     session_token = _create_token(
-        guest_user.id, session, max_age_seconds=GUEST_SESSION_TTL_SECONDS
+        guest_user.id, session, max_age_seconds=session_ttl
     )
     return {
         "token": session_token,
         "user": _user_response(guest_user, session),
-        "expires_in": GUEST_SESSION_TTL_SECONDS,
+        "expires_in": session_ttl,
         "view_mode": redeemed_link.view_mode,
     }

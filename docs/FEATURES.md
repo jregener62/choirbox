@@ -226,9 +226,9 @@ Session.
 4. Der Link hat das Format `https://cantabox.de/#/guest/<token>`
    (path-basiert, damit der Token nicht im Referer-Header leakt).
 5. Der Admin teilt den Link (z.B. im Chor-Chat). Jeder Klick schickt den
-   Code an den Backend. Bei Erfolg wird der Gast mit einer frischen
-   2h-Session eingeloggt. Mehrere Leute koennen parallel aus demselben
-   Link eine Session ziehen.
+   Code an den Backend. Bei Erfolg wird der Gast eingeloggt — die
+   Session laeuft genau bis zum Link-Ablauf (max. 36 h). Mehrere Leute
+   koennen parallel aus demselben Link eine Session ziehen.
 6. Ablauf-Bedingungen (einheitlich HTTP 410 Gone):
    - `revoked`   — Admin hat den Link manuell widerrufen
    - `expired`   — TTL abgelaufen
@@ -254,12 +254,14 @@ mit Login als Member genutzt werden.
 - `max_uses` als optionales Nutzungs-Limit: bei versehentlichem Leak
   bleibt der Schaden auf maximal `max_uses` Fremdnutzer begrenzt
 - Admin kann aktive Links jederzeit widerrufen (`revoked_at`) —
-  bestehende 2h-Sessions laufen bis zu ihrem TTL-Ende weiter
+  bestehende Sessions laufen bis zum urspruenglichen Link-Ablauf weiter
 - Guest-User (`role="guest"`) ist **shared per Chor**: ein `User`-Row pro
   Chor mit `username="_guest_<choir_id>"`, wird vom Seed automatisch
   angelegt. Passwort-Login ist fuer diese User hart blockiert.
-- Die Gast-Session-TTL (2 h) ist im Code fix (`GUEST_SESSION_TTL_SECONDS`),
-  nicht in den Settings — Schutz vor versehentlicher Ueberdehnung.
+- Die Gast-Session-TTL entspricht der verbleibenden Link-Laufzeit —
+  damit steuert der Admin ueber die Link-TTL auch die Session-Dauer.
+  Obergrenze: `MAX_LINK_TTL_MINUTES = 36 * 60` im Code (Schutz vor
+  versehentlicher Ueberdehnung).
 
 **UX beim Verlassen (Logout & Session-Ablauf):**
 
@@ -1623,6 +1625,26 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### Gast-Session laeuft nach 2h ab, unabhaengig von der Link-TTL
+
+Der Admin konnte zwar eine Gast-Link-TTL bis 24 h setzen, aber die
+Gast-Session selbst hatte eine hardcoded Obergrenze von 2 h
+(`GUEST_SESSION_TTL_SECONDS = 2 * 3600` in `guest_link_service.py`).
+Folge: Gaeste wurden nach 2 h (bzw. bei kurz gesetzter Link-TTL
+frueher) rausgeworfen, obwohl der Link laut UI noch viel laenger gueltig
+war.
+
+**Fix:**
+
+- Session-TTL = verbleibende Link-Laufzeit bei der Einloesung (im
+  `redeem`-Handler in `backend/api/guest_links.py`).
+- Obergrenze fuer die Link-TTL von 24 h auf 36 h angehoben
+  (`MAX_LINK_TTL_MINUTES = 36 * 60`), Untergrenze auf 1 h
+  (`MIN_LINK_TTL_MINUTES = 60`) — die Admin-UI zeigt die Werte jetzt
+  konsistent in Stunden statt Minuten an.
+- Frontend-Eingabefeld in `GuestLinksPage.tsx` auf Stunden-Einheit
+  umgestellt; intern weiterhin Umrechnung in Minuten fuer die API.
 
 ### Rename von Dateien/Ordnern warf 500 (NameError Favorite)
 

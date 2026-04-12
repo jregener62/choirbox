@@ -33,7 +33,7 @@ export function GuestLinksPage() {
 
   // Create form
   const [label, setLabel] = useState('')
-  const [ttlMinutes, setTtlMinutes] = useState<number | string>(60)
+  const [ttlHours, setTtlHours] = useState<number | string>(1)
   const [limitEnabled, setLimitEnabled] = useState<boolean>(false)
   const [maxUses, setMaxUses] = useState<number>(10)
   const [viewMode, setViewMode] = useState<'songs' | 'texts'>('songs')
@@ -77,7 +77,7 @@ export function GuestLinksPage() {
         method: 'POST',
         body: {
           label: label.trim() || null,
-          ttl_minutes: typeof ttlMinutes === 'number' ? ttlMinutes : 60,
+          ttl_minutes: (typeof ttlHours === 'number' ? ttlHours : 1) * 60,
           max_uses: limitEnabled ? maxUses : null,
           view_mode: viewMode,
         },
@@ -273,22 +273,22 @@ export function GuestLinksPage() {
         </div>
         <div style={{ marginBottom: 10 }}>
           <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            Gueltig fuer (Minuten)
-            {ttlConfig && ` — erlaubt: ${ttlConfig.min_minutes}–${ttlConfig.max_minutes}`}
+            Gueltig fuer (Stunden)
+            {ttlConfig && ` — erlaubt: ${Math.round(ttlConfig.min_minutes / 60)}–${Math.round(ttlConfig.max_minutes / 60)}`}
           </label>
           <input
             type="number"
             className="auth-input"
-            value={ttlMinutes}
-            min={ttlConfig?.min_minutes ?? 15}
-            max={ttlConfig?.max_minutes ?? 1440}
+            value={ttlHours}
+            min={ttlConfig ? Math.round(ttlConfig.min_minutes / 60) : 1}
+            max={ttlConfig ? Math.round(ttlConfig.max_minutes / 60) : 36}
             onChange={(e) => {
               const raw = e.target.value;
-              setTtlMinutes(raw === '' ? '' : parseInt(raw, 10) || '');
+              setTtlHours(raw === '' ? '' : parseInt(raw, 10) || '');
             }}
             onBlur={() => {
-              const n = typeof ttlMinutes === 'number' ? ttlMinutes : parseInt(String(ttlMinutes), 10);
-              setTtlMinutes(isNaN(n) || n < 1 ? 60 : n);
+              const n = typeof ttlHours === 'number' ? ttlHours : parseInt(String(ttlHours), 10);
+              setTtlHours(isNaN(n) || n < 1 ? 1 : n);
             }}
           />
         </div>

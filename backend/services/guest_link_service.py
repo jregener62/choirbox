@@ -33,13 +33,15 @@ from backend.models.choir import Choir
 from backend.models.guest_link import GuestLink
 from backend.models.user import User
 
-# Gast-Session-TTL (2 Stunden) — unabhaengig von der Link-TTL. Fix im
-# Code, nicht in den Settings, weil das ein Sicherheits-Parameter ist.
-GUEST_SESSION_TTL_SECONDS = 2 * 3600
+# Erlaubte TTL-Spanne fuer Guest-Links. Die Gast-Session laeuft jetzt
+# genau bis zum Link-Ablauf (siehe redeem-Handler). Damit kann ein Admin
+# durch Setzen einer kurzen Link-TTL auch die Session-Dauer begrenzen.
+MIN_LINK_TTL_MINUTES = 60
+MAX_LINK_TTL_MINUTES = 36 * 60
 
-# Erlaubte TTL-Spanne fuer Guest-Links (via Settings konfigurierbar).
-MIN_LINK_TTL_MINUTES = 15
-MAX_LINK_TTL_MINUTES = 24 * 60
+# Obergrenze fuer die Gast-Session in Sekunden — identisch mit der Link-
+# max-TTL. Wird vom /ttl-config-Endpoint zurueckgegeben (informativ).
+MAX_GUEST_SESSION_TTL_SECONDS = MAX_LINK_TTL_MINUTES * 60
 
 # Erlaubte Ansichts-Modi fuer Gast-Sessions.
 VALID_VIEW_MODES = {"songs", "texts"}
