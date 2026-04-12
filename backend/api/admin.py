@@ -105,11 +105,31 @@ def delete_user(
     user: User = Depends(require_permission("users.manage")),
     session: Session = Depends(get_session),
 ):
+    from backend.models.favorite import Favorite
+    from backend.models.user_label import UserLabel
+    from backend.models.annotation import Annotation
+    from backend.models.note import Note
+    from backend.models.session_token import SessionToken
+    from backend.models.user_hidden_document import UserHiddenDocument
+    from backend.models.user_chord_preference import UserChordPreference
+    from backend.models.user_selected_document import UserSelectedDocument
+    from backend.models.guest_link import GuestLink
+
     target = session.get(User, user_id)
     if not target or target.choir_id != user.choir_id:
         raise HTTPException(404, "User not found")
     if target.id == user.id:
         raise HTTPException(400, "Cannot delete yourself")
+
+    for model in [
+        Favorite, UserLabel, Annotation, Note, SessionToken,
+        UserHiddenDocument, UserChordPreference, UserSelectedDocument,
+    ]:
+        for row in session.exec(select(model).where(model.user_id == target.id)).all():
+            session.delete(row)
+
+    for link in session.exec(select(GuestLink).where(GuestLink.created_by_user_id == target.id)).all():
+        session.delete(link)
 
     session.delete(target)
     session.commit()
@@ -243,6 +263,9 @@ def delete_choir(choir_id: str, user: User = Depends(require_permission("choirs.
     from backend.models.note import Note
     from backend.models.session_token import SessionToken
     from backend.models.user_hidden_document import UserHiddenDocument
+    from backend.models.user_chord_preference import UserChordPreference
+    from backend.models.user_selected_document import UserSelectedDocument
+    from backend.models.guest_link import GuestLink
     from backend.models.label import Label
     from backend.models.section_preset import SectionPreset
 
@@ -258,9 +281,14 @@ def delete_choir(choir_id: str, user: User = Depends(require_permission("choirs.
 
     # Delete user-dependent records
     if user_ids:
-        for model in [Favorite, UserLabel, Annotation, Note, SessionToken, UserHiddenDocument]:
+        for model in [
+            Favorite, UserLabel, Annotation, Note, SessionToken,
+            UserHiddenDocument, UserChordPreference, UserSelectedDocument,
+        ]:
             for row in session.exec(select(model).where(model.user_id.in_(user_ids))).all():
                 session.delete(row)
+        for link in session.exec(select(GuestLink).where(GuestLink.created_by_user_id.in_(user_ids))).all():
+            session.delete(link)
 
     # Delete users
     for u in choir_users:

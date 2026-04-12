@@ -1626,6 +1626,27 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Nutzer in Admin-UI nicht loeschbar (Internal Server Error)
+
+Das Loeschen von Nutzern mit Favoriten, Labels, Notizen, Annotationen,
+Session-Tokens oder anderen abhaengigen Datensaetzen warf einen 500er
+(Foreign-Key-Constraint), weil `DELETE /api/admin/users/{user_id}` den
+User ohne Aufraeumen der abhaengigen Tabellen loeschen wollte. Dasselbe
+Problem betraf `DELETE /api/admin/choirs/{choir_id}` teilweise
+(`UserChordPreference`, `UserSelectedDocument`, `GuestLink` wurden dort
+nie geloescht).
+
+**Fix:**
+
+- `backend/api/admin.py::delete_user`: Vor dem `session.delete(target)`
+  werden jetzt alle abhaengigen Zeilen in `Favorite`, `UserLabel`,
+  `Annotation`, `Note`, `SessionToken`, `UserHiddenDocument`,
+  `UserChordPreference`, `UserSelectedDocument` und `GuestLink`
+  (als Creator) entfernt.
+- `delete_choir` um die drei fehlenden Modelle erweitert, damit ein
+  Chor mit aktiven Chorleitern/Gast-Links ebenfalls sauber geloescht
+  werden kann.
+
 ### Gast-Session laeuft nach 2h ab, unabhaengig von der Link-TTL
 
 Der Admin konnte zwar eine Gast-Link-TTL bis 24 h setzen, aber die
