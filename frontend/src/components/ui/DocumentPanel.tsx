@@ -123,6 +123,16 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     return () => { useAnnotationStore.getState().flushAll() }
   }, [])
 
+  // Set theme-color to white in fullscreen so iOS Safari safe-area/notch
+  // regions match the viewer background during rotation
+  useEffect(() => {
+    if (!pdfFullscreen) return
+    const meta = document.querySelector('meta[name="theme-color"]')
+    const original = meta?.getAttribute('content') ?? '#1a1a2e'
+    meta?.setAttribute('content', '#ffffff')
+    return () => { meta?.setAttribute('content', original) }
+  }, [pdfFullscreen])
+
   // Toggle body-scroll-fs class
   useEffect(() => {
     if (!bodyScrollFs) {
