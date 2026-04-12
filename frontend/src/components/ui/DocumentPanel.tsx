@@ -82,11 +82,31 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
+  const scrollTargetRef = useRef<HTMLElement | null>(null)
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
+  const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
+
+  // Landscape detection for iOS Safari body-scroll workaround
+  const [isLandscape, setIsLandscape] = useState(
+    () => window.matchMedia('(orientation: landscape)').matches,
+  )
+  useEffect(() => {
+    const mq = window.matchMedia('(orientation: landscape)')
+    const handler = (e: MediaQueryListEvent) => setIsLandscape(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
+  }, [])
+
+  // Body-scroll fullscreen: iOS Safari hides chrome only on body scroll.
+  // In landscape + fullscreen, switch from fixed overlay to body-scroll layout.
+  const canFullscreen = typeof document.fullscreenEnabled === 'boolean'
+    ? document.fullscreenEnabled
+    : !!(document as any).webkitFullscreenEnabled
+  const bodyScrollFs = pdfFullscreen && isLandscape && !canFullscreen
 
   const TEXT_FONT_SIZES = [12, 14, 16, 18, 22, 26, 32]
 
@@ -102,6 +122,35 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   useEffect(() => {
     return () => { useAnnotationStore.getState().flushAll() }
   }, [])
+
+  // Toggle body-scroll-fs class
+  useEffect(() => {
+    if (!bodyScrollFs) {
+      document.body.classList.remove('body-scroll-fs')
+      return
+    }
+    document.body.classList.add('body-scroll-fs')
+    window.scrollTo(0, 0)
+    setShowSwipeHint(true)
+    const onScroll = () => setShowSwipeHint(false)
+    window.addEventListener('scroll', onScroll, { once: true })
+    const timer = setTimeout(() => setShowSwipeHint(false), 6000)
+    return () => {
+      document.body.classList.remove('body-scroll-fs')
+      window.scrollTo(0, 0)
+      window.removeEventListener('scroll', onScroll)
+      clearTimeout(timer)
+      setShowSwipeHint(false)
+    }
+  }, [bodyScrollFs])
+
+  // Keep scrollTargetRef in sync — documentElement in body-scroll, otherwise viewer container.
+  // Runs every render so it stays correct even after viewer ref callbacks overwrite scrollContainerRef.
+  useEffect(() => {
+    scrollTargetRef.current = bodyScrollFs
+      ? document.documentElement
+      : scrollContainerRef.current
+  })
 
   // Auto-fade FAB after 3s in fullscreen
   const resetFadeTimer = useCallback(() => {
@@ -130,7 +179,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
 
   // Manuelles Page up/down im Vollbild — springt einen Viewport (mit kleinem Overlap)
   const handlePageScroll = useCallback((direction: 'up' | 'down') => {
-    const el = scrollContainerRef.current
+    const el = scrollTargetRef.current
     if (!el) return
     const step = Math.max(el.clientHeight - 40, 40)
     el.scrollBy({ top: direction === 'down' ? step : -step, behavior: 'smooth' })
@@ -144,7 +193,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     autoScrollEnabled &&
     (currentPath === null || isPlaying)
   const autoScrollPxPerSec = AUTO_SCROLL_BASE_PX_PER_SEC * AUTO_SCROLL_SPEEDS[autoScrollSpeedIdx]
-  useAutoScroll(scrollContainerRef, autoScrollActive, autoScrollPxPerSec, () => {
+  useAutoScroll(scrollTargetRef, autoScrollActive, autoScrollPxPerSec, () => {
     setAutoScrollEnabled(false)
   })
 
@@ -430,6 +479,13 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
             </svg>
           )}
         </button>
+      )}
+
+      {showSwipeHint && (
+        <div className="swipe-hint">
+          <span className="swipe-hint-arrow">&#8593;</span>
+          Nach oben wischen
+        </div>
       )}
 
       {canUpload && (
