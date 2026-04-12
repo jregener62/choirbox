@@ -382,7 +382,7 @@ Konzert im Juni/           (Container)
 - Dropbox-Ordnerstruktur hierarchisch durchsuchbar
 - Header zeigt den Chor-Namen prominent statt "Dateien"
 - Breadcrumb-Navigation mit Chor-Name als Root und klickbaren Pfadteilen (Endungen gestripped). Innerhalb von `.song`-Ordnern: Zurueck-Button zum Elternordner.
-- **Song Card Header** innerhalb von `.song`-Ordnern: Zeigt Song-Name + Multi-Button-Leiste (gleiche Buttons wie in der Browse-Liste). Aktiver Subfolder wird mit kraeftigerer Hintergrundfuellung + Glow-Schatten + Label-Text hervorgehoben. Inaktive Buttons zeigen nur Icon + Anzahl in dezenter Typ-Farbe und sind klickbar zum Wechseln. Konsistente Darstellung bei 1 oder mehreren Subfoldern.
+- **Song Card Header** innerhalb von `.song`-Ordnern: Zeigt Song-Name + Multi-Button-Leiste (gleiche Buttons wie in der Browse-Liste). **Texte, Audio und Videos werden immer angezeigt** — auch wenn ein Typ leer ist. Leere Typen (Count 0) werden gedimmt (Opacity 0.32, gestrichelter Rahmen) und sind nicht klickbar. Multitrack bleibt konditional und erscheint nur, wenn Dateien vorhanden sind. Aktiver Subfolder wird mit kraeftigerer Hintergrundfuellung + Glow-Schatten + Label-Text hervorgehoben.
 - Zeigt Ordner und Audio-Dateien (MP3, WebM, M4A)
 - Sortierung: Container-Ordner zuerst, dann typisierte Ordner (Song, Texte, Audio), dann Dateien
 - **Card-Layout**: Alle Dateien und .song-Ordner werden als Cards mit Rahmen und Abstand dargestellt
@@ -395,7 +395,7 @@ Konzert im Juni/           (Container)
   - **Zeile 4:** Kommentar (kursiv) — alles aus dem Dateinamen was nicht Voice, Songname oder Section ist
 - **Backend Filename-Parsing**: Metadaten (voice_keys, section_keys, song_name, free_text) werden im Backend geparst und in `audio_meta`-Tabelle gecacht. Lazy Parsing beim Browse, Batch-Parsing beim Re-Sync. Invalidierung bei Label/Preset-Aenderungen.
 - **.song Ordner bekommen zusaetzlich:**
-  - **Multi-Button-Leiste:** Breite, klickbare Buttons fuer Schnellzugriff auf die Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo). Buttons fuellen die Card-Breite (`flex: 1`), zeigen Icon + Dateianzahl, und navigieren direkt in den jeweiligen Unterordner. Die Song-Kachel selbst ist nicht klickbar — Navigation erfolgt ausschliesslich ueber die Multi-Button-Leiste oder das Drei-Punkte-Menu. In der Root-Ansicht ist kein Button als aktiv markiert.
+  - **Multi-Button-Leiste:** Breite, klickbare Buttons fuer Schnellzugriff auf die Unterordner (Audio=Cyan, Videos=Pink, Multitrack=Amber, Texte=Indigo). **Texte, Audio und Videos werden in jeder Song-Kachel immer angezeigt** (auch mit Count 0 und gedimmt/gestrichelt), Multitrack nur bei Vorhandensein. Buttons fuellen die Card-Breite (`flex: 1`), zeigen Icon + Dateianzahl, und navigieren direkt in den jeweiligen Unterordner. Leere Buttons (Count 0) sind `disabled` und loesen keine Navigation aus. Die Song-Kachel selbst ist nicht klickbar — Navigation erfolgt ausschliesslich ueber die Multi-Button-Leiste oder das Drei-Punkte-Menu. In der Root-Ansicht ist kein Button als aktiv markiert.
   - **Labels:** Persoenliche Labels (Schwierig, Ueben etc.) per Swipe zuweisbar
 - Leere Meta-Zeilen werden nicht gerendert (adaptive Hoehe)
 - Stimmen/Instrumente und Abschnitte werden dynamisch aus Labels- und SectionPresets-Store geladen

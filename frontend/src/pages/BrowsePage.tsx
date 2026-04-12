@@ -26,11 +26,38 @@ import { formatDisplayName, formatTime } from '@/utils/formatters.ts'
 import { stripFolderExtension, isReservedName, isSongFolder } from '@/utils/folderTypes.ts'
 import { getFolderTypeConfig } from '@/utils/folderTypeConfig'
 import SkeletonList from '@/components/ui/SkeletonList'
-import type { DropboxEntry } from '@/types/index.ts'
+import type { DropboxEntry, SubFolderInfo, FolderType } from '@/types/index.ts'
 
 interface SearchResponse {
   query: string
   entries: DropboxEntry[]
+}
+
+// Reihenfolge der Typ-Buttons in Song-Kacheln / Song-Card-Header
+const SUB_ORDER: Record<string, number> = { texte: 0, audio: 1, videos: 2, multitrack: 3 }
+// Die drei primaeren Typen werden IMMER angezeigt — auch leer (Count 0 -> gedimmt)
+const PRIMARY_SUB_TYPES: FolderType[] = ['texte', 'audio', 'videos']
+const RESERVED_NAME_BY_TYPE: Record<FolderType, string> = {
+  song: '', texte: 'Texte', audio: 'Audio', videos: 'Videos', multitrack: 'Multitrack',
+}
+
+// Ergaenzt fehlende primaere Typen mit count=0 Platzhaltern.
+// Multitrack bleibt konditional (nur wenn vom Backend geliefert).
+function padPrimarySubFolders(subs: SubFolderInfo[] | undefined, songPath: string): SubFolderInfo[] {
+  const byType = new Map((subs || []).map((s) => [s.type, s]))
+  const result: SubFolderInfo[] = []
+  for (const type of PRIMARY_SUB_TYPES) {
+    const existing = byType.get(type)
+    if (existing) {
+      result.push(existing)
+    } else {
+      const name = RESERVED_NAME_BY_TYPE[type]
+      result.push({ type, name, path: `${songPath}/${name}`, count: 0 })
+    }
+  }
+  const mt = byType.get('multitrack')
+  if (mt) result.push(mt)
+  return result
 }
 
 export function BrowsePage() {
@@ -368,7 +395,7 @@ export function BrowsePage() {
     : null
   // Im Texte-Modus braucht der User die Audio/Video-Tabs nicht —
   // der Segmented-Control wird nur im Song-Modus gezeigt.
-  const showSegmentedControl = isInsideSong && songSubFolders && songSubFolders.length > 0 && !isTexteMode
+  const showSegmentedControl = isInsideSong && !isTexteMode
 
   // Stop player when leaving .song folder
   useEffect(() => {
@@ -687,9 +714,8 @@ export function BrowsePage() {
 
         {/* Song Card with subfolder badges (replaces SegmentedControl) */}
         {!searchOpen && showSegmentedControl && (() => {
-          // Sortierung: Texte zuerst, dann Audio, dann Videos, dann Rest
-          const SUB_ORDER: Record<string, number> = { texte: 0, audio: 1, videos: 2, multitrack: 3 }
-          const sorted = [...songSubFolders].sort(
+          const songPath = '/' + browseSegments.slice(0, songAncestorIdx + 1).join('/')
+          const sorted = padPrimarySubFolders(songSubFolders || [], songPath).sort(
             (a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99)
           )
           return (
@@ -702,11 +728,13 @@ export function BrowsePage() {
                 {sorted.map((sf) => {
                   const config = getFolderTypeConfig(sf.type)
                   const isActive = sf.name.toLowerCase() === activeSubfolderName?.toLowerCase()
+                  const isEmpty = sf.count === 0
                   return (
                     <button
                       key={sf.type}
-                      className={`meta-brick meta-brick--${sf.type}${isActive ? ' meta-brick--active' : ''}`}
+                      className={`meta-brick meta-brick--${sf.type}${isActive ? ' meta-brick--active' : ''}${isEmpty ? ' meta-brick--empty' : ''}`}
                       onClick={() => loadFolder(sf.path)}
+                      disabled={isEmpty}
                     >
                       {createElement(config.icon, { size: 16 })}
                       {isActive && <span className="meta-brick__label">{sf.name}</span>}
@@ -909,8 +937,8 @@ export function BrowsePage() {
                 {/* .song folder: brick row (first sub-line) + user labels */}
                 {entry.folder_type === 'song' && (() => {
                   const songLabels = getLabelsForPath(entry.path).filter((l) => l.category !== 'Stimme')
-                  const SUB_ORDER: Record<string, number> = { texte: 0, audio: 1, videos: 2, multitrack: 3 }
-                  const sortedSubs = [...(entry.sub_folders || [])].sort((a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99))
+                  const paddedSubs = padPrimarySubFolders(entry.sub_folders, entry.path)
+                  const sortedSubs = [...paddedSubs].sort((a, b) => (SUB_ORDER[a.type] ?? 99) - (SUB_ORDER[b.type] ?? 99))
                   const texteSub = sortedSubs.find((sf) => sf.type === 'texte')
                   return (
                     <>
@@ -924,13 +952,15 @@ export function BrowsePage() {
                           <div className="file-meta">Keine Texte</div>
                         )
                       ) : (
-                        /* Song-Modus: meta-bricks wie bisher, sortiert Texte/Audio/Video */
-                        sortedSubs.length > 0 && (
-                          <div className="meta-bricks">
-                            {sortedSubs.map((sf) => (
+                        /* Song-Modus: immer Texte/Audio/Videos — leere Typen gedimmt */
+                        <div className="meta-bricks">
+                          {sortedSubs.map((sf) => {
+                            const isEmpty = sf.count === 0
+                            return (
                               <button
                                 key={sf.type}
-                                className={`meta-brick meta-brick--${sf.type}`}
+                                className={`meta-brick meta-brick--${sf.type}${isEmpty ? ' meta-brick--empty' : ''}`}
+                                disabled={isEmpty}
                                 onClick={(e) => {
                                   e.stopPropagation()
                                   loadFolder(sf.path, false, { fromSearch: searchOpen && searchQuery.length >= 2 })
@@ -939,9 +969,9 @@ export function BrowsePage() {
                                 {createElement(getFolderTypeConfig(sf.type).icon, { size: 16 })}
                                 {sf.count}
                               </button>
-                            ))}
-                          </div>
-                        )
+                            )
+                          })}
+                        </div>
                       )}
                       {songLabels.length > 0 && (
                         <div className="meta-line3">

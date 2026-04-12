@@ -2394,6 +2394,22 @@ body.body-scroll-fs .autoscroll-stepper {
   transform: scale(0.97);
 }
 
+/* Leer (count = 0): gedimmt, gestrichelter Rahmen voll sichtbar, nicht klickbar */
+.meta-brick--empty {
+  opacity: 0.32;
+  cursor: default;
+  border-style: dashed;
+  background: transparent;
+}
+.meta-brick--empty:active {
+  transform: none;
+}
+.meta-brick--texte.meta-brick--empty,
+.meta-brick--doc.meta-brick--empty    { border-color: rgba(99,102,241,0.9); }
+.meta-brick--audio.meta-brick--empty  { border-color: rgba(6,182,212,0.9); }
+.meta-brick--videos.meta-brick--empty { border-color: rgba(217,70,239,0.9); }
+.meta-brick--multitrack.meta-brick--empty { border-color: rgba(245,158,11,0.9); }
+
 .meta-brick--doc,
 .meta-brick--texte {
   background: rgba(99,102,241,0.08);
