@@ -1,4 +1,4 @@
-const CACHE_NAME = 'choirbox-v2'
+const CACHE_NAME = 'choirbox-v3'
 const SHARE_CACHE = 'share-target-files'
 const ACCEPTED_EXT = /\.(mp3|m4a|ogg|opus|webm|wav|mid|midi|pdf|txt)$/i
 
@@ -66,7 +66,11 @@ self.addEventListener('fetch', (event) => {
     return
   }
 
-  // API-Calls und Audio-Streams nie cachen
+  // Cross-Origin (z.B. Dropbox-CDN fuer Audio-Streams) komplett am SW
+  // vorbeilassen — Range-Requests fuer HTML5-Audio brechen sonst.
+  if (new URL(request.url).origin !== self.location.origin) return
+
+  // API-Calls nie cachen
   if (request.url.includes('/api/')) return
 
   event.respondWith(

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ChevronLeft, Copy, Trash2, Plus, Check } from 'lucide-react'
+import { QRCodeSVG } from 'qrcode.react'
 
 import { api } from '@/api/client.ts'
 import type {
@@ -205,6 +206,22 @@ export function GuestLinksPage() {
             }}
           >
             {absoluteRedeemUrl(freshLink.redeem_path)}
+          </div>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'center',
+              padding: '12px 0',
+              marginBottom: 8,
+              background: '#fff',
+              borderRadius: 6,
+            }}
+          >
+            <QRCodeSVG
+              value={absoluteRedeemUrl(freshLink.redeem_path)}
+              size={200}
+              level="M"
+            />
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button
