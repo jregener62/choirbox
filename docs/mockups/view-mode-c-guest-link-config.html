@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ansichtsmodus C — Guest-Link-Erstellung mit Ansichtswahl</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; max-width: 390px; margin: 0 auto;
+         -webkit-font-smoothing: antialiased; }
+
+  .theme-toggle { position: fixed; top: 8px; right: 8px; z-index: 100; background: rgba(128,128,128,0.3);
+    border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .scene-toggle { position: fixed; top: 8px; left: 8px; z-index: 100; display: flex; gap: 4px; }
+  .scene-btn { background: rgba(128,128,128,0.3); border: none; color: white; padding: 6px 10px;
+    border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; }
+  .scene-btn.active { background: rgba(129,140,248,0.6); }
+
+  :root {
+    --bg-primary: #1E2538; --bg-secondary: #2A3348; --bg-tertiary: #354050;
+    --text-primary: #E4E8EE; --text-secondary: #9AA4B4; --text-muted: #6A7484;
+    --border: rgba(148,163,184,0.10); --accent: #818cf8;
+    --color-texte: rgba(129,140,248,0.85);
+  }
+  .light {
+    --bg-primary: #EEF0F4; --bg-secondary: #E2E5EC; --bg-tertiary: #D6DAE2;
+    --text-primary: #1A1F2E; --text-secondary: #5A6170; --text-muted: #8A90A0;
+    --border: rgba(0,0,0,0.07); --accent: #6366f1;
+  }
+
+  body { background: var(--bg-primary); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar { display: flex; align-items: center; padding: 4px 12px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); min-height: 40px; gap: 8px; }
+  .topbar-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px;
+    display: flex; align-items: center; }
+  .topbar-title { font-size: 16px; font-weight: 600; flex: 1; }
+
+  .scene { display: none; }
+  .scene.active { display: contents; }
+
+  /* === Form === */
+  .form-section { padding: 16px; }
+  .form-card { background: var(--bg-secondary); border: 1px solid var(--border); border-radius: 10px;
+    padding: 14px; margin-bottom: 12px; }
+  .form-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+
+  .field { margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field-label { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; display: block; }
+  .field-input { width: 100%; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-tertiary); color: var(--text-primary); font-size: 14px; font-family: inherit;
+    outline: none; }
+  .field-input:focus { border-color: var(--accent); }
+  .field-hint { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+
+  /* Radio-Cards fuer Ansichtswahl (Kern-Element dieses Mockups) */
+  .radio-cards { display: flex; flex-direction: column; gap: 8px; }
+  .radio-card { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border-radius: 8px;
+    border: 2px solid var(--border); background: var(--bg-tertiary); cursor: pointer;
+    transition: border-color 0.15s ease; }
+  .radio-card:active { background: var(--bg-secondary); }
+  .radio-card.selected { border-color: var(--accent); }
+  .radio-dot { width: 18px; height: 18px; border-radius: 50%; border: 2px solid var(--text-muted);
+    flex-shrink: 0; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+  .radio-card.selected .radio-dot { border-color: var(--accent); }
+  .radio-dot::after { content: ''; width: 10px; height: 10px; border-radius: 50%;
+    background: transparent; }
+  .radio-card.selected .radio-dot::after { background: var(--accent); }
+  .radio-card__content { flex: 1; }
+  .radio-card__title { font-size: 14px; font-weight: 600; display: flex; align-items: center; gap: 6px; }
+  .radio-card__desc { font-size: 12px; color: var(--text-muted); margin-top: 4px; line-height: 1.4; }
+  .radio-card__icon { color: var(--text-muted); flex-shrink: 0; }
+  .radio-card.selected .radio-card__icon { color: var(--accent); }
+
+  /* Submit-Button */
+  .btn-primary { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--accent);
+    color: white; font-size: 14px; font-weight: 600; font-family: inherit; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-primary:active { opacity: 0.8; }
+
+  /* Checkbox-Row */
+  .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .checkbox-row input[type="checkbox"] { width: 16px; height: 16px; accent-color: var(--accent); }
+  .checkbox-row span { font-size: 12px; color: var(--text-muted); }
+
+  /* Fresh-Link-Banner */
+  .link-banner { margin: 16px; padding: 14px; border-radius: 10px; border: 1px solid var(--accent);
+    background: var(--bg-secondary); }
+  .link-banner__label { font-size: 12px; color: var(--text-muted); margin-bottom: 6px; }
+  .link-banner__url { font-family: 'Courier New', monospace; font-size: 12px; word-break: break-all;
+    padding: 8px 10px; background: var(--bg-primary); border-radius: 6px; margin-bottom: 8px; line-height: 1.5; }
+  .link-banner__meta { font-size: 11px; color: var(--text-muted); margin-top: 8px; line-height: 1.5; }
+  .link-banner__meta strong { color: var(--color-texte); }
+
+  .hint { margin: 0 16px 12px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-secondary); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .hint strong { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="document.body.classList.toggle('light')">Theme</button>
+<div class="scene-toggle">
+  <button class="scene-btn active" onclick="showScene('form')">Link erstellen</button>
+  <button class="scene-btn" onclick="showScene('result')">Nach Erstellung</button>
+</div>
+
+<!-- ==================== SCENE 1: FORM ==================== -->
+<div class="scene active" id="scene-form">
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></button>
+    <div class="topbar-title">Gast-Zugang erstellen</div>
+  </div>
+
+  <div class="form-section">
+    <div class="form-card">
+      <div class="form-title">Link-Details</div>
+
+      <div class="field">
+        <label class="field-label">Beschreibung (optional)</label>
+        <input class="field-input" type="text" placeholder="z.B. Liederabend Oktober" value="Jam-Session Freitag">
+      </div>
+
+      <div class="field">
+        <label class="field-label">Gueltig fuer (Minuten) — 15 bis 1440</label>
+        <input class="field-input" type="number" value="120">
+      </div>
+
+      <div class="field">
+        <label class="checkbox-row">
+          <input type="checkbox" checked>
+          <span>Einloesungen begrenzen</span>
+        </label>
+        <input class="field-input" type="number" value="15" style="margin-top: 6px">
+      </div>
+    </div>
+
+    <!-- ANSICHTSWAHL: Kern-Element dieses Mockups -->
+    <div class="form-card">
+      <div class="form-title">Gaeste sehen</div>
+      <div class="radio-cards">
+        <div class="radio-card" onclick="selectRadio(this)">
+          <div class="radio-dot"></div>
+          <div class="radio-card__content">
+            <div class="radio-card__title">
+              <i data-lucide="music" style="width:16px;height:16px"></i>
+              Alles (Songs + Audio)
+            </div>
+            <div class="radio-card__desc">
+              Voller Zugang auf Song-Ordner mit Audio-Dateien, Texten und Videos. Wie fuer Chormitglieder, nur ohne Schreibrechte.
+            </div>
+          </div>
+        </div>
+
+        <div class="radio-card selected" onclick="selectRadio(this)">
+          <div class="radio-dot"></div>
+          <div class="radio-card__content">
+            <div class="radio-card__title">
+              <i data-lucide="file-text" style="width:16px;height:16px"></i>
+              Nur Texte
+            </div>
+            <div class="radio-card__desc">
+              Nur Texte, Chord-Sheets und PDFs — kein Audio-Zugriff. Ideal fuer Jam-Sessions, Probenbesuche, Liederblaetter.
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" onclick="showScene('result')">
+      <i data-lucide="plus" style="width:16px;height:16px"></i>
+      Link erzeugen
+    </button>
+  </div>
+</div>
+
+<!-- ==================== SCENE 2: NACH ERSTELLUNG ==================== -->
+<div class="scene" id="scene-result">
+  <div class="topbar">
+    <button class="topbar-btn" onclick="showScene('form')"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></button>
+    <div class="topbar-title">Gast-Zugaenge</div>
+  </div>
+
+  <div class="link-banner">
+    <div class="link-banner__label">Neuer Gast-Link — nur jetzt sichtbar:</div>
+    <div class="link-banner__url">https://cantabox.de/#/guest/Abc12xYz...</div>
+    <button class="btn-primary">
+      <i data-lucide="copy" style="width:14px;height:14px"></i>
+      Kopieren
+    </button>
+    <div class="link-banner__meta">
+      Gueltig bis 12.04.26, 22:00 · max. 15 Einloesungen<br>
+      Ansicht: <strong>Nur Texte</strong>
+    </div>
+  </div>
+
+  <div class="hint">
+    <strong>Was passiert:</strong> Wer diesen Link oeffnet, bekommt eine 2-Stunden-Gast-Session mit Zugang zu allen Texten und Chord-Sheets — aber ohne Audio-Dateien. Der Link kann bis zu 15 Mal eingeloest werden.
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  function showScene(name) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    document.querySelectorAll('.scene-btn').forEach((b, i) => {
+      b.classList.toggle('active', (name === 'form' && i === 0) || (name === 'result' && i === 1));
+    });
+    lucide.createIcons();
+  }
+  function selectRadio(el) {
+    el.closest('.radio-cards').querySelectorAll('.radio-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+</script>
+</body>
+</html>

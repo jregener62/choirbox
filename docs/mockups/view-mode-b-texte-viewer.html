@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ansichtsmodus B — Texte-Root: Song antippen = direkt im Viewer</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; max-width: 390px; margin: 0 auto;
+         -webkit-font-smoothing: antialiased; }
+
+  .theme-toggle { position: fixed; top: 8px; right: 8px; z-index: 100; background: rgba(128,128,128,0.3);
+    border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .scene-toggle { position: fixed; top: 8px; left: 8px; z-index: 100; display: flex; gap: 4px; }
+  .scene-btn { background: rgba(128,128,128,0.3); border: none; color: white; padding: 6px 10px;
+    border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; }
+  .scene-btn.active { background: rgba(129,140,248,0.6); }
+
+  :root {
+    --bg-primary: #1E2538; --bg-secondary: #2A3348; --bg-tertiary: #354050;
+    --text-primary: #E4E8EE; --text-secondary: #9AA4B4; --text-muted: #6A7484;
+    --border: rgba(148,163,184,0.10); --accent: #818cf8;
+    --color-texte: rgba(129,140,248,0.85);
+  }
+  .light {
+    --bg-primary: #EEF0F4; --bg-secondary: #E2E5EC; --bg-tertiary: #D6DAE2;
+    --text-primary: #1A1F2E; --text-secondary: #5A6170; --text-muted: #8A90A0;
+    --border: rgba(0,0,0,0.07); --accent: #6366f1;
+  }
+
+  body { background: var(--bg-primary); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar { display: flex; align-items: center; padding: 4px 12px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); min-height: 40px; gap: 4px; }
+  .topbar-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px;
+    display: flex; align-items: center; }
+
+  .scene { display: none; }
+  .scene.active { display: contents; }
+
+  /* === Texte-Liste === */
+  .browse-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 20px; }
+  .file-list { list-style: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px; }
+  .file-list > li { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+  .file-item { display: flex; align-items: center; padding: 12px 14px; gap: 12px; background: var(--bg-secondary);
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .file-item:active { background: var(--bg-tertiary); }
+  .file-item.selected { border-left: 3px solid var(--accent); }
+  .file-icon { flex-shrink: 0; color: var(--color-texte); display: flex; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Mode-Toggle */
+  .mode-toggle { display: flex; background: var(--bg-tertiary); border-radius: 8px; padding: 2px; gap: 2px; }
+  .mode-toggle__btn { display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border: none; border-radius: 6px;
+    font-size: 12px; font-family: inherit; font-weight: 500;
+    cursor: pointer; background: transparent; color: var(--text-muted); }
+  .mode-toggle__btn.active { background: var(--accent); color: white; }
+
+  /* === Viewer-Bereich (nach Antippen eines Songs) === */
+  .viewer-header { padding: 10px 16px; background: var(--bg-secondary); border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px; }
+  .viewer-header__back { background: none; border: none; color: var(--accent); cursor: pointer; padding: 4px;
+    display: flex; align-items: center; }
+  .viewer-header__title { font-size: 16px; font-weight: 600; flex: 1; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; }
+
+  /* Doc-Tabs: Wenn mehrere Texte, horizontal scrollbar */
+  .doc-tabs { display: flex; gap: 2px; padding: 8px 16px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .doc-tab { padding: 6px 12px; border-radius: 6px; font-size: 12px; font-weight: 500;
+    border: none; background: transparent; color: var(--text-muted); cursor: pointer;
+    white-space: nowrap; font-family: inherit; }
+  .doc-tab.active { background: var(--accent); color: white; }
+
+  /* Chord-Sheet Preview */
+  .chord-preview { padding: 16px; font-family: 'Courier New', monospace; font-size: 14px;
+    line-height: 2.2; color: var(--text-primary); flex: 1; overflow-y: auto; }
+  .chord-preview .chord { color: var(--accent); font-weight: 600; }
+  .chord-preview .section { color: var(--color-texte); font-size: 12px; font-weight: 600;
+    margin-top: 16px; margin-bottom: 4px; display: block; }
+  .chord-preview .line { display: block; }
+
+  /* Transpose-Stepper */
+  .transpose { display: flex; align-items: center; gap: 8px; padding: 8px 16px;
+    background: var(--bg-secondary); border-bottom: 1px solid var(--border); }
+  .transpose__label { font-size: 12px; color: var(--text-muted); }
+  .transpose__value { font-size: 14px; font-weight: 600; min-width: 32px; text-align: center; }
+  .transpose__btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+    background: var(--bg-tertiary); color: var(--text-primary); font-size: 16px; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; }
+
+  .hint { margin: 12px 16px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-secondary); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .hint strong { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="document.body.classList.toggle('light')">Theme</button>
+<div class="scene-toggle">
+  <button class="scene-btn active" onclick="showScene('list')">Texte-Liste</button>
+  <button class="scene-btn" onclick="showScene('viewer')">Nach Antippen</button>
+</div>
+
+<!-- ==================== SCENE 1: TEXTE-LISTE ==================== -->
+<div class="scene active" id="scene-list">
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="refresh-cw" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="log-out" style="width:18px;height:18px"></i></button>
+    <span style="font-size:11px;color:var(--text-muted);padding:0 4px">bis 21:45</span>
+    <div class="mode-toggle" style="margin: 0 auto;">
+      <button class="mode-toggle__btn"><i data-lucide="music" style="width:14px;height:14px"></i> Songs</button>
+      <button class="mode-toggle__btn active"><i data-lucide="file-text" style="width:14px;height:14px"></i> Texte</button>
+    </div>
+    <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <div class="hint">
+    <strong>Gast-Ansicht (Texte-Modus):</strong> Ein Tipp oeffnet direkt den Text — kein Umweg ueber Song-Ordner. Audio nicht sichtbar. Logout + Session-Ablauf oben links.
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item" onclick="showScene('viewer')">
+        <div class="file-icon"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Amazing Grace</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Hallelujah (Cohen)</div>
+          <div class="file-meta" style="color:var(--color-texte)">1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bridge Over Troubled Water</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 2 PDFs</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Fields of Gold</div>
+          <div class="file-meta" style="color:var(--color-texte)">1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bohemian Rhapsody</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+    </ul>
+  </div>
+</div>
+
+<!-- ==================== SCENE 2: VIEWER (nach Antippen) ==================== -->
+<div class="scene" id="scene-viewer">
+  <div class="viewer-header">
+    <button class="viewer-header__back" onclick="showScene('list')">
+      <i data-lucide="chevron-left" style="width:20px;height:20px"></i>
+    </button>
+    <div class="viewer-header__title">Amazing Grace</div>
+  </div>
+
+  <!-- Wenn mehrere Dokumente: Tab-Leiste -->
+  <div class="doc-tabs">
+    <button class="doc-tab active">Amazing Grace.cho</button>
+    <button class="doc-tab">Noten (Sopran).pdf</button>
+  </div>
+
+  <!-- Transpose -->
+  <div class="transpose">
+    <span class="transpose__label">Transposition</span>
+    <button class="transpose__btn">-</button>
+    <span class="transpose__value">0</span>
+    <button class="transpose__btn">+</button>
+  </div>
+
+  <!-- Chord-Sheet Inhalt -->
+  <div class="chord-preview">
+    <span class="section">[Strophe 1]</span>
+    <span class="line"><span class="chord">G</span>Amazing <span class="chord">C</span>Grace, how <span class="chord">G</span>sweet the sound</span>
+    <span class="line">That <span class="chord">Em</span>saved a <span class="chord">D</span>wretch like <span class="chord">G</span>me</span>
+    <span class="line">I <span class="chord">G</span>once was <span class="chord">C</span>lost, but <span class="chord">G</span>now am found</span>
+    <span class="line">Was <span class="chord">Em</span>blind but <span class="chord">D</span>now I <span class="chord">G</span>see</span>
+
+    <span class="section">[Strophe 2]</span>
+    <span class="line"><span class="chord">G</span>'Twas <span class="chord">C</span>grace that <span class="chord">G</span>taught my heart to fear</span>
+    <span class="line">And <span class="chord">Em</span>grace my <span class="chord">D</span>fears re<span class="chord">G</span>lieved</span>
+    <span class="line">How <span class="chord">G</span>precious <span class="chord">C</span>did that <span class="chord">G</span>grace appear</span>
+    <span class="line">The <span class="chord">Em</span>hour I <span class="chord">D</span>first be<span class="chord">G</span>lieved</span>
+
+    <span class="section">[Refrain]</span>
+    <span class="line"><span class="chord">C</span>Through many <span class="chord">G</span>dangers, toils and snares</span>
+    <span class="line">I <span class="chord">Em</span>have al<span class="chord">D</span>ready <span class="chord">G</span>come</span>
+  </div>
+</div>
+
+<script>
+  lucide.createIcons();
+  function showScene(name) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    document.querySelectorAll('.scene-btn').forEach((b, i) => {
+      b.classList.toggle('active', (name === 'list' && i === 0) || (name === 'viewer' && i === 1));
+    });
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>

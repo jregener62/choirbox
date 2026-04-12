@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ansichtsmodus A — Toggle Song/Texte im Header</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; max-width: 390px; margin: 0 auto;
+         -webkit-font-smoothing: antialiased; }
+
+  .theme-toggle { position: fixed; top: 8px; right: 8px; z-index: 100; background: rgba(128,128,128,0.3);
+    border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .scene-toggle { position: fixed; top: 8px; left: 8px; z-index: 100; display: flex; gap: 4px; }
+  .scene-btn { background: rgba(128,128,128,0.3); border: none; color: white; padding: 6px 10px;
+    border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; }
+  .scene-btn.active { background: rgba(129,140,248,0.6); }
+
+  :root {
+    --bg-primary: #1E2538; --bg-secondary: #2A3348; --bg-tertiary: #354050;
+    --text-primary: #E4E8EE; --text-secondary: #9AA4B4; --text-muted: #6A7484;
+    --border: rgba(148,163,184,0.10); --accent: #818cf8;
+    --color-texte: rgba(129,140,248,0.85); --color-audio: rgba(6,182,212,0.85);
+    --color-song: rgba(129,140,248,0.6);
+  }
+  .light {
+    --bg-primary: #EEF0F4; --bg-secondary: #E2E5EC; --bg-tertiary: #D6DAE2;
+    --text-primary: #1A1F2E; --text-secondary: #5A6170; --text-muted: #8A90A0;
+    --border: rgba(0,0,0,0.07); --accent: #6366f1;
+  }
+
+  body { background: var(--bg-primary); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; }
+
+  .topbar { display: flex; align-items: center; padding: 4px 12px; background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); min-height: 40px; gap: 4px; }
+  .topbar-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; padding: 8px;
+    display: flex; align-items: center; }
+
+  /* === Mode-Toggle (Kern-Element dieses Mockups) === */
+  .mode-toggle {
+    display: flex;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    padding: 2px;
+    gap: 2px;
+  }
+  .mode-toggle__btn {
+    display: flex; align-items: center; gap: 5px;
+    padding: 5px 10px; border: none; border-radius: 6px;
+    font-size: 12px; font-family: inherit; font-weight: 500;
+    cursor: pointer; background: transparent; color: var(--text-muted);
+    transition: all 0.15s ease;
+  }
+  .mode-toggle__btn.active {
+    background: var(--accent);
+    color: white;
+  }
+
+  /* === Content === */
+  .browse-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+  .scene { display: none; }
+  .scene.active { display: contents; }
+
+  .file-list { list-style: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px; }
+  .file-list > li { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+  .file-item { display: flex; align-items: center; padding: 12px 14px; gap: 12px; background: var(--bg-secondary);
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .file-item:active { background: var(--bg-tertiary); }
+  .file-icon { flex-shrink: 0; color: var(--accent); display: flex; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  /* Sub-Folder-Badges */
+  .sub-badges { display: flex; gap: 4px; margin-top: 6px; }
+  .sub-badge { display: flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; background: rgba(148,163,184,0.08); color: var(--text-secondary); }
+  .sub-badge--texte { color: var(--color-texte); }
+  .sub-badge--audio { color: var(--color-audio); }
+
+  /* Texte-Modus: Song-Eintrag mit direktem Dokument-Hinweis */
+  .file-item--texte .file-meta { color: var(--color-texte); }
+  .doc-preview { display: flex; align-items: center; gap: 4px; margin-top: 4px;
+    font-size: 11px; color: var(--text-muted); }
+  .doc-preview i { width: 12px; height: 12px; }
+
+  /* Hint-Box */
+  .hint { margin: 12px 16px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-secondary); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .hint strong { color: var(--text-secondary); }
+
+  /* Mini-Player (nur Song-Modus) */
+  .mini-player { position: fixed; bottom: 0; left: 0; right: 0; max-width: 390px; margin: 0 auto;
+    background: var(--bg-secondary); border-top: 1px solid var(--border); padding: 8px 16px;
+    display: flex; align-items: center; gap: 12px; }
+  .mini-player__info { flex: 1; font-size: 13px; }
+  .mini-player__name { font-weight: 500; }
+  .mini-player__artist { font-size: 11px; color: var(--text-muted); }
+  .mini-player .topbar-btn { padding: 4px; }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="document.body.classList.toggle('light')">Theme</button>
+<div class="scene-toggle">
+  <button class="scene-btn active" onclick="showScene('song')">Song-Modus</button>
+  <button class="scene-btn" onclick="showScene('texte')">Texte-Modus</button>
+</div>
+
+<!-- ==================== SCENE 1: SONG-MODUS ==================== -->
+<div class="scene active" id="scene-song">
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="refresh-cw" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="settings" style="width:18px;height:18px"></i></button>
+
+    <!-- MODE-TOGGLE: Song aktiv -->
+    <div class="mode-toggle" style="margin: 0 auto;">
+      <button class="mode-toggle__btn active">
+        <i data-lucide="music" style="width:14px;height:14px"></i> Songs
+      </button>
+      <button class="mode-toggle__btn" onclick="showScene('texte')">
+        <i data-lucide="file-text" style="width:14px;height:14px"></i> Texte
+      </button>
+    </div>
+
+    <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <div class="hint">
+    <strong>Song-Modus:</strong> Alle Song-Ordner mit Audio, Texten und Videos. Wie bisher.
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Amazing Grace</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 4</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 2</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Hallelujah (Cohen)</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 6</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 1</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bridge Over Troubled Water</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 3</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 3</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Fields of Gold</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 5</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 1</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bohemian Rhapsody</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 8</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 2</span>
+          </div>
+        </div>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- Mini-Player nur im Song-Modus -->
+  <div class="mini-player">
+    <button class="topbar-btn"><i data-lucide="play" style="width:20px;height:20px"></i></button>
+    <div class="mini-player__info">
+      <div class="mini-player__name">Hallelujah — Tenor</div>
+      <div class="mini-player__artist">0:00 / 4:23</div>
+    </div>
+    <button class="topbar-btn"><i data-lucide="chevron-up" style="width:20px;height:20px"></i></button>
+  </div>
+</div>
+
+<!-- ==================== SCENE 2: TEXTE-MODUS ==================== -->
+<div class="scene" id="scene-texte">
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="refresh-cw" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="settings" style="width:18px;height:18px"></i></button>
+
+    <!-- MODE-TOGGLE: Texte aktiv -->
+    <div class="mode-toggle" style="margin: 0 auto;">
+      <button class="mode-toggle__btn" onclick="showScene('song')">
+        <i data-lucide="music" style="width:14px;height:14px"></i> Songs
+      </button>
+      <button class="mode-toggle__btn active">
+        <i data-lucide="file-text" style="width:14px;height:14px"></i> Texte
+      </button>
+    </div>
+
+    <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <div class="hint">
+    <strong>Texte-Modus:</strong> Zeigt alle Songs, aber Tippen oeffnet direkt den Text/Chord-Sheet — kein Umweg ueber den Song-Ordner. Audio ist ausgeblendet.
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item file-item--texte">
+        <div class="file-icon" style="color: var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Amazing Grace</div>
+          <div class="doc-preview">
+            <i data-lucide="music" style="width:10px;height:10px;color:var(--color-texte)"></i>
+            <span>Amazing Grace.cho</span>
+            <span style="margin-left: 4px; opacity: 0.5">+ 1 PDF</span>
+          </div>
+        </div>
+        <div class="topbar-btn" style="color: var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item file-item--texte">
+        <div class="file-icon" style="color: var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Hallelujah (Cohen)</div>
+          <div class="doc-preview">
+            <i data-lucide="file-text" style="width:10px;height:10px;color:var(--color-texte)"></i>
+            <span>Hallelujah.pdf</span>
+          </div>
+        </div>
+        <div class="topbar-btn" style="color: var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item file-item--texte">
+        <div class="file-icon" style="color: var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bridge Over Troubled Water</div>
+          <div class="doc-preview">
+            <i data-lucide="music" style="width:10px;height:10px;color:var(--color-texte)"></i>
+            <span>Bridge.cho</span>
+            <span style="margin-left: 4px; opacity: 0.5">+ 2 PDFs</span>
+          </div>
+        </div>
+        <div class="topbar-btn" style="color: var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item file-item--texte">
+        <div class="file-icon" style="color: var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Fields of Gold</div>
+          <div class="doc-preview">
+            <i data-lucide="file-text" style="width:10px;height:10px;color:var(--color-texte)"></i>
+            <span>Fields of Gold.pdf</span>
+          </div>
+        </div>
+        <div class="topbar-btn" style="color: var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item file-item--texte">
+        <div class="file-icon" style="color: var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bohemian Rhapsody</div>
+          <div class="doc-preview">
+            <i data-lucide="music" style="width:10px;height:10px;color:var(--color-texte)"></i>
+            <span>Bohemian.cho</span>
+            <span style="margin-left: 4px; opacity: 0.5">+ 1 PDF</span>
+          </div>
+        </div>
+        <div class="topbar-btn" style="color: var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+    </ul>
+  </div>
+
+  <!-- KEIN Mini-Player im Texte-Modus (fuer Gaeste) -->
+</div>
+
+<script>
+  lucide.createIcons();
+  function showScene(name) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+    event.target.classList.add('active');
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>
