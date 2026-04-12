@@ -5,7 +5,7 @@ import { useViewModeStore } from '@/stores/viewModeStore'
 
 const STORAGE_PREFIX = 'choirbox_'
 const EXPIRES_KEY = `${STORAGE_PREFIX}session_expires_at`
-const GUEST_EXPIRED_FLAG = `${STORAGE_PREFIX}guest_session_expired`
+const GUEST_GOODBYE_FLAG = `${STORAGE_PREFIX}guest_goodbye`
 
 interface GuestRedeemApiResponse extends LoginResponse {
   /** Seconds until the guest session expires (~7200 = 2h). */
@@ -32,7 +32,7 @@ function loadStoredSession(): {
           // Already expired at app start? Drop the whole session.
           if (d.getTime() < Date.now()) {
             clearStoredSession()
-            sessionStorage.setItem(GUEST_EXPIRED_FLAG, '1')
+            sessionStorage.setItem(GUEST_GOODBYE_FLAG, '1')
             return { token: null, user: null, sessionExpiresAt: null }
           }
           expires = d
@@ -69,8 +69,7 @@ interface AuthState {
   redeemGuestLink: (token: string) => Promise<void>
   logout: () => void
   /** Wird von api/client.ts bei 401 fuer Gaeste aufgerufen. Setzt
-   *  zusaetzlich zum Logout das `guest_session_expired`-Flag im
-   *  sessionStorage, damit der AuthGuard zur /guest-expired-Seite
+   *  das Goodbye-Flag, damit der AuthGuard zur /guest-goodbye-Seite
    *  statt zu /login redirected. */
   expireGuestSession: () => void
   restoreSession: () => void
@@ -147,9 +146,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       localStorage.removeItem(EXPIRES_KEY)
     }
     // Eine frische Session — altes "expired"-Flag wegraeumen, sonst
-    // wuerde der AuthGuard den Gast direkt wieder auf /guest-expired
+    // wuerde der AuthGuard den Gast direkt wieder auf /guest-goodbye
     // schicken.
-    sessionStorage.removeItem(GUEST_EXPIRED_FLAG)
+    sessionStorage.removeItem(GUEST_GOODBYE_FLAG)
     set({ token: data.token, user: data.user, sessionExpiresAt: expiresAt })
     void usePolicyStore.getState().loadPolicy()
     // Ansichts-Modus aus dem Link uebernehmen und sperren.
@@ -158,6 +157,8 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   logout: () => {
+    const { user } = useAuthStore.getState()
+    const isGuest = user?.role === 'guest'
     const token = localStorage.getItem(`${STORAGE_PREFIX}token`)
     if (token) {
       fetch('/api/auth/logout', {
@@ -166,6 +167,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       }).catch(() => {})
     }
     clearStoredSession()
+    if (isGuest) {
+      try { sessionStorage.setItem(GUEST_GOODBYE_FLAG, '1') } catch { /* ignore */ }
+    }
     set({ token: null, user: null, sessionExpiresAt: null })
     usePolicyStore.getState().clear()
     useViewModeStore.getState().reset()
@@ -177,7 +181,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     // redirected statt zur Login-Seite.
     clearStoredSession()
     try {
-      sessionStorage.setItem(GUEST_EXPIRED_FLAG, '1')
+      sessionStorage.setItem(GUEST_GOODBYE_FLAG, '1')
     } catch {
       /* ignore */
     }
@@ -195,14 +199,13 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 }))
 
-/** Public helper: True if the AuthGuard should redirect an unauthenticated
- *  user to the guest-expired page instead of /login. Cleared on mount of
- *  the expired page. */
-export function consumeGuestExpiredFlag(): boolean {
-  const raw = sessionStorage.getItem(GUEST_EXPIRED_FLAG)
+/** True if the AuthGuard should redirect to the guest goodbye page
+ *  instead of /login (after logout or session expiry). */
+export function consumeGuestGoodbyeFlag(): boolean {
+  const raw = sessionStorage.getItem(GUEST_GOODBYE_FLAG)
   return raw === '1'
 }
 
-export function clearGuestExpiredFlag(): void {
-  sessionStorage.removeItem(GUEST_EXPIRED_FLAG)
+export function clearGuestGoodbyeFlag(): void {
+  sessionStorage.removeItem(GUEST_GOODBYE_FLAG)
 }

@@ -261,16 +261,14 @@ mit Login als Member genutzt werden.
 - Die Gast-Session-TTL (2 h) ist im Code fix (`GUEST_SESSION_TTL_SECONDS`),
   nicht in den Settings — Schutz vor versehentlicher Ueberdehnung.
 
-**UX fuer abgelaufene Gast-Sessions:**
+**UX beim Verlassen (Logout & Session-Ablauf):**
 
-- Wenn eine Gast-Session 401 liefert (Session beim Server weg), landet
-  der Gast auf einer eigenen Seite `/#/guest-expired` mit klarem Hinweis,
-  dass er einen neuen Link vom Chor-Admin braucht. Die Login-Seite wird
-  fuer Gaeste nicht angezeigt, weil sie dort ohne Passwort nichts tun
-  koennen.
-- Intern: `api/client.ts` prueft bei 401 die Rolle des Users; wenn Gast,
-  wird `expireGuestSession()` statt des normalen `logout()` aufgerufen.
-  Dieses setzt ein `guest_session_expired`-Flag im sessionStorage, das
+- Gaeste sehen nach dem Logout oder Session-Ablauf eine freundliche
+  Goodbye-Seite (`/#/guest-goodbye`) statt der Login-Seite, die fuer
+  Gaeste ohne Passwort sinnlos waere.
+- Intern: Bei 401 prueft `api/client.ts` die Rolle; bei Gaesten wird
+  `expireGuestSession()` aufgerufen. Beim aktiven Logout setzt `logout()`
+  fuer Gaeste ebenfalls das `guest_goodbye`-Flag im sessionStorage, das
   der `AuthGuard` beim naechsten Render konsumiert.
 - Der `BrowsePage`-Header zeigt fuer Gaeste neben dem Logout-Icon die
   **Uhrzeit** (nicht den Countdown), zu der die Session automatisch

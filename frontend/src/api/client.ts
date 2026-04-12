@@ -22,9 +22,8 @@ export async function apiUpload<T = unknown>(
     })
 
     if (response.status === 401 && token) {
-      // Gaeste landen auf /guest-expired mit einer freundlichen Meldung,
-      // statt auf /login (wo sie kein Passwort haben, um sich neu
-      // einzuloggen).
+      // Gaeste landen auf /guest-goodbye mit einer freundlichen Meldung,
+      // statt auf /login (wo sie kein Passwort haben).
       const role = useAuthStore.getState().user?.role
       if (role === 'guest') {
         useAuthStore.getState().expireGuestSession()
@@ -88,9 +87,8 @@ export async function api<T = unknown>(
     })
 
     if (response.status === 401 && token) {
-      // Gaeste landen auf /guest-expired mit einer freundlichen Meldung,
-      // statt auf /login (wo sie kein Passwort haben, um sich neu
-      // einzuloggen).
+      // Gaeste landen auf /guest-goodbye mit einer freundlichen Meldung,
+      // statt auf /login (wo sie kein Passwort haben).
       const role = useAuthStore.getState().user?.role
       if (role === 'guest') {
         useAuthStore.getState().expireGuestSession()

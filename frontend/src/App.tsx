@@ -1,12 +1,12 @@
 import { useEffect } from 'react'
 import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
-import { useAuthStore, consumeGuestExpiredFlag } from '@/stores/authStore.ts'
+import { useAuthStore, consumeGuestGoodbyeFlag } from '@/stores/authStore.ts'
 import { usePolicyStore } from '@/stores/policyStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { LoginPage } from '@/pages/LoginPage.tsx'
 import { RegisterPage } from '@/pages/RegisterPage.tsx'
 import { GuestRedeemPage } from '@/pages/GuestRedeemPage.tsx'
-import { GuestSessionExpiredPage } from '@/pages/GuestSessionExpiredPage.tsx'
+import { GuestGoodbyePage } from '@/pages/GuestGoodbyePage.tsx'
 import { AppShell } from '@/components/layout/AppShell.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
@@ -39,8 +39,8 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     // Abgelaufene Gast-Sessions bekommen eine eigene Info-Seite mit
     // klarer Sprache — nicht die Login-Form, die fuer Gaeste ohne
     // Passwort sinnlos ist.
-    if (consumeGuestExpiredFlag()) {
-      return <Navigate to="/guest-expired" replace />
+    if (consumeGuestGoodbyeFlag()) {
+      return <Navigate to="/guest-goodbye" replace />
     }
     return <Navigate to="/login" replace />
   }
@@ -78,7 +78,7 @@ export function App() {
         <Route path="/register" element={<RegisterPage />} />
         <Route path="/join/:inviteCode" element={<RegisterPage />} />
         <Route path="/guest/:token" element={<GuestRedeemPage />} />
-        <Route path="/guest-expired" element={<GuestSessionExpiredPage />} />
+        <Route path="/guest-goodbye" element={<GuestGoodbyePage />} />
         <Route
           path="/*"
           element={
