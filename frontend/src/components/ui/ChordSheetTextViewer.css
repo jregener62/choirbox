@@ -2,6 +2,7 @@
 .cho-viewer-wrap {
   flex: 1;
   overflow: auto;
+  touch-action: manipulation;
   padding: var(--space-3) var(--space-4);
   background: #ffffff;
   color: #1a1f2e;

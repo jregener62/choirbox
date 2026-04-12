@@ -221,11 +221,13 @@ Session.
    **optionalem Limit fuer die Anzahl der Einloesungen** (z.B. 10 —
    danach ist der Link `exhausted`, egal ob die TTL noch laeuft).
 3. Der Klartext-Code wird **einmalig** direkt nach dem Erstellen angezeigt
-   (Copy-Button). Danach ist er nie wieder sichtbar — nur der SHA256-Hash
-   steht in der DB.
+   (Copy-Button + **QR-Code**). Danach ist er nie wieder sichtbar — nur
+   der SHA256-Hash steht in der DB. Der QR-Code eignet sich zum Zeigen
+   per Beamer oder als Screenshot.
 4. Der Link hat das Format `https://cantabox.de/#/guest/<token>`
    (path-basiert, damit der Token nicht im Referer-Header leakt).
-5. Der Admin teilt den Link (z.B. im Chor-Chat). Jeder Klick schickt den
+5. Der Admin teilt den Link (z.B. im Chor-Chat, per QR-Code am Beamer).
+   Jeder Klick/Scan schickt den
    Code an den Backend. Bei Erfolg wird der Gast mit einer frischen
    2h-Session eingeloggt. Mehrere Leute koennen parallel aus demselben
    Link eine Session ziehen.
@@ -644,7 +646,8 @@ Auf Chord Sheets (`.cho`) wird `page=1` als virtuelle Seite verwendet (ein Chord
 
 - **FAB** rechts unten: Maximize/Minimize, Progress-Ring im Fullscreen
 - **Auto-Fade**: Alle FABs faden nach 3s Inaktivitaet. Beruehrung stellt Sichtbarkeit her
-- **Echtes Fullscreen**: Panel wird `position: fixed` ueber das gesamte Display gelegt — Topbar, Toolbar, PlayerBar und Tabs verschwinden komplett. Nur FABs schweben ueber dem Inhalt. Safe-Area-Insets fuer Notch-Geraete
+- **Echtes Fullscreen**: Panel wird `position: fixed` ueber das gesamte Display gelegt — Topbar, Toolbar, PlayerBar und Tabs verschwinden komplett. Nur FABs schweben ueber dem Inhalt. Safe-Area-Insets fuer Notch-Geraete. Zusaetzlich wird die **Browser Fullscreen API** genutzt (Desktop + Android), um auch die Browser-Chrome (URL-Leiste, Tabs) auszublenden. Auf iOS Safari nicht verfuegbar — dort greift nur das App-Fullscreen.
+- **Touch-Optimierung**: Scroll-Container nutzen `touch-action: manipulation` — verhindert nativen Browser-Zoom per CSS statt per `preventDefault()`. Pinch-to-Zoom Touch-Listener sind passive, damit Safari Scroll-Events korrekt erkennt
 - **Audio laeuft weiter** — nur UI-Elemente werden versteckt
 - **Reset** bei Panel-Wechsel oder Navigation weg vom Player/DocViewer
 - **TXT Schriftgroesse**: Im Fullscreen erscheinen +/- Buttons (rechts ueber Fullscreen-FAB) zum Zoomen der Schrift (7 Stufen, 12px–32px). Text bricht bei jeder Groesse sauber um
