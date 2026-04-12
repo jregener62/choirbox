@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Ansichtsmodus D — Eigene Top-Bar fuer Song/Texte-Wechsel</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', -apple-system, sans-serif; max-width: 390px; margin: 0 auto;
+         -webkit-font-smoothing: antialiased; }
+
+  .theme-toggle { position: fixed; top: 8px; right: 8px; z-index: 100; background: rgba(128,128,128,0.3);
+    border: none; color: white; padding: 8px 12px; border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .scene-toggle { position: fixed; top: 8px; left: 8px; z-index: 100; display: flex; gap: 4px; flex-wrap: wrap; max-width: 220px; }
+  .scene-btn { background: rgba(128,128,128,0.3); border: none; color: white; padding: 6px 10px;
+    border-radius: 6px; cursor: pointer; font-size: 11px; font-family: inherit; }
+  .scene-btn.active { background: rgba(129,140,248,0.6); }
+
+  :root {
+    --bg-primary: #1E2538; --bg-secondary: #2A3348; --bg-tertiary: #354050;
+    --bg-elevated: #303A50;
+    --text-primary: #E4E8EE; --text-secondary: #9AA4B4; --text-muted: #6A7484;
+    --border: rgba(148,163,184,0.10); --accent: #818cf8;
+    --color-texte: rgba(129,140,248,0.85); --color-audio: rgba(6,182,212,0.85);
+  }
+  .light {
+    --bg-primary: #EEF0F4; --bg-secondary: #E2E5EC; --bg-tertiary: #D6DAE2;
+    --bg-elevated: #DADDE5;
+    --text-primary: #1A1F2E; --text-secondary: #5A6170; --text-muted: #8A90A0;
+    --border: rgba(0,0,0,0.07); --accent: #6366f1;
+  }
+
+  body { background: var(--bg-primary); color: var(--text-primary); display: flex; flex-direction: column; height: 100vh; }
+
+  /* ================================================================
+     VIEW-BAR — Neue obere Leiste fuer Song/Texte-Umschaltung.
+     Sichtbar nur fuer Members (wenn beide Ansichten freigeschaltet).
+     Wird NICHT gezeigt, wenn man in einem .song-Ordner ist.
+     ================================================================ */
+  .view-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 16px;
+    background: var(--bg-elevated);
+    border-bottom: 1px solid var(--border);
+    gap: 4px;
+  }
+  .view-bar__tab {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 7px 0;
+    border: none;
+    border-radius: 8px;
+    font-size: 13px;
+    font-family: inherit;
+    font-weight: 500;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.15s ease;
+  }
+  .view-bar__tab.active {
+    background: var(--accent);
+    color: white;
+  }
+  .view-bar__tab:not(.active):active {
+    background: var(--bg-tertiary);
+  }
+
+  /* ================================================================
+     TOPBAR — Die bestehende Toolbar mit Suche, Filter etc.
+     Bleibt unveraendert.
+     ================================================================ */
+  .topbar {
+    display: flex;
+    align-items: center;
+    padding: 4px 12px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    min-height: 40px;
+    gap: 4px;
+  }
+  .topbar-btn {
+    background: none; border: none; color: var(--text-secondary); cursor: pointer;
+    padding: 8px; display: flex; align-items: center;
+  }
+
+  /* Breadcrumb (wenn in Song-Ordner) */
+  .breadcrumb {
+    padding: 8px 16px; font-size: 14px; color: var(--accent); background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 4px; cursor: pointer;
+  }
+  .breadcrumb span { color: var(--text-muted); }
+
+  /* Song-Card-Header */
+  .song-card-header {
+    padding: 14px 16px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+  }
+  .song-card-header__name {
+    font-size: 20px; font-weight: 500;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  /* Content */
+  .browse-content { flex: 1; overflow-y: auto; -webkit-overflow-scrolling: touch; padding-bottom: 100px; }
+  .scene { display: none; }
+  .scene.active { display: contents; }
+
+  /* File-List */
+  .file-list { list-style: none; display: flex; flex-direction: column; gap: 6px; padding: 8px 16px; }
+  .file-list > li { border-radius: 10px; border: 1px solid var(--border); overflow: hidden; }
+  .file-item { display: flex; align-items: center; padding: 12px 14px; gap: 12px; background: var(--bg-secondary);
+    cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .file-item:active { background: var(--bg-tertiary); }
+  .file-icon { flex-shrink: 0; display: flex; }
+  .file-info { flex: 1; min-width: 0; }
+  .file-name { font-size: 16px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+  .sub-badges { display: flex; gap: 4px; margin-top: 6px; }
+  .sub-badge { display: flex; align-items: center; gap: 3px; padding: 2px 6px; border-radius: 4px;
+    font-size: 10px; font-weight: 600; background: rgba(148,163,184,0.08); color: var(--text-secondary); }
+  .sub-badge--texte { color: var(--color-texte); }
+  .sub-badge--audio { color: var(--color-audio); }
+
+  /* Sub-Folder-Buttons (Segmented Control im Song) */
+  .seg-bar { display: flex; gap: 2px; padding: 4px; background: var(--bg-tertiary); border-radius: 8px; margin-top: 10px; }
+  .seg-btn { flex: 1; display: flex; align-items: center; justify-content: center; gap: 4px;
+    padding: 6px 4px; border: none; border-radius: 6px; font-size: 11px; font-family: inherit; font-weight: 500;
+    cursor: pointer; background: transparent; color: var(--text-muted); }
+  .seg-btn--active { background: var(--bg-secondary); color: var(--text-primary); }
+
+  /* Mini-Player */
+  .mini-player { position: fixed; bottom: 0; left: 0; right: 0; max-width: 390px; margin: 0 auto;
+    background: var(--bg-secondary); border-top: 1px solid var(--border); padding: 8px 16px;
+    display: flex; align-items: center; gap: 12px; }
+  .mini-player__info { flex: 1; font-size: 13px; }
+  .mini-player__name { font-weight: 500; }
+  .mini-player__artist { font-size: 11px; color: var(--text-muted); }
+
+  .hint { margin: 12px 16px; padding: 10px 14px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg-secondary); font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+  .hint strong { color: var(--text-secondary); }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="document.body.classList.toggle('light')">Theme</button>
+<div class="scene-toggle">
+  <button class="scene-btn active" onclick="showScene('songs-root')">Songs Root</button>
+  <button class="scene-btn" onclick="showScene('texte-root')">Texte Root</button>
+  <button class="scene-btn" onclick="showScene('inside-song')">Im Song</button>
+  <button class="scene-btn" onclick="showScene('guest-texte')">Gast (nur Texte)</button>
+</div>
+
+
+<!-- ==================== SCENE 1: SONGS-ROOT (View-Bar + Topbar) ==================== -->
+<div class="scene active" id="scene-songs-root">
+
+  <!-- VIEW-BAR: Songs ist aktiv. Sichtbar auf Root-Level fuer Members. -->
+  <div class="view-bar">
+    <button class="view-bar__tab active">
+      <i data-lucide="music" style="width:15px;height:15px"></i>
+      Songs
+    </button>
+    <button class="view-bar__tab" onclick="showScene('texte-root')">
+      <i data-lucide="file-text" style="width:15px;height:15px"></i>
+      Texte
+    </button>
+  </div>
+
+  <!-- Bestehende Topbar: Sync, Settings, Favoriten, Suche, Filter -->
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="refresh-cw" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="settings" style="width:18px;height:18px"></i></button>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:2px;">
+      <button class="topbar-btn"><i data-lucide="heart" style="width:18px;height:18px"></i></button>
+      <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+      <button class="topbar-btn"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+    </div>
+    <button class="topbar-btn"><i data-lucide="mic" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="ellipsis-vertical" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item" onclick="showScene('inside-song')">
+        <div class="file-icon" style="color:var(--accent)"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Amazing Grace</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 4</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 2</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--accent)"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Hallelujah (Cohen)</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 6</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 1</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--accent)"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bridge Over Troubled Water</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 3</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 3</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--accent)"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Fields of Gold</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 5</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 1</span>
+          </div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--accent)"><i data-lucide="folder" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bohemian Rhapsody</div>
+          <div class="sub-badges">
+            <span class="sub-badge sub-badge--audio"><i data-lucide="headphones" style="width:10px;height:10px"></i> 8</span>
+            <span class="sub-badge sub-badge--texte"><i data-lucide="file-text" style="width:10px;height:10px"></i> 2</span>
+          </div>
+        </div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="mini-player">
+    <button class="topbar-btn"><i data-lucide="play" style="width:20px;height:20px"></i></button>
+    <div class="mini-player__info">
+      <div class="mini-player__name">Hallelujah — Tenor</div>
+      <div class="mini-player__artist">0:00 / 4:23</div>
+    </div>
+    <button class="topbar-btn"><i data-lucide="chevron-up" style="width:20px;height:20px"></i></button>
+  </div>
+</div>
+
+
+<!-- ==================== SCENE 2: TEXTE-ROOT (View-Bar + Topbar) ==================== -->
+<div class="scene" id="scene-texte-root">
+
+  <!-- VIEW-BAR: Texte ist aktiv -->
+  <div class="view-bar">
+    <button class="view-bar__tab" onclick="showScene('songs-root')">
+      <i data-lucide="music" style="width:15px;height:15px"></i>
+      Songs
+    </button>
+    <button class="view-bar__tab active">
+      <i data-lucide="file-text" style="width:15px;height:15px"></i>
+      Texte
+    </button>
+  </div>
+
+  <!-- Bestehende Topbar: angepasst fuer Texte-Modus (kein Mic, kein Upload) -->
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="refresh-cw" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="settings" style="width:18px;height:18px"></i></button>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:2px;">
+      <button class="topbar-btn"><i data-lucide="heart" style="width:18px;height:18px"></i></button>
+      <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+      <button class="topbar-btn"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+    </div>
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Amazing Grace</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Hallelujah (Cohen)</div>
+          <div class="file-meta" style="color:var(--color-texte)">1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bridge Over Troubled Water</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 2 PDFs</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Fields of Gold</div>
+          <div class="file-meta" style="color:var(--color-texte)">1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bohemian Rhapsody</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="mini-player">
+    <button class="topbar-btn"><i data-lucide="play" style="width:20px;height:20px"></i></button>
+    <div class="mini-player__info">
+      <div class="mini-player__name">Hallelujah — Tenor</div>
+      <div class="mini-player__artist">0:00 / 4:23</div>
+    </div>
+    <button class="topbar-btn"><i data-lucide="chevron-up" style="width:20px;height:20px"></i></button>
+  </div>
+</div>
+
+
+<!-- ==================== SCENE 3: IM SONG (View-Bar VERSCHWINDET) ==================== -->
+<div class="scene" id="scene-inside-song">
+
+  <!-- KEINE View-Bar! Sobald man in einen .song-Ordner navigiert,
+       verschwindet sie — der Song-Kontext hat seine eigene Navigation
+       (Breadcrumb + Segmented-Control fuer Audio/Texte/Videos). -->
+
+  <div class="topbar">
+    <button class="topbar-btn" onclick="showScene('songs-root')"><i data-lucide="chevron-left" style="width:20px;height:20px"></i></button>
+    <div style="flex:1;font-size:16px;font-weight:600;">Amazing Grace</div>
+    <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+  </div>
+
+  <div class="breadcrumb" onclick="showScene('songs-root')">
+    <i data-lucide="chevron-left" style="width:14px;height:14px"></i>
+    <span>Alle Songs</span>
+  </div>
+
+  <div class="song-card-header">
+    <div class="song-card-header__name">Amazing Grace</div>
+    <div class="seg-bar">
+      <button class="seg-btn seg-btn--active" style="color:var(--color-audio)">
+        <i data-lucide="headphones" style="width:12px;height:12px"></i> Audio <span style="opacity:0.5;font-size:10px">4</span>
+      </button>
+      <button class="seg-btn" style="color:var(--color-texte)">
+        <i data-lucide="file-text" style="width:12px;height:12px"></i> Texte <span style="opacity:0.5;font-size:10px">2</span>
+      </button>
+      <button class="seg-btn">
+        <i data-lucide="video" style="width:12px;height:12px"></i> Videos <span style="opacity:0.5;font-size:10px">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="hint">
+    <strong>Im Song:</strong> Die View-Bar (Songs/Texte) ist hier weg — man ist jetzt
+    innerhalb eines Songs und navigiert mit dem Segmented-Control zwischen Audio/Texte/Videos.
+    Zurueck zum Root: Breadcrumb oder Back-Button.
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-audio)"><i data-lucide="headphones" style="width:18px;height:18px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Sopran</div>
+          <div class="file-meta">4:23</div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-audio)"><i data-lucide="headphones" style="width:18px;height:18px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Alt</div>
+          <div class="file-meta">4:23</div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-audio)"><i data-lucide="headphones" style="width:18px;height:18px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Tenor</div>
+          <div class="file-meta">4:23</div>
+        </div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-audio)"><i data-lucide="headphones" style="width:18px;height:18px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bass</div>
+          <div class="file-meta">4:23</div>
+        </div>
+      </div></li>
+    </ul>
+  </div>
+
+  <div class="mini-player">
+    <button class="topbar-btn"><i data-lucide="play" style="width:20px;height:20px"></i></button>
+    <div class="mini-player__info">
+      <div class="mini-player__name">Amazing Grace — Tenor</div>
+      <div class="mini-player__artist">0:00 / 4:23</div>
+    </div>
+    <button class="topbar-btn"><i data-lucide="chevron-up" style="width:20px;height:20px"></i></button>
+  </div>
+</div>
+
+
+<!-- ==================== SCENE 4: GAST (NUR TEXTE, KEINE VIEW-BAR) ==================== -->
+<div class="scene" id="scene-guest-texte">
+
+  <!-- KEINE View-Bar! Gaeste mit Texte-Modus sehen den Toggle nicht,
+       weil sie die Song-Ansicht gar nicht freigeschaltet haben.
+       Die View-Bar erscheint NUR wenn beide Ansichten verfuegbar sind. -->
+
+  <div class="topbar">
+    <button class="topbar-btn"><i data-lucide="refresh-cw" style="width:18px;height:18px"></i></button>
+    <button class="topbar-btn"><i data-lucide="log-out" style="width:18px;height:18px"></i></button>
+    <span style="font-size:11px;color:var(--text-muted);padding:0 4px">bis 22:15</span>
+    <div style="flex:1; display:flex; align-items:center; justify-content:center; gap:2px;">
+      <button class="topbar-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+      <button class="topbar-btn"><i data-lucide="sliders-horizontal" style="width:18px;height:18px"></i></button>
+    </div>
+  </div>
+
+  <div class="hint">
+    <strong>Gast (nur Texte):</strong> Keine View-Bar, weil der Gast nur den Texte-Modus
+    freigeschaltet hat. Kein Toggle noetig — er sieht immer nur Texte. Keine Favoriten,
+    kein Mic, kein Upload. Logout + Session-Ablauf oben links.
+  </div>
+
+  <div class="browse-content">
+    <ul class="file-list">
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Amazing Grace</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Hallelujah (Cohen)</div>
+          <div class="file-meta" style="color:var(--color-texte)">1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bridge Over Troubled Water</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 2 PDFs</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Fields of Gold</div>
+          <div class="file-meta" style="color:var(--color-texte)">1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+      <li><div class="file-item">
+        <div class="file-icon" style="color:var(--color-texte)"><i data-lucide="file-text" style="width:20px;height:20px"></i></div>
+        <div class="file-info">
+          <div class="file-name">Bohemian Rhapsody</div>
+          <div class="file-meta" style="color:var(--color-texte)">Chord-Sheet + 1 PDF</div>
+        </div>
+        <div style="color:var(--text-muted)"><i data-lucide="chevron-right" style="width:16px;height:16px"></i></div>
+      </div></li>
+    </ul>
+  </div>
+</div>
+
+
+<script>
+  lucide.createIcons();
+  function showScene(name) {
+    document.querySelectorAll('.scene').forEach(s => s.classList.remove('active'));
+    document.getElementById('scene-' + name).classList.add('active');
+    document.querySelectorAll('.scene-btn').forEach(b => b.classList.remove('active'));
+    if (event && event.target) event.target.classList.add('active');
+    lucide.createIcons();
+  }
+</script>
+</body>
+</html>
