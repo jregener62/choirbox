@@ -103,22 +103,6 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     return () => { useAnnotationStore.getState().flushAll() }
   }, [])
 
-  // Sync pdfFullscreen when browser exits fullscreen (e.g. via Escape key)
-  useEffect(() => {
-    function onFullscreenChange() {
-      const fsEl = document.fullscreenElement ?? (document as any).webkitFullscreenElement
-      if (!fsEl && pdfFullscreen) {
-        usePlayerStore.getState().setPdfFullscreen(false)
-      }
-    }
-    document.addEventListener('fullscreenchange', onFullscreenChange)
-    document.addEventListener('webkitfullscreenchange', onFullscreenChange)
-    return () => {
-      document.removeEventListener('fullscreenchange', onFullscreenChange)
-      document.removeEventListener('webkitfullscreenchange', onFullscreenChange)
-    }
-  }, [pdfFullscreen])
-
   // Auto-fade FAB after 3s in fullscreen
   const resetFadeTimer = useCallback(() => {
     setFabFaded(false)
@@ -137,20 +121,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   }, [pdfFullscreen, resetFadeTimer])
 
   const handleFabClick = () => {
-    const entering = !pdfFullscreen
-    usePlayerStore.getState().setPdfFullscreen(entering)
-
-    if (entering) {
-      const el = document.documentElement as any
-      const req = el.requestFullscreen ?? el.webkitRequestFullscreen
-      if (req) req.call(el).catch(() => {})
-    } else {
-      const fsEl = document.fullscreenElement ?? (document as any).webkitFullscreenElement
-      if (fsEl) {
-        const exit = document.exitFullscreen ?? (document as any).webkitExitFullscreen
-        if (exit) exit.call(document).catch(() => {})
-      }
-    }
+    usePlayerStore.getState().setPdfFullscreen(!pdfFullscreen)
   }
 
   const handlePdfAreaTouch = useCallback(() => {
@@ -191,6 +162,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
 
     function onTouchStart(e: TouchEvent) {
       if (e.touches.length === 2) {
+        e.preventDefault()
         pinchRef.current.startDist = getDistance(e.touches[0], e.touches[1])
         pinchRef.current.startScale = currentScale
       }
@@ -198,6 +170,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
 
     function onTouchMove(e: TouchEvent) {
       if (e.touches.length === 2) {
+        e.preventDefault()
         const dist = getDistance(e.touches[0], e.touches[1])
         const newScale = Math.max(1, Math.min(5, pinchRef.current.startScale * (dist / pinchRef.current.startDist)))
         currentScale = newScale
@@ -212,8 +185,8 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       }
     }
 
-    el.addEventListener('touchstart', onTouchStart, { passive: true })
-    el.addEventListener('touchmove', onTouchMove, { passive: true })
+    el.addEventListener('touchstart', onTouchStart, { passive: false })
+    el.addEventListener('touchmove', onTouchMove, { passive: false })
     el.addEventListener('touchend', onTouchEnd)
 
     return () => {
