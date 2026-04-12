@@ -277,8 +277,15 @@ export function BrowsePage() {
     if (revealedPath) { setRevealedPath(null); return }
     if (entry.type === 'folder' && isSongFolder(entry.name)) {
       if (isTexteMode) {
-        // Texte-Modus: Song-Klick navigiert direkt in den Texte-Unterordner
-        loadFolder(entry.path + '/Texte', false, { fromSearch: searchOpen && searchQuery.length >= 2 })
+        const texteCount = entry.sub_folders?.find((sf) => sf.type === 'texte')?.count ?? 0
+        if (texteCount === 1) {
+          // Genau 1 Text → direkt zum Viewer, DocViewerPage oeffnet das
+          // erste Dokument automatisch.
+          navigate(`/doc-viewer?folder=${encodeURIComponent(entry.path + '/Texte')}`)
+        } else if (texteCount > 1) {
+          // Mehrere Texte → Ordner oeffnen, User waehlt selbst.
+          loadFolder(entry.path + '/Texte', false, { fromSearch: searchOpen && searchQuery.length >= 2 })
+        }
         return
       }
       // Song-Kachel ist nicht mehr klickbar — nur die Multi-Button-Leiste navigiert
@@ -359,7 +366,9 @@ export function BrowsePage() {
   const activeSubfolderName = isInsideSong && browseSegments.length > songAncestorIdx + 1
     ? browseSegments[songAncestorIdx + 1]
     : null
-  const showSegmentedControl = isInsideSong && songSubFolders && songSubFolders.length > 0
+  // Im Texte-Modus braucht der User die Audio/Video-Tabs nicht —
+  // der Segmented-Control wird nur im Song-Modus gezeigt.
+  const showSegmentedControl = isInsideSong && songSubFolders && songSubFolders.length > 0 && !isTexteMode
 
   // Stop player when leaving .song folder
   useEffect(() => {
