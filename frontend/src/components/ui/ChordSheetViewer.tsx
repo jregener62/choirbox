@@ -46,13 +46,24 @@ function ChordLineView({
   transposition: number
   flats: boolean
 }) {
-  if (line.chords.length === 0 && !line.text) return null
+  if (line.chords.length === 0 && !line.text && !line.annotations?.length) return null
+
+  const annotations = line.annotations?.length ? (
+    <>
+      {line.annotations.map((a, i) => (
+        <span key={i} className="chord-annotation">{a}</span>
+      ))}
+    </>
+  ) : null
 
   // No chords — just text
   if (line.chords.length === 0) {
     return (
       <div className={`chord-line${line.isComment ? ' chord-line-comment' : ''}`}>
-        <div className="chord-text">{line.text}</div>
+        <div className="chord-text">
+          {line.text}
+          {annotations}
+        </div>
       </div>
     )
   }
@@ -76,7 +87,12 @@ function ChordLineView({
           </span>
         ))}
       </div>
-      {line.text && <div className="chord-text">{line.text}</div>}
+      {(line.text || annotations) && (
+        <div className="chord-text">
+          {line.text}
+          {annotations}
+        </div>
+      )}
     </div>
   )
 }

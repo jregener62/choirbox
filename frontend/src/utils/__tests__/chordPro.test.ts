@@ -74,6 +74,15 @@ describe('parseChordPro', () => {
     expect(texts).toEqual(['hello', 'world'])
   })
 
+  it('extracts inline {c:...} as annotations (does not appear as literal)', () => {
+    const r = parseChordPro("[C]you've got a [G]friend {c:4x}")
+    const line = r.sections[0].lines[0]
+    expect(line.annotations).toEqual(['4x'])
+    expect(line.text).not.toContain('{c:')
+    expect(line.text).not.toContain('4x')
+    expect(line.chords.map((c) => c.chord)).toEqual(['C', 'G'])
+  })
+
   it('marks {comment:} lines as isComment', () => {
     const r = parseChordPro('{c: 4x}\n[C]hello')
     const first = r.sections[0].lines[0]

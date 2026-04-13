@@ -158,6 +158,9 @@ export interface ChordLine {
   chords: ChordPosition[]
   /** ChordPro {comment:} line — styled with highlighter background + italic. */
   isComment?: boolean
+  /** Inline {c:...} / {ci:...} directives appearing mid-line — rendered
+   *  at the end of the line with the same highlighter style. */
+  annotations?: string[]
 }
 
 export interface ChordSection {

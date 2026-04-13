@@ -235,10 +235,30 @@ export function parseChordPro(text: string): ParsedChordContent {
       continue
     }
 
+    // Extract inline directives from the line before chord parsing.
+    // Comment-family directives become annotations rendered at the end of
+    // the line (highlighter style). Unknown inline directives are dropped.
+    const annotations: string[] = []
+    const COMMENT_DIRECTIVES = new Set([
+      'c', 'comment', 'ci', 'comment_italic', 'cb', 'comment_box',
+    ])
+    const lineWithoutDirectives = line.replace(
+      /\{([a-z_]+)(?:\s*:\s*([^}]*?))?\}/gi,
+      (_: string, directive: string, value?: string) => {
+        const v = (value || '').trim()
+        if (COMMENT_DIRECTIVES.has(directive.toLowerCase()) && v) {
+          annotations.push(v)
+        }
+        return ''
+      },
+    )
+
     // Inline-chord line
-    const { text: cleanText, chords } = parseInlineChordLine(line)
-    if (chords.length > 0 || cleanText.trim()) {
-      currentSection.lines.push({ text: cleanText, chords })
+    const { text: cleanText, chords } = parseInlineChordLine(lineWithoutDirectives)
+    if (chords.length > 0 || cleanText.trim() || annotations.length > 0) {
+      const chordLine: ChordLine = { text: cleanText, chords }
+      if (annotations.length > 0) chordLine.annotations = annotations
+      currentSection.lines.push(chordLine)
       allChords.push(...chords.map((c) => c.chord))
     }
   }
