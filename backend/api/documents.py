@@ -659,6 +659,55 @@ async def get_text_content(
         raise HTTPException(502, str(e))
 
 
+@router.put("/{doc_id}/content")
+async def update_text_content(
+    doc_id: int,
+    data: dict,
+    user: User = Depends(require_permission("chord_input.edit")),
+    session: Session = Depends(get_session),
+):
+    """Overwrite the content of an existing .cho document.
+
+    Used by the chord-input editor to persist changes to an existing
+    chord-sheet in place. Only .cho is allowed — .txt stays pristine and
+    is treated as the read-only source for chord-sheet creation.
+    """
+    doc = document_service.get_document(doc_id, session)
+    if not doc or doc.file_type != "cho":
+        raise HTTPException(404, "Chord-Sheet nicht gefunden")
+
+    content = data.get("content")
+    if not isinstance(content, str):
+        raise HTTPException(400, "content muss ein String sein")
+
+    content_bytes = content.encode("utf-8")
+    if len(content_bytes) > document_service.MAX_TXT_SIZE:
+        raise HTTPException(400, "Text zu gross (max. 2 MB)")
+
+    dbx = get_dropbox_service(session)
+    dbx_hash = None
+    if dbx:
+        dbx_path = _full_dropbox_path(doc, user, session)
+        try:
+            result = await dbx.upload_file(content_bytes, dbx_path, overwrite=True)
+            dbx_hash = result.get("content_hash")
+        except RuntimeError as e:
+            raise HTTPException(502, str(e))
+
+    if dbx_hash:
+        doc.content_hash = dbx_hash
+    doc.file_size = len(content_bytes)
+    session.add(doc)
+    session.commit()
+
+    document_service._clear_cached_text(doc_id)
+
+    return ActionResponse.success(data={
+        "id": doc.id,
+        "file_size": doc.file_size,
+    })
+
+
 # ---------------------------------------------------------------------------
 # Rename
 # ---------------------------------------------------------------------------

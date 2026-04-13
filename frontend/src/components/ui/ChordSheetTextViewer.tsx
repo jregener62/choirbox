@@ -1,8 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Music } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { parseChordSheet } from '@/utils/chordPro'
 import { ChordSheetViewer } from '@/components/ui/ChordSheetViewer'
+import { ChordInputViewer } from '@/components/ui/ChordInputViewer'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
+import { useAuthStore } from '@/stores/authStore.ts'
+import { hasMinRole } from '@/utils/roles.ts'
 import { toNormalized, getSvgPathFromStroke, getViewBoxHeight } from '@/utils/strokeUtils.ts'
 import type { Stroke } from '@/types/index.ts'
 import './ChordSheetTextViewer.css'
@@ -29,6 +33,10 @@ export function ChordSheetTextViewer({
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [reloadToken, setReloadToken] = useState(0)
+  const userRole = useAuthStore((s) => s.user?.role)
+  const canEditChords = hasMinRole(userRole ?? 'guest', 'pro-member')
   const contentRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const activePointersRef = useRef<Set<number>>(new Set())
@@ -67,7 +75,7 @@ export function ChordSheetTextViewer({
     return () => {
       cancelled = true
     }
-  }, [docId])
+  }, [docId, reloadToken])
 
   // Load saved annotations for this document
   useEffect(() => {
@@ -224,6 +232,20 @@ export function ChordSheetTextViewer({
     )
   }
 
+  if (editMode && text != null) {
+    return (
+      <ChordInputViewer
+        chordProBody={text}
+        editDocId={docId}
+        onUpdated={() => {
+          setEditMode(false)
+          setReloadToken((n) => n + 1)
+        }}
+        onCancel={() => setEditMode(false)}
+      />
+    )
+  }
+
   return (
     <div
       className="cho-viewer-wrap"
@@ -236,6 +258,19 @@ export function ChordSheetTextViewer({
     >
       <div className="cho-viewer-content" ref={contentRef}>
         {showName && <div className="cho-viewer-name">{originalName}</div>}
+        {canEditChords && (
+          <div style={{ padding: 'var(--space-2) var(--space-3) 0', display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              type="button"
+              className="btn btn-secondary"
+              style={{ gap: 'var(--space-1)' }}
+              onClick={() => setEditMode(true)}
+            >
+              <Music size={16} />
+              Akkorde bearbeiten
+            </button>
+          </div>
+        )}
         <ChordSheetViewer content={parsed} transposition={transposition} />
         <svg
           ref={svgRef}

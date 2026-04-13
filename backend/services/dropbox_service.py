@@ -102,19 +102,28 @@ class DropboxService:
 
         raise RuntimeError(f"Dropbox API error ({endpoint}): max retries exceeded")
 
-    async def upload_file(self, file_content: bytes, dropbox_path: str, max_retries: int = 3) -> dict:
+    async def upload_file(
+        self,
+        file_content: bytes,
+        dropbox_path: str,
+        max_retries: int = 3,
+        overwrite: bool = False,
+    ) -> dict:
         """Upload a file to Dropbox via the simple upload endpoint (max 150 MB).
 
         Uses content.dropboxapi.com with binary body + Dropbox-API-Arg header.
         Includes 401 auto-refresh and rate-limit retry with exponential backoff.
+
+        When `overwrite=True`, existing files at the same path are replaced
+        (used for in-place content updates like chord-sheet edits).
         """
         token = await self._get_access_token()
         client = await self._ensure_client()
 
         api_arg = json.dumps({
             "path": dropbox_path,
-            "mode": "add",
-            "autorename": True,
+            "mode": "overwrite" if overwrite else "add",
+            "autorename": not overwrite,
             "mute": False,
         })
 
