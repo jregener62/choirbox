@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Akkord-Eingabe C (Hybrid)</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --confirm: #3b82f6; --confirm-hover: #2563eb;
+    --border: #334155;
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --chord: #fbbf24;
+    --ink: #fbbf24;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #020617; color: var(--text);
+         -webkit-font-smoothing: antialiased; padding: 24px 12px; }
+
+  h1 { font-size: 18px; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 20px; }
+
+  .scenes { display: flex; flex-direction: column; gap: 32px; align-items: center; }
+  .scene { width: 390px; max-width: 100%; }
+  .scene-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .phone { background: var(--bg); border: 1px solid var(--border); border-radius: 18px;
+           overflow: hidden; position: relative; }
+
+  .topbar { display: flex; align-items: center; padding: 12px 14px; gap: 10px;
+            border-bottom: 1px solid var(--border); }
+  .topbar-back { background: none; border: none; color: var(--text2); padding: 4px;
+                 display: flex; align-items: center; }
+  .topbar-title { flex: 1; font-size: 14px; font-weight: 600; }
+  .mode-badge { font-size: 10px; padding: 4px 8px; border-radius: 6px;
+                background: var(--accent-dim); color: var(--accent); font-weight: 600; }
+
+  .song {
+    font-family: 'Menlo', 'Courier New', monospace;
+    font-size: 15px;
+    line-height: 2.4;
+    padding: 18px 16px 22px 16px;
+    white-space: pre;
+  }
+  .line { position: relative; height: 2.4em; display: block; }
+  .char { display: inline-block; }
+  .char.tappable { cursor: pointer; border-radius: 3px; }
+  .char.active-target {
+    background: var(--accent-dim);
+    outline: 2px dashed var(--accent);
+    outline-offset: 1px;
+  }
+
+  /* -- Popover Hybrid -- */
+  .popover-wrapper { position: absolute; inset: 0; pointer-events: none; }
+  .backdrop { position: absolute; inset: 0; background: rgba(0,0,0,0.35); pointer-events: auto; }
+  .popover {
+    position: absolute;
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+    padding: 0;
+    pointer-events: auto;
+    width: 330px;
+    overflow: hidden;
+  }
+  .popover::after {
+    content: '';
+    position: absolute;
+    left: var(--arrow-x, 50%); top: -7px;
+    transform: translateX(-50%) rotate(45deg);
+    width: 12px; height: 12px;
+    background: var(--bg2);
+    border-left: 1px solid var(--border);
+    border-top: 1px solid var(--border);
+  }
+
+  .pop-header {
+    padding: 12px 14px 10px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .pop-header-info { display: flex; flex-direction: column; }
+  .preview-label { font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; }
+  .preview-value {
+    font-family: 'Menlo', monospace;
+    font-size: 20px; color: var(--chord); font-weight: 700;
+  }
+  .preview-empty { color: var(--text3); font-weight: 400; font-size: 14px; font-style: italic; }
+
+  .tabs {
+    display: flex;
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
+  }
+  .tab {
+    flex: 1;
+    padding: 10px 6px;
+    background: transparent;
+    border: none;
+    color: var(--text3);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    display: flex; align-items: center; justify-content: center; gap: 5px;
+  }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .tab-badge {
+    font-size: 9px;
+    background: var(--bg3);
+    color: var(--text2);
+    padding: 1px 5px;
+    border-radius: 4px;
+    font-weight: 600;
+  }
+  .tab.active .tab-badge { background: var(--accent); color: #fff; }
+
+  .tab-body { padding: 14px; }
+
+  /* keypad mini */
+  .keypad-row { display: grid; gap: 5px; margin-bottom: 5px; }
+  .keypad-notes { grid-template-columns: repeat(7, 1fr); }
+  .keypad-mods { grid-template-columns: repeat(7, 1fr); }
+  .key {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 0;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 6px;
+    font-family: 'Menlo', monospace;
+    cursor: pointer;
+  }
+  .key.note { background: #1e3a8a; color: #dbeafe; }
+  .key.qual { font-size: 11px; }
+
+  /* canvas mini */
+  .canvas-wrap {
+    position: relative;
+    background: #0a0f1e;
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    height: 100px;
+    overflow: hidden;
+  }
+  .canvas-grid {
+    position: absolute; inset: 0;
+    background-image:
+      linear-gradient(to right, rgba(100,116,139,0.08) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(100,116,139,0.08) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+  .ink { stroke: var(--ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .canvas-tools {
+    display: flex; gap: 6px; margin-top: 8px; justify-content: space-between;
+  }
+  .tool-btn {
+    background: var(--bg3); border: 1px solid var(--border);
+    color: var(--text2); padding: 6px 8px; font-size: 11px;
+    border-radius: 6px; display: flex; align-items: center; gap: 3px;
+    cursor: pointer;
+  }
+  .tool-btn.primary { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+  /* text input */
+  .text-input {
+    width: 100%;
+    background: var(--bg);
+    border: 2px solid var(--border);
+    color: var(--text);
+    font-family: 'Menlo', monospace;
+    font-size: 22px;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-radius: 8px;
+    text-align: center;
+    letter-spacing: 1px;
+  }
+  .text-input:focus { outline: none; border-color: var(--accent); }
+  .text-input::placeholder { color: var(--text3); font-weight: 400; }
+  .text-hint {
+    font-size: 11px; color: var(--text3); margin-top: 8px; text-align: center;
+    line-height: 1.5;
+  }
+  .text-hint code {
+    background: var(--bg3);
+    padding: 1px 5px; border-radius: 3px;
+    color: var(--chord);
+    font-family: 'Menlo', monospace;
+  }
+
+  .actions {
+    display: flex; gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+  }
+  .btn {
+    flex: 1; padding: 10px 12px; font-size: 13px; font-weight: 600;
+    border-radius: 8px; border: 1px solid transparent; cursor: pointer;
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+  }
+  .btn-primary { background: var(--confirm); color: #fff; }
+  .btn-secondary { background: transparent; border-color: var(--border); color: var(--text2); }
+
+  .caption {
+    font-size: 12px; color: var(--text2); text-align: center;
+    margin-top: 10px; line-height: 1.5;
+  }
+  .caption strong { color: var(--text); }
+
+  i[data-lucide] { width: 14px; height: 14px; stroke-width: 2; }
+</style>
+</head>
+<body>
+  <h1>Akkord-Eingabe C — Hybrid</h1>
+  <p class="subtitle">Drei Eingabe-Modi in einem Popover, Mode-Wahl wird pro User gemerkt</p>
+
+  <div class="scenes">
+
+    <!-- Scene 1: Tab Keypad aktiv -->
+    <div class="scene">
+      <div class="scene-label">1 — Tab "Tasten": Schnell & deterministisch</div>
+      <div class="phone" style="min-height: 520px;">
+        <div class="topbar">
+          <button class="topbar-back"><i data-lucide="chevron-left"></i></button>
+          <div class="topbar-title">Amazing Grace</div>
+          <div class="mode-badge">Akkord-Modus</div>
+        </div>
+        <div class="song">
+<span class="line"><span class="char tappable">A</span><span class="char active-target">m</span><span class="char tappable">a</span><span class="char tappable">z</span><span class="char tappable">i</span><span class="char tappable">n</span><span class="char tappable">g</span><span class="char"> </span><span class="char tappable">g</span><span class="char tappable">r</span><span class="char tappable">a</span><span class="char tappable">c</span><span class="char tappable">e</span></span>
+        </div>
+        <div class="popover-wrapper">
+          <div class="backdrop"></div>
+          <div class="popover" style="top: 50px; left: 28px; --arrow-x: 30px;">
+            <div class="pop-header">
+              <div class="pop-header-info">
+                <div class="preview-label">Position: „m" · Akkord</div>
+                <div class="preview-value">G</div>
+              </div>
+            </div>
+            <div class="tabs">
+              <button class="tab active"><i data-lucide="grid-3x3"></i> Tasten</button>
+              <button class="tab"><i data-lucide="pen-tool"></i> Malen</button>
+              <button class="tab"><i data-lucide="keyboard"></i> Text</button>
+            </div>
+            <div class="tab-body">
+              <div class="keypad-row keypad-notes">
+                <button class="key note">A</button>
+                <button class="key note">B</button>
+                <button class="key note">C</button>
+                <button class="key note">D</button>
+                <button class="key note">E</button>
+                <button class="key note">F</button>
+                <button class="key note">G</button>
+              </div>
+              <div class="keypad-row keypad-mods">
+                <button class="key">♯</button>
+                <button class="key">♭</button>
+                <button class="key qual">m</button>
+                <button class="key qual">maj</button>
+                <button class="key qual">7</button>
+                <button class="key qual">sus</button>
+                <button class="key qual">/</button>
+              </div>
+              <div class="keypad-row keypad-mods">
+                <button class="key qual">2</button>
+                <button class="key qual">4</button>
+                <button class="key qual">5</button>
+                <button class="key qual">6</button>
+                <button class="key qual">9</button>
+                <button class="key qual">dim</button>
+                <button class="key qual">aug</button>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary">Abbrechen</button>
+              <button class="btn btn-primary"><i data-lucide="check"></i> Setzen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 2: Tab Malen aktiv -->
+    <div class="scene">
+      <div class="scene-label">2 — Tab "Malen": Natürliche Handschrift</div>
+      <div class="phone" style="min-height: 520px;">
+        <div class="topbar">
+          <button class="topbar-back"><i data-lucide="chevron-left"></i></button>
+          <div class="topbar-title">Amazing Grace</div>
+          <div class="mode-badge">Akkord-Modus</div>
+        </div>
+        <div class="song">
+<span class="line"><span class="char tappable">A</span><span class="char active-target">m</span><span class="char tappable">a</span><span class="char tappable">z</span><span class="char tappable">i</span><span class="char tappable">n</span><span class="char tappable">g</span><span class="char"> </span><span class="char tappable">g</span><span class="char tappable">r</span><span class="char tappable">a</span><span class="char tappable">c</span><span class="char tappable">e</span></span>
+        </div>
+        <div class="popover-wrapper">
+          <div class="backdrop"></div>
+          <div class="popover" style="top: 50px; left: 28px; --arrow-x: 30px;">
+            <div class="pop-header">
+              <div class="pop-header-info">
+                <div class="preview-label">Erkannt ✨</div>
+                <div class="preview-value">D/F♯</div>
+              </div>
+            </div>
+            <div class="tabs">
+              <button class="tab"><i data-lucide="grid-3x3"></i> Tasten</button>
+              <button class="tab active"><i data-lucide="pen-tool"></i> Malen</button>
+              <button class="tab"><i data-lucide="keyboard"></i> Text</button>
+            </div>
+            <div class="tab-body">
+              <div class="canvas-wrap">
+                <div class="canvas-grid"></div>
+                <svg viewBox="0 0 300 100" width="100%" height="100%" style="position:absolute; inset: 0;">
+                  <!-- "D" -->
+                  <path class="ink" d="M 40 30 L 40 78 M 40 30 C 65 30, 80 45, 80 54 C 80 70, 65 78, 40 78" />
+                  <!-- "/" -->
+                  <path class="ink" d="M 110 25 L 95 82" />
+                  <!-- "F" -->
+                  <path class="ink" d="M 135 28 L 135 82 M 135 28 L 168 28 M 135 54 L 160 54" />
+                  <!-- "#" -->
+                  <path class="ink" d="M 195 38 L 195 70 M 210 38 L 210 70 M 188 48 L 218 46 M 188 60 L 218 58" />
+                </svg>
+              </div>
+              <div class="canvas-tools">
+                <button class="tool-btn primary"><i data-lucide="pen-tool"></i> Stift</button>
+                <button class="tool-btn"><i data-lucide="eraser"></i> Radieren</button>
+                <button class="tool-btn"><i data-lucide="rotate-ccw"></i> Leeren</button>
+                <button class="tool-btn"><i data-lucide="sparkles"></i> Erkennen</button>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary">Abbrechen</button>
+              <button class="btn btn-primary"><i data-lucide="check"></i> Setzen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 3: Tab Text aktiv -->
+    <div class="scene">
+      <div class="scene-label">3 — Tab "Text": Tippen mit Validierung</div>
+      <div class="phone" style="min-height: 440px;">
+        <div class="topbar">
+          <button class="topbar-back"><i data-lucide="chevron-left"></i></button>
+          <div class="topbar-title">Amazing Grace</div>
+          <div class="mode-badge">Akkord-Modus</div>
+        </div>
+        <div class="song">
+<span class="line"><span class="char tappable">A</span><span class="char active-target">m</span><span class="char tappable">a</span><span class="char tappable">z</span><span class="char tappable">i</span><span class="char tappable">n</span><span class="char tappable">g</span><span class="char"> </span><span class="char tappable">g</span><span class="char tappable">r</span><span class="char tappable">a</span><span class="char tappable">c</span><span class="char tappable">e</span></span>
+        </div>
+        <div class="popover-wrapper">
+          <div class="backdrop"></div>
+          <div class="popover" style="top: 50px; left: 28px; --arrow-x: 30px;">
+            <div class="pop-header">
+              <div class="pop-header-info">
+                <div class="preview-label">Position: „m" · Akkord</div>
+                <div class="preview-value">Cmaj7</div>
+              </div>
+            </div>
+            <div class="tabs">
+              <button class="tab"><i data-lucide="grid-3x3"></i> Tasten</button>
+              <button class="tab"><i data-lucide="pen-tool"></i> Malen</button>
+              <button class="tab active"><i data-lucide="keyboard"></i> Text</button>
+            </div>
+            <div class="tab-body">
+              <input type="text" class="text-input" value="Cmaj7" />
+              <div class="text-hint">
+                Syntax: <code>[A-G]</code> <code>#</code> <code>b</code> <code>m</code> <code>maj</code> <code>7</code> <code>/Bass</code><br>
+                Beispiele: <code>Am7</code>, <code>D/F#</code>, <code>Cmaj7</code>
+              </div>
+            </div>
+            <div class="actions">
+              <button class="btn btn-secondary">Abbrechen</button>
+              <button class="btn btn-primary"><i data-lucide="check"></i> Setzen</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <strong>Vorteile:</strong> jeder User wählt seinen Modus, App merkt die Präferenz.<br>
+        <strong>Nachteil:</strong> mehr UI-Komplexität; lohnt sich erst, wenn Bedarf erwiesen.
+      </div>
+    </div>
+
+  </div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
