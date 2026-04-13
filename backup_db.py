@@ -52,6 +52,37 @@ def get_refresh_token() -> str:
     return row[0]
 
 
+def write_backup_status(ok: bool, size_bytes: int | None, error: str | None) -> None:
+    """Record the outcome of this backup run to app_settings.
+
+    Writes last_backup_at always, last_backup_size only on success (keeps last
+    known-good value across failures), and last_backup_error set/cleared
+    accordingly. Swallows DB errors so status-write failure cannot mask the
+    real backup error in the caller.
+    """
+    now = datetime.utcnow().isoformat(timespec="seconds")
+    try:
+        conn = sqlite3.connect(str(DB_PATH), timeout=5.0)
+        try:
+            if ok:
+                conn.execute(
+                    "UPDATE app_settings SET last_backup_at = ?, "
+                    "last_backup_size = ?, last_backup_error = NULL WHERE id = 1",
+                    (now, size_bytes),
+                )
+            else:
+                conn.execute(
+                    "UPDATE app_settings SET last_backup_at = ?, "
+                    "last_backup_error = ? WHERE id = 1",
+                    (now, (error or "Unbekannter Fehler")[:2000]),
+                )
+            conn.commit()
+        finally:
+            conn.close()
+    except Exception as e:
+        log.warning("Konnte Backup-Status nicht in DB schreiben: %s", e)
+
+
 def create_db_snapshot() -> Path:
     """Create a consistent SQLite backup using the backup API."""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H%M%S")
@@ -184,18 +215,27 @@ async def main():
         sys.exit(1)
 
     if not DROPBOX_APP_KEY or not DROPBOX_APP_SECRET:
-        log.error("DROPBOX_APP_KEY / DROPBOX_APP_SECRET nicht in .env gesetzt")
+        msg = "DROPBOX_APP_KEY / DROPBOX_APP_SECRET nicht in .env gesetzt"
+        log.error(msg)
+        write_backup_status(ok=False, size_bytes=None, error=msg)
         sys.exit(1)
 
-    refresh_token = get_refresh_token()
-    snapshot_path = create_db_snapshot()
-
+    snapshot_path: Path | None = None
     try:
+        refresh_token = get_refresh_token()
+        snapshot_path = create_db_snapshot()
+        size_bytes = snapshot_path.stat().st_size
         await upload_to_dropbox(snapshot_path, refresh_token)
         await cleanup_old_backups(refresh_token)
         log.info("Backup abgeschlossen")
+        write_backup_status(ok=True, size_bytes=size_bytes, error=None)
+    except Exception as e:
+        log.exception("Backup fehlgeschlagen")
+        write_backup_status(ok=False, size_bytes=None, error=f"{type(e).__name__}: {e}")
+        sys.exit(1)
     finally:
-        snapshot_path.unlink(missing_ok=True)
+        if snapshot_path is not None:
+            snapshot_path.unlink(missing_ok=True)
 
 
 if __name__ == "__main__":

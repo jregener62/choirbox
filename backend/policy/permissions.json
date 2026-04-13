@@ -258,6 +258,7 @@
     "GET /api/admin/settings":                                      "settings.manage",
     "PUT /api/admin/settings":                                      "settings.manage",
     "POST /api/admin/resync":                                       "settings.manage",
+    "GET /api/admin/backup-status":                                 "dropbox.connect",
     "GET /api/admin/datacare/orphans":                              "datacare.manage",
     "DELETE /api/admin/datacare/song/{song_id}":                    "datacare.manage",
     "POST /api/admin/datacare/song/{song_id}/reactivate":           "datacare.manage",

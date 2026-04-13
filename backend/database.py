@@ -80,6 +80,9 @@ def _migrate(eng):
         ("section_presets", "max_num", "INTEGER DEFAULT 0"),
         ("users", "can_report_bugs", "BOOLEAN DEFAULT 0"),
         ("app_settings", "guest_link_ttl_minutes", "INTEGER DEFAULT 60"),
+        ("app_settings", "last_backup_at", "DATETIME"),
+        ("app_settings", "last_backup_size", "INTEGER"),
+        ("app_settings", "last_backup_error", "TEXT"),
         ("session_tokens", "expires_at", "DATETIME"),
         # Guest-Link Multi-Use Umbau: neue Spalten hinzufuegen. Die alten
         # Spalten (consumed_at, consumed_by_ip, consumed_by_ua) bleiben in

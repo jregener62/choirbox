@@ -981,3 +981,19 @@ def delete_orphan_user_label(
     session.delete(u)
     session.commit()
     return ActionResponse.success()
+
+
+@router.get("/backup-status")
+def backup_status(
+    user: User = Depends(require_permission("dropbox.connect")),
+    session: Session = Depends(get_session),
+):
+    from backend.models.app_settings import AppSettings
+    settings = session.get(AppSettings, 1)
+    if not settings:
+        return {"last_backup_at": None, "last_backup_size": None, "last_backup_error": None}
+    return {
+        "last_backup_at": settings.last_backup_at.isoformat() if settings.last_backup_at else None,
+        "last_backup_size": settings.last_backup_size,
+        "last_backup_error": settings.last_backup_error,
+    }

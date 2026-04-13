@@ -610,6 +610,12 @@ Vollstaendiger Abgleich aller DB-Records gegen den Dropbox-Inhalt des Chors. Adm
 - **Dry-Run-Modus**: Button "Resync simulieren (Dry-Run)" laesst den kompletten Vergleich laufen, schreibt aber nichts in die DB. Anzeige wird mit "Simulation: ..." prefixed. Backend-Endpoint: `POST /admin/resync?dry_run=true`.
 - **DB-Backup vor Resync**: Vor jedem echten (nicht-simulierten) Resync wird `choirbox.db` automatisch nach `choirbox.db.bak-<timestamp>` kopiert. Es bleiben immer nur die letzten 5 Backups erhalten.
 
+### Nightly DB-Backup nach Dropbox (Cron)
+
+Taeglich um 03:00 legt `backup_db.py` via SQLite-Backup-API einen konsistenten Snapshot an und laedt ihn in den Dropbox-Ordner `/backups/` hoch (letzte 7 Backups bleiben).
+
+Status-Tracking in `app_settings`: Nach jedem Lauf werden `last_backup_at`, `last_backup_size` und `last_backup_error` geschrieben (Erfolg bzw. Fehler). Developer sehen den Status unter Settings → Dropbox: Zeitpunkt + Groesse des letzten Backups, und bei Fehlern einen roten Banner mit der Fehlermeldung. Endpoint: `GET /admin/backup-status` (min_role `developer`).
+
 ### PDF-Rendering (ohne Disk-Storage)
 
 PDFs werden **nicht** auf dem Server gespeichert. Stattdessen:

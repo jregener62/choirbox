@@ -14,4 +14,7 @@ class AppSettings(SQLModel, table=True):
     # Gast-Zugang: TTL eines frisch erzeugten Einmal-Codes in Minuten.
     # Bereich: 15 Minuten bis 24 Stunden. Default 60.
     guest_link_ttl_minutes: int = Field(default=60)
+    last_backup_at: Optional[datetime] = Field(default=None)
+    last_backup_size: Optional[int] = Field(default=None)
+    last_backup_error: Optional[str] = Field(default=None)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

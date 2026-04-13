@@ -50,6 +50,13 @@ export function SettingsPage() {
   const [dbxStatus, setDbxStatus] = useState<DropboxStatus | null>(null)
   const [dbxLoading, setDbxLoading] = useState(false)
 
+  // Backup status (developer)
+  const [backupStatus, setBackupStatus] = useState<{
+    last_backup_at: string | null
+    last_backup_size: number | null
+    last_backup_error: string | null
+  } | null>(null)
+
   // Admin settings
   const [inviteCode, setInviteCode] = useState('')
   const [inviteCodeSaving, setInviteCodeSaving] = useState(false)
@@ -119,10 +126,25 @@ export function SettingsPage() {
     }
   }, [isAdmin])
 
+  const loadBackupStatus = useCallback(async () => {
+    if (!isDeveloper) return
+    try {
+      const status = await api<{
+        last_backup_at: string | null
+        last_backup_size: number | null
+        last_backup_error: string | null
+      }>('/admin/backup-status')
+      setBackupStatus(status)
+    } catch {
+      // ignore
+    }
+  }, [isDeveloper])
+
   useEffect(() => {
     loadDropboxStatus()
     loadAdminSettings()
-  }, [loadDropboxStatus, loadAdminSettings])
+    loadBackupStatus()
+  }, [loadDropboxStatus, loadAdminSettings, loadBackupStatus])
 
   // Show success message after OAuth redirect back
   useEffect(() => {
@@ -479,6 +501,41 @@ export function SettingsPage() {
             ) : (
               <div style={{ fontSize: 13, color: 'var(--danger)' }}>
                 DROPBOX_APP_KEY und DROPBOX_APP_SECRET in .env eintragen.
+              </div>
+            )}
+            {backupStatus && (
+              <div className="settings-rows" style={{ marginTop: 16 }}>
+                <div className="settings-row">
+                  <span className="settings-label">Letztes Backup</span>
+                  <span style={{ fontSize: 13 }}>
+                    {backupStatus.last_backup_at
+                      ? new Date(backupStatus.last_backup_at + 'Z').toLocaleString('de-DE')
+                      : 'noch nie'}
+                  </span>
+                </div>
+                {backupStatus.last_backup_size !== null && (
+                  <div className="settings-row">
+                    <span className="settings-label">Groesse</span>
+                    <span style={{ fontSize: 13 }}>
+                      {(backupStatus.last_backup_size / 1024).toFixed(1)} KB
+                    </span>
+                  </div>
+                )}
+                {backupStatus.last_backup_error && (
+                  <div
+                    style={{
+                      marginTop: 8,
+                      padding: 12,
+                      background: 'var(--danger-bg, rgba(239, 68, 68, 0.1))',
+                      color: 'var(--danger)',
+                      borderRadius: 8,
+                      fontSize: 13,
+                    }}
+                  >
+                    <strong>Backup fehlgeschlagen:</strong>{' '}
+                    <span style={{ wordBreak: 'break-word' }}>{backupStatus.last_backup_error}</span>
+                  </div>
+                )}
               </div>
             )}
           </section>
