@@ -68,6 +68,19 @@ describe('parseChordPro', () => {
     ])
   })
 
+  it('pads instrumental-only chord lines so chords do not stack', () => {
+    // Without padding, cols would be 0,1,2,3 and all chords render on top.
+    const r = parseChordPro('[Em] [D/F#] [G] [C]')
+    const line = r.sections[0].lines[0]
+    const cols = line.chords.map((c) => c.col)
+    // Each chord must start strictly after the previous chord ends.
+    for (let i = 1; i < line.chords.length; i++) {
+      const prev = line.chords[i - 1]
+      expect(cols[i]).toBeGreaterThan(prev.col + prev.chord.length - 1)
+    }
+    expect(line.chords.map((c) => c.chord)).toEqual(['Em', 'D/F#', 'G', 'C'])
+  })
+
   it('routes start_of_verse / end_of_verse into a verse section', () => {
     const text = `{start_of_verse: Verse 1}
 [C]hello

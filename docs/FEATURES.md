@@ -1633,6 +1633,12 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### ChordPro: Reine Akkord-Zeilen stapeln sich
+
+Instrumental-Zeilen wie `[Em] [D/F#] [G] [C]` rendern alle Akkorde uebereinander auf Spalte 0-3, weil `parseInlineChordLine` die Akkord-Breite nicht beruecksichtigte — jeder weitere Akkord hing an der aktuellen Laenge des Clean-Texts (nur Leerzeichen zwischen den Brackets). Gleicher Effekt am Zeilenende, wenn nach einem Lyric-Akkord mehrere chord-only Tokens folgen (z.B. `[Em]rainbow[D/F#] [G] [C]`).
+
+**Fix:** Beim Platzieren eines Akkords garantiert der Parser jetzt mindestens ein Leerzeichen hinter dem vorangehenden Akkord (fuellt den Clean-Text bei Bedarf mit Spaces auf). Regression-Test deckt den Fall ab.
+
 ### Nutzer in Admin-UI nicht loeschbar (Internal Server Error)
 
 Das Loeschen von Nutzern mit Favoriten, Labels, Notizen, Annotationen,

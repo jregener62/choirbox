@@ -77,6 +77,17 @@ function parseInlineChordLine(line: string): { text: string; chords: ChordPositi
       if (end > -1) {
         const chord = line.slice(i + 1, end)
         if (CHORD_TOKEN_RE.test(chord)) {
+          // Pad clean text so consecutive chords don't stack on the same column.
+          // Happens with instrumental lines like "[Em] [D/F#] [G] [C]" where
+          // only single spaces separate brackets — without padding, chord cols
+          // end up 0,1,2,3 and all render on top of each other.
+          if (chords.length > 0) {
+            const prev = chords[chords.length - 1]
+            const minCol = prev.col + prev.chord.length + 1
+            if (text.length < minCol) {
+              text += ' '.repeat(minCol - text.length)
+            }
+          }
           chords.push({ chord, col: text.length })
           i = end + 1
           continue
