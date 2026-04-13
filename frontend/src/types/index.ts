@@ -17,6 +17,8 @@ export interface User {
   choir_name: string | null
   must_change_password: boolean
   can_report_bugs: boolean
+  /** "songs" (Vollzugriff) oder "texts" (nur Texte/Noten). */
+  view_mode: 'songs' | 'texts'
 }
 
 export interface LoginResponse {

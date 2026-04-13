@@ -97,6 +97,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(data.user))
     localStorage.removeItem(EXPIRES_KEY)
     set({ token: data.token, user: data.user, sessionExpiresAt: null })
+    useViewModeStore.getState().applyUserViewMode(data.user)
     void usePolicyStore.getState().loadPolicy()
   },
 
@@ -117,6 +118,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.setItem(`${STORAGE_PREFIX}user`, JSON.stringify(result.user))
     localStorage.removeItem(EXPIRES_KEY)
     set({ token: result.token, user: result.user, sessionExpiresAt: null })
+    useViewModeStore.getState().applyUserViewMode(result.user)
     void usePolicyStore.getState().loadPolicy()
   },
 
@@ -196,8 +198,16 @@ export const useAuthStore = create<AuthState>((set) => ({
       user: s.user,
       sessionExpiresAt: s.sessionExpiresAt,
     })
+    useViewModeStore.getState().applyUserViewMode(s.user)
   },
 }))
+
+// View-Mode aus gespeicherter Session uebernehmen (greift beim Page-Reload,
+// sobald die Module geladen sind — der Store ist schon mit `stored.user`
+// initialisiert).
+if (stored.user) {
+  useViewModeStore.getState().applyUserViewMode(stored.user)
+}
 
 /** True if the AuthGuard should redirect to the guest goodbye page
  *  instead of /login (after logout or session expiry). */

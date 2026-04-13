@@ -240,6 +240,7 @@ def _user_response(user: User, session: Session) -> dict:
         "choir_name": choir_name,
         "must_change_password": user.must_change_password,
         "can_report_bugs": user.can_report_bugs,
+        "view_mode": user.view_mode,
     }
 
 

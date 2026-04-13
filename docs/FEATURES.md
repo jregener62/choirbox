@@ -193,6 +193,8 @@ Regressionstests).
 | Labels verwalten              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Sektionsvorlagen              |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Nutzer verwalten              |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Ansichts-Modus pro User setzen|        ✓        |     ✓     |       —        |       —        |     —      |     —     |
+| Bulk View-Mode (alle Member)  |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
 | Einladungslink + Copy         |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
 | Chor-Ordner                   |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
 | Dropbox Re-Sync               |        ✓        |     ✓     |       —        |       —        |     —      |     —     |
@@ -1096,11 +1098,16 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 - Rolle aendern per Dropdown (Gast, Mitglied, Pro-Mitglied, Chorleiter, Admin, Beta-Tester, Developer)
 - User loeschen (eigenen Account nicht loeschbar, nur innerhalb des eigenen Chors)
 - Neue User manuell anlegen (werden dem eigenen Chor zugewiesen)
+- **Ansichts-Modus pro Member** (Jam-Session-Mode): pro User kann Admin zwischen "Alles" (Default) und "Nur Texte" umschalten — analog zum Guest-Link-View-Mode. Nur Texte, Chord-Sheets und Noten sichtbar, kein Audio/Video. Chorleiter/Admin/Developer haben immer vollen Zugriff (Toggle deaktiviert). Ideal fuer Jam-Sessions, die spaeter zu einem echten Chor werden.
+- **Bulk-Umschaltung**: Toolbar oben schaltet mit einem Klick alle Member/Pro-Member auf "Nur Texte" oder "Alles". Chorleiter/Admin werden automatisch uebersprungen.
+- Frontend sperrt den UI-seitigen View-Toggle, wenn `user.view_mode === 'texts'` (ueber `viewModeStore.applyUserViewMode`).
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/admin/UsersPage.tsx` | User-Verwaltungs-UI |
-| `backend/api/admin.py` | `/admin/users` Endpoints |
+| `frontend/src/pages/admin/UsersPage.tsx` | User-Verwaltungs-UI (incl. View-Mode-Toggle + Bulk-Toolbar) |
+| `frontend/src/stores/viewModeStore.ts` | `applyUserViewMode(user)` synchronisiert Store mit `user.view_mode` |
+| `backend/api/admin.py` | `/admin/users` Endpoints, `POST /admin/users/bulk-view-mode` |
+| `backend/models/user.py` | Feld `view_mode` ("songs" \| "texts", Default "songs") |
 
 ### Einladungslink
 

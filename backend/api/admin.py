@@ -13,6 +13,11 @@ from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
+VALID_VIEW_MODES = {"songs", "texts"}
+# Rollen, fuer die view_mode angewendet wird. Chorleiter/Admin/Developer
+# brauchen immer vollen Zugriff und werden im Bulk-Endpunkt uebersprungen.
+VIEW_MODE_APPLICABLE_ROLES = {"member", "pro-member"}
+
 
 @router.get("/users")
 def list_users(user: User = Depends(require_permission("users.manage")), session: Session = Depends(get_session)):
@@ -27,6 +32,7 @@ def list_users(user: User = Depends(require_permission("users.manage")), session
             "created_at": u.created_at.isoformat(),
             "last_login_at": u.last_login_at.isoformat() if u.last_login_at else None,
             "can_report_bugs": u.can_report_bugs,
+            "view_mode": u.view_mode,
         }
         for u in users
     ]
@@ -82,6 +88,11 @@ def update_user(
     if "role" in data and data["role"] not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
 
+    if "view_mode" in data:
+        if data["view_mode"] not in VALID_VIEW_MODES:
+            raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
+        target.view_mode = data["view_mode"]
+
     if "can_report_bugs" in data:
         from backend.api.auth import ROLE_HIERARCHY
         if ROLE_HIERARCHY.get(user.role, 0) < ROLE_HIERARCHY["developer"]:
@@ -101,6 +112,57 @@ def update_user(
     session.add(target)
     session.commit()
     return ActionResponse.success()
+
+
+@router.post("/users/bulk-view-mode")
+def bulk_view_mode(
+    data: dict,
+    user: User = Depends(require_permission("users.manage")),
+    session: Session = Depends(get_session),
+):
+    """Setzt view_mode fuer mehrere Nutzer im eigenen Chor.
+
+    Body:
+      - view_mode: "songs" | "texts"
+      - user_ids: Liste von User-IDs ODER "all-members" (shortcut fuer alle Member/Pro-Member im Chor)
+
+    Chorleiter/Admin werden immer uebersprungen (sie brauchen vollen Zugriff).
+    """
+    view_mode = data.get("view_mode")
+    if view_mode not in VALID_VIEW_MODES:
+        raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
+
+    user_ids = data.get("user_ids")
+    if user_ids == "all-members":
+        targets = session.exec(
+            select(User).where(
+                User.choir_id == user.choir_id,
+                User.role.in_(list(VIEW_MODE_APPLICABLE_ROLES)),  # type: ignore[attr-defined]
+            )
+        ).all()
+    elif isinstance(user_ids, list):
+        if not user_ids:
+            raise HTTPException(400, "user_ids darf nicht leer sein")
+        targets = session.exec(
+            select(User).where(User.choir_id == user.choir_id, User.id.in_(user_ids))  # type: ignore[attr-defined]
+        ).all()
+    else:
+        raise HTTPException(400, "user_ids muss eine Liste sein oder 'all-members'")
+
+    updated = 0
+    skipped = 0
+    now = datetime.utcnow()
+    for target in targets:
+        if target.role not in VIEW_MODE_APPLICABLE_ROLES:
+            skipped += 1
+            continue
+        if target.view_mode != view_mode:
+            target.view_mode = view_mode
+            target.updated_at = now
+            session.add(target)
+            updated += 1
+    session.commit()
+    return ActionResponse.success(data={"updated": updated, "skipped": skipped})
 
 
 @router.delete("/users/{user_id}")
