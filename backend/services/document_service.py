@@ -65,6 +65,40 @@ def _clear_cached_pdf(doc_id: int) -> None:
         _pdf_cache.pop(doc_id, None)
 
 
+# --- Text Cache (txt, cho) ---
+# Keyed by (doc_id, content_hash). Hash-based invalidation means a stale
+# entry simply never matches once the folder-sync writes the new hash to
+# the Document row — no TTL needed.
+_text_cache: dict[int, tuple[str, str, float]] = {}
+_text_cache_lock = threading.Lock()
+_TEXT_CACHE_MAX = 100
+
+
+def _get_cached_text(doc_id: int, content_hash: str | None) -> str | None:
+    if not content_hash:
+        return None
+    with _text_cache_lock:
+        entry = _text_cache.get(doc_id)
+        if entry and entry[1] == content_hash:
+            return entry[0]
+    return None
+
+
+def _put_cached_text(doc_id: int, content: str, content_hash: str | None) -> None:
+    if not content_hash:
+        return
+    with _text_cache_lock:
+        while len(_text_cache) >= _TEXT_CACHE_MAX:
+            oldest_key = min(_text_cache, key=lambda k: _text_cache[k][2])
+            del _text_cache[oldest_key]
+        _text_cache[doc_id] = (content, content_hash, time.time())
+
+
+def _clear_cached_text(doc_id: int) -> None:
+    with _text_cache_lock:
+        _text_cache.pop(doc_id, None)
+
+
 # --- Rendered JPEG Page Cache (LRU) ---
 @lru_cache(maxsize=128)
 def _render_page_from_bytes(doc_id: int, page: int, pdf_hash: str) -> bytes | None:
@@ -233,6 +267,7 @@ def update_document_hash(
     session.commit()
     # Invalidate caches
     _clear_cached_pdf(doc.id)
+    _clear_cached_text(doc.id)
     clear_render_cache()
 
 
@@ -285,6 +320,7 @@ def delete_document(doc_id: int, session: Session) -> bool:
 
     # Clear memory caches
     _clear_cached_pdf(doc_id)
+    _clear_cached_text(doc_id)
     clear_render_cache()
 
     # FK-abhaengige User-Daten aufraeumen — bei aktivem PRAGMA foreign_keys=ON

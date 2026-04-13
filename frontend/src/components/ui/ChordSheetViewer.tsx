@@ -51,7 +51,7 @@ function ChordLineView({
   // No chords — just text
   if (line.chords.length === 0) {
     return (
-      <div className="chord-line">
+      <div className={`chord-line${line.isComment ? ' chord-line-comment' : ''}`}>
         <div className="chord-text">{line.text}</div>
       </div>
     )

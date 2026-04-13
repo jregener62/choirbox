@@ -60,6 +60,8 @@ function classifySectionType(label: string): string {
   if (l.includes('outro')) return 'outro'
   if (l.includes('solo')) return 'solo'
   if (l.includes('pre-chorus') || l.includes('pre chorus')) return 'pre-chorus'
+  if (l === 'tab') return 'tab'
+  if (l === 'highlight') return 'highlight'
   return 'other'
 }
 
@@ -76,6 +78,12 @@ function parseInlineChordLine(line: string): { text: string; chords: ChordPositi
       const end = line.indexOf(']', i)
       if (end > -1) {
         const chord = line.slice(i + 1, end)
+        // Empty brackets `[]` and bar separators `[|]`, `[||]` are valid
+        // ChordPro tokens but not chords — swallow them silently.
+        if (chord === '' || /^\|+$/.test(chord)) {
+          i = end + 1
+          continue
+        }
         if (CHORD_TOKEN_RE.test(chord)) {
           // Pad clean text so consecutive chords don't stack on the same column.
           // Happens with instrumental lines like "[Em] [D/F#] [G] [C]" where
@@ -133,9 +141,16 @@ export function parseChordPro(text: string): ParsedChordContent {
   let currentSection: ChordSection = { type: 'intro', label: '', lines: [] }
   const allChords: string[] = []
   let detectedKey = ''
+  let inTabBlock = false
 
   const flush = () => {
     if (currentSection.lines.length > 0) sections.push(currentSection)
+  }
+
+  // Aliases that the generic start_of_/end_of_ regex cannot match.
+  const SHORT_ALIASES: Record<string, string> = {
+    sov: 'verse', soc: 'chorus', sob: 'bridge', sot: 'tab', soh: 'highlight',
+    eov: 'verse', eoc: 'chorus', eob: 'bridge', eot: 'tab', eoh: 'highlight',
   }
 
   for (const rawLine of lines) {
@@ -143,18 +158,15 @@ export function parseChordPro(text: string): ParsedChordContent {
 
     if (!line.trim()) continue
 
+    // Hash-prefix line comment (ChordPro spec) — skip entirely
+    if (/^\s*#/.test(line)) continue
+
     // Directive: {key: value} or {flag}
     const directiveMatch = line.match(/^\s*\{([a-z_]+)(?:\s*:\s*(.*?))?\}\s*$/i)
     if (directiveMatch) {
       const directive = directiveMatch[1].toLowerCase()
       const value = (directiveMatch[2] || '').trim()
 
-      // Generic ChordPro 6 section directives: {start_of_<label>} / {end_of_<label>}
-      // Also handles the short aliases sov/soc/sob and eov/eoc/eob.
-      const SHORT_ALIASES: Record<string, string> = {
-        sov: 'verse', soc: 'chorus', sob: 'bridge',
-        eov: 'verse', eoc: 'chorus', eob: 'bridge',
-      }
       const startMatch = directive.match(/^start_of_(.+)$/)
       const endMatch = directive.match(/^end_of_(.+)$/)
       const shortStart = directive in SHORT_ALIASES && directive.startsWith('s')
@@ -168,40 +180,58 @@ export function parseChordPro(text: string): ParsedChordContent {
           label: `[${displayLabel}]`,
           lines: [],
         }
+        if (label === 'tab') inTabBlock = true
         continue
       }
       if (endMatch || shortEnd) {
+        const label = shortEnd ? SHORT_ALIASES[directive] : endMatch![1]
         flush()
         currentSection = { type: 'other', label: '', lines: [] }
+        if (label === 'tab') inTabBlock = false
         continue
       }
 
       switch (directive) {
         case 'title':
         case 't':
-          // title is metadata — ignored for rendering (shown elsewhere)
+        case 'subtitle':
+        case 'st':
+          // Metadata — ignored for rendering (shown in the document header)
           break
         case 'key':
           detectedKey = value
           break
         case 'comment':
         case 'c':
-          // Inline comment — render as a label-less line of plain text
-          currentSection.lines.push({ text: value, chords: [] })
+        case 'comment_italic':
+        case 'ci':
+        case 'comment_box':
+        case 'cb':
+          // Comment — marked with isComment so the viewer can style it
+          // (highlighter background + italic). Empty value → skip silently.
+          if (value) currentSection.lines.push({ text: value, chords: [], isComment: true })
           break
+        // Any other directive (font, color, define, playtime, chordspace, ...)
+        // is silently consumed — ChordPro spec says unknown/unused tags are ignored.
       }
       continue
     }
 
     // Plain section header `[Verse 1]` (Ultimate Guitar style, fallback)
     const sectionHeader = line.trim().match(/^\[([^\]]+)\]\s*$/)
-    if (sectionHeader && !CHORD_TOKEN_RE.test(sectionHeader[1])) {
+    if (!inTabBlock && sectionHeader && !CHORD_TOKEN_RE.test(sectionHeader[1])) {
       flush()
       currentSection = {
         type: classifySectionType(sectionHeader[1]),
         label: `[${sectionHeader[1]}]`,
         lines: [],
       }
+      continue
+    }
+
+    // Inside {sot}...{eot}: preserve line verbatim, no chord parsing
+    if (inTabBlock) {
+      currentSection.lines.push({ text: line, chords: [] })
       continue
     }
 

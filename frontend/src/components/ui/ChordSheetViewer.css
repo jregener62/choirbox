@@ -62,6 +62,22 @@
   min-height: 1em;
 }
 
+/* Kommentar-Zeile ({comment:} / {c:}) — Textmarker-Stil */
+.chord-line-comment .chord-text {
+  display: inline-block;
+  font-style: italic;
+  background: #fef08a;
+  color: #1f2937;
+  padding: var(--space-0-5) var(--space-2);
+  border-radius: var(--radius-sm);
+}
+
+/* Tab-Block ({start_of_tab}...{end_of_tab}) — monospace, Whitespace erhalten */
+.chord-section-tab .chord-text {
+  white-space: pre;
+  font-family: 'Courier New', Courier, monospace;
+}
+
 /* Transpose Controls */
 .transpose-controls {
   display: flex;

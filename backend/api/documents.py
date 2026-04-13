@@ -638,6 +638,10 @@ async def get_text_content(
     if not doc or doc.file_type not in ("txt", "cho"):
         raise HTTPException(404, "Kein Textdokument")
 
+    cached = document_service._get_cached_text(doc_id, doc.content_hash)
+    if cached is not None:
+        return {"content": cached}
+
     dbx = get_dropbox_service(session)
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
@@ -649,6 +653,7 @@ async def get_text_content(
             resp = await client.get(link)
             resp.raise_for_status()
             content = resp.text.replace('\r\n', '\n').replace('\r', '\n').replace('\u2028', '\n').replace('\u2029', '\n\n')
+            document_service._put_cached_text(doc_id, content, doc.content_hash)
             return {"content": content}
     except RuntimeError as e:
         raise HTTPException(502, str(e))
@@ -695,6 +700,7 @@ async def rename_document(
 
     # Invalidate caches
     document_service._clear_cached_pdf(doc_id)
+    document_service._clear_cached_text(doc_id)
     document_service.clear_render_cache()
 
     return ActionResponse.success()

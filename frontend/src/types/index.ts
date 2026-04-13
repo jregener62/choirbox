@@ -156,6 +156,8 @@ export interface ChordPosition {
 export interface ChordLine {
   text: string
   chords: ChordPosition[]
+  /** ChordPro {comment:} line — styled with highlighter background + italic. */
+  isComment?: boolean
 }
 
 export interface ChordSection {

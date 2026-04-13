@@ -610,6 +610,27 @@ Vollstaendiger Abgleich aller DB-Records gegen den Dropbox-Inhalt des Chors. Adm
 - **Dry-Run-Modus**: Button "Resync simulieren (Dry-Run)" laesst den kompletten Vergleich laufen, schreibt aber nichts in die DB. Anzeige wird mit "Simulation: ..." prefixed. Backend-Endpoint: `POST /admin/resync?dry_run=true`.
 - **DB-Backup vor Resync**: Vor jedem echten (nicht-simulierten) Resync wird `choirbox.db` automatisch nach `choirbox.db.bak-<timestamp>` kopiert. Es bleiben immer nur die letzten 5 Backups erhalten.
 
+### Text-Content-Cache (txt, cho)
+
+`/documents/{id}/content` cached den rohen Text im RAM (`_text_cache` in `document_service.py`, max 100 Dokumente). Cache-Key ist `doc_id`, Invalidierung ueber `content_hash`: Ein Cache-Treffer liefert nur, wenn der in der DB gespeicherte Hash mit dem Cache-Eintrag uebereinstimmt. Sobald der Folder-Sync einen neuen Hash von Dropbox uebernimmt, matcht der alte Cache-Eintrag nicht mehr und die naechste Anfrage laedt frisch. Kein TTL noetig. Rename und Delete leeren den Eintrag aktiv.
+
+### ChordPro-Parser: Weitere Standard-Direktiven
+
+Gemaess ChordPro-Spezifikation werden zusaetzlich unterstuetzt:
+
+- `#`-Kommentarzeilen werden komplett uebersprungen.
+- `{subtitle}` / `{st}` — Metadata, ignoriert fuers Rendering.
+- `{comment_italic}` / `{ci}` und `{comment_box}` / `{cb}` — werden wie `{comment}` behandelt.
+- `{start_of_tab}` / `{sot}` / `{end_of_tab}` / `{eot}` — Tab-Block. Inhalt wird monospace + mit `white-space: pre` gerendert, eckige Klammern drin werden NICHT als Akkorde interpretiert (`[C]` in einer Gitarren-Tab-Zeile bleibt Text).
+- `{start_of_highlight}` / `{soh}` / `{end_of_highlight}` / `{eoh}` — als eigener Section-Typ gefuehrt.
+- Leere `[]` und Takt-Separatoren `[|]` / `[||]` werden still verschluckt statt als Literaltext gerendert.
+- Leere Direktivwerte (`{t:}`, `{st:}`, `{c:}`) erzeugen keine leere Zeile mehr.
+- Unbekannte Direktiven (font, color, playtime, chordspace, ...) werden wie vom Standard gefordert stillschweigend ignoriert.
+
+### Kommentar-Hervorhebung (Textmarker-Stil)
+
+`{comment:}` / `{c:}` / `{comment_italic}` / `{comment_box}` tragen im Parse-Tree jetzt `isComment: true`. Der `ChordSheetViewer` rendert sie mit gelber Textmarker-Farbe (`#fef08a`), kursivem Text und kompaktem Padding — so werden z.B. `{c:4x}` oder `{c:Bridge-Hinweis}` beim Ueben sofort sichtbar.
+
 ### Nightly DB-Backup nach Dropbox (Cron)
 
 Taeglich um 03:00 legt `backup_db.py` via SQLite-Backup-API einen konsistenten Snapshot an und laedt ihn in den Dropbox-Ordner `/backups/` hoch (letzte 7 Backups bleiben).

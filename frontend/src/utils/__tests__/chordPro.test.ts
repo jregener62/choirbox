@@ -68,6 +68,41 @@ describe('parseChordPro', () => {
     ])
   })
 
+  it('skips hash-prefixed comment lines', () => {
+    const r = parseChordPro('# top comment\n[C]hello\n# another\n[G]world')
+    const texts = r.sections.flatMap((s) => s.lines.map((l) => l.text))
+    expect(texts).toEqual(['hello', 'world'])
+  })
+
+  it('marks {comment:} lines as isComment', () => {
+    const r = parseChordPro('{c: 4x}\n[C]hello')
+    const first = r.sections[0].lines[0]
+    expect(first.text).toBe('4x')
+    expect(first.isComment).toBe(true)
+  })
+
+  it('skips empty {c:}, {t:}, {st:}', () => {
+    const r = parseChordPro('{t:}\n{st:}\n{c:}\n[C]hello')
+    expect(r.sections[0].lines).toEqual([{ text: 'hello', chords: [{ chord: 'C', col: 0 }] }])
+  })
+
+  it('skips empty [] and bar-separator [|] [||] tokens', () => {
+    const r = parseChordPro('A[|]mazing [C] [] [||]grace[G]')
+    const line = r.sections[0].lines[0]
+    expect(line.chords.map((c) => c.chord)).toEqual(['C', 'G'])
+    expect(line.text).toContain('Amazing')
+    expect(line.text).toContain('grace')
+  })
+
+  it('puts {sot}...{eot} content into a tab section without chord parsing', () => {
+    const r = parseChordPro('{sot}\ne|--[C]--0--|\n{eot}')
+    const tabSection = r.sections.find((s) => s.type === 'tab')
+    expect(tabSection).toBeDefined()
+    // The bracketed content inside a tab block must NOT be parsed as a chord
+    expect(tabSection!.lines[0].text).toBe('e|--[C]--0--|')
+    expect(tabSection!.lines[0].chords).toEqual([])
+  })
+
   it('supports generic start_of_/end_of_ directives (ChordPro 6)', () => {
     const text = `{start_of_intro}
 [C][G]
@@ -136,7 +171,7 @@ describe('parseChordPro', () => {
 {eov}`
     const r = parseChordPro(text)
     const lines = r.sections[0].lines
-    expect(lines[0]).toEqual({ text: '2x repeat', chords: [] })
+    expect(lines[0]).toEqual({ text: '2x repeat', chords: [], isComment: true })
   })
 })
 
