@@ -1633,6 +1633,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### ChordPro: Generische Section-Direktiven (ChordPro 6)
+
+`{start_of_intro}`, `{start_of_solo}`, `{start_of_outro}` etc. wurden stillschweigend verschluckt, weil der Switch nur `verse`/`chorus`/`bridge` kannte. Jetzt matcht der Parser generisch `start_of_<label>` / `end_of_<label>` (ChordPro 6 "labeled environments") — der Section-Typ wird ueber `classifySectionType(label)` bestimmt, das Display-Label aus dem Direktiv-Wert oder dem kapitalisierten Label.
+
 ### ChordPro: Major-Akkorde mit grossem M (FM7, CMaj7) nicht erkannt
 
 `CHORD_TOKEN_RE` akzeptierte nur das Moll-`m` und das lowercase `maj` — Schreibweisen mit grossem `M` (`FM7`, `CMaj7`) fielen durch und wurden als Literaltext `[FM7]` gerendert. Fix: `M(?:aj)?` als zusaetzliche Qualitaets-Variante in `chordPro.ts` und `chordParser.ts`.

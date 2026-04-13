@@ -68,6 +68,19 @@ describe('parseChordPro', () => {
     ])
   })
 
+  it('supports generic start_of_/end_of_ directives (ChordPro 6)', () => {
+    const text = `{start_of_intro}
+[C][G]
+{end_of_intro}
+{start_of_solo: Solo 1}
+[Am]
+{end_of_solo}`
+    const r = parseChordPro(text)
+    expect(r.sections.map((s) => s.type)).toEqual(['intro', 'solo'])
+    expect(r.sections[0].label).toBe('[Intro]')
+    expect(r.sections[1].label).toBe('[Solo 1]')
+  })
+
   it('accepts uppercase-M major chord shorthand (FM7, CMaj7)', () => {
     const r = parseChordPro('[FM7][G][Am]')
     const line = r.sections[0].lines[0]

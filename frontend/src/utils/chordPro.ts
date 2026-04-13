@@ -148,6 +148,34 @@ export function parseChordPro(text: string): ParsedChordContent {
     if (directiveMatch) {
       const directive = directiveMatch[1].toLowerCase()
       const value = (directiveMatch[2] || '').trim()
+
+      // Generic ChordPro 6 section directives: {start_of_<label>} / {end_of_<label>}
+      // Also handles the short aliases sov/soc/sob and eov/eoc/eob.
+      const SHORT_ALIASES: Record<string, string> = {
+        sov: 'verse', soc: 'chorus', sob: 'bridge',
+        eov: 'verse', eoc: 'chorus', eob: 'bridge',
+      }
+      const startMatch = directive.match(/^start_of_(.+)$/)
+      const endMatch = directive.match(/^end_of_(.+)$/)
+      const shortStart = directive in SHORT_ALIASES && directive.startsWith('s')
+      const shortEnd = directive in SHORT_ALIASES && directive.startsWith('e')
+      if (startMatch || shortStart) {
+        const label = shortStart ? SHORT_ALIASES[directive] : startMatch![1]
+        flush()
+        const displayLabel = value || label.charAt(0).toUpperCase() + label.slice(1)
+        currentSection = {
+          type: classifySectionType(label),
+          label: `[${displayLabel}]`,
+          lines: [],
+        }
+        continue
+      }
+      if (endMatch || shortEnd) {
+        flush()
+        currentSection = { type: 'other', label: '', lines: [] }
+        continue
+      }
+
       switch (directive) {
         case 'title':
         case 't':
@@ -155,30 +183,6 @@ export function parseChordPro(text: string): ParsedChordContent {
           break
         case 'key':
           detectedKey = value
-          break
-        case 'start_of_verse':
-        case 'sov':
-          flush()
-          currentSection = { type: 'verse', label: `[${value || 'Verse'}]`, lines: [] }
-          break
-        case 'start_of_chorus':
-        case 'soc':
-          flush()
-          currentSection = { type: 'chorus', label: `[${value || 'Chorus'}]`, lines: [] }
-          break
-        case 'start_of_bridge':
-        case 'sob':
-          flush()
-          currentSection = { type: 'bridge', label: `[${value || 'Bridge'}]`, lines: [] }
-          break
-        case 'end_of_verse':
-        case 'eov':
-        case 'end_of_chorus':
-        case 'eoc':
-        case 'end_of_bridge':
-        case 'eob':
-          flush()
-          currentSection = { type: 'other', label: '', lines: [] }
           break
         case 'comment':
         case 'c':
