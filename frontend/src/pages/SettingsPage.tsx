@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music, RefreshCw } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music, RefreshCw, Eye, FileText } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore, ZOOM_LABELS, type ZoomLevel } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -22,6 +22,7 @@ interface DropboxStatus {
 interface AdminSettings {
   invite_code: string | null
   dropbox_root_folder: string | null
+  default_view_mode: 'songs' | 'texts'
 }
 
 export function SettingsPage() {
@@ -63,6 +64,8 @@ export function SettingsPage() {
   const [linkCopied, setLinkCopied] = useState(false)
   const [rootFolder, setRootFolder] = useState('')
   const [rootFolderSaving, setRootFolderSaving] = useState(false)
+  const [defaultViewMode, setDefaultViewMode] = useState<'songs' | 'texts'>('songs')
+  const [defaultViewModeSaving, setDefaultViewModeSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   // Re-Sync state
@@ -121,6 +124,7 @@ export function SettingsPage() {
       const settings = await api<AdminSettings>('/admin/settings')
       setInviteCode(settings.invite_code || '')
       setRootFolder(settings.dropbox_root_folder || '')
+      setDefaultViewMode(settings.default_view_mode === 'texts' ? 'texts' : 'songs')
     } catch {
       // ignore
     }
@@ -277,6 +281,20 @@ export function SettingsPage() {
       setMessage('Fehler beim Speichern')
     } finally {
       setRootFolderSaving(false)
+    }
+  }
+
+  const saveDefaultViewMode = async (mode: 'songs' | 'texts') => {
+    if (mode === defaultViewMode) return
+    setDefaultViewModeSaving(true)
+    try {
+      await api('/admin/settings', { method: 'PUT', body: { default_view_mode: mode } })
+      setDefaultViewMode(mode)
+      setMessage(`Default-Ansicht fuer neue Mitglieder: ${mode === 'texts' ? 'Nur Texte' : 'Alles'}`)
+    } catch {
+      setMessage('Fehler beim Speichern')
+    } finally {
+      setDefaultViewModeSaving(false)
     }
   }
 
@@ -608,6 +626,49 @@ export function SettingsPage() {
                 style={{ width: 'auto', padding: '10px 20px' }}
               >
                 {rootFolderSaving ? '...' : 'OK'}
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* -- Default-Ansichtsmodus fuer neue Mitglieder (Admin) -- */}
+        {isAdmin && (
+          <section>
+            <h3 className="settings-heading"><Eye size={14} /> Default-Ansicht fuer neue Mitglieder</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+              Gilt fuer Mitglieder, die sich ueber den Einladungslink registrieren oder vom Admin angelegt werden.
+              Bestehende Mitglieder sind nicht betroffen — diese werden per Einzel-Toggle oder Bulk-Umschaltung in der Nutzerverwaltung umgestellt.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => saveDefaultViewMode('songs')}
+                disabled={defaultViewModeSaving}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', borderRadius: 8,
+                  border: `2px solid ${defaultViewMode === 'songs' ? 'var(--accent)' : 'var(--border)'}`,
+                  background: defaultViewMode === 'songs' ? 'rgba(129,140,248,0.10)' : 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+                  cursor: defaultViewModeSaving ? 'wait' : 'pointer',
+                }}
+              >
+                <Music size={16} /> Alles
+              </button>
+              <button
+                onClick={() => saveDefaultViewMode('texts')}
+                disabled={defaultViewModeSaving}
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', borderRadius: 8,
+                  border: `2px solid ${defaultViewMode === 'texts' ? 'var(--accent)' : 'var(--border)'}`,
+                  background: defaultViewMode === 'texts' ? 'rgba(129,140,248,0.10)' : 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+                  cursor: defaultViewModeSaving ? 'wait' : 'pointer',
+                }}
+              >
+                <FileText size={16} /> Nur Texte
               </button>
             </div>
           </section>

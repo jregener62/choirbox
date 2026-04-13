@@ -10,4 +10,8 @@ class Choir(SQLModel, table=True):
     name: str = Field(max_length=200)
     invite_code: str = Field(max_length=100, unique=True)
     dropbox_root_folder: Optional[str] = Field(default=None, max_length=500)
+    # Default-Ansichtsmodus fuer neue Mitglieder: "songs" (Vollzugriff) oder
+    # "texts" (nur Texte/Noten). Admin kann pro Chor setzen — z.B. "texts"
+    # waehrend einer Jam-Session-Phase, spaeter umstellen auf "songs".
+    default_view_mode: str = Field(default="songs", max_length=10)
     created_at: datetime = Field(default_factory=datetime.utcnow)

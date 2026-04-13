@@ -95,6 +95,7 @@ def _migrate(eng):
         ("guest_links", "last_used_ua", "VARCHAR(255)"),
         ("guest_links", "view_mode", "VARCHAR(10) DEFAULT 'songs'"),
         ("users", "view_mode", "VARCHAR(10) DEFAULT 'songs'"),
+        ("choirs", "default_view_mode", "VARCHAR(10) DEFAULT 'songs'"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:

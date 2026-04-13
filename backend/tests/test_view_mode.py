@@ -122,3 +122,107 @@ def test_bulk_requires_admin_permission(client: TestClient, member):
         json={"view_mode": "texts", "user_ids": "all-members"},
     )
     assert res.status_code == 403
+
+
+# ---------------------------------------------------------------------------
+# choir.default_view_mode — Default fuer neue Mitglieder
+# ---------------------------------------------------------------------------
+
+def test_choir_default_view_mode_default_is_songs(client: TestClient, admin):
+    _, admin_headers = admin
+    res = client.get("/api/admin/settings", headers=admin_headers)
+    assert res.status_code == 200
+    assert res.json()["default_view_mode"] == "songs"
+
+
+def test_set_choir_default_view_mode(client: TestClient, admin):
+    _, admin_headers = admin
+    res = client.put(
+        "/api/admin/settings",
+        headers=admin_headers,
+        json={"default_view_mode": "texts"},
+    )
+    assert res.status_code == 200
+    res2 = client.get("/api/admin/settings", headers=admin_headers)
+    assert res2.json()["default_view_mode"] == "texts"
+
+
+def test_set_choir_default_view_mode_invalid(client: TestClient, admin):
+    _, admin_headers = admin
+    res = client.put(
+        "/api/admin/settings",
+        headers=admin_headers,
+        json={"default_view_mode": "garbage"},
+    )
+    assert res.status_code == 400
+
+
+def test_register_inherits_choir_default_texts(
+    client: TestClient, session: Session, admin, test_choir
+):
+    _, admin_headers = admin
+    # Admin setzt default auf texts
+    client.put(
+        "/api/admin/settings",
+        headers=admin_headers,
+        json={"default_view_mode": "texts"},
+    )
+    # Neue Registrierung
+    res = client.post(
+        "/api/auth/register",
+        json={
+            "invite_code": test_choir.invite_code,
+            "username": "new_jam_member",
+            "password": "Password12",
+            "voice_part": "",
+        },
+    )
+    assert res.status_code == 200
+    assert res.json()["user"]["view_mode"] == "texts"
+
+
+def test_admin_create_user_inherits_choir_default(
+    client: TestClient, session: Session, admin
+):
+    _, admin_headers = admin
+    client.put(
+        "/api/admin/settings",
+        headers=admin_headers,
+        json={"default_view_mode": "texts"},
+    )
+    res = client.post(
+        "/api/admin/users",
+        headers=admin_headers,
+        json={
+            "username": "admin_created_member",
+            "password": "Password12",
+            "voice_part": "",
+            "role": "member",
+        },
+    )
+    assert res.status_code == 200
+    new_id = res.json()["data"]["id"]
+    new_user = session.get(User, new_id)
+    assert new_user is not None
+    assert new_user.view_mode == "texts"
+
+
+def test_admin_create_user_explicit_view_mode_overrides_default(
+    client: TestClient, session: Session, admin
+):
+    _, admin_headers = admin
+    # Chor-Default = songs
+    res = client.post(
+        "/api/admin/users",
+        headers=admin_headers,
+        json={
+            "username": "explicit_texts_member",
+            "password": "Password12",
+            "voice_part": "",
+            "role": "member",
+            "view_mode": "texts",
+        },
+    )
+    assert res.status_code == 200
+    new_id = res.json()["data"]["id"]
+    assert session.get(User, new_id).view_mode == "texts"  # type: ignore[union-attr]

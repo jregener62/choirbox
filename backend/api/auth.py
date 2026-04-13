@@ -397,6 +397,7 @@ def register(data: dict, request: Request, session: Session = Depends(get_sessio
         voice_part=voice_part,
         password_hash=_hash_password(password),
         choir_id=choir.id,
+        view_mode=choir.default_view_mode,
     )
     session.add(user)
     session.commit()

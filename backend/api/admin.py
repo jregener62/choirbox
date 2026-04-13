@@ -60,6 +60,14 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
     if role not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
 
+    # view_mode: explizit aus dem Body, sonst Chor-Default uebernehmen.
+    view_mode = data.get("view_mode")
+    if view_mode is not None and view_mode not in VALID_VIEW_MODES:
+        raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
+    if view_mode is None:
+        choir = session.get(Choir, user.choir_id) if user.choir_id else None
+        view_mode = choir.default_view_mode if choir else "songs"
+
     new_user = User(
         username=username,
         display_name=data.get("display_name", username),
@@ -67,6 +75,7 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
         voice_part=voice_part,
         password_hash=_hash_password(password),
         choir_id=user.choir_id,
+        view_mode=view_mode,
     )
     session.add(new_user)
     session.commit()
@@ -208,6 +217,7 @@ def get_settings(user: User = Depends(require_permission("settings.manage")), se
     return {
         "invite_code": choir.invite_code if choir else None,
         "dropbox_root_folder": choir.dropbox_root_folder if choir else None,
+        "default_view_mode": choir.default_view_mode if choir else "songs",
     }
 
 
@@ -228,6 +238,10 @@ def update_settings(data: dict, user: User = Depends(require_permission("setting
             choir.invite_code = new_code
     if "dropbox_root_folder" in data:
         choir.dropbox_root_folder = data["dropbox_root_folder"].strip() or None
+    if "default_view_mode" in data:
+        if data["default_view_mode"] not in VALID_VIEW_MODES:
+            raise HTTPException(400, f"default_view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
+        choir.default_view_mode = data["default_view_mode"]
 
     session.add(choir)
     session.commit()
