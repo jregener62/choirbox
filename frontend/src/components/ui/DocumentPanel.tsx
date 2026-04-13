@@ -401,9 +401,11 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         <TextViewer
           docId={activeDoc.id}
           originalName={activeDoc.original_name}
+          folderPath={folderPath}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
           scrollContainerRef={scrollContainerRef}
+          onChordSheetCreated={() => useDocumentsStore.getState().load(folderPath)}
         />
       )}
 

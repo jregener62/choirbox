@@ -13,6 +13,7 @@
         "favorites",
         "labels",
         "annotations",
+        "chord_input",
         "notes",
         "sections",
         "upload",
@@ -70,6 +71,10 @@
     "annotations": {
       "description": "Chord-Annotationen (Akkord-Ueberschriften auf Chord-Sheets).",
       "permissions": ["annotations.read", "annotations.write"]
+    },
+    "chord_input": {
+      "description": "Akkorde per Tap + Popover in .txt-Texte setzen und als .cho exportieren.",
+      "permissions": ["chord_input.edit"]
     },
     "notes": {
       "description": "Per-User Notizen zu Tracks und Abschnitten.",
@@ -143,6 +148,8 @@
     "annotations.read":        { "min_role": "member",     "description": "Chord-Annotationen lesen" },
     "annotations.write":       { "min_role": "member",     "description": "Chord-Annotationen schreiben" },
 
+    "chord_input.edit":        { "min_role": "pro-member", "description": "Akkorde in .txt setzen und als .cho exportieren" },
+
     "notes.read":              { "min_role": "member",     "description": "Eigene Notizen lesen" },
     "notes.write":             { "min_role": "pro-member", "description": "Notizen schreiben (globale Lyrics-Verwaltung)" },
 
@@ -206,6 +213,7 @@
     "GET /api/documents/{doc_id}/download":                         "documents.read",
     "GET /api/documents/{doc_id}/stream":                           "documents.read",
     "GET /api/documents/{doc_id}/content":                          "documents.read",
+    "PUT /api/documents/{doc_id}/content":                          "chord_input.edit",
     "POST /api/documents/{doc_id}/rename":                          "documents.rename",
     "DELETE /api/documents/{doc_id}":                               "documents.delete",
     "POST /api/documents/{doc_id}/hide":                            "documents.hide",
@@ -234,6 +242,8 @@
     "PUT /api/annotations":                                         "annotations.write",
     "DELETE /api/annotations":                                      "annotations.write",
     "DELETE /api/annotations/all":                                  "annotations.write",
+
+    "POST /api/chord-input/export":                                 "chord_input.edit",
 
     "GET /api/notes":                                               "notes.read",
     "PUT /api/notes":                                               "notes.write",

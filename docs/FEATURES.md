@@ -712,11 +712,12 @@ Chord Sheets sind transponierbare Akkord-Texte. Sie liegen als `.cho`-Dateien im
 
 ### Eingabe-Wege
 
-Drei Wege fuehren zu einer `.cho`-Datei:
+Vier Wege fuehren zu einer `.cho`-Datei:
 
 1. **"Chordsheet einfuegen"** (Upload-Auswahl-Modal) — Akkord-Text aus Zwischenablage einfuegen
 2. **"Datei auswaehlen"** + `.cho`-Datei — direkter Upload einer ChordPro-Datei
-3. **Format-Detection** beim Paste: erkennt automatisch, ob der Input bereits ChordPro ist oder im "Akkord-Zeile ueber Lyrics"-Stil (Ultimate Guitar)
+3. **"Chordsheet erstellen"** im `.txt`-Viewer — erzeugt leeres `.cho` auf Basis des Liedtexts, oeffnet direkt den Akkord-Editor (siehe ["Akkord-Eingabe per Tap"](#akkord-eingabe-per-tap))
+4. **Format-Detection** beim Paste: erkennt automatisch, ob der Input bereits ChordPro ist oder im "Akkord-Zeile ueber Lyrics"-Stil (Ultimate Guitar)
 
 ### Format-Auto-Detection
 
@@ -773,6 +774,42 @@ Das Modal nutzt das bestehende `<Modal>`-Component-System.
 - Per-User-Transposition: `UserChordPreference` Tabelle mit FK auf `documents.id` (vorher: FK auf `chord_sheets.id`)
 - Max. Dateigroesse: 2 MB (gleich wie `.txt`)
 
+### Akkord-Eingabe per Tap
+
+Strukturierter Editor, mit dem Akkorde ohne ChordPro-Kenntnisse an exakte Zeichen-Positionen gesetzt werden — statt Syntax zu tippen, wird auf eine Silbe getippt und der Akkord aus einem Keypad zusammengebaut.
+
+**Einstiegspunkte:**
+
+- **In `.txt`** — Button **"Chordsheet erstellen"** (pro-member+): erzeugt eine neue `.cho`-Datei mit gleichem Inhalt im selben `Texte/`-Ordner und oeffnet direkt den Editor.
+- **In `.cho`** — Button **"Akkorde bearbeiten"** (pro-member+): laedt das bestehende Chord-Sheet, parst die `[Akkord]`-Marker zu Zeichen-Offsets und ermoeglicht Aenderungen.
+
+**Ablauf:**
+
+1. Tap auf eine Silbe oeffnet ein Keypad-Popover
+2. Akkord-Token aus Tasten zusammenbauen: Noten `A B C D E F G`, Modifier `♯ ♭ m maj sus dim aug`, Ziffern `2 4 5 6 7 9`, Slash fuer Bass-Note
+3. Live-Preview mit Regex-Validierung — "Setzen"-Button erst aktiv bei gueltigem Akkord
+4. Bestehender Akkord an der Position wird ersetzt, "Entfernen"-Button loescht ihn
+5. Vorschau zeigt den generierten ChordPro-Text vor dem Speichern
+6. Speichern **nur auf Knopfdruck** — kein Auto-Save
+   - **Neues `.cho`** (aus `.txt`): legt eine Datei im `Texte/`-Ordner an
+   - **Bestehendes `.cho`**: Bestaetigungs-Dialog warnt vor Ueberschreiben, danach In-Place-Update via `PUT /api/documents/{id}/content`
+
+**Resume:** Arbeit unterbrechen = `.cho` einfach wieder oeffnen und "Akkorde bearbeiten" klicken. Gesetzte Akkorde werden aus der Datei rekonstruiert.
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/services/chord_export_service.py` | Build ChordPro aus Text + Positions-Liste (Offsets von hinten nach vorn) |
+| `backend/api/chord_input.py` | `POST /api/chord-input/export` |
+| `backend/api/documents.py` | `PUT /api/documents/{id}/content` (nur `.cho`) |
+| `backend/services/dropbox_service.py` | `upload_file(overwrite=True)` fuer In-Place-Update |
+| `frontend/src/utils/chordValidation.ts` | Regex-Validator fuer Akkord-Token |
+| `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — ChordPro-Marker zu Offsets |
+| `frontend/src/hooks/useChordInput.ts` | Zustand-Store: Chord-Map, `loadFromChordPro`, `updateCho` |
+| `frontend/src/components/ui/ChordKeypadPopover.tsx` | Token-Builder-UI |
+| `frontend/src/components/ui/ChordInputViewer.tsx` | Text-Layout mit tappbaren Zeichen, Preview-Overlay, Overwrite-Dialog |
+| `frontend/src/components/ui/TextViewer.tsx` | "Chordsheet erstellen"-Button |
+| `frontend/src/components/ui/ChordSheetTextViewer.tsx` | "Akkorde bearbeiten"-Button |
+
 ### Berechtigungen
 
 | Aktion | Mindest-Rolle |
@@ -782,6 +819,7 @@ Das Modal nutzt das bestehende `<Modal>`-Component-System.
 | Annotationen | member |
 | Chordsheet einfuegen / Datei hochladen | pro-member |
 | Chord Sheet loeschen | pro-member |
+| Akkord-Eingabe per Tap (neu / bearbeiten) | pro-member |
 
 ### Dateien
 
