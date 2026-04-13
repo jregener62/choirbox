@@ -68,6 +68,13 @@ describe('parseChordPro', () => {
     ])
   })
 
+  it('accepts uppercase-M major chord shorthand (FM7, CMaj7)', () => {
+    const r = parseChordPro('[FM7][G][Am]')
+    const line = r.sections[0].lines[0]
+    expect(line.chords.map((c) => c.chord)).toEqual(['FM7', 'G', 'Am'])
+    expect(line.text.trim()).toBe('')
+  })
+
   it('pads instrumental-only chord lines so chords do not stack', () => {
     // Without padding, cols would be 0,1,2,3 and all chords render on top.
     const r = parseChordPro('[Em] [D/F#] [G] [C]')

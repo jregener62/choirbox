@@ -49,7 +49,7 @@ export function isChordPro(text: string): boolean {
 
 // --- ChordPro parser ---
 
-const CHORD_TOKEN_RE = /^[A-G][b#]?(?:m(?:aj|in)?|maj|dim|aug|sus)?(?:[0-9]+)?(?:sus[24]?)?(?:add[0-9]+)?(?:\/[A-G][b#]?)?$/
+const CHORD_TOKEN_RE = /^[A-G][b#]?(?:m(?:aj|in)?|M(?:aj)?|maj|dim|aug|sus)?(?:[0-9]+)?(?:sus[24]?)?(?:add[0-9]+)?(?:\/[A-G][b#]?)?$/
 
 function classifySectionType(label: string): string {
   const l = label.toLowerCase()

@@ -12,7 +12,7 @@ import type { ParsedChordContent, ChordPosition, ChordSection } from '@/types/in
 
 // Chord symbol pattern: root + optional quality/extension/bass
 const CHORD_PATTERN =
-  /\b([A-G][b#]?(?:m(?:aj|in)?|maj|dim|aug|sus)?(?:2|4|5|6|7|9|11|13|add[0-9]+|no[0-9]+)?(?:sus[24]?)?(?:\/[A-G][b#]?)?)\b/g
+  /\b([A-G][b#]?(?:m(?:aj|in)?|M(?:aj)?|maj|dim|aug|sus)?(?:2|4|5|6|7|9|11|13|add[0-9]+|no[0-9]+)?(?:sus[24]?)?(?:\/[A-G][b#]?)?)\b/g
 
 const SECTION_PATTERN = /^\[([A-Za-z0-9\s+\-.]+)\]\s*$/
 
