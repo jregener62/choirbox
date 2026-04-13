@@ -6,6 +6,7 @@ import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from 
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useChordPreference } from '@/hooks/useChordPreference.ts'
+import { useChordInput } from '@/hooks/useChordInput.ts'
 import { useAutoScroll } from '@/hooks/useAutoScroll.ts'
 import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
 import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
@@ -78,6 +79,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const autoScrollSpeedIdx = usePlayerStore((s) => s.autoScrollSpeedIdx)
   const setAutoScrollEnabled = usePlayerStore((s) => s.setAutoScrollEnabled)
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
+  const chordInputMode = useChordInput((s) => s.mode)
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
@@ -453,7 +455,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           </button>
         </>
       )}
-      {isCho && (
+      {isCho && !chordInputMode && (
         <div
           className={`transpose-stepper transpose-stepper--floating${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}

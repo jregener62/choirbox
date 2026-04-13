@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Save, X, Eye } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { ChordKeypadPopover } from './ChordKeypadPopover'
@@ -45,8 +45,15 @@ export function ChordInputViewer({
   const [previewCho, setPreviewCho] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
+  const [popoverOpen, setPopoverOpen] = useState(false)
+
+  const longPressTimer = useRef<number | null>(null)
+  const pressStart = useRef<{ x: number; y: number } | null>(null)
+  const firedLongPress = useRef(false)
 
   const isEditMode = editDocId != null
+  const LONG_PRESS_MS = 450
+  const MOVE_TOLERANCE = 10
 
   useEffect(() => {
     if (chordProBody != null) {
@@ -58,6 +65,12 @@ export function ChordInputViewer({
     setMode(true)
     return () => setMode(false)
   }, [text, chordProBody, setText, loadFromChordPro, reset, setMode])
+
+  useEffect(() => {
+    return () => {
+      if (longPressTimer.current != null) window.clearTimeout(longPressTimer.current)
+    }
+  }, [])
 
   const lines = useMemo(() => storedText.split('\n'), [storedText])
 
@@ -73,12 +86,66 @@ export function ChordInputViewer({
 
   const chordCount = Object.keys(chords).length
 
-  const handleCharClick = useCallback(
+  const clearLongPressTimer = useCallback(() => {
+    if (longPressTimer.current != null) {
+      window.clearTimeout(longPressTimer.current)
+      longPressTimer.current = null
+    }
+  }, [])
+
+  const handleCharPointerDown = useCallback(
+    (line: number, col: number, e: React.PointerEvent) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return
+      firedLongPress.current = false
+      pressStart.current = { x: e.clientX, y: e.clientY }
+      setActiveCell({ line, col })
+      clearLongPressTimer()
+      longPressTimer.current = window.setTimeout(() => {
+        firedLongPress.current = true
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate?.(30) } catch {}
+        }
+        setPopoverOpen(true)
+      }, LONG_PRESS_MS)
+    },
+    [setActiveCell, clearLongPressTimer],
+  )
+
+  const handleCharPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      if (!pressStart.current) return
+      const dx = Math.abs(e.clientX - pressStart.current.x)
+      const dy = Math.abs(e.clientY - pressStart.current.y)
+      if (dx > MOVE_TOLERANCE || dy > MOVE_TOLERANCE) {
+        clearLongPressTimer()
+        pressStart.current = null
+      }
+    },
+    [clearLongPressTimer],
+  )
+
+  const handleCharPointerUp = useCallback(() => {
+    clearLongPressTimer()
+    pressStart.current = null
+  }, [clearLongPressTimer])
+
+  const handleCharDoubleClick = useCallback(
     (line: number, col: number) => {
       setActiveCell({ line, col })
+      setPopoverOpen(true)
     },
     [setActiveCell],
   )
+
+  const handleChipClick = useCallback(
+    (line: number, col: number) => {
+      setActiveCell({ line, col })
+      setPopoverOpen(true)
+    },
+    [setActiveCell],
+  )
+
+  const closePopover = useCallback(() => setPopoverOpen(false), [])
 
   const handlePreview = async () => {
     setError(null)
@@ -127,15 +194,28 @@ export function ChordInputViewer({
   return (
     <div className="chord-input-viewer">
       <div className="chord-input-toolbar">
-        <div className="chord-input-status">
-          {chordCount > 0
-            ? `${chordCount} Akkord${chordCount === 1 ? '' : 'e'} gesetzt`
-            : 'Tippe auf eine Silbe, um einen Akkord zu setzen'}
+        <div className="chord-input-toolbar-top">
+          <div className="chord-input-status">
+            {chordCount > 0
+              ? `${chordCount} Akkord${chordCount === 1 ? '' : 'e'} gesetzt · Lang tippen oeffnet Dialog`
+              : 'Tippen = Position · Lang tippen = Akkord setzen'}
+          </div>
+          {onCancel && (
+            <button
+              type="button"
+              className="chord-input-close"
+              onClick={onCancel}
+              aria-label="Schliessen"
+              title="Schliessen"
+            >
+              <X size={18} />
+            </button>
+          )}
         </div>
         <div className="chord-input-toolbar-actions">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary chord-input-action"
             onClick={handlePreview}
             disabled={chordCount === 0}
             title="ChordPro-Vorschau"
@@ -146,7 +226,7 @@ export function ChordInputViewer({
           {(onCreated || isEditMode) && (
             <button
               type="button"
-              className="btn btn-primary"
+              className="btn btn-primary chord-input-action"
               onClick={handleSaveClick}
               disabled={saving || (!isEditMode && chordCount === 0)}
             >
@@ -155,17 +235,7 @@ export function ChordInputViewer({
                 ? 'Speichern...'
                 : isEditMode
                   ? 'Speichern'
-                  : 'Als .cho speichern'}
-            </button>
-          )}
-          {onCancel && (
-            <button
-              type="button"
-              className="btn btn-secondary chord-input-close"
-              onClick={onCancel}
-              aria-label="Schliessen"
-            >
-              <X size={16} />
+                  : 'Als .cho'}
             </button>
           )}
         </div>
@@ -184,7 +254,7 @@ export function ChordInputViewer({
                     key={col}
                     className="chord-input-chord"
                     style={{ left: `${col}ch` }}
-                    onClick={() => handleCharClick(lineIndex, col)}
+                    onClick={() => handleChipClick(lineIndex, col)}
                   >
                     {chord}
                   </span>
@@ -206,7 +276,13 @@ export function ChordInputViewer({
                           (isActive ? ' chord-input-char--active' : '') +
                           (hasChord ? ' chord-input-char--has-chord' : '')
                         }
-                        onClick={() => handleCharClick(lineIndex, col)}
+                        onPointerDown={(e) => handleCharPointerDown(lineIndex, col, e)}
+                        onPointerMove={handleCharPointerMove}
+                        onPointerUp={handleCharPointerUp}
+                        onPointerCancel={handleCharPointerUp}
+                        onPointerLeave={handleCharPointerUp}
+                        onContextMenu={(e) => e.preventDefault()}
+                        onDoubleClick={() => handleCharDoubleClick(lineIndex, col)}
                       >
                         {ch === ' ' ? '\u00A0' : ch}
                       </span>
@@ -219,7 +295,7 @@ export function ChordInputViewer({
         })}
       </div>
 
-      {activeCell && (
+      {popoverOpen && activeCell && (
         <ChordKeypadPopover
           lineText={activeLineText}
           lineIndex={activeCell.line}
@@ -227,7 +303,7 @@ export function ChordInputViewer({
           initialChord={initialChord}
           onSet={setChord}
           onRemove={removeChord}
-          onClose={() => setActiveCell(null)}
+          onClose={closePopover}
         />
       )}
 
