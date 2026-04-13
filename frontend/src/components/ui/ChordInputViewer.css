@@ -118,13 +118,23 @@
   cursor: pointer;
 }
 .chord-input-char--tappable:hover {
-  background: var(--accent-dim, rgba(129, 140, 248, 0.15));
+  background: rgba(239, 68, 68, 0.35);
+  outline: 2px solid #ef4444;
+  outline-offset: 1px;
 }
 
 .chord-input-char--active {
-  background: var(--accent-dim, rgba(129, 140, 248, 0.25));
-  outline: 2px dashed var(--accent);
+  background: #ef4444;
+  color: #fff;
+  outline: 2px solid #ef4444;
   outline-offset: 1px;
+  box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3);
+  animation: chord-cursor-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes chord-cursor-pulse {
+  0%, 100% { box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.3); }
+  50%      { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0.15); }
 }
 
 .chord-input-char--has-chord {

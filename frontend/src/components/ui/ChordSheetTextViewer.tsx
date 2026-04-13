@@ -258,7 +258,7 @@ export function ChordSheetTextViewer({
     >
       <div className="cho-viewer-content" ref={contentRef}>
         {showName && <div className="cho-viewer-name">{originalName}</div>}
-        {canEditChords && (
+        {canEditChords && showName && (
           <div style={{ padding: 'var(--space-2) var(--space-3) 0', display: 'flex', justifyContent: 'flex-end' }}>
             <button
               type="button"

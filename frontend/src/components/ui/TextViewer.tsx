@@ -91,7 +91,7 @@ export function TextViewer({
   return (
     <div className="text-viewer">
       {showName && <div className="text-viewer-name">{originalName}</div>}
-      {canEditChords && folderPath && (
+      {canEditChords && folderPath && showName && (
         <div style={{ padding: 'var(--space-2) var(--space-3) 0', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             type="button"
