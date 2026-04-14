@@ -616,22 +616,42 @@ Vollstaendiger Abgleich aller DB-Records gegen den Dropbox-Inhalt des Chors. Adm
 
 `/documents/{id}/content` cached den rohen Text im RAM (`_text_cache` in `document_service.py`, max 100 Dokumente). Cache-Key ist `doc_id`, Invalidierung ueber `content_hash`: Ein Cache-Treffer liefert nur, wenn der in der DB gespeicherte Hash mit dem Cache-Eintrag uebereinstimmt. Sobald der Folder-Sync einen neuen Hash von Dropbox uebernimmt, matcht der alte Cache-Eintrag nicht mehr und die naechste Anfrage laedt frisch. Kein TTL noetig. Rename und Delete leeren den Eintrag aktiv.
 
-### ChordPro-Parser: Weitere Standard-Direktiven
+### ChordPro-Parser: Vollstaendige Standard-Direktiven
 
-Gemaess ChordPro-Spezifikation werden zusaetzlich unterstuetzt:
+Gemaess ChordPro-Spezifikation werden unterstuetzt:
 
-- `#`-Kommentarzeilen werden komplett uebersprungen.
-- `{subtitle}` / `{st}` — Metadata, ignoriert fuers Rendering.
-- `{comment_italic}` / `{ci}` und `{comment_box}` / `{cb}` — werden wie `{comment}` behandelt.
-- `{start_of_tab}` / `{sot}` / `{end_of_tab}` / `{eot}` — Tab-Block. Inhalt wird monospace + mit `white-space: pre` gerendert, eckige Klammern drin werden NICHT als Akkorde interpretiert (`[C]` in einer Gitarren-Tab-Zeile bleibt Text).
-- `{start_of_highlight}` / `{soh}` / `{end_of_highlight}` / `{eoh}` — als eigener Section-Typ gefuehrt.
-- Leere `[]` und Takt-Separatoren `[|]` / `[||]` werden still verschluckt statt als Literaltext gerendert.
-- Leere Direktivwerte (`{t:}`, `{st:}`, `{c:}`) erzeugen keine leere Zeile mehr.
-- Unbekannte Direktiven (font, color, playtime, chordspace, ...) werden wie vom Standard gefordert stillschweigend ignoriert.
+**Metadata (als Header gerendert, nicht still verschluckt):**
+`{title}`/`{t}`, `{subtitle}`/`{st}`/`{su}`, `{artist}`, `{composer}`, `{lyricist}`, `{copyright}`, `{album}`, `{year}`, `{key}`, `{time}`, `{tempo}`, `{duration}`, `{capo}`, `{meta: name value}`. Der Metadata-Header zeigt Titel (gross), Untertitel, Credits (Künstler/Musik/Text), Album + Jahr, Badges fuer Tonart/Capo/Takt/Tempo/Dauer und Copyright.
 
-### Kommentar-Hervorhebung (Textmarker-Stil)
+**Kommentare mit eigenem Stil pro Variante:**
+- `{comment}` / `{c}` — gelber Textmarker (`#fef08a`), kursiv
+- `{comment_italic}` / `{ci}` — nur kursiv, kein Hintergrund
+- `{comment_box}` / `{cb}` — eingerahmt
+Inline-Kommentare (`{c:4x}` mitten in einer Lyric-Zeile) werden als `chord-annotation`-Pill am Zeilenende gerendert.
 
-`{comment:}` / `{c:}` / `{comment_italic}` / `{comment_box}` tragen im Parse-Tree jetzt `isComment: true`. Der `ChordSheetViewer` rendert sie mit gelber Textmarker-Farbe (`#fef08a`), kursivem Text und kompaktem Padding — so werden z.B. `{c:4x}` oder `{c:Bridge-Hinweis}` beim Ueben sofort sichtbar.
+**Spezial: `{title:}` + `{comment:}` auf einer Quellzeile:**
+Wenn `{title: X} {comment: Y}` auf derselben Zeile stehen, wird der Kommentar als kleiner Textmarker-Hinweis direkt **neben** dem Titel gerendert (z.B. `Sonnenbadewanne  [3. Bund]`).
+
+**Sektionen:**
+- `{start_of_verse}` / `{sov}`, `{start_of_chorus}` / `{soc}`, `{start_of_bridge}` / `{sob}`, `{start_of_tab}` / `{sot}`, `{start_of_grid}` / `{sog}`, `{start_of_highlight}` / `{soh}` plus generische `start_of_<label>` (ChordPro 6)
+- Tab- **und** Grid-Bloecke werden monospace verbatim gerendert — eckige Klammern drin bleiben Text, keine Akkord-Erkennung
+- `{chorus}` — Verweis auf den vorigen Refrain. Wird als eigener Abschnitt mit Label `[Refrain]` (oder individuellem Label) und `(Refrain)`-Platzhalter in kursiv gerendert
+
+**Leniency beim Lesen:**
+- Directive-Namen mit Leerzeichen werden toleriert (`{start of verse}` → parst wie `{start_of_verse}`)
+- Mehrere Directives auf einer Quellzeile werden alle verarbeitet (`{title: X} {comment: Y}`)
+- Value-Regex stoppt an der ersten `}` — kein Greedy-Runaway mehr
+- `#`-Kommentarzeilen werden komplett uebersprungen
+- Leere `[]` und Takt-Separatoren `[|]` / `[||]` werden still verschluckt
+- Leere Direktivwerte (`{t:}`, `{c:}`) erzeugen keine leere Zeile
+- Unbekannte Direktiven (font, color, define, columns, new_page, image, ...) werden spec-konform ignoriert
+
+**Normalisierung beim Schreiben:**
+Speichert der Text-Editor ein `.cho`, werden Directive-Namen vor dem Schreiben in die Spec-Form normalisiert (Leerzeichen → `_`, lowercase). Aus `{Start Of Verse: V1}` wird auf der Festplatte `{start_of_verse: V1}`. **Values** bleiben unveraendert. Umgesetzt via `normalizeChordProDirectives()` in `frontend/src/utils/chordPro.ts`.
+
+### Akkord-Anker-Unterstreichung
+
+Das Zeichen im Lyric-Text, **ueber** dem ein Akkord steht, wird lila unterstrichen — sowohl im Render-Modus (`.chord-anchor`) als auch im Akkord-Editor (`.chord-input-char--has-chord`). Beide Stellen nutzen `text-decoration-skip-ink: none`, damit die Linie auch unter Unterlaengen wie `j`, `g`, `p`, `y` sichtbar bleibt.
 
 ### Nightly DB-Backup nach Dropbox (Cron)
 
@@ -1714,6 +1734,18 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### ChordPro: Multi-Directive-Zeile frisst ueber `}` hinaus
+
+Eine Quellzeile wie `{title: Sonnenbadewanne} {comment: 3. Bund}` wurde als **ein** Directive interpretiert: die Value-Regex `.*?` expandierte lazy bis zur **letzten** `}` auf der Zeile — Titel-Wert wurde zu `"Sonnenbadewanne} {comment: 3. Bund"`. Fix: Value auf `[^}]*` begrenzt (stoppt an der ersten `}`) und Block-Directive-Erkennung akzeptiert mehrere `{...}`-Bloecke pro Zeile; jeder wird einzeln verarbeitet.
+
+### ChordPro: Directive-Namen mit Leerzeichen
+
+`{start of verse: Vers 1}` (Leerzeichen statt Unterstrich) fiel durch `[a-z_]+` und wurde als Literaltext gerendert. Fix: Name-Regex erlaubt `[a-z_ ]` und normalisiert via `raw.trim().toLowerCase().replace(/\s+/g, '_')` zum kanonischen Namen, bevor der Switch greift.
+
+### ChordPro: Akkord-Anker-Unterlaengung unsichtbar bei `j`/`g`/`p`
+
+`text-decoration: underline` wurde vom Browser unter Unterlaengen-Zeichen gesplittet (Skip-Ink-Default). Bei einem einzeln gespannten `j` am Zeilenanfang (`[F#m7]ja, ich...`) verschwand die Linie komplett. Fix: `text-decoration-skip-ink: none` in `.chord-anchor` und `.chord-input-char--has-chord`.
 
 ### ChordPro: Generische Section-Direktiven (ChordPro 6)
 

@@ -15,7 +15,13 @@
  */
 
 import { parseChordText } from '@/utils/chordParser'
-import type { ChordLine, ChordPosition, ChordSection, ParsedChordContent } from '@/types/index'
+import type {
+  ChordLine,
+  ChordPosition,
+  ChordSection,
+  ChordSheetMetadata,
+  ParsedChordContent,
+} from '@/types/index'
 
 // --- Format detection ---
 
@@ -29,8 +35,8 @@ import type { ChordLine, ChordPosition, ChordSection, ParsedChordContent } from 
  *   surrounding text)
  */
 export function isChordPro(text: string): boolean {
-  // Any ChordPro directive
-  if (/\{[a-z_]+\s*[:}]/i.test(text)) return true
+  // Any ChordPro directive (name may include spaces, e.g. `{start of verse}`)
+  if (/\{\s*[a-z_][a-z_ ]*\s*[:}]/i.test(text)) return true
 
   // Inline chord syntax detection
   const lines = text.split('\n')
@@ -61,8 +67,16 @@ function classifySectionType(label: string): string {
   if (l.includes('solo')) return 'solo'
   if (l.includes('pre-chorus') || l.includes('pre chorus')) return 'pre-chorus'
   if (l === 'tab') return 'tab'
+  if (l === 'grid') return 'grid'
   if (l === 'highlight') return 'highlight'
   return 'other'
+}
+
+function commentStyleFor(directive: string): 'plain' | 'italic' | 'box' {
+  const d = directive.toLowerCase()
+  if (d === 'ci' || d === 'comment_italic') return 'italic'
+  if (d === 'cb' || d === 'comment_box') return 'box'
+  return 'plain'
 }
 
 /**
@@ -142,6 +156,15 @@ export function parseChordPro(text: string): ParsedChordContent {
   const allChords: string[] = []
   let detectedKey = ''
   let inTabBlock = false
+  let inGridBlock = false
+  const metadata: ChordSheetMetadata = {}
+
+  const setMeta = (key: keyof ChordSheetMetadata, value: string) => {
+    if (!value) return
+    // Narrow: meta is the only non-string slot
+    if (key === 'meta') return
+    ;(metadata as Record<string, string>)[key] = value
+  }
 
   const flush = () => {
     if (currentSection.lines.length > 0) sections.push(currentSection)
@@ -149,8 +172,138 @@ export function parseChordPro(text: string): ParsedChordContent {
 
   // Aliases that the generic start_of_/end_of_ regex cannot match.
   const SHORT_ALIASES: Record<string, string> = {
-    sov: 'verse', soc: 'chorus', sob: 'bridge', sot: 'tab', soh: 'highlight',
-    eov: 'verse', eoc: 'chorus', eob: 'bridge', eot: 'tab', eoh: 'highlight',
+    sov: 'verse', soc: 'chorus', sob: 'bridge', sot: 'tab', sog: 'grid', soh: 'highlight',
+    eov: 'verse', eoc: 'chorus', eob: 'bridge', eot: 'tab', eog: 'grid', eoh: 'highlight',
+  }
+
+  // Match a single directive `{name}` or `{name: value}`.
+  //  - name may contain spaces (e.g. `{start of verse}`) — normalized below.
+  //  - value is `[^}]*` so it cannot cross the closing brace (prevents greedy
+  //    runaway when multiple directives sit on one line, e.g.
+  //    `{title: X} {comment: Y}`).
+  const SINGLE_DIRECTIVE_RE =
+    /\{\s*([a-z_][a-z_ ]*?)\s*(?::\s*([^}]*))?\s*\}/gi
+
+  const normalizeDirective = (raw: string): string =>
+    raw.toLowerCase().trim().replace(/\s+/g, '_')
+
+  const processBlockDirective = (directive: string, value: string): void => {
+    const startMatch = directive.match(/^start_of_(.+)$/)
+    const endMatch = directive.match(/^end_of_(.+)$/)
+    const shortStart = directive in SHORT_ALIASES && directive.startsWith('s')
+    const shortEnd = directive in SHORT_ALIASES && directive.startsWith('e')
+    if (startMatch || shortStart) {
+      const label = shortStart ? SHORT_ALIASES[directive] : startMatch![1]
+      flush()
+      const displayLabel = value || label.charAt(0).toUpperCase() + label.slice(1)
+      currentSection = {
+        type: classifySectionType(label),
+        label: `[${displayLabel}]`,
+        lines: [],
+      }
+      if (label === 'tab') inTabBlock = true
+      if (label === 'grid') inGridBlock = true
+      return
+    }
+    if (endMatch || shortEnd) {
+      const label = shortEnd ? SHORT_ALIASES[directive] : endMatch![1]
+      flush()
+      currentSection = { type: 'other', label: '', lines: [] }
+      if (label === 'tab') inTabBlock = false
+      if (label === 'grid') inGridBlock = false
+      return
+    }
+
+    switch (directive) {
+      // --- Metadata ---
+      case 'title':
+      case 't':
+        setMeta('title', value)
+        break
+      case 'subtitle':
+      case 'st':
+      case 'su':
+        setMeta('subtitle', value)
+        break
+      case 'artist':
+        setMeta('artist', value)
+        break
+      case 'composer':
+        setMeta('composer', value)
+        break
+      case 'lyricist':
+        setMeta('lyricist', value)
+        break
+      case 'copyright':
+        setMeta('copyright', value)
+        break
+      case 'album':
+        setMeta('album', value)
+        break
+      case 'year':
+        setMeta('year', value)
+        break
+      case 'time':
+        setMeta('time', value)
+        break
+      case 'tempo':
+        setMeta('tempo', value)
+        break
+      case 'duration':
+        setMeta('duration', value)
+        break
+      case 'capo':
+        setMeta('capo', value)
+        break
+      case 'key':
+        detectedKey = value
+        setMeta('key', value)
+        break
+      case 'meta': {
+        const m = value.match(/^(\S+)\s+(.*)$/)
+        if (m) {
+          metadata.meta = metadata.meta || {}
+          const k = m[1].toLowerCase()
+          metadata.meta[k] = [...(metadata.meta[k] || []), m[2].trim()]
+        }
+        break
+      }
+
+      // --- Comments (distinct visual styles) ---
+      case 'comment':
+      case 'c':
+      case 'comment_italic':
+      case 'ci':
+      case 'comment_box':
+      case 'cb':
+        if (value) {
+          const style = commentStyleFor(directive)
+          const commentLine: ChordLine = { text: value, chords: [], isComment: true }
+          if (style !== 'plain') commentLine.commentStyle = style
+          currentSection.lines.push(commentLine)
+        }
+        break
+
+      // --- Chorus reference (repeat the previous chorus) ---
+      case 'chorus': {
+        flush()
+        const displayLabel = value || 'Refrain'
+        currentSection = {
+          type: 'chorus-ref',
+          label: `[${displayLabel}]`,
+          lines: [
+            { text: '(Refrain)', chords: [], isComment: true, commentStyle: 'italic' },
+          ],
+        }
+        flush()
+        currentSection = { type: 'other', label: '', lines: [] }
+        break
+      }
+
+      // Any other directive (font, color, define, columns, new_page,
+      // image, grid flag, ...) is silently consumed — ChordPro spec says
+      // unknown/unused tags are ignored.
+    }
   }
 
   for (const rawLine of lines) {
@@ -161,58 +314,44 @@ export function parseChordPro(text: string): ParsedChordContent {
     // Hash-prefix line comment (ChordPro spec) — skip entirely
     if (/^\s*#/.test(line)) continue
 
-    // Directive: {key: value} or {flag}
-    const directiveMatch = line.match(/^\s*\{([a-z_]+)(?:\s*:\s*(.*?))?\}\s*$/i)
-    if (directiveMatch) {
-      const directive = directiveMatch[1].toLowerCase()
-      const value = (directiveMatch[2] || '').trim()
+    // Block-level directive line: one or more `{...}` with only whitespace
+    // in between. Each directive is processed in order (so multiple
+    // directives on one line work, e.g. `{title: X} {comment: Y}`).
+    const allDirectives = [...line.matchAll(SINGLE_DIRECTIVE_RE)]
+    const lineWithoutAllDirectives = line.replace(SINGLE_DIRECTIVE_RE, '')
+    const isBlockDirectiveLine =
+      allDirectives.length > 0 && lineWithoutAllDirectives.trim() === ''
 
-      const startMatch = directive.match(/^start_of_(.+)$/)
-      const endMatch = directive.match(/^end_of_(.+)$/)
-      const shortStart = directive in SHORT_ALIASES && directive.startsWith('s')
-      const shortEnd = directive in SHORT_ALIASES && directive.startsWith('e')
-      if (startMatch || shortStart) {
-        const label = shortStart ? SHORT_ALIASES[directive] : startMatch![1]
-        flush()
-        const displayLabel = value || label.charAt(0).toUpperCase() + label.slice(1)
-        currentSection = {
-          type: classifySectionType(label),
-          label: `[${displayLabel}]`,
-          lines: [],
+    if (isBlockDirectiveLine) {
+      // Special case: if a {title:} and a {comment:} (or ci/cb) sit on the
+      // *same source line*, attach the comment to the title as an inline
+      // "title note" instead of pushing it as a standalone comment line.
+      // Source:  `{title: Sonnenbadewanne} {comment: 3. Bund}`
+      // Rendering: "Sonnenbadewanne  (3. Bund)" on one visual line.
+      const COMMENT_DIRS = new Set([
+        'c', 'comment', 'ci', 'comment_italic', 'cb', 'comment_box',
+      ])
+      const parsed = allDirectives.map((m) => ({
+        directive: normalizeDirective(m[1]),
+        value: (m[2] || '').trim(),
+      }))
+      const hasTitle = parsed.some(
+        (p) => (p.directive === 'title' || p.directive === 't') && p.value,
+      )
+      const anyComment = parsed.some(
+        (p) => COMMENT_DIRS.has(p.directive) && p.value,
+      )
+
+      if (hasTitle && anyComment) {
+        for (const p of parsed) {
+          if (COMMENT_DIRS.has(p.directive) && p.value) {
+            metadata.titleNotes = [...(metadata.titleNotes || []), p.value]
+          } else {
+            processBlockDirective(p.directive, p.value)
+          }
         }
-        if (label === 'tab') inTabBlock = true
-        continue
-      }
-      if (endMatch || shortEnd) {
-        const label = shortEnd ? SHORT_ALIASES[directive] : endMatch![1]
-        flush()
-        currentSection = { type: 'other', label: '', lines: [] }
-        if (label === 'tab') inTabBlock = false
-        continue
-      }
-
-      switch (directive) {
-        case 'title':
-        case 't':
-        case 'subtitle':
-        case 'st':
-          // Metadata — ignored for rendering (shown in the document header)
-          break
-        case 'key':
-          detectedKey = value
-          break
-        case 'comment':
-        case 'c':
-        case 'comment_italic':
-        case 'ci':
-        case 'comment_box':
-        case 'cb':
-          // Comment — marked with isComment so the viewer can style it
-          // (highlighter background + italic). Empty value → skip silently.
-          if (value) currentSection.lines.push({ text: value, chords: [], isComment: true })
-          break
-        // Any other directive (font, color, define, playtime, chordspace, ...)
-        // is silently consumed — ChordPro spec says unknown/unused tags are ignored.
+      } else {
+        for (const p of parsed) processBlockDirective(p.directive, p.value)
       }
       continue
     }
@@ -229,8 +368,10 @@ export function parseChordPro(text: string): ParsedChordContent {
       continue
     }
 
-    // Inside {sot}...{eot}: preserve line verbatim, no chord parsing
-    if (inTabBlock) {
+    // Inside {sot}...{eot} or {sog}...{eog}: preserve line verbatim,
+    // no chord parsing (grid blocks use a rhythmic notation that we render
+    // as-is, just like tablature).
+    if (inTabBlock || inGridBlock) {
       currentSection.lines.push({ text: line, chords: [] })
       continue
     }
@@ -243,10 +384,10 @@ export function parseChordPro(text: string): ParsedChordContent {
       'c', 'comment', 'ci', 'comment_italic', 'cb', 'comment_box',
     ])
     const lineWithoutDirectives = line.replace(
-      /\{([a-z_]+)(?:\s*:\s*([^}]*?))?\}/gi,
+      SINGLE_DIRECTIVE_RE,
       (_: string, directive: string, value?: string) => {
         const v = (value || '').trim()
-        if (COMMENT_DIRECTIVES.has(directive.toLowerCase()) && v) {
+        if (COMMENT_DIRECTIVES.has(normalizeDirective(directive)) && v) {
           annotations.push(v)
         }
         return ''
@@ -270,11 +411,13 @@ export function parseChordPro(text: string): ParsedChordContent {
     ? { key: detectedKey, confidence: 1 }
     : detectKey(allChords)
 
+  const hasMetadata = Object.keys(metadata).length > 0
   return {
     sections,
     all_chords: uniqueChords,
     detected_key: detected.key,
     key_confidence: detected.confidence,
+    ...(hasMetadata ? { metadata } : {}),
   }
 }
 
@@ -370,12 +513,34 @@ export function serializeToChordPro(
  */
 export function ensureChordPro(text: string, title: string): string {
   if (isChordPro(text)) {
-    if (!/\{title\s*:/i.test(text)) {
-      return `{title: ${title}}\n${text}`.replace(/\n+$/, '\n')
+    const normalized = normalizeChordProDirectives(text)
+    if (!/\{\s*title\s*:/i.test(normalized)) {
+      return `{title: ${title}}\n${normalized}`.replace(/\n+$/, '\n')
     }
-    return text.replace(/\n+$/, '\n')
+    return normalized.replace(/\n+$/, '\n')
   }
   // Plain (Ultimate Guitar) → parse → serialize as ChordPro
   const parsed = parseChordText(text)
   return serializeToChordPro(parsed, { title })
+}
+
+/**
+ * Normalize ChordPro directive *names* to the canonical spec form:
+ * spaces inside the name become underscores. Values (everything after the
+ * first `:` in a directive) are left untouched.
+ *
+ *   `{start of verse: Vers 1}`  →  `{start_of_verse: Vers 1}`
+ *   `{end  of  verse}`          →  `{end_of_verse}`
+ *
+ * Used when saving .cho files so the on-disk format follows the ChordPro
+ * standard, regardless of what the user typed.
+ */
+export function normalizeChordProDirectives(text: string): string {
+  return text.replace(
+    /\{\s*([A-Za-z_][A-Za-z_ ]*?)\s*(:[^}]*)?\s*\}/g,
+    (_match, name: string, rest?: string) => {
+      const normalized = name.trim().toLowerCase().replace(/\s+/g, '_')
+      return `{${normalized}${rest ?? ''}}`
+    },
+  )
 }

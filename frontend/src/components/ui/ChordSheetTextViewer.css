@@ -29,13 +29,73 @@
   color: #4f46e5;
 }
 
+.cho-viewer-wrap .chord-anchor {
+  text-decoration-color: #4f46e5;
+}
+
 .cho-viewer-wrap .chord-section-label {
   color: #4a5064;
   background: #e4e7ee;
 }
 
 .cho-viewer-wrap .chord-section-chorus .chord-section-label,
-.cho-viewer-wrap .chord-section-label.chord-section-chorus {
+.cho-viewer-wrap .chord-section-label.chord-section-chorus,
+.cho-viewer-wrap .chord-section-label-chorus {
   color: #4f46e5;
   background: rgba(79, 70, 229, 0.12);
+}
+
+.cho-viewer-wrap .chord-section-chorus-ref .chord-section-label,
+.cho-viewer-wrap .chord-section-label-chorus-ref {
+  color: #4f46e5;
+  background: rgba(79, 70, 229, 0.06);
+  font-style: italic;
+}
+
+/* Paper-Style fuer den Metadata-Header (Titel, Untertitel, Badges, ...) */
+.cho-viewer-wrap .chord-sheet-meta {
+  border-bottom-color: rgba(0, 0, 0, 0.12);
+}
+
+.cho-viewer-wrap .chord-sheet-meta-title {
+  color: #1a1f2e;
+}
+
+.cho-viewer-wrap .chord-sheet-meta-subtitle {
+  color: #4a5064;
+}
+
+.cho-viewer-wrap .chord-sheet-meta-credits,
+.cho-viewer-wrap .chord-sheet-meta-album,
+.cho-viewer-wrap .chord-sheet-meta-extra,
+.cho-viewer-wrap .chord-sheet-meta-copyright {
+  color: #6e7486;
+}
+
+.cho-viewer-wrap .chord-sheet-meta-badge {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: rgba(79, 70, 229, 0.28);
+}
+
+.cho-viewer-wrap .chord-sheet-meta-badge-label {
+  color: #4a5064;
+}
+
+.cho-viewer-wrap .chord-sheet-meta-badge-value {
+  color: #4f46e5;
+}
+
+/* Kommentar-Varianten im Paper-Style */
+.cho-viewer-wrap .chord-line-comment-italic .chord-text {
+  color: #4a5064;
+}
+
+.cho-viewer-wrap .chord-line-comment-box .chord-text {
+  color: #1a1f2e;
+  border-color: rgba(0, 0, 0, 0.25);
+}
+
+/* Grid-Block im Paper-Style */
+.cho-viewer-wrap .chord-section-grid .chord-text {
+  background: #f3f4f8;
 }

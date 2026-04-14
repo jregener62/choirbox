@@ -5,6 +5,7 @@ import {
   parseChordSheet,
   serializeToChordPro,
   ensureChordPro,
+  normalizeChordProDirectives,
 } from '@/utils/chordPro'
 
 // ---------------------------------------------------------------------------
@@ -182,6 +183,161 @@ describe('parseChordPro', () => {
     const lines = r.sections[0].lines
     expect(lines[0]).toEqual({ text: '2x repeat', chords: [], isComment: true })
   })
+
+  // ---- Metadata ----
+  it('extracts all standard metadata directives', () => {
+    const text = `{title: Hallelujah}
+{subtitle: A Song}
+{artist: Leonard Cohen}
+{composer: Cohen}
+{lyricist: Cohen}
+{copyright: 1984 Sony}
+{album: Various Positions}
+{year: 1984}
+{key: C}
+{time: 4/4}
+{tempo: 72}
+{duration: 4:39}
+{capo: 2}
+
+[C]now I've heard there was a secret [Am]chord`
+    const r = parseChordPro(text)
+    expect(r.metadata).toBeDefined()
+    expect(r.metadata!.title).toBe('Hallelujah')
+    expect(r.metadata!.subtitle).toBe('A Song')
+    expect(r.metadata!.artist).toBe('Leonard Cohen')
+    expect(r.metadata!.composer).toBe('Cohen')
+    expect(r.metadata!.lyricist).toBe('Cohen')
+    expect(r.metadata!.copyright).toBe('1984 Sony')
+    expect(r.metadata!.album).toBe('Various Positions')
+    expect(r.metadata!.year).toBe('1984')
+    expect(r.metadata!.key).toBe('C')
+    expect(r.metadata!.time).toBe('4/4')
+    expect(r.metadata!.tempo).toBe('72')
+    expect(r.metadata!.duration).toBe('4:39')
+    expect(r.metadata!.capo).toBe('2')
+    expect(r.detected_key).toBe('C')
+  })
+
+  it('accepts short aliases {t:}, {st:}, {su:}', () => {
+    const r = parseChordPro('{t: Foo}\n{st: Bar}\n{su: Baz}\n[C]x')
+    expect(r.metadata!.title).toBe('Foo')
+    expect(r.metadata!.subtitle).toBe('Baz') // {su} overwrites {st}
+  })
+
+  it('does NOT set metadata field when directive value is empty', () => {
+    const r = parseChordPro('{title:}\n{artist:}\n[C]x')
+    expect(r.metadata).toBeUndefined()
+  })
+
+  it('collects generic {meta:} entries', () => {
+    const r = parseChordPro('{meta: genre Folk}\n{meta: genre Rock}\n{meta: mood happy}\n[C]x')
+    expect(r.metadata!.meta).toEqual({
+      genre: ['Folk', 'Rock'],
+      mood: ['happy'],
+    })
+  })
+
+  // ---- Comment styles ----
+  it('differentiates {c}, {ci}, {cb} via commentStyle', () => {
+    const r = parseChordPro('{c: plain}\n{ci: italic}\n{cb: box}\n[C]x')
+    const lines = r.sections[0].lines
+    // Plain comment has no commentStyle (default implied)
+    expect(lines[0]).toEqual({ text: 'plain', chords: [], isComment: true })
+    expect(lines[1]).toMatchObject({ text: 'italic', isComment: true, commentStyle: 'italic' })
+    expect(lines[2]).toMatchObject({ text: 'box', isComment: true, commentStyle: 'box' })
+  })
+
+  // ---- Chorus reference ----
+  it('treats {chorus} as a chorus-reference section', () => {
+    const text = `{soc}
+[G]real chorus
+{eoc}
+[C]verse
+{chorus}`
+    const r = parseChordPro(text)
+    const refSection = r.sections.find((s) => s.type === 'chorus-ref')
+    expect(refSection).toBeDefined()
+    expect(refSection!.label).toBe('[Refrain]')
+    expect(refSection!.lines[0].isComment).toBe(true)
+  })
+
+  it('respects custom label for {chorus: Chorus 1}', () => {
+    const r = parseChordPro('{chorus: Chorus 1}')
+    const refSection = r.sections.find((s) => s.type === 'chorus-ref')
+    expect(refSection!.label).toBe('[Chorus 1]')
+  })
+
+  // ---- Grid block ----
+  it('puts {sog}...{eog} content into a grid section without chord parsing', () => {
+    const r = parseChordPro('{sog}\n| [C] . . . | [G] . . . |\n{eog}')
+    const grid = r.sections.find((s) => s.type === 'grid')
+    expect(grid).toBeDefined()
+    // Bracketed content inside a grid block is NOT parsed as chord
+    expect(grid!.lines[0].text).toBe('| [C] . . . | [G] . . . |')
+    expect(grid!.lines[0].chords).toEqual([])
+  })
+
+  // ---- Multi-directive lines ----
+  it('attaches {comment:} on the same line as {title:} as a title note', () => {
+    const r = parseChordPro('{title: Sonnenbadewanne} {comment: 3. Bund}\n[C]x')
+    expect(r.metadata!.title).toBe('Sonnenbadewanne')
+    expect(r.metadata!.titleNotes).toEqual(['3. Bund'])
+    // The comment must NOT appear as a standalone comment line.
+    const commentLines = r.sections
+      .flatMap((s) => s.lines)
+      .filter((l) => l.isComment && l.text === '3. Bund')
+    expect(commentLines).toHaveLength(0)
+  })
+
+  it('keeps {comment:} on its own line as a standalone comment line', () => {
+    const r = parseChordPro('{title: Song}\n{comment: footnote}\n[C]x')
+    expect(r.metadata!.titleNotes).toBeUndefined()
+    const commentLines = r.sections
+      .flatMap((s) => s.lines)
+      .filter((l) => l.isComment && l.text === 'footnote')
+    expect(commentLines).toHaveLength(1)
+  })
+
+  it('does NOT let {title:} value cross a closing brace', () => {
+    // Regression for: {title: A} {comment: B} previously swallowed the } and
+    // stored title = "A} {comment: B"
+    const r = parseChordPro('{title: A} {comment: B}')
+    expect(r.metadata!.title).toBe('A')
+  })
+
+  // ---- Directive names with spaces ----
+  it('accepts directive names with spaces and normalizes to underscores', () => {
+    const text = `{start of verse: Vers 1}
+[F#m7]Ich verdunkel
+{end of verse: Vers 1}`
+    const r = parseChordPro(text)
+    expect(r.sections[0].type).toBe('verse')
+    expect(r.sections[0].label).toBe('[Vers 1]')
+  })
+
+  // ---- Silently ignored directives (appearance / chord diagrams) ----
+  it('silently ignores appearance directives (font/size/color/columns/new_page)', () => {
+    const text = `{textfont: serif}
+{textsize: 14}
+{textcolour: red}
+{chordfont: mono}
+{chordsize: 12}
+{chordcolour: blue}
+{columns: 2}
+{column_break}
+{new_page}
+{new_physical_page}
+{define: Am frets 0 2 2 1 0 0}
+{chord: Am}
+[C]hello [Am]world`
+    const r = parseChordPro(text)
+    // Only the lyric line should have rendered
+    const flatLines = r.sections.flatMap((s) => s.lines)
+    expect(flatLines).toHaveLength(1)
+    expect(flatLines[0].text).toBe('hello world')
+    expect(flatLines[0].chords.map((c) => c.chord)).toEqual(['C', 'Am'])
+  })
 })
 
 // ---------------------------------------------------------------------------
@@ -238,6 +394,40 @@ describe('serializeToChordPro', () => {
     expect(out).toContain('{start_of_verse: Verse 1}')
     expect(out).toContain('[C]hello')
     expect(out).toContain('{end_of_verse}')
+  })
+})
+
+describe('normalizeChordProDirectives', () => {
+  it('converts spaces in directive names to underscores', () => {
+    expect(normalizeChordProDirectives('{start of verse: Vers 1}'))
+      .toBe('{start_of_verse: Vers 1}')
+    expect(normalizeChordProDirectives('{end of verse}')).toBe('{end_of_verse}')
+  })
+
+  it('preserves values (no normalization inside the value)', () => {
+    // Value contains spaces — must be kept as-is.
+    expect(normalizeChordProDirectives('{title: Sonnenbadewanne Teil 2}'))
+      .toBe('{title: Sonnenbadewanne Teil 2}')
+  })
+
+  it('leaves already-canonical directives untouched', () => {
+    expect(normalizeChordProDirectives('{start_of_verse: V1}\n[C]x\n{end_of_verse}'))
+      .toBe('{start_of_verse: V1}\n[C]x\n{end_of_verse}')
+  })
+
+  it('lower-cases directive names to the standard form', () => {
+    expect(normalizeChordProDirectives('{Start Of Verse: V1}'))
+      .toBe('{start_of_verse: V1}')
+  })
+
+  it('does not touch chord tokens [C]', () => {
+    expect(normalizeChordProDirectives('[C]hello [Am]world'))
+      .toBe('[C]hello [Am]world')
+  })
+
+  it('handles multiple directives on one line', () => {
+    expect(normalizeChordProDirectives('{start of verse} {end of verse}'))
+      .toBe('{start_of_verse} {end_of_verse}')
   })
 })
 

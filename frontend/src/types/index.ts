@@ -158,8 +158,11 @@ export interface ChordPosition {
 export interface ChordLine {
   text: string
   chords: ChordPosition[]
-  /** ChordPro {comment:} line — styled with highlighter background + italic. */
+  /** ChordPro {comment:} line — styled according to commentStyle. */
   isComment?: boolean
+  /** Visual style for comment lines: 'plain' (highlighter), 'italic' (italic
+   *  only), 'box' (bordered box). Maps to {c}, {ci}, {cb} respectively. */
+  commentStyle?: 'plain' | 'italic' | 'box'
   /** Inline {c:...} / {ci:...} directives appearing mid-line — rendered
    *  at the end of the line with the same highlighter style. */
   annotations?: string[]
@@ -171,10 +174,33 @@ export interface ChordSection {
   lines: ChordLine[]
 }
 
+export interface ChordSheetMetadata {
+  title?: string
+  /** Comments that were on the same source line as `{title:}` — rendered
+   *  inline next to the title (e.g. `{title: X} {c: 3. Bund}`). */
+  titleNotes?: string[]
+  subtitle?: string
+  artist?: string
+  composer?: string
+  lyricist?: string
+  copyright?: string
+  album?: string
+  year?: string
+  key?: string
+  time?: string
+  tempo?: string
+  duration?: string
+  capo?: string
+  /** Generic {meta: name value} directives — multiple values per key allowed. */
+  meta?: Record<string, string[]>
+}
+
 export interface ParsedChordContent {
   sections: ChordSection[]
   all_chords: string[]
   detected_key: string
   key_confidence: number
+  /** Parsed metadata directives — rendered as a header block. */
+  metadata?: ChordSheetMetadata
 }
 

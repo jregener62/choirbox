@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Save, X, Eye } from 'lucide-react'
 import { api } from '@/api/client'
 import { useChordInput } from '@/hooks/useChordInput'
+import { normalizeChordProDirectives } from '@/utils/chordPro'
 import './TextEditViewer.css'
 
 interface TextEditViewerProps {
@@ -41,9 +42,11 @@ export function TextEditViewer({
     setSaving(true)
     setError(null)
     try {
+      // .cho → ChordPro-Spec normalisieren (Leerzeichen in Tag-Namen → _)
+      const payload = fileType === 'cho' ? normalizeChordProDirectives(content) : content
       await api(`/documents/${docId}/content`, {
         method: 'PUT',
-        body: { content },
+        body: { content: payload },
       })
       onSaved()
     } catch (err) {
