@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Setlist Übersicht</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --confirm: #3b82f6; --confirm-hover: #2563eb;
+    --border: #334155;
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --setlist: #14b8a6;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #020617; color: var(--text);
+         -webkit-font-smoothing: antialiased; padding: 24px 12px; }
+  h1 { font-size: 18px; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 24px; max-width: 720px; margin-left: auto; margin-right: auto; }
+
+  .scenes { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .scene { width: 380px; max-width: 100%; }
+  .scene-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+
+  .phone { background: var(--bg); border: 1px solid var(--border); border-radius: 18px;
+           overflow: hidden; position: relative; min-height: 700px; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 14px 14px 12px;
+            border-bottom: 1px solid var(--border); }
+  .topbar h2 { font-size: 16px; font-weight: 700; flex: 1; }
+  .icon-btn { width: 36px; height: 36px; background: var(--bg2); border: 1px solid var(--border);
+              border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text); }
+
+  .filter-row { display: flex; gap: 8px; padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .pill { padding: 6px 12px; border-radius: 20px; background: var(--bg2); border: 1px solid var(--border);
+          font-size: 12px; color: var(--text2); }
+  .pill.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+  .list { padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+  .setlist-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 10px;
+                  padding: 14px; display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .setlist-card.upcoming { border-left: 3px solid var(--setlist); }
+  .setlist-title { font-size: 15px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .setlist-title svg { color: var(--setlist); }
+  .setlist-meta { font-size: 12px; color: var(--text2); display: flex; gap: 12px; align-items: center; }
+  .setlist-meta .dot { width: 3px; height: 3px; background: var(--text3); border-radius: 50%; }
+  .setlist-actions { display: flex; gap: 8px; margin-top: 4px; }
+  .btn { padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border); font-size: 12px;
+         font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-primary { background: var(--confirm); color: #fff; border-color: var(--confirm); flex: 1; }
+  .btn-secondary { background: var(--bg3); color: var(--text); }
+  .btn-icon { width: 34px; padding: 0; }
+
+  .badge-leader { background: var(--amber); color: #1a1a1a; font-size: 9px; font-weight: 700;
+                  padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-past { background: var(--bg3); color: var(--text2); font-size: 9px; font-weight: 600;
+                padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
+
+  .fab-new { position: absolute; bottom: 78px; right: 16px; width: 56px; height: 56px;
+             background: var(--accent); border-radius: 50%; display: flex; align-items: center;
+             justify-content: center; color: #fff; box-shadow: 0 8px 18px rgba(129,140,248,0.35); }
+
+  .bottom-nav { position: absolute; bottom: 0; left: 0; right: 0; height: 64px;
+                background: var(--bg2); border-top: 1px solid var(--border);
+                display: flex; align-items: center; justify-content: space-around; padding: 0 8px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 2px;
+              font-size: 10px; color: var(--text3); padding: 6px 8px; }
+  .nav-item.active { color: var(--accent); }
+  .nav-item.active svg { color: var(--accent); }
+
+  .caption { font-size: 12px; color: var(--text2); margin-top: 10px; line-height: 1.5; }
+  .caption b { color: var(--text); }
+
+  /* Detail empty-state */
+  .empty { padding: 60px 20px; text-align: center; color: var(--text3); }
+  .empty svg { color: var(--text3); margin-bottom: 12px; }
+  .empty h3 { color: var(--text); font-size: 15px; margin-bottom: 6px; }
+  .empty p { font-size: 13px; line-height: 1.5; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+
+<h1>Setlist — Übersicht</h1>
+<p class="subtitle">Zentrale Liste aller Setlists. Member sehen nur Lesen-Modus, Chorleiter haben Erstellen/Bearbeiten/Löschen-Aktionen. Filter unterscheidet kommende, vergangene und Proben.</p>
+
+<div class="scenes">
+
+  <!-- Scene 1: Member view -->
+  <div class="scene">
+    <div class="scene-label">Szene 1 — Member (nur Lesen)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="menu" style="width:18px;height:18px"></i></button>
+        <h2>Setlists</h2>
+        <button class="icon-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+      </div>
+      <div class="filter-row">
+        <span class="pill active">Aktuell</span>
+        <span class="pill">Proben</span>
+        <span class="pill">Archiv</span>
+      </div>
+      <div class="list">
+        <div class="setlist-card upcoming">
+          <div class="setlist-title"><i data-lucide="list-music" style="width:16px;height:16px"></i> Sommerkonzert 2026</div>
+          <div class="setlist-meta">
+            <span><i data-lucide="calendar" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> 22. Juni 2026</span>
+            <span class="dot"></span>
+            <span>14 Lieder</span>
+            <span class="dot"></span>
+            <span>~52 Min</span>
+          </div>
+          <div class="setlist-actions">
+            <button class="btn btn-primary"><i data-lucide="book-open" style="width:13px;height:13px"></i> Öffnen</button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="layers" style="width:14px;height:14px"></i></button>
+          </div>
+        </div>
+
+        <div class="setlist-card upcoming">
+          <div class="setlist-title"><i data-lucide="list-music" style="width:16px;height:16px"></i> Probe — Donnerstag</div>
+          <div class="setlist-meta">
+            <span><i data-lucide="calendar" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> 16. April 2026</span>
+            <span class="dot"></span>
+            <span>8 Lieder</span>
+          </div>
+          <div class="setlist-actions">
+            <button class="btn btn-primary"><i data-lucide="book-open" style="width:13px;height:13px"></i> Öffnen</button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="layers" style="width:14px;height:14px"></i></button>
+          </div>
+        </div>
+
+        <div class="setlist-card">
+          <div class="setlist-title">
+            <i data-lucide="list-music" style="width:16px;height:16px;color:var(--text3)"></i>
+            Frühlingsfest <span class="badge-past">Vergangen</span>
+          </div>
+          <div class="setlist-meta">
+            <span>21. März 2026</span>
+            <span class="dot"></span>
+            <span>11 Lieder</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="bottom-nav">
+        <div class="nav-item"><i data-lucide="folder" style="width:20px;height:20px"></i><span>Browser</span></div>
+        <div class="nav-item"><i data-lucide="heart" style="width:20px;height:20px"></i><span>Favs</span></div>
+        <div class="nav-item active"><i data-lucide="list-music" style="width:20px;height:20px"></i><span>Setlists</span></div>
+        <div class="nav-item"><i data-lucide="settings" style="width:20px;height:20px"></i><span>Mehr</span></div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Member-Sicht:</b> kein "Plus"-FAB, keine Edit-Icons. Primärer Button "Öffnen" führt direkt in die Setlist-Detailansicht. Das Layers-Icon startet sofort den Blättermodus für die ganze Setlist.
+    </div>
+  </div>
+
+  <!-- Scene 2: Chorleiter view -->
+  <div class="scene">
+    <div class="scene-label">Szene 2 — Chorleiter / Admin</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="menu" style="width:18px;height:18px"></i></button>
+        <h2>Setlists <span class="badge-leader">Leiter</span></h2>
+        <button class="icon-btn"><i data-lucide="search" style="width:18px;height:18px"></i></button>
+      </div>
+      <div class="filter-row">
+        <span class="pill active">Aktuell</span>
+        <span class="pill">Proben</span>
+        <span class="pill">Archiv</span>
+        <span class="pill">Entwürfe (1)</span>
+      </div>
+      <div class="list">
+        <div class="setlist-card upcoming">
+          <div class="setlist-title"><i data-lucide="list-music" style="width:16px;height:16px"></i> Sommerkonzert 2026</div>
+          <div class="setlist-meta">
+            <span><i data-lucide="calendar" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> 22. Juni 2026</span>
+            <span class="dot"></span>
+            <span>14 Lieder</span>
+            <span class="dot"></span>
+            <span><i data-lucide="users" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> 28 sehen</span>
+          </div>
+          <div class="setlist-actions">
+            <button class="btn btn-primary"><i data-lucide="book-open" style="width:13px;height:13px"></i> Öffnen</button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="pencil" style="width:14px;height:14px"></i></button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+          </div>
+        </div>
+
+        <div class="setlist-card upcoming">
+          <div class="setlist-title"><i data-lucide="list-music" style="width:16px;height:16px"></i> Probe — Donnerstag</div>
+          <div class="setlist-meta">
+            <span><i data-lucide="calendar" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> 16. April 2026</span>
+            <span class="dot"></span>
+            <span>8 Lieder</span>
+          </div>
+          <div class="setlist-actions">
+            <button class="btn btn-primary">Öffnen</button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="pencil" style="width:14px;height:14px"></i></button>
+            <button class="btn btn-secondary btn-icon"><i data-lucide="more-vertical" style="width:14px;height:14px"></i></button>
+          </div>
+        </div>
+
+        <div class="setlist-card" style="border-left:3px dashed var(--amber)">
+          <div class="setlist-title">
+            <i data-lucide="file-edit" style="width:16px;height:16px;color:var(--amber)"></i>
+            Adventskonzert <span class="badge-leader" style="background:var(--bg3);color:var(--amber)">Entwurf</span>
+          </div>
+          <div class="setlist-meta">
+            <span>0 Lieder</span>
+            <span class="dot"></span>
+            <span>Nicht veröffentlicht</span>
+          </div>
+        </div>
+      </div>
+
+      <button class="fab-new"><i data-lucide="plus" style="width:24px;height:24px"></i></button>
+
+      <div class="bottom-nav">
+        <div class="nav-item"><i data-lucide="folder" style="width:20px;height:20px"></i><span>Browser</span></div>
+        <div class="nav-item"><i data-lucide="heart" style="width:20px;height:20px"></i><span>Favs</span></div>
+        <div class="nav-item active"><i data-lucide="list-music" style="width:20px;height:20px"></i><span>Setlists</span></div>
+        <div class="nav-item"><i data-lucide="settings" style="width:20px;height:20px"></i><span>Mehr</span></div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Chorleiter-Sicht:</b> Edit-/Mehr-Buttons pro Karte, FAB für neue Setlist, zusätzliches Filter-Tab "Entwürfe". Anzahl Mitglieder, die die Setlist bereits geöffnet haben (sanfter Engagement-Hinweis, optional).
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

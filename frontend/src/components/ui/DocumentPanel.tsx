@@ -425,7 +425,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       {/* FABs — PDF/CHO: Draw + Fullscreen, TXT/CHO: Zoom + Fullscreen, CHO: Transpose.
           Annotations sind ein per-User-Feature (annotations.write = member+) —
           Gaeste sehen den Zeichenmodus-FAB nicht. */}
-      {!guest && (isPdf || isCho) && (
+      {!guest && (isPdf || isCho) && !chordInputMode && (
         <button
           className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={() => setDrawingMode(!drawingMode)}
@@ -457,7 +457,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       )}
       {isCho && !chordInputMode && (
         <div
-          className={`transpose-stepper transpose-stepper--floating${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+          className={`transpose-stepper transpose-stepper--floating${pdfFullscreen ? '' : ' transpose-stepper--below-chrome'}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
         >
           <TransposeButtons
@@ -466,7 +466,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           />
         </div>
       )}
-      {pdfFullscreen && (isPdf || isTxt || isCho) && (
+      {pdfFullscreen && (isPdf || isTxt || isCho) && !chordInputMode && (
         <AutoScrollStepper
           faded={fabFaded}
           onInteract={resetFadeTimer}
@@ -474,7 +474,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           onPageDown={() => handlePageScroll('down')}
         />
       )}
-      {(isPdf || isTxt || isCho) && (
+      {(isPdf || isTxt || isCho) && !chordInputMode && (
         <button
           className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={handleFabClick}

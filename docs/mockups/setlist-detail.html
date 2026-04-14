@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Setlist Detail</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --confirm: #3b82f6; --confirm-hover: #2563eb;
+    --border: #334155;
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --setlist: #14b8a6;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #020617; color: var(--text);
+         -webkit-font-smoothing: antialiased; padding: 24px 12px; }
+  h1 { font-size: 18px; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 24px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .scene { width: 380px; max-width: 100%; }
+  .scene-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+  .phone { background: var(--bg); border: 1px solid var(--border); border-radius: 18px;
+           overflow: hidden; position: relative; min-height: 720px; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+            border-bottom: 1px solid var(--border); }
+  .topbar h2 { font-size: 15px; font-weight: 700; flex: 1; line-height: 1.2; }
+  .topbar .sub { font-size: 11px; color: var(--text2); font-weight: 500; }
+  .icon-btn { width: 34px; height: 34px; background: var(--bg2); border: 1px solid var(--border);
+              border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text); }
+
+  .hero { padding: 14px 14px 12px; border-bottom: 1px solid var(--border);
+          background: linear-gradient(180deg, rgba(20,184,166,0.10), transparent); }
+  .hero-meta { display: flex; gap: 10px; flex-wrap: wrap; font-size: 11px; color: var(--text2); margin-bottom: 10px; }
+  .meta-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px;
+               background: var(--bg2); border: 1px solid var(--border); border-radius: 12px; }
+  .meta-chip svg { width: 11px; height: 11px; }
+  .hero-actions { display: flex; gap: 8px; }
+  .btn { padding: 10px 12px; border-radius: 8px; border: 1px solid var(--border); font-size: 13px;
+         font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-primary { background: var(--confirm); color: #fff; border-color: var(--confirm); flex: 1; }
+  .btn-secondary { background: var(--bg3); color: var(--text); }
+  .btn-icon { width: 38px; padding: 0; }
+
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+                   color: var(--text3); padding: 12px 14px 6px; font-weight: 600; }
+
+  .song-list { display: flex; flex-direction: column; }
+  .song-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+              border-bottom: 1px solid var(--border); }
+  .song-number { width: 24px; height: 24px; background: var(--bg3); color: var(--text2);
+                 border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                 font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .song-info { flex: 1; min-width: 0; }
+  .song-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-meta { font-size: 11px; color: var(--text2); display: flex; gap: 8px; margin-top: 2px; align-items: center; }
+  .song-meta .dot { width: 3px; height: 3px; background: var(--text3); border-radius: 50%; }
+  .song-tag { background: var(--accent-dim); color: var(--accent); padding: 1px 6px;
+              border-radius: 4px; font-size: 10px; font-weight: 600; }
+  .song-row .song-open { color: var(--text3); flex-shrink: 0; }
+
+  .song-row.playing { background: var(--accent-dim); }
+  .song-row.playing .song-number { background: var(--accent); color: #fff; }
+
+  /* Divider between sets */
+  .set-divider { padding: 8px 14px; font-size: 11px; font-weight: 700;
+                 color: var(--setlist); background: rgba(20,184,166,0.08);
+                 border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+                 text-transform: uppercase; letter-spacing: 0.6px; display: flex; gap: 8px; align-items: center; }
+
+  .caption { font-size: 12px; color: var(--text2); margin-top: 10px; line-height: 1.5; }
+  .caption b { color: var(--text); }
+
+  /* Perform-CTA sticky-ish at bottom */
+  .perform-cta {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    padding: 12px 14px; background: linear-gradient(180deg, transparent, var(--bg) 25%);
+    display: flex; gap: 8px;
+  }
+  .perform-cta .btn-primary {
+    background: var(--setlist); border-color: var(--setlist);
+    padding: 14px; font-size: 14px;
+  }
+
+  .note { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px;
+          padding: 10px 12px; margin: 10px 14px 0; font-size: 12px; color: var(--text2);
+          display: flex; gap: 8px; align-items: flex-start; }
+  .note svg { flex-shrink: 0; color: var(--amber); }
+</style>
+</head>
+<body>
+
+<h1>Setlist — Detailansicht</h1>
+<p class="subtitle">Songs in Reihenfolge des Chorleiters. Tap auf Song öffnet ihn einzeln, primärer CTA startet den Blättermodus durch die ganze Setlist. Optional: Set-Trenner (z.B. "Block 1 / Pause / Block 2").</p>
+
+<div class="scenes">
+
+  <!-- Scene 1: Standard -->
+  <div class="scene">
+    <div class="scene-label">Szene 1 — Standard (Member)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="arrow-left" style="width:18px;height:18px"></i></button>
+        <div style="flex:1">
+          <div style="font-weight:700">Sommerkonzert 2026</div>
+          <div class="sub">22. Juni · 14 Lieder</div>
+        </div>
+        <button class="icon-btn"><i data-lucide="share-2" style="width:16px;height:16px"></i></button>
+      </div>
+
+      <div class="hero">
+        <div class="hero-meta">
+          <span class="meta-chip"><i data-lucide="calendar"></i> 22.06.2026</span>
+          <span class="meta-chip"><i data-lucide="clock"></i> ~52 Min</span>
+          <span class="meta-chip"><i data-lucide="user"></i> L. Schmidt</span>
+        </div>
+        <div class="hero-actions">
+          <button class="btn btn-primary" style="background:var(--setlist);border-color:var(--setlist)">
+            <i data-lucide="layers" style="width:15px;height:15px"></i> Blättermodus starten
+          </button>
+        </div>
+      </div>
+
+      <div class="section-title">Reihenfolge</div>
+      <div class="song-list">
+        <div class="song-row">
+          <div class="song-number">1</div>
+          <div class="song-info">
+            <div class="song-name">Es ist ein Ros entsprungen</div>
+            <div class="song-meta"><span>1 Seite</span> <span class="dot"></span> <span>Chord-Sheet</span></div>
+          </div>
+          <i data-lucide="chevron-right" class="song-open" style="width:16px;height:16px"></i>
+        </div>
+        <div class="song-row">
+          <div class="song-number">2</div>
+          <div class="song-info">
+            <div class="song-name">Hallelujah — Cohen</div>
+            <div class="song-meta"><span>2 Seiten</span> <span class="dot"></span> <span>PDF</span> <span class="song-tag">Solo T</span></div>
+          </div>
+          <i data-lucide="chevron-right" class="song-open" style="width:16px;height:16px"></i>
+        </div>
+        <div class="song-row">
+          <div class="song-number">3</div>
+          <div class="song-info">
+            <div class="song-name">Bohemian Rhapsody</div>
+            <div class="song-meta"><span>4 Seiten</span> <span class="dot"></span> <span>PDF</span></div>
+          </div>
+          <i data-lucide="chevron-right" class="song-open" style="width:16px;height:16px"></i>
+        </div>
+        <div class="song-row">
+          <div class="song-number">4</div>
+          <div class="song-info">
+            <div class="song-name">Africa — Toto</div>
+            <div class="song-meta"><span>2 Seiten</span></div>
+          </div>
+          <i data-lucide="chevron-right" class="song-open" style="width:16px;height:16px"></i>
+        </div>
+
+        <div class="set-divider">
+          <i data-lucide="pause-circle" style="width:12px;height:12px"></i>
+          Pause — 15 Minuten
+        </div>
+
+        <div class="song-row">
+          <div class="song-number">5</div>
+          <div class="song-info">
+            <div class="song-name">Viva la Vida</div>
+            <div class="song-meta"><span>3 Seiten</span></div>
+          </div>
+          <i data-lucide="chevron-right" class="song-open" style="width:16px;height:16px"></i>
+        </div>
+        <div class="song-row">
+          <div class="song-number">6</div>
+          <div class="song-info">
+            <div class="song-name">Somewhere Over The Rainbow</div>
+            <div class="song-meta"><span>1 Seite</span></div>
+          </div>
+          <i data-lucide="chevron-right" class="song-open" style="width:16px;height:16px"></i>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Reihenfolge</b> mit Seitenzahl pro Song. <b>Set-Trenner</b> als optionaler Block-Marker (Pause, Zugaben). Primärer CTA oben, damit Chorleiter vor Konzertstart sofort den Blättermodus starten kann.
+    </div>
+  </div>
+
+  <!-- Scene 2: Beim Song -->
+  <div class="scene">
+    <div class="scene-label">Szene 2 — Aktives Blättern (Kontext)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="arrow-left" style="width:18px;height:18px"></i></button>
+        <div style="flex:1">
+          <div style="font-weight:700">Sommerkonzert 2026</div>
+          <div class="sub">Blättern aktiv · bei Lied 3</div>
+        </div>
+        <button class="icon-btn" style="background:var(--setlist);border-color:var(--setlist);color:#fff"><i data-lucide="layers" style="width:16px;height:16px"></i></button>
+      </div>
+
+      <div class="note">
+        <i data-lucide="info" style="width:14px;height:14px"></i>
+        <div>Der Blättermodus läuft. Tap eine Nummer, um direkt dorthin zu springen — die Reihenfolge bleibt gleich.</div>
+      </div>
+
+      <div class="section-title">Reihenfolge (11 Seiten gesamt)</div>
+      <div class="song-list">
+        <div class="song-row">
+          <div class="song-number" style="background:var(--green);color:#fff">✓</div>
+          <div class="song-info">
+            <div class="song-name" style="color:var(--text2);text-decoration:line-through">Es ist ein Ros entsprungen</div>
+            <div class="song-meta"><span>S. 1</span></div>
+          </div>
+        </div>
+        <div class="song-row">
+          <div class="song-number" style="background:var(--green);color:#fff">✓</div>
+          <div class="song-info">
+            <div class="song-name" style="color:var(--text2);text-decoration:line-through">Hallelujah — Cohen</div>
+            <div class="song-meta"><span>S. 2–3</span></div>
+          </div>
+        </div>
+
+        <div class="song-row playing">
+          <div class="song-number">3</div>
+          <div class="song-info">
+            <div class="song-name">Bohemian Rhapsody</div>
+            <div class="song-meta"><span>S. 4–7</span> <span class="dot"></span> <span style="color:var(--accent)">Aktuell Seite 5</span></div>
+          </div>
+          <i data-lucide="play" style="width:16px;height:16px;color:var(--accent)"></i>
+        </div>
+        <div class="song-row">
+          <div class="song-number">4</div>
+          <div class="song-info">
+            <div class="song-name">Africa — Toto</div>
+            <div class="song-meta"><span>S. 8–9</span></div>
+          </div>
+        </div>
+        <div class="song-row">
+          <div class="song-number">5</div>
+          <div class="song-info">
+            <div class="song-name">Viva la Vida</div>
+            <div class="song-meta"><span>S. 10–12</span></div>
+          </div>
+        </div>
+        <div class="song-row">
+          <div class="song-number">6</div>
+          <div class="song-info">
+            <div class="song-name">Somewhere Over The Rainbow</div>
+            <div class="song-meta"><span>S. 13</span></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="perform-cta">
+        <button class="btn btn-secondary" style="flex:1"><i data-lucide="rotate-ccw" style="width:14px;height:14px"></i> Beenden</button>
+        <button class="btn btn-primary"><i data-lucide="layers" style="width:15px;height:15px"></i> Zurück zum Blättern</button>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Während der Blättermodus läuft:</b> Setlist wird zur Übersicht/Sprungleiste. Erledigte Songs durchgestrichen und mit Häkchen. Aktueller Song farblich hervorgehoben mit konkreter Seitenposition.
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

@@ -52,15 +52,15 @@ def test_update_overwrites_cho(client, pro_member):
     assert resp.status_code == 200
 
 
-def test_update_rejects_txt(client, pro_member):
+def test_update_accepts_txt(client, pro_member):
     _, headers = pro_member
     doc_id = _create_txt_document(client, headers)
     resp = client.put(
         f"/api/documents/{doc_id}/content",
         headers=headers,
-        json={"content": "x"},
+        json={"content": "neuer liedtext"},
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 200
 
 
 def test_update_rejects_non_string_content(client, pro_member):

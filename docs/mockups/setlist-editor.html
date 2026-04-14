@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Setlist Editor</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --confirm: #3b82f6; --confirm-hover: #2563eb;
+    --border: #334155;
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --setlist: #14b8a6;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #020617; color: var(--text);
+         -webkit-font-smoothing: antialiased; padding: 24px 12px; }
+  h1 { font-size: 18px; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 24px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .scene { width: 380px; max-width: 100%; }
+  .scene-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+  .phone { background: var(--bg); border: 1px solid var(--border); border-radius: 18px;
+           overflow: hidden; position: relative; min-height: 720px; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+            border-bottom: 1px solid var(--border); }
+  .topbar h2 { font-size: 15px; font-weight: 700; flex: 1; }
+  .icon-btn { width: 34px; height: 34px; background: var(--bg2); border: 1px solid var(--border);
+              border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text); }
+  .btn { padding: 8px 12px; border-radius: 7px; border: 1px solid var(--border); font-size: 12px;
+         font-weight: 600; display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .btn-primary { background: var(--confirm); color: #fff; border-color: var(--confirm); }
+  .btn-save { background: var(--setlist); color: #fff; border-color: var(--setlist); }
+
+  .form { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; flex-direction: column; gap: 10px; }
+  .form label { font-size: 11px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; }
+  .input { width: 100%; padding: 10px 12px; background: var(--bg2); border: 1px solid var(--border);
+           color: var(--text); border-radius: 8px; font-size: 13px; }
+  .input-row { display: flex; gap: 8px; }
+  .input-row > * { flex: 1; }
+
+  .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px;
+                   color: var(--text3); padding: 12px 14px 6px; font-weight: 600;
+                   display: flex; justify-content: space-between; align-items: center; }
+  .add-song { background: var(--accent-dim); color: var(--accent); border: 1px dashed var(--accent);
+              padding: 12px 14px; border-radius: 8px; font-size: 13px; font-weight: 600;
+              margin: 8px 14px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+  .song-list { display: flex; flex-direction: column; }
+  .song-row { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+              border-bottom: 1px solid var(--border); background: var(--bg); }
+  .drag-handle { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
+                 color: var(--text3); cursor: grab; flex-shrink: 0; }
+  .song-number { width: 24px; height: 24px; background: var(--bg3); color: var(--text2);
+                 border-radius: 50%; display: flex; align-items: center; justify-content: center;
+                 font-size: 11px; font-weight: 700; flex-shrink: 0; }
+  .song-info { flex: 1; min-width: 0; }
+  .song-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .song-meta { font-size: 11px; color: var(--text2); }
+  .song-del { color: var(--red); padding: 4px 6px; background: transparent; border: none; }
+
+  .song-row.dragging { background: var(--accent-dim); border-left: 3px solid var(--accent); transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,0,0,0.4); }
+  .song-row.drop-target { border-top: 2px solid var(--accent); background: rgba(129,140,248,0.05); }
+
+  .caption { font-size: 12px; color: var(--text2); margin-top: 10px; line-height: 1.5; }
+  .caption b { color: var(--text); }
+
+  /* Sheet-Picker */
+  .picker-backdrop {
+    position: absolute; inset: 0; background: rgba(0,0,0,0.55);
+    display: flex; align-items: flex-end;
+  }
+  .picker {
+    background: var(--bg); border-top-left-radius: 16px; border-top-right-radius: 16px;
+    width: 100%; max-height: 560px; display: flex; flex-direction: column;
+    border: 1px solid var(--border); border-bottom: none;
+  }
+  .picker-head { padding: 14px; border-bottom: 1px solid var(--border);
+                 display: flex; align-items: center; gap: 10px; }
+  .picker-head h3 { font-size: 15px; font-weight: 700; flex: 1; }
+  .picker-search { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .picker-tabs { display: flex; border-bottom: 1px solid var(--border); }
+  .picker-tab { flex: 1; padding: 10px; text-align: center; font-size: 12px; color: var(--text2);
+                border-bottom: 2px solid transparent; }
+  .picker-tab.active { color: var(--accent); border-color: var(--accent); }
+  .picker-list { padding: 4px 0; overflow-y: auto; }
+  .pick-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; }
+  .pick-check { width: 18px; height: 18px; border-radius: 4px; border: 1.5px solid var(--text3);
+                display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .pick-check.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .pick-info { flex: 1; min-width: 0; }
+  .pick-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pick-meta { font-size: 11px; color: var(--text2); }
+  .picker-foot { padding: 12px 14px; border-top: 1px solid var(--border); display: flex; gap: 8px; }
+
+  .badge-cho { background: rgba(251,191,36,0.15); color: #fbbf24; font-size: 10px; padding: 1px 5px;
+               border-radius: 3px; font-weight: 700; }
+  .badge-pdf { background: rgba(59,130,246,0.15); color: #60a5fa; font-size: 10px; padding: 1px 5px;
+               border-radius: 3px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<h1>Setlist — Editor (Chorleiter)</h1>
+<p class="subtitle">Zwei Szenen: (1) Drag&Drop-Reihenfolge mit aktivem Drag-Zustand, (2) Bottom-Sheet Song-Picker mit Multi-Select aus Browser/Favoriten/Suche.</p>
+
+<div class="scenes">
+
+  <!-- Scene 1: Editor with drag state -->
+  <div class="scene">
+    <div class="scene-label">Szene 1 — Reihenfolge ändern (Drag aktiv)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+        <h2>Setlist bearbeiten</h2>
+        <button class="btn btn-save"><i data-lucide="check" style="width:14px;height:14px"></i> Speichern</button>
+      </div>
+
+      <div class="form">
+        <div>
+          <label>Titel</label>
+          <input class="input" value="Sommerkonzert 2026"/>
+        </div>
+        <div class="input-row">
+          <div>
+            <label>Datum</label>
+            <input class="input" type="date" value="2026-06-22"/>
+          </div>
+          <div>
+            <label>Typ</label>
+            <input class="input" value="Konzert"/>
+          </div>
+        </div>
+        <div>
+          <label>Beschreibung (optional)</label>
+          <input class="input" value="Sommerkonzert Stadtpark, 19:30"/>
+        </div>
+      </div>
+
+      <div class="section-title">
+        <span>Reihenfolge (4)</span>
+        <span style="color:var(--accent)">Ziehen zum Sortieren</span>
+      </div>
+
+      <div class="song-list">
+        <div class="song-row">
+          <div class="drag-handle"><i data-lucide="grip-vertical" style="width:16px;height:16px"></i></div>
+          <div class="song-number">1</div>
+          <div class="song-info">
+            <div class="song-name">Es ist ein Ros entsprungen</div>
+            <div class="song-meta">1 Seite · <span class="badge-cho">CHO</span></div>
+          </div>
+          <button class="song-del"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+        </div>
+
+        <div class="song-row drop-target">
+          <div class="drag-handle"><i data-lucide="grip-vertical" style="width:16px;height:16px"></i></div>
+          <div class="song-number" style="background:var(--text3);color:var(--bg);border:1px dashed var(--accent)">?</div>
+          <div class="song-info">
+            <div class="song-name" style="color:var(--text3)">— Einfüge-Position —</div>
+          </div>
+        </div>
+
+        <div class="song-row dragging">
+          <div class="drag-handle" style="color:var(--accent)"><i data-lucide="grip-vertical" style="width:16px;height:16px"></i></div>
+          <div class="song-number" style="background:var(--accent);color:#fff">2</div>
+          <div class="song-info">
+            <div class="song-name">Bohemian Rhapsody</div>
+            <div class="song-meta">4 Seiten · <span class="badge-pdf">PDF</span></div>
+          </div>
+          <button class="song-del"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+        </div>
+
+        <div class="song-row" style="opacity:0.7">
+          <div class="drag-handle"><i data-lucide="grip-vertical" style="width:16px;height:16px"></i></div>
+          <div class="song-number">3</div>
+          <div class="song-info">
+            <div class="song-name">Hallelujah — Cohen</div>
+            <div class="song-meta">2 Seiten · <span class="badge-pdf">PDF</span></div>
+          </div>
+          <button class="song-del"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+        </div>
+
+        <div class="song-row">
+          <div class="drag-handle"><i data-lucide="grip-vertical" style="width:16px;height:16px"></i></div>
+          <div class="song-number">4</div>
+          <div class="song-info">
+            <div class="song-name">Africa — Toto</div>
+            <div class="song-meta">2 Seiten · <span class="badge-pdf">PDF</span></div>
+          </div>
+          <button class="song-del"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>
+        </div>
+      </div>
+
+      <div class="add-song"><i data-lucide="plus" style="width:16px;height:16px"></i> Songs hinzufügen</div>
+    </div>
+    <div class="caption">
+      <b>Drag-Zustand:</b> Gepackter Song hebt sich mit Akzentfarbe + Shadow ab. Drop-Platzhalter zeigt die Einfüge-Position. Nummerierung wird live neu berechnet. Löschen über Trash-Icon, undo als Toast.
+    </div>
+  </div>
+
+  <!-- Scene 2: Picker -->
+  <div class="scene">
+    <div class="scene-label">Szene 2 — Song-Picker (Bottom Sheet)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+        <h2>Setlist bearbeiten</h2>
+        <button class="btn btn-save"><i data-lucide="check" style="width:14px;height:14px"></i> Speichern</button>
+      </div>
+
+      <div style="padding:40px 14px;text-align:center;color:var(--text3);font-size:12px">
+        (Editor im Hintergrund)
+      </div>
+
+      <div class="picker-backdrop">
+        <div class="picker">
+          <div class="picker-head">
+            <i data-lucide="list-plus" style="width:18px;height:18px;color:var(--accent)"></i>
+            <h3>Songs hinzufügen</h3>
+            <button class="icon-btn"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+          </div>
+          <div class="picker-tabs">
+            <div class="picker-tab active">Alle</div>
+            <div class="picker-tab">Favoriten</div>
+            <div class="picker-tab">Zuletzt</div>
+          </div>
+          <div class="picker-search">
+            <input class="input" placeholder="Suchen …" value="halle"/>
+          </div>
+          <div class="picker-list">
+            <div class="pick-row">
+              <div class="pick-check on"><i data-lucide="check" style="width:12px;height:12px"></i></div>
+              <div class="pick-info">
+                <div class="pick-name">Hallelujah — Cohen</div>
+                <div class="pick-meta">Weihnachten / 2024 · <span class="badge-pdf">PDF</span> 2 S.</div>
+              </div>
+            </div>
+            <div class="pick-row">
+              <div class="pick-check"></div>
+              <div class="pick-info">
+                <div class="pick-name">Halleluja — Händel</div>
+                <div class="pick-meta">Klassik · <span class="badge-cho">CHO</span> 1 S.</div>
+              </div>
+            </div>
+            <div class="pick-row">
+              <div class="pick-check on"><i data-lucide="check" style="width:12px;height:12px"></i></div>
+              <div class="pick-info">
+                <div class="pick-name">Halleluja — Gospel</div>
+                <div class="pick-meta">Gospels · <span class="badge-pdf">PDF</span> 3 S.</div>
+              </div>
+            </div>
+            <div class="pick-row">
+              <div class="pick-check"></div>
+              <div class="pick-info">
+                <div class="pick-name">Halle Halle Halle</div>
+                <div class="pick-meta">Liturgie · <span class="badge-cho">CHO</span> 1 S.</div>
+              </div>
+            </div>
+          </div>
+          <div class="picker-foot">
+            <div style="flex:1;color:var(--text2);font-size:12px;align-self:center">2 ausgewählt</div>
+            <button class="btn btn-primary" style="background:var(--setlist);border-color:var(--setlist)">
+              <i data-lucide="plus" style="width:14px;height:14px"></i> Hinzufügen (2)
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Picker:</b> Bottom-Sheet statt Modal → volle Daumen-Reichweite. Tabs filtern Quellen (alle Songs / nur Favoriten / zuletzt geöffnet). <b>Multi-Select:</b> mehrere Songs auf einmal ans Ende anhängen — spart Klicks bei 14+ Setlist-Items.
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

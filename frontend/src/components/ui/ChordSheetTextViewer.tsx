@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Music } from 'lucide-react'
+import { Music2, PencilLine } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { parseChordSheet } from '@/utils/chordPro'
 import { ChordSheetViewer } from '@/components/ui/ChordSheetViewer'
 import { ChordInputViewer } from '@/components/ui/ChordInputViewer'
+import { TextEditViewer } from '@/components/ui/TextEditViewer'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { toNormalized, getSvgPathFromStroke, getViewBoxHeight } from '@/utils/strokeUtils.ts'
 import type { Stroke } from '@/types/index.ts'
 import './ChordSheetTextViewer.css'
+import './EditTopbar.css'
 
 interface ChordSheetTextViewerProps {
   docId: number
@@ -33,7 +35,7 @@ export function ChordSheetTextViewer({
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [editMode, setEditMode] = useState(false)
+  const [editMode, setEditMode] = useState<'chord' | 'text' | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const userRole = useAuthStore((s) => s.user?.role)
   const canEditChords = hasMinRole(userRole ?? 'guest', 'pro-member')
@@ -232,60 +234,84 @@ export function ChordSheetTextViewer({
     )
   }
 
-  if (editMode && text != null) {
+  if (editMode === 'chord' && text != null) {
     return (
       <ChordInputViewer
         chordProBody={text}
         editDocId={docId}
         onUpdated={() => {
-          setEditMode(false)
+          setEditMode(null)
           setReloadToken((n) => n + 1)
         }}
-        onCancel={() => setEditMode(false)}
+        onCancel={() => setEditMode(null)}
+      />
+    )
+  }
+
+  if (editMode === 'text' && text != null) {
+    return (
+      <TextEditViewer
+        docId={docId}
+        fileType="cho"
+        initialContent={text}
+        onSaved={() => {
+          setEditMode(null)
+          setReloadToken((n) => n + 1)
+        }}
+        onCancel={() => setEditMode(null)}
       />
     )
   }
 
   return (
-    <div
-      className="cho-viewer-wrap"
-      style={{ fontSize }}
-      ref={(el) => {
-        if (scrollContainerRef) {
-          (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
-        }
-      }}
-    >
-      <div className="cho-viewer-content" ref={contentRef}>
-        {showName && <div className="cho-viewer-name">{originalName}</div>}
-        {canEditChords && showName && (
-          <div style={{ padding: 'var(--space-2) var(--space-3) 0', display: 'flex', justifyContent: 'flex-end' }}>
-            <button
-              type="button"
-              className="btn btn-secondary"
-              style={{ gap: 'var(--space-1)' }}
-              onClick={() => setEditMode(true)}
-            >
-              <Music size={16} />
-              Akkorde bearbeiten
-            </button>
-          </div>
-        )}
-        <ChordSheetViewer content={parsed} transposition={transposition} />
-        <svg
-          ref={svgRef}
-          className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}
-          viewBox={`0 0 ${VIEWBOX_WIDTH} ${viewBoxHeight}`}
-          preserveAspectRatio="none"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-        >
-          {strokes.map(renderStroke)}
-          {activeD && <path d={activeD} fill={activeStroke!.color} />}
-        </svg>
+    <>
+      {canEditChords && showName && (
+        <div className="edit-topbar">
+          <button
+            type="button"
+            className="edit-topbar-btn edit-topbar-btn--chord"
+            onClick={() => setEditMode('chord')}
+          >
+            <Music2 size={16} />
+            Akkorde bearbeiten
+          </button>
+          <button
+            type="button"
+            className="edit-topbar-btn edit-topbar-btn--text"
+            onClick={() => setEditMode('text')}
+          >
+            <PencilLine size={16} />
+            Text bearbeiten
+          </button>
+        </div>
+      )}
+      <div
+        className="cho-viewer-wrap"
+        style={{ fontSize }}
+        ref={(el) => {
+          if (scrollContainerRef) {
+            (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
+          }
+        }}
+      >
+        <div className="cho-viewer-content" ref={contentRef}>
+          {showName && <div className="cho-viewer-name">{originalName}</div>}
+          <ChordSheetViewer content={parsed} transposition={transposition} />
+          <svg
+            ref={svgRef}
+            className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}
+            viewBox={`0 0 ${VIEWBOX_WIDTH} ${viewBoxHeight}`}
+            preserveAspectRatio="none"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            {strokes.map(renderStroke)}
+            {activeD && <path d={activeD} fill={activeStroke!.color} />}
+          </svg>
+        </div>
       </div>
-    </div>
+    </>
   )
 }
