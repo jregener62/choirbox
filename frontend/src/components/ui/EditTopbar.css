@@ -1,0 +1,47 @@
+.edit-topbar {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  background: var(--bg-elevated, var(--bg-secondary));
+  border-bottom: 1px solid var(--border);
+}
+
+.edit-topbar-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: var(--space-2) var(--space-2);
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  min-height: 40px;
+  white-space: nowrap;
+}
+
+.edit-topbar-btn:hover {
+  background: var(--bg-tertiary, var(--bg-primary));
+}
+
+.edit-topbar-btn--chord {
+  color: var(--chord, #fbbf24);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+.edit-topbar-btn--chord:hover {
+  background: rgba(251, 191, 36, 0.08);
+  border-color: var(--chord, #fbbf24);
+}
+
+.edit-topbar-btn--text {
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.4);
+}
+.edit-topbar-btn--text:hover {
+  background: rgba(167, 139, 250, 0.08);
+  border-color: #a78bfa;
+}

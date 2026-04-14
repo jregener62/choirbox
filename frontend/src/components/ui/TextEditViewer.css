@@ -1,0 +1,142 @@
+.text-edit-viewer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.text-edit-toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--bg-elevated, var(--bg-secondary));
+  border-radius: var(--radius-sm);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+
+.text-edit-toolbar-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+.text-edit-status {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.text-edit-close {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+.text-edit-close:hover {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+}
+
+.text-edit-toolbar-actions {
+  display: flex;
+  gap: var(--space-2);
+  width: 100%;
+}
+
+.text-edit-action {
+  flex: 1;
+  min-width: 0;
+  gap: var(--space-1);
+  white-space: nowrap;
+}
+
+.text-edit-error {
+  padding: var(--space-2);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger, #ef4444);
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+}
+
+.text-edit-area,
+.text-edit-preview {
+  background: #faf8f3;
+  color: #1a1a1a;
+  padding: var(--space-3);
+  border: 2px dashed #a78bfa;
+  border-radius: var(--radius-sm);
+  font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 14px;
+  line-height: 1.7;
+  min-height: 60vh;
+  width: 100%;
+  resize: vertical;
+  outline: none;
+  white-space: pre-wrap;
+  margin: 0;
+}
+
+.text-edit-area:focus {
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(129, 140, 248, 0.2);
+}
+
+.text-edit-preview {
+  border-style: solid;
+  border-color: var(--border);
+}
+
+/* Overlay / dialog */
+.text-edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.text-edit-dialog {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-width: 420px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.text-edit-dialog-header {
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.text-edit-dialog-body {
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.text-edit-dialog-actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}

@@ -666,15 +666,15 @@ async def update_text_content(
     user: User = Depends(require_permission("chord_input.edit")),
     session: Session = Depends(get_session),
 ):
-    """Overwrite the content of an existing .cho document.
+    """Overwrite the content of an existing .cho or .txt document.
 
-    Used by the chord-input editor to persist changes to an existing
-    chord-sheet in place. Only .cho is allowed — .txt stays pristine and
-    is treated as the read-only source for chord-sheet creation.
+    Used by the chord-input editor (.cho) and by the text-edit mode
+    (both .cho ChordPro source and plain .txt lyrics) to persist
+    changes in place. Other file types (PDF, video, audio) are rejected.
     """
     doc = document_service.get_document(doc_id, session)
-    if not doc or doc.file_type != "cho":
-        raise HTTPException(404, "Chord-Sheet nicht gefunden")
+    if not doc or doc.file_type not in ("cho", "txt"):
+        raise HTTPException(404, "Textdokument nicht gefunden")
 
     content = data.get("content")
     if not isinstance(content, str):

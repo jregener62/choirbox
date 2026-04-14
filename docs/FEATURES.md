@@ -774,14 +774,23 @@ Das Modal nutzt das bestehende `<Modal>`-Component-System.
 - Per-User-Transposition: `UserChordPreference` Tabelle mit FK auf `documents.id` (vorher: FK auf `chord_sheets.id`)
 - Max. Dateigroesse: 2 MB (gleich wie `.txt`)
 
+### Edit-Topbar (Akkorde bearbeiten / Text bearbeiten)
+
+Oberhalb des Text- bzw. Chord-Sheet-Viewers liegt eine feste Edit-Topbar mit zwei nebeneinanderliegenden Buttons:
+
+- **In `.txt`**: „Chordsheet erstellen" (Plus-Icon, Chord-Gelb) + „Text bearbeiten" (Stift-Icon, Violett)
+- **In `.cho`**: „Akkorde bearbeiten" (Musik-Icon, Chord-Gelb) + „Text bearbeiten" (Stift-Icon, Violett)
+
+Sichtbar nur fuer pro-member+ und nicht im Vollbildmodus. Jeder Button wechselt in den entsprechenden Edit-Modus, der die Topbar durch eine zweireihige Edit-Toolbar (Status + Close + Vorschau + Speichern) ersetzt.
+
 ### Akkord-Eingabe per Tap
 
 Strukturierter Editor, mit dem Akkorde ohne ChordPro-Kenntnisse an exakte Zeichen-Positionen gesetzt werden — statt Syntax zu tippen, wird auf eine Silbe getippt und der Akkord aus einem Keypad zusammengebaut.
 
-**Einstiegspunkte:**
+**Einstiegspunkte (via Edit-Topbar):**
 
-- **In `.txt`** — Button **"Chordsheet erstellen"** (pro-member+): erzeugt eine neue `.cho`-Datei mit gleichem Inhalt im selben `Texte/`-Ordner und oeffnet direkt den Editor.
-- **In `.cho`** — Button **"Akkorde bearbeiten"** (pro-member+): laedt das bestehende Chord-Sheet, parst die `[Akkord]`-Marker zu Zeichen-Offsets und ermoeglicht Aenderungen.
+- **In `.txt`** — „Chordsheet erstellen": erzeugt eine neue `.cho`-Datei mit gleichem Inhalt im selben `Texte/`-Ordner und oeffnet direkt den Editor.
+- **In `.cho`** — „Akkorde bearbeiten": laedt das bestehende Chord-Sheet, parst die `[Akkord]`-Marker zu Zeichen-Offsets und ermoeglicht Aenderungen.
 
 **Ablauf:**
 
@@ -800,7 +809,9 @@ Strukturierter Editor, mit dem Akkorde ohne ChordPro-Kenntnisse an exakte Zeiche
 |-------|-------|
 | `backend/services/chord_export_service.py` | Build ChordPro aus Text + Positions-Liste (Offsets von hinten nach vorn) |
 | `backend/api/chord_input.py` | `POST /api/chord-input/export` |
-| `backend/api/documents.py` | `PUT /api/documents/{id}/content` (nur `.cho`) |
+| `backend/api/documents.py` | `PUT /api/documents/{id}/content` (`.cho` und `.txt`) |
+| `frontend/src/components/ui/TextEditViewer.tsx` | Freier Text-Editor fuer `.txt` und `.cho`-Quelle |
+| `frontend/src/components/ui/EditTopbar.css` | Topbar mit zwei Edit-Buttons |
 | `backend/services/dropbox_service.py` | `upload_file(overwrite=True)` fuer In-Place-Update |
 | `frontend/src/utils/chordValidation.ts` | Regex-Validator fuer Akkord-Token |
 | `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — ChordPro-Marker zu Offsets |
@@ -820,6 +831,7 @@ Strukturierter Editor, mit dem Akkorde ohne ChordPro-Kenntnisse an exakte Zeiche
 | Chordsheet einfuegen / Datei hochladen | pro-member |
 | Chord Sheet loeschen | pro-member |
 | Akkord-Eingabe per Tap (neu / bearbeiten) | pro-member |
+| Text bearbeiten (.txt / .cho-Quelle) | pro-member |
 
 ### Dateien
 

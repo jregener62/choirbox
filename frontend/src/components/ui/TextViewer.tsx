@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react'
-import { Plus } from 'lucide-react'
+import { Plus, PencilLine } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { ChordInputViewer } from './ChordInputViewer'
+import { TextEditViewer } from './TextEditViewer'
+import './EditTopbar.css'
 
 interface TextViewerProps {
   docId: number
@@ -14,6 +16,8 @@ interface TextViewerProps {
   scrollContainerRef?: React.RefObject<HTMLElement | null>
   onChordSheetCreated?: () => void
 }
+
+type EditMode = 'chord' | 'text' | null
 
 export function TextViewer({
   docId,
@@ -26,9 +30,10 @@ export function TextViewer({
 }: TextViewerProps) {
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [chordMode, setChordMode] = useState(false)
+  const [editMode, setEditMode] = useState<EditMode>(null)
+  const [reloadToken, setReloadToken] = useState(0)
   const userRole = useAuthStore((s) => s.user?.role)
-  const canEditChords = hasMinRole(userRole ?? 'guest', 'pro-member')
+  const canEdit = hasMinRole(userRole ?? 'guest', 'pro-member')
 
   useEffect(() => {
     let cancelled = false
@@ -42,7 +47,7 @@ export function TextViewer({
     }
     fetchContent()
     return () => { cancelled = true }
-  }, [docId])
+  }, [docId, reloadToken])
 
   const handleSaveCho = async (cho: string) => {
     if (!folderPath) throw new Error('Ordnerpfad unbekannt')
@@ -56,7 +61,7 @@ export function TextViewer({
         file_type: 'cho',
       },
     })
-    setChordMode(false)
+    setEditMode(null)
     onChordSheetCreated?.()
   }
 
@@ -78,12 +83,27 @@ export function TextViewer({
     )
   }
 
-  if (chordMode) {
+  if (editMode === 'chord') {
     return (
       <ChordInputViewer
         text={content}
         onCreated={folderPath ? handleSaveCho : undefined}
-        onCancel={() => setChordMode(false)}
+        onCancel={() => setEditMode(null)}
+      />
+    )
+  }
+
+  if (editMode === 'text') {
+    return (
+      <TextEditViewer
+        docId={docId}
+        fileType="txt"
+        initialContent={content}
+        onSaved={() => {
+          setEditMode(null)
+          setReloadToken((n) => n + 1)
+        }}
+        onCancel={() => setEditMode(null)}
       />
     )
   }
@@ -91,16 +111,25 @@ export function TextViewer({
   return (
     <div className="text-viewer">
       {showName && <div className="text-viewer-name">{originalName}</div>}
-      {canEditChords && folderPath && showName && (
-        <div style={{ padding: 'var(--space-2) var(--space-3) 0', display: 'flex', justifyContent: 'flex-end' }}>
+      {canEdit && showName && (
+        <div className="edit-topbar">
+          {folderPath && (
+            <button
+              type="button"
+              className="edit-topbar-btn edit-topbar-btn--chord"
+              onClick={() => setEditMode('chord')}
+            >
+              <Plus size={16} />
+              Chordsheet erstellen
+            </button>
+          )}
           <button
             type="button"
-            className="btn btn-secondary"
-            style={{ gap: 'var(--space-1)' }}
-            onClick={() => setChordMode(true)}
+            className="edit-topbar-btn edit-topbar-btn--text"
+            onClick={() => setEditMode('text')}
           >
-            <Plus size={16} />
-            Chordsheet erstellen
+            <PencilLine size={16} />
+            Text bearbeiten
           </button>
         </div>
       )}
