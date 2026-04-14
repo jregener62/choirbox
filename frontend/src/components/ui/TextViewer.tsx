@@ -109,8 +109,7 @@ export function TextViewer({
   }
 
   return (
-    <div className="text-viewer">
-      {showName && <div className="text-viewer-name">{originalName}</div>}
+    <>
       {canEdit && showName && (
         <div className="edit-topbar">
           {folderPath && (
@@ -133,17 +132,20 @@ export function TextViewer({
           </button>
         </div>
       )}
-      <pre
-        className="text-viewer-content"
-        style={{ fontSize }}
-        ref={(el) => {
-          if (scrollContainerRef) {
-            (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
-          }
-        }}
-      >
-        {content}
-      </pre>
-    </div>
+      <div className="text-viewer">
+        {showName && <div className="text-viewer-name">{originalName}</div>}
+        <pre
+          className="text-viewer-content"
+          style={{ fontSize }}
+          ref={(el) => {
+            if (scrollContainerRef) {
+              (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
+            }
+          }}
+        >
+          {content}
+        </pre>
+      </div>
+    </>
   )
 }

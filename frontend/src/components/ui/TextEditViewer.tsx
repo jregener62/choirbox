@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Save, X, Eye } from 'lucide-react'
 import { api } from '@/api/client'
+import { useChordInput } from '@/hooks/useChordInput'
 import './TextEditViewer.css'
 
 interface TextEditViewerProps {
@@ -27,6 +28,12 @@ export function TextEditViewer({
   useEffect(() => {
     setContent(initialContent)
   }, [initialContent])
+
+  const setEditorMode = useChordInput((s) => s.setMode)
+  useEffect(() => {
+    setEditorMode(true)
+    return () => setEditorMode(false)
+  }, [setEditorMode])
 
   const dirty = content !== initialContent
 

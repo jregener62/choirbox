@@ -264,52 +264,54 @@ export function ChordSheetTextViewer({
   }
 
   return (
-    <div
-      className="cho-viewer-wrap"
-      style={{ fontSize }}
-      ref={(el) => {
-        if (scrollContainerRef) {
-          (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
-        }
-      }}
-    >
-      <div className="cho-viewer-content" ref={contentRef}>
-        {showName && <div className="cho-viewer-name">{originalName}</div>}
-        {canEditChords && showName && (
-          <div className="edit-topbar">
-            <button
-              type="button"
-              className="edit-topbar-btn edit-topbar-btn--chord"
-              onClick={() => setEditMode('chord')}
-            >
-              <Music2 size={16} />
-              Akkorde bearbeiten
-            </button>
-            <button
-              type="button"
-              className="edit-topbar-btn edit-topbar-btn--text"
-              onClick={() => setEditMode('text')}
-            >
-              <PencilLine size={16} />
-              Text bearbeiten
-            </button>
-          </div>
-        )}
-        <ChordSheetViewer content={parsed} transposition={transposition} />
-        <svg
-          ref={svgRef}
-          className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}
-          viewBox={`0 0 ${VIEWBOX_WIDTH} ${viewBoxHeight}`}
-          preserveAspectRatio="none"
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={handlePointerCancel}
-        >
-          {strokes.map(renderStroke)}
-          {activeD && <path d={activeD} fill={activeStroke!.color} />}
-        </svg>
+    <>
+      {canEditChords && showName && (
+        <div className="edit-topbar">
+          <button
+            type="button"
+            className="edit-topbar-btn edit-topbar-btn--chord"
+            onClick={() => setEditMode('chord')}
+          >
+            <Music2 size={16} />
+            Akkorde bearbeiten
+          </button>
+          <button
+            type="button"
+            className="edit-topbar-btn edit-topbar-btn--text"
+            onClick={() => setEditMode('text')}
+          >
+            <PencilLine size={16} />
+            Text bearbeiten
+          </button>
+        </div>
+      )}
+      <div
+        className="cho-viewer-wrap"
+        style={{ fontSize }}
+        ref={(el) => {
+          if (scrollContainerRef) {
+            (scrollContainerRef as React.MutableRefObject<HTMLElement | null>).current = el
+          }
+        }}
+      >
+        <div className="cho-viewer-content" ref={contentRef}>
+          {showName && <div className="cho-viewer-name">{originalName}</div>}
+          <ChordSheetViewer content={parsed} transposition={transposition} />
+          <svg
+            ref={svgRef}
+            className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}
+            viewBox={`0 0 ${VIEWBOX_WIDTH} ${viewBoxHeight}`}
+            preserveAspectRatio="none"
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+          >
+            {strokes.map(renderStroke)}
+            {activeD && <path d={activeD} fill={activeStroke!.color} />}
+          </svg>
+        </div>
       </div>
-    </div>
+    </>
   )
 }

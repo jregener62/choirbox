@@ -1713,6 +1713,10 @@ body.body-scroll-fs .autoscroll-stepper {
   z-index: 5;
   transition: opacity 0.5s ease;
 }
+/* Normal mode: below the App-Toolbar + Edit-Topbar — positioniert auf dem Papier oben rechts. */
+.transpose-stepper--below-chrome {
+  top: calc(var(--space-3) + 36px + 56px);
+}
 .transpose-stepper-btn {
   width: 32px;
   height: 32px;
