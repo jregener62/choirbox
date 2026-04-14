@@ -1249,6 +1249,7 @@ body.body-scroll-fs .pdf-panel--fullscreen .pdf-pages {
 }
 body.body-scroll-fs .pdf-fab,
 body.body-scroll-fs .transpose-stepper--floating,
+body.body-scroll-fs .chord-toolbar--floating,
 body.body-scroll-fs .autoscroll-stepper {
   position: fixed;
 }
@@ -1716,6 +1717,48 @@ body.body-scroll-fs .autoscroll-stepper {
 /* Normal mode: below the App-Toolbar + Edit-Topbar — positioniert auf dem Papier oben rechts. */
 .transpose-stepper--below-chrome {
   top: calc(var(--space-3) + 36px + 56px);
+}
+
+/* Container fuer Transpose + Akkorde-Toggle — oben rechts im CHO-Viewer */
+.chord-toolbar--floating {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  z-index: 5;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  transition: opacity 0.5s ease;
+}
+.chord-toolbar--below-chrome {
+  top: calc(var(--space-3) + 36px + 56px);
+}
+
+/* Akkorde-Toggle: gleicher Pill-Stil wie Transpose, Text "Akkorde".
+   Hoehe = 32px (Button innen) + 2*--space-1 Padding = exakt wie
+   `.transpose-stepper` -> beide Pills sind visuell gleich gross. */
+.chord-toggle-btn {
+  height: calc(32px + 2 * var(--space-1));
+  padding: 0 var(--space-3);
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.chord-toggle-btn:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+.chord-toggle-btn--active {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: rgba(99, 102, 241, 0.5);
+  color: var(--accent);
 }
 .transpose-stepper-btn {
   width: 32px;

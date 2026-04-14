@@ -6,9 +6,12 @@ import './ChordSheetViewer.css'
 interface ChordSheetViewerProps {
   content: ParsedChordContent
   transposition: number
+  /** Wenn true: Akkord-Zeilen komplett ausblenden (reiner Text-Modus).
+   *  Metadata, Section-Labels und Kommentare bleiben sichtbar. */
+  hideChords?: boolean
 }
 
-export function ChordSheetViewer({ content, transposition }: ChordSheetViewerProps) {
+export function ChordSheetViewer({ content, transposition, hideChords = false }: ChordSheetViewerProps) {
   const flats = useMemo(
     () => shouldUseFlats(content.all_chords || []),
     [content.all_chords],
@@ -30,6 +33,7 @@ export function ChordSheetViewer({ content, transposition }: ChordSheetViewerPro
               line={line}
               transposition={transposition}
               flats={flats}
+              hideChords={hideChords}
             />
           ))}
         </div>
@@ -114,10 +118,12 @@ function ChordLineView({
   line,
   transposition,
   flats,
+  hideChords,
 }: {
   line: ChordLine
   transposition: number
   flats: boolean
+  hideChords: boolean
 }) {
   if (line.chords.length === 0 && !line.text && !line.annotations?.length) return null
 
@@ -133,8 +139,8 @@ function ChordLineView({
     ? ` chord-line-comment chord-line-comment-${line.commentStyle ?? 'plain'}`
     : ''
 
-  // No chords — just text
-  if (line.chords.length === 0) {
+  // No chords, or chords hidden → plain text row, no chord-row overlay
+  if (line.chords.length === 0 || hideChords) {
     return (
       <div className={`chord-line${commentClass}`}>
         <div className="chord-text">

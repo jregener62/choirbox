@@ -19,6 +19,10 @@ interface ChordInputState {
   loadFromChordPro: (body: string) => void
   setChord: (line: number, col: number, chord: string) => void
   removeChord: (line: number, col: number) => void
+  /** Move an existing chord to a new column on the same line. Returns
+   *  true on success, false if the source is empty or the target is
+   *  already occupied by another chord. */
+  moveChord: (line: number, fromCol: number, toCol: number) => boolean
   setActiveCell: (cell: { line: number; col: number } | null) => void
   reset: () => void
   list: () => ChordPosition[]
@@ -61,6 +65,21 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
       delete next[key]
       return { chords: next }
     })
+  },
+
+  moveChord: (line, fromCol, toCol) => {
+    if (fromCol === toCol) return true
+    const fromKey = cellKey(line, fromCol)
+    const toKey = cellKey(line, toCol)
+    const s = get()
+    const chord = s.chords[fromKey]
+    if (!chord) return false
+    if (toKey in s.chords) return false
+    const next = { ...s.chords }
+    delete next[fromKey]
+    next[toKey] = chord
+    set({ chords: next })
+    return true
   },
 
   setActiveCell: (cell) => set({ activeCell: cell }),

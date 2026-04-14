@@ -653,6 +653,23 @@ Speichert der Text-Editor ein `.cho`, werden Directive-Namen vor dem Schreiben i
 
 Das Zeichen im Lyric-Text, **ueber** dem ein Akkord steht, wird lila unterstrichen — sowohl im Render-Modus (`.chord-anchor`) als auch im Akkord-Editor (`.chord-input-char--has-chord`). Beide Stellen nutzen `text-decoration-skip-ink: none`, damit die Linie auch unter Unterlaengen wie `j`, `g`, `p`, `y` sichtbar bleibt.
 
+### Akkorde ein/aus-Toggle im .cho-Viewer
+
+Oben rechts in jedem Chord-Sheet-Dokument sitzt neben der Transpose-Pill der Button "Akkorde". Klick schaltet zwischen zwei Zustaenden um:
+- **Sichtbar** (Default): voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Button lila hervorgehoben (`aria-pressed="true"`).
+- **Versteckt**: Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text, viel mehr Zeilen pro Bildschirm. Transpose-Pill ebenfalls ausgeblendet (ohne Akkorde nicht sinnvoll). Metadata (Titel, Untertitel, Badges), Section-Labels und Kommentare bleiben sichtbar.
+
+Umgesetzt als Prop-Kette `DocumentPanel` (`chordsHidden` State) -> `ChordSheetTextViewer` -> `ChordSheetViewer` (`hideChords`). Pro Session; keine Persistierung pro Dokument.
+
+### Akkorde verschieben im Edit-Modus
+
+In `Akkorde bearbeiten` lassen sich bereits gesetzte Akkorde ohne Loeschen-und-neu-setzen verschieben:
+
+- **Tastatur**: wenn der aktive Cursor auf einem Akkord steht, verschieben `←` / `→` den Akkord eine Spalte. Kollisions-Check: wenn die Zielspalte bereits einen Akkord traegt, bleibt die Position stehen. Clamp auf `[0, Zeilenlaenge-1]`. Werden in Text-Inputs (Popover-Suche) die Pfeiltasten gedrueckt, greift die Akkord-Verschiebung nicht.
+- **Mobil - Lupe**: Long-Press (~450ms) auf einen Akkord-Chip aktiviert den Verschiebe-Modus (haptische Vibration, Chip wird lila hervorgehoben). Eine schwebende Lupe (`ChordLoupe`) zeigt den Akkord-Namen und einen 7-Zeichen-Ausschnitt der Lyric-Zeile mit dem aktuellen Ziel-Zeichen markiert. Finger horizontal bewegen -> Akkord folgt live, Loslassen committet die Position. Kurzer Tap auf den Chip oeffnet weiterhin das Keypad-Popover (Umbenennen / Loeschen).
+
+Neue Zustand-Action `moveChord(line, fromCol, toCol)` in `useChordInput` - atomar, kein Overwrite fremder Akkorde.
+
 ### Nightly DB-Backup nach Dropbox (Cron)
 
 Taeglich um 03:00 legt `backup_db.py` via SQLite-Backup-API einen konsistenten Snapshot an und laedt ihn in den Dropbox-Ordner `/backups/` hoch (letzte 7 Backups bleiben).

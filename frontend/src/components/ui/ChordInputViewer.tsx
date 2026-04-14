@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Save, X, Eye } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { ChordKeypadPopover } from './ChordKeypadPopover'
+import { ChordLoupe } from './ChordLoupe'
 import './ChordInputViewer.css'
 
 interface ChordInputViewerProps {
@@ -35,6 +36,7 @@ export function ChordInputViewer({
     loadFromChordPro,
     setChord,
     removeChord,
+    moveChord,
     setActiveCell,
     exportChordPro,
     updateCho,
@@ -46,6 +48,30 @@ export function ChordInputViewer({
   const [error, setError] = useState<string | null>(null)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
   const [popoverOpen, setPopoverOpen] = useState(false)
+
+  // Chord-chip drag state (long-press → loupe → move)
+  const [dragging, setDragging] = useState<
+    | {
+        line: number
+        col: number
+        chord: string
+        pointerId: number
+        loupeX: number
+        loupeY: number
+      }
+    | null
+  >(null)
+  const chipLongPressTimer = useRef<number | null>(null)
+  const chipPressStart = useRef<{
+    line: number
+    col: number
+    chord: string
+    pointerId: number
+    x: number
+    y: number
+  } | null>(null)
+  const chipFiredLongPress = useRef(false)
+  const lineRowRefs = useRef<Map<number, HTMLDivElement>>(new Map())
 
   const longPressTimer = useRef<number | null>(null)
   const pressStart = useRef<{ x: number; y: number } | null>(null)
@@ -145,6 +171,138 @@ export function ChordInputViewer({
     [setActiveCell],
   )
 
+  // --- Chord-Chip Drag (Lupe auf Mobile, Drag auf Desktop) ---
+
+  const clearChipLongPressTimer = useCallback(() => {
+    if (chipLongPressTimer.current != null) {
+      window.clearTimeout(chipLongPressTimer.current)
+      chipLongPressTimer.current = null
+    }
+  }, [])
+
+  /** Compute the target column on a given line from a viewport x-coordinate. */
+  const colFromClientX = useCallback(
+    (line: number, clientX: number): number => {
+      const row = lineRowRefs.current.get(line)
+      if (!row) return 0
+      const lineText = lines[line] ?? ''
+      const len = lineText.length
+      if (len === 0) return 0
+      const rect = row.getBoundingClientRect()
+      const relative = clientX - rect.left
+      const charWidth = rect.width / len
+      if (charWidth <= 0) return 0
+      const col = Math.round(relative / charWidth)
+      if (col < 0) return 0
+      if (col > len - 1) return len - 1
+      return col
+    },
+    [lines],
+  )
+
+  const handleChipPointerDown = useCallback(
+    (line: number, col: number, chord: string, e: React.PointerEvent) => {
+      if (e.button !== 0 && e.pointerType === 'mouse') return
+      chipFiredLongPress.current = false
+      chipPressStart.current = { line, col, chord, pointerId: e.pointerId, x: e.clientX, y: e.clientY }
+      e.currentTarget.setPointerCapture(e.pointerId)
+      clearChipLongPressTimer()
+      chipLongPressTimer.current = window.setTimeout(() => {
+        chipFiredLongPress.current = true
+        if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+          try { navigator.vibrate?.(30) } catch { /* no-op */ }
+        }
+        const start = chipPressStart.current
+        if (!start) return
+        setActiveCell({ line: start.line, col: start.col })
+        setDragging({
+          line: start.line,
+          col: start.col,
+          chord: start.chord,
+          pointerId: start.pointerId,
+          loupeX: start.x,
+          loupeY: start.y,
+        })
+      }, LONG_PRESS_MS)
+    },
+    [clearChipLongPressTimer, setActiveCell],
+  )
+
+  const handleChipPointerMove = useCallback(
+    (e: React.PointerEvent) => {
+      const start = chipPressStart.current
+      if (!start) return
+      // Cancel long-press if finger moves before timer fires
+      if (!chipFiredLongPress.current) {
+        const dx = Math.abs(e.clientX - start.x)
+        const dy = Math.abs(e.clientY - start.y)
+        if (dx > MOVE_TOLERANCE || dy > MOVE_TOLERANCE) {
+          clearChipLongPressTimer()
+          chipPressStart.current = null
+        }
+        return
+      }
+      // Long-press fired → live move
+      setDragging((d) => {
+        if (!d || d.pointerId !== e.pointerId) return d
+        const targetCol = colFromClientX(d.line, e.clientX)
+        if (targetCol !== d.col) {
+          const moved = moveChord(d.line, d.col, targetCol)
+          if (moved) {
+            setActiveCell({ line: d.line, col: targetCol })
+            return { ...d, col: targetCol, loupeX: e.clientX, loupeY: e.clientY }
+          }
+        }
+        return { ...d, loupeX: e.clientX, loupeY: e.clientY }
+      })
+    },
+    [clearChipLongPressTimer, colFromClientX, moveChord, setActiveCell],
+  )
+
+  const handleChipPointerUp = useCallback(
+    (line: number, col: number, e: React.PointerEvent) => {
+      clearChipLongPressTimer()
+      const fired = chipFiredLongPress.current
+      chipPressStart.current = null
+      chipFiredLongPress.current = false
+      try { e.currentTarget.releasePointerCapture(e.pointerId) } catch { /* no-op */ }
+      if (fired) {
+        // End move mode — position already committed via live move
+        setDragging(null)
+      } else {
+        // Short tap → open keypad popover
+        handleChipClick(line, col)
+      }
+    },
+    [clearChipLongPressTimer, handleChipClick],
+  )
+
+  // --- Keyboard: ← / → moves the active chord one column ---
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return
+      if (!activeCell) return
+      // Ignore when a text input is focused (popover search, etc.)
+      const target = e.target as HTMLElement | null
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
+        return
+      }
+      const srcKey = `${activeCell.line}:${activeCell.col}`
+      if (!chords[srcKey]) return
+      const lineText = lines[activeCell.line] ?? ''
+      if (lineText.length === 0) return
+      const dir = e.key === 'ArrowLeft' ? -1 : 1
+      const newCol = activeCell.col + dir
+      if (newCol < 0 || newCol > lineText.length - 1) return
+      if (chords[`${activeCell.line}:${newCol}`]) return
+      e.preventDefault()
+      const ok = moveChord(activeCell.line, activeCell.col, newCol)
+      if (ok) setActiveCell({ line: activeCell.line, col: newCol })
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => window.removeEventListener('keydown', onKeyDown)
+  }, [activeCell, chords, lines, moveChord, setActiveCell])
+
   const closePopover = useCallback(() => setPopoverOpen(false), [])
 
   const handlePreview = async () => {
@@ -197,7 +355,7 @@ export function ChordInputViewer({
         <div className="chord-input-toolbar-top">
           <div className="chord-input-status">
             {chordCount > 0
-              ? `${chordCount} Akkord${chordCount === 1 ? '' : 'e'} gesetzt · Lang tippen oeffnet Dialog`
+              ? `${chordCount} Akkord${chordCount === 1 ? '' : 'e'} · Lang-Tippen auf Akkord = verschieben · ←/→ schiebt aktiven Akkord`
               : 'Tippen = Position · Lang tippen = Akkord setzen'}
           </div>
           {onCancel && (
@@ -249,18 +407,35 @@ export function ChordInputViewer({
           return (
             <div key={lineIndex} className="chord-input-line">
               <div className="chord-input-chord-row">
-                {lineChords.map(({ col, chord }) => (
-                  <span
-                    key={col}
-                    className="chord-input-chord"
-                    style={{ left: `${col}ch` }}
-                    onClick={() => handleChipClick(lineIndex, col)}
-                  >
-                    {chord}
-                  </span>
-                ))}
+                {lineChords.map(({ col, chord }) => {
+                  const isDragging =
+                    dragging?.line === lineIndex && dragging?.col === col
+                  return (
+                    <span
+                      key={col}
+                      className={
+                        'chord-input-chord' +
+                        (isDragging ? ' chord-input-chord--dragging' : '')
+                      }
+                      style={{ left: `${col}ch` }}
+                      onPointerDown={(e) => handleChipPointerDown(lineIndex, col, chord, e)}
+                      onPointerMove={handleChipPointerMove}
+                      onPointerUp={(e) => handleChipPointerUp(lineIndex, col, e)}
+                      onPointerCancel={(e) => handleChipPointerUp(lineIndex, col, e)}
+                      onContextMenu={(e) => e.preventDefault()}
+                    >
+                      {chord}
+                    </span>
+                  )
+                })}
               </div>
-              <div className="chord-input-text-row">
+              <div
+                className="chord-input-text-row"
+                ref={(el) => {
+                  if (el) lineRowRefs.current.set(lineIndex, el)
+                  else lineRowRefs.current.delete(lineIndex)
+                }}
+              >
                 {line.length === 0 ? (
                   <span className="chord-input-empty">&nbsp;</span>
                 ) : (
@@ -294,6 +469,16 @@ export function ChordInputViewer({
           )
         })}
       </div>
+
+      {dragging && (
+        <ChordLoupe
+          x={dragging.loupeX}
+          y={dragging.loupeY}
+          lineText={lines[dragging.line] ?? ''}
+          col={dragging.col}
+          chord={dragging.chord}
+        />
+      )}
 
       {popoverOpen && activeCell && (
         <ChordKeypadPopover

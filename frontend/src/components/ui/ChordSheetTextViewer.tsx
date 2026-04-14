@@ -19,6 +19,7 @@ interface ChordSheetTextViewerProps {
   transposition: number
   fontSize?: number
   showName?: boolean
+  hideChords?: boolean
   scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
@@ -31,6 +32,7 @@ export function ChordSheetTextViewer({
   transposition,
   fontSize = 14,
   showName = true,
+  hideChords = false,
   scrollContainerRef,
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
@@ -296,7 +298,7 @@ export function ChordSheetTextViewer({
       >
         <div className="cho-viewer-content" ref={contentRef}>
           {showName && <div className="cho-viewer-name">{originalName}</div>}
-          <ChordSheetViewer content={parsed} transposition={transposition} />
+          <ChordSheetViewer content={parsed} transposition={transposition} hideChords={hideChords} />
           <svg
             ref={svgRef}
             className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}

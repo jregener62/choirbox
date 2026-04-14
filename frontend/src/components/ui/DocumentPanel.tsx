@@ -88,6 +88,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
+  const [chordsHidden, setChordsHidden] = useState(false)
   const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
@@ -418,6 +419,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           transposition={transposition}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
+          hideChords={chordsHidden}
           scrollContainerRef={scrollContainerRef}
         />
       )}
@@ -457,13 +459,26 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       )}
       {isCho && !chordInputMode && (
         <div
-          className={`transpose-stepper transpose-stepper--floating${pdfFullscreen ? '' : ' transpose-stepper--below-chrome'}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+          className={`chord-toolbar chord-toolbar--floating${pdfFullscreen ? '' : ' chord-toolbar--below-chrome'}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
         >
-          <TransposeButtons
-            value={transposition}
-            onChange={(v) => { updateTransposition(v); resetFadeTimer() }}
-          />
+          {!chordsHidden && (
+            <div className="transpose-stepper">
+              <TransposeButtons
+                value={transposition}
+                onChange={(v) => { updateTransposition(v); resetFadeTimer() }}
+              />
+            </div>
+          )}
+          <button
+            type="button"
+            className={`chord-toggle-btn${chordsHidden ? '' : ' chord-toggle-btn--active'}`}
+            onClick={() => { setChordsHidden((v) => !v); resetFadeTimer() }}
+            aria-pressed={!chordsHidden}
+            title={chordsHidden ? 'Akkorde anzeigen' : 'Akkorde verstecken'}
+          >
+            Akkorde
+          </button>
         </div>
       )}
       {pdfFullscreen && (isPdf || isTxt || isCho) && !chordInputMode && (

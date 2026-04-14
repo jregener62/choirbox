@@ -114,9 +114,17 @@
   cursor: pointer;
   padding: 2px 3px;
   border-radius: var(--radius-xs);
+  touch-action: none; /* verhindert Scroll beim Drag-Verschieben */
+  user-select: none;
+  transition: background 0.12s, box-shadow 0.12s, transform 0.1s;
 }
 .chord-input-chord:hover {
   background: rgba(251, 191, 36, 0.15);
+}
+.chord-input-chord--dragging {
+  background: rgba(79, 70, 229, 0.22);
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.55);
+  transform: scale(1.08);
 }
 
 .chord-input-text-row {
