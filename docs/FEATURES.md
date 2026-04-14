@@ -172,6 +172,8 @@ Regressionstests).
 | Datei loeschen                |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
 | Umbenennen (Stift)            |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Ordner loeschen               |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
+| Als Entwurf markieren         |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Entwuerfe sehen (Badge)       |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | **GlobalPlayer**              |                 |           |                |                |            |           |
 | Wiedergabe + Voice Bricks     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Viewer-Button                 |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
@@ -467,6 +469,26 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 | `frontend/src/pages/BrowsePage.tsx` | URL-getriebene Search/Browse-State, `loadFolder` als Navigate-Wrapper, `openSearch`/`closeSearchExplicit`, `useSearchParams`/`useLocation`, konditionales "< Suche"-Breadcrumb |
 | `backend/api/dropbox.py` | `GET /dropbox/search` (nicht-rekursives `list_folder` + `.song`-Enrichment) |
 | `backend/services/dropbox_service.py` | `list_folder()` mit 5-Min-Cache |
+
+### Entwurf-Modus (Drafts)
+
+Pro-Member+ koennen beliebige Eintraege (Files, Songs, Ordner, einzelne Documents) als **Entwurf** markieren. Entwuerfe sind fuer Mitglieder und Gaeste komplett unsichtbar — sie tauchen nicht in der Liste auf, sind nicht suchbar, nicht filterbar und zaehlen auch in Song-Bricks (Audio/Texte/Videos) nicht mit. Fuer Pro-Member+ werden sie mit einem gelben "Entwurf"-Badge angezeigt.
+
+- Swipe-Menue-Button (FileEdit-Icon, gelb) — toggelt den Entwurfsstatus
+- Backend filtert serverseitig: Mitglieder bekommen Drafts gar nicht erst, damit Counts, Suche und Filter automatisch konsistent sind
+- Model: `draft_entries` (kind=`document`|`path`, ref=`<doc_id>`|`<pfad>`), choir-scoped
+- Dokumente werden doppelt abgelegt (by doc_id + by path), damit Song-Subcounts auch ohne DB-Lookup greifen
+
+| Datei | Rolle |
+|-------|-------|
+| `backend/models/draft_entry.py` | DraftEntry-Tabelle (choir-scoped, UNIQUE kind+ref) |
+| `backend/services/draft_service.py` | Load/Set/Unset + Filter- und Count-Helfer |
+| `backend/api/drafts.py` | `GET/POST/DELETE /api/drafts` (pro-member+) |
+| `backend/api/dropbox.py` | Draft-Filter in Browse + Search + Song-Subcounts |
+| `backend/api/documents.py` | Draft-Filter in `/api/documents/list` |
+| `frontend/src/api/drafts.ts` | Client + DraftSet-Helpers |
+| `frontend/src/pages/BrowsePage.tsx` | Swipe-Button + "Entwurf"-Badge (nur pro-member+) |
+| `frontend/src/styles/index.css` | `.swipe-action-draft`, `.draft-badge` |
 
 ---
 

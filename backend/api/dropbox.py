@@ -204,6 +204,7 @@ async def dropbox_browse(
         TRASH_FOLDER_NAME,
     )
     from backend.services.document_service import ALL_DOC_EXTENSIONS
+    from backend.services import draft_service
 
     _t0 = _time.monotonic()
 
@@ -213,6 +214,19 @@ async def dropbox_browse(
 
     root_folder = _get_root_folder(user, session)
     dropbox_path = _to_dropbox_path(path, root_folder)
+
+    drafts = draft_service.load_drafts(session, user.choir_id)
+    can_see_drafts = draft_service.can_see_drafts(user.role)
+
+    def _sub_count(sub_entries):
+        """Count files in a reserved subfolder, respecting draft visibility."""
+        if can_see_drafts or drafts.is_empty():
+            return sum(1 for se in sub_entries if se.get(".tag") == "file")
+        return draft_service.count_non_draft_files(
+            sub_entries,
+            lambda p: _to_user_path(p, root_folder),
+            drafts,
+        )
 
     use_cache = not refresh
     try:
@@ -302,7 +316,8 @@ async def dropbox_browse(
         sub_dbx = _to_dropbox_path(reserved_path, root_folder)
         sub_entries = await _get_children(tree, dbx, sub_dbx)
         sub_files = [e for e in sub_entries if e.get(".tag") == "file"]
-        count = len(sub_files)
+        # Member + darunter: Drafts zaehlen nicht mit. Fuer Pro+ bleibt es beim Rohcount.
+        count = len(sub_files) if can_see_drafts or drafts.is_empty() else _sub_count(sub_entries)
 
         if count == 0:
             # Empty folder: don't show
@@ -454,7 +469,7 @@ async def dropbox_browse(
             reserved_type = meta["type"]
             sub_path = f"{song_dbx}/{reserved_name}"
             sub_entries = await _get_children(tree, dbx, sub_path)
-            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            count = _sub_count(sub_entries)
             if count > 0:
                 user_sub_path = f"{song['path']}/{reserved_name}"
                 sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
@@ -493,7 +508,7 @@ async def dropbox_browse(
             # enthält keine Geschwister-Daten. Mit None nutzt _get_children
             # den Cache oder macht einen gezielten API-Call.
             sub_entries = await _get_children(None, dbx, sub_path)
-            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            count = _sub_count(sub_entries)
             if count > 0:
                 user_sub_path = f"{song_user_path}/{reserved_name}"
                 song_sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
@@ -502,6 +517,12 @@ async def dropbox_browse(
     _log.info("browse %s: total %.1fms (listing=%.1fms, enrichment=%.1fms, songs=%d, entries=%d)",
               path or "/", (_t2 - _t0) * 1000, (_t1 - _t0) * 1000,
               (_t2 - _t1) * 1000, len(song_entries), len(filtered))
+
+    # Drafts filtern: fuer <pro-member komplett ausblenden, fuer pro-member+
+    # mit is_draft=true annotieren. Nach dem Count-Update, damit Pro+ die
+    # korrekten Counts (inkl. Drafts) sehen.
+    if not drafts.is_empty():
+        filtered = draft_service.filter_browse_entries(filtered, drafts, can_see_drafts)
 
     result = {"path": path, "entries": filtered, "root_name": root_folder or None}
     if song_sub_folders is not None:
@@ -521,6 +542,7 @@ async def dropbox_search(
         parse_folder_name, is_reserved_name, TRASH_FOLDER_NAME, RESERVED_FOLDERS,
     )
     from backend.services.document_service import ALL_DOC_EXTENSIONS
+    from backend.services import draft_service
     from sqlmodel import select as sql_select
     from backend.models.user_selected_document import UserSelectedDocument
     from backend.models.document import Document as DocModel
@@ -534,6 +556,18 @@ async def dropbox_search(
 
     root_folder = _get_root_folder(user, session)
     root_path = ("/" + root_folder) if root_folder else ""
+
+    drafts = draft_service.load_drafts(session, user.choir_id)
+    can_see_drafts = draft_service.can_see_drafts(user.role)
+
+    def _search_sub_count(sub_entries):
+        if can_see_drafts or drafts.is_empty():
+            return sum(1 for se in sub_entries if se.get(".tag") == "file")
+        return draft_service.count_non_draft_files(
+            sub_entries,
+            lambda p: _to_user_path(p, root_folder),
+            drafts,
+        )
 
     try:
         results = await dbx.list_folder(root_path)
@@ -584,7 +618,7 @@ async def dropbox_search(
             reserved_type = meta["type"]
             sub_path = f"{song_dbx}/{reserved_name}"
             sub_entries = await _get_children(None, dbx, sub_path)
-            count = sum(1 for se in sub_entries if se.get(".tag") == "file")
+            count = _search_sub_count(sub_entries)
             if count > 0:
                 user_sub_path = f"{song['path']}/{reserved_name}"
                 sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
@@ -604,6 +638,9 @@ async def dropbox_search(
             pass
         song["sub_folders"] = sub_folders
         song["selected_doc"] = selected_doc
+
+    if not drafts.is_empty():
+        entries = draft_service.filter_browse_entries(entries, drafts, can_see_drafts)
 
     return {"query": q, "entries": entries}
 

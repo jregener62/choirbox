@@ -19,6 +19,7 @@ from backend.api.feedback import router as feedback_router
 from backend.api.policy import router as policy_router
 from backend.api.guest_links import router as guest_links_router
 from backend.api.chord_input import router as chord_input_router
+from backend.api.drafts import router as drafts_router
 
 
 class CacheControlMiddleware:
@@ -129,6 +130,7 @@ app.include_router(feedback_router, prefix="/api")
 app.include_router(policy_router, prefix="/api")
 app.include_router(guest_links_router, prefix="/api")
 app.include_router(chord_input_router, prefix="/api")
+app.include_router(drafts_router, prefix="/api")
 
 # Static files
 BASE = Path(__file__).resolve().parent.parent

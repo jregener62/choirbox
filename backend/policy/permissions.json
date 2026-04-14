@@ -20,7 +20,8 @@
         "user_management",
         "multi_choir",
         "feedback",
-        "guest_access"
+        "guest_access",
+        "drafts"
       ]
     }
   },
@@ -115,6 +116,10 @@
     "guest_access": {
       "description": "Gastzugaenge per Einmal-URL-Code erstellen, listen und widerrufen.",
       "permissions": ["guest_links.manage"]
+    },
+    "drafts": {
+      "description": "Entwuerfe: Pro-Member+ verstecken Files/Songs/Ordner/Documents vor Member und Gast.",
+      "permissions": ["drafts.manage"]
     }
   },
 
@@ -173,7 +178,9 @@
     "dropbox.connect":         { "min_role": "developer",  "description": "Dropbox OAuth-Flow ausloesen" },
 
     "feedback.submit":         { "min_role": "member",     "description": "Bug-Reports an GitHub senden (plus can_report_bugs-Flag)" },
-    "guest_links.manage":      { "min_role": "admin",      "description": "Gastzugangs-Codes erstellen, listen, widerrufen" }
+    "guest_links.manage":      { "min_role": "admin",      "description": "Gastzugangs-Codes erstellen, listen, widerrufen" },
+
+    "drafts.manage":           { "min_role": "pro-member", "description": "Eintraege als Entwurf markieren / Entwurf aufheben" }
   },
 
   "public_routes": [
@@ -288,6 +295,10 @@
 
     "GET /api/guest-links":                                         "guest_links.manage",
     "POST /api/guest-links":                                        "guest_links.manage",
-    "DELETE /api/guest-links/{link_id}":                            "guest_links.manage"
+    "DELETE /api/guest-links/{link_id}":                            "guest_links.manage",
+
+    "GET /api/drafts":                                              "drafts.manage",
+    "POST /api/drafts":                                             "drafts.manage",
+    "DELETE /api/drafts":                                           "drafts.manage"
   }
 }

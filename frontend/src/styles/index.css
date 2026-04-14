@@ -2745,6 +2745,14 @@ body.body-scroll-fs .autoscroll-stepper {
   transform: translateX(-192px);
 }
 
+.swipe-revealed:has(.swipe-action-draft):not(:has(.swipe-action-delete)) .swipe-content {
+  transform: translateX(-192px);
+}
+
+.swipe-revealed:has(.swipe-action-draft):has(.swipe-action-delete) .swipe-content {
+  transform: translateX(-240px);
+}
+
 .swipe-revealed .swipe-actions {
   visibility: visible;
 }
@@ -2793,6 +2801,36 @@ body.body-scroll-fs .autoscroll-stepper {
 
 .swipe-action-delete:active {
   background: #dc2626;
+}
+
+.swipe-action-draft {
+  background: var(--surface);
+  color: var(--warning, #eab308);
+}
+
+.swipe-action-draft:active {
+  background: var(--border);
+}
+
+.swipe-action-draft--active {
+  background: var(--warning, #eab308);
+  color: white;
+}
+
+.draft-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 0 var(--space-2);
+  height: 20px;
+  border-radius: var(--radius-sm);
+  background: var(--warning, #eab308);
+  color: white;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  flex-shrink: 0;
 }
 
 .swipe-action-select {

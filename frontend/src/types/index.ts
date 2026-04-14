@@ -53,6 +53,7 @@ export interface DropboxEntry {
   free_text?: string | null
   sub_folders?: SubFolderInfo[]
   selected_doc?: { name: string; path: string; doc_id: number } | null
+  is_draft?: boolean
 }
 
 export interface BrowseResponse {
@@ -127,6 +128,8 @@ export interface DocumentItem {
   file_size: number
   page_count: number
   sort_order: number
+  hidden?: boolean
+  is_draft?: boolean
 }
 
 export interface DocumentListResponse {

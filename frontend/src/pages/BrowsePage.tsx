@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
-import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut, Headphones } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut, Headphones, FileEdit } from 'lucide-react'
+import { setDraft, unsetDraft } from '@/api/drafts'
 import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { api } from '@/api/client.ts'
@@ -261,6 +262,30 @@ export function BrowsePage() {
     } else if (dx < -30) {
       didSwipeRef.current = true
       setRevealedPath(null)
+    }
+  }
+
+  const toggleDraft = async (entry: DropboxEntry) => {
+    try {
+      if (entry.type === 'document' && entry.doc_id) {
+        if (entry.is_draft) {
+          await unsetDraft('document', String(entry.doc_id))
+          await unsetDraft('path', entry.path)
+        } else {
+          await setDraft('document', String(entry.doc_id))
+          await setDraft('path', entry.path)
+        }
+      } else {
+        if (entry.is_draft) {
+          await unsetDraft('path', entry.path)
+        } else {
+          await setDraft('path', entry.path)
+        }
+      }
+      setRevealedPath(null)
+      await loadFolder(browsePath, true)
+    } catch (err) {
+      setMutationError(err instanceof Error ? err.message : 'Fehler beim Markieren als Entwurf')
     }
   }
 
@@ -919,6 +944,12 @@ export function BrowsePage() {
               <div className="file-info">
                 <div className="file-name-row">
                   {fav && <Heart size={16} className="fav-heart" fill="currentColor" strokeWidth={0} />}
+                  {entry.is_draft && (
+                    <span className="draft-badge" title="Entwurf (nur fuer Pro-Mitglieder sichtbar)">
+                      <FileEdit size={14} />
+                      Entwurf
+                    </span>
+                  )}
                   <div className={`file-name ${isActive ? 'file-name--active' : ''}`}>
                     {isMediaEntry && entry.song_name
                       ? songName
@@ -1095,6 +1126,15 @@ export function BrowsePage() {
                     }}
                   >
                     <Pencil size={18} />
+                  </button>
+                )}
+                {isProMember && (
+                  <button
+                    className={`swipe-action-btn swipe-action-draft${entry.is_draft ? ' swipe-action-draft--active' : ''}`}
+                    title={entry.is_draft ? 'Entwurf aufheben' : 'Als Entwurf markieren'}
+                    onClick={(e) => { e.stopPropagation(); toggleDraft(entry) }}
+                  >
+                    <FileEdit size={18} />
                   </button>
                 )}
                 {canDelete && !isTexteFolder && (

@@ -19,3 +19,4 @@ from backend.models.user_selected_document import UserSelectedDocument  # noqa: 
 from backend.models.user_chord_preference import UserChordPreference  # noqa: F401
 from backend.models.song import Song  # noqa: F401
 from backend.models.guest_link import GuestLink  # noqa: F401
+from backend.models.draft_entry import DraftEntry  # noqa: F401

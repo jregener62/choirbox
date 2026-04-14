@@ -66,12 +66,34 @@ async def list_documents(
     user: User = Depends(require_permission("documents.list")),
     session: Session = Depends(get_session),
 ):
+    from backend.services import draft_service
+
     texte_path = await _resolve_texte_folder(folder, user, session)
     if texte_path:
         await _sync_documents_from_dropbox(texte_path, user, session)
         docs = document_service.list_documents(texte_path, user.id, session)
     else:
         docs = []
+
+    drafts = draft_service.load_drafts(session, user.choir_id)
+    if not drafts.is_empty():
+        can_see = draft_service.can_see_drafts(user.role)
+        # Documents in dieser Liste duerfen sowohl per doc_id als auch per
+        # dropbox_path als Draft markiert sein. Beides pruefen.
+        out: list[dict] = []
+        for d in docs:
+            is_draft = drafts.has_document(d.get("id"))
+            if not is_draft:
+                doc_row = session.get(Document, d.get("id")) if d.get("id") else None
+                if doc_row and doc_row.dropbox_path:
+                    is_draft = drafts.has_path("/" + doc_row.dropbox_path.lstrip("/"))
+            if is_draft and not can_see:
+                continue
+            if is_draft:
+                d = {**d, "is_draft": True}
+            out.append(d)
+        docs = out
+
     return {"documents": docs}
 
 
