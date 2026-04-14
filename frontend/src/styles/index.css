@@ -1755,11 +1755,6 @@ body.body-scroll-fs .autoscroll-stepper {
 .chord-toggle-btn:active {
   background: rgba(255, 255, 255, 0.05);
 }
-.chord-toggle-btn--active {
-  background: rgba(99, 102, 241, 0.18);
-  border-color: rgba(99, 102, 241, 0.5);
-  color: var(--accent);
-}
 .transpose-stepper-btn {
   width: 32px;
   height: 32px;

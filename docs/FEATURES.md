@@ -73,6 +73,23 @@ Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwo
 | `frontend/src/pages/SettingsPage.tsx` | Erzwungenes PW-Formular |
 | `backend/api/auth.py` | Flag in `_user_response`, Clear bei PW-Aenderung |
 
+### Passwort vergessen (Admin-Reset)
+
+ChoirBox speichert bewusst keine E-Mail-Adressen, daher gibt es keinen E-Mail-basierten Reset. Stattdessen setzt der Admin das Passwort zurueck.
+
+- **Login-Seite**: Link "Passwort vergessen?" oeffnet Info-Modal mit Anleitung (Chorleiter kontaktieren)
+- **Admin-UI** (Nutzer verwalten): Schluessel-Icon pro User → Bestaetigungs-Dialog → neues Zufallspasswort wird einmalig angezeigt
+- Zufallspasswort: 10 Zeichen aus lesbarem Alphabet (ohne `0 O 1 l I o`), kopierbar per Button
+- Beim Reset werden **alle bestehenden Session-Tokens** des Users invalidiert
+- `must_change_password=True` wird gesetzt → User muss beim naechsten Login eigenes Passwort vergeben (nutzt bestehenden Force-Password-Change-Flow)
+- Passwort wird nur in der Response zurueckgegeben, nirgends geloggt oder gespeichert (nur als Hash)
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/LoginPage.tsx` | "Passwort vergessen?" Link + Info-Modal |
+| `frontend/src/pages/admin/UsersPage.tsx` | Reset-Button + Bestaetigung + Ergebnis-Modal |
+| `backend/api/admin.py` | `POST /admin/users/{id}/reset-password` |
+
 ### Rollen-Hierarchie
 
 7-stufiges Rollensystem mit aufsteigenden Berechtigungen. Jede hoehere Rolle erbt alle Rechte der niedrigeren.
@@ -677,9 +694,9 @@ Das Zeichen im Lyric-Text, **ueber** dem ein Akkord steht, wird lila unterstrich
 
 ### Akkorde ein/aus-Toggle im .cho-Viewer
 
-Oben rechts in jedem Chord-Sheet-Dokument sitzt neben der Transpose-Pill der Button "Akkorde". Klick schaltet zwischen zwei Zustaenden um:
-- **Sichtbar** (Default): voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Button lila hervorgehoben (`aria-pressed="true"`).
-- **Versteckt**: Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text, viel mehr Zeilen pro Bildschirm. Transpose-Pill ebenfalls ausgeblendet (ohne Akkorde nicht sinnvoll). Metadata (Titel, Untertitel, Badges), Section-Labels und Kommentare bleiben sichtbar.
+Oben rechts in jedem Chord-Sheet-Dokument sitzt der Button "Akkorde". Klick schaltet zwischen zwei Zustaenden um:
+- **Versteckt** (Default beim Oeffnen eines Liedtexts): Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text, viel mehr Zeilen pro Bildschirm. Transpose-Pill ebenfalls ausgeblendet (ohne Akkorde nicht sinnvoll). Metadata (Titel, Untertitel, Badges), Section-Labels und Kommentare bleiben sichtbar.
+- **Sichtbar**: voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill links neben dem Toggle. Toggle lila hervorgehoben (`aria-pressed="true"`).
 
 Umgesetzt als Prop-Kette `DocumentPanel` (`chordsHidden` State) -> `ChordSheetTextViewer` -> `ChordSheetViewer` (`hideChords`). Pro Session; keine Persistierung pro Dokument.
 

@@ -88,7 +88,8 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
-  const [chordsHidden, setChordsHidden] = useState(false)
+  // Default: Akkorde versteckt. User kann via Toggle explizit einschalten.
+  const [chordsHidden, setChordsHidden] = useState(true)
   const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
@@ -472,12 +473,12 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
           )}
           <button
             type="button"
-            className={`chord-toggle-btn${chordsHidden ? '' : ' chord-toggle-btn--active'}`}
+            className="chord-toggle-btn"
             onClick={() => { setChordsHidden((v) => !v); resetFadeTimer() }}
             aria-pressed={!chordsHidden}
-            title={chordsHidden ? 'Akkorde anzeigen' : 'Akkorde verstecken'}
+            title={chordsHidden ? 'Akkorde anzeigen' : 'Nur Text anzeigen'}
           >
-            Akkorde
+            {chordsHidden ? 'Akkorde' : 'Nur Text'}
           </button>
         </div>
       )}
