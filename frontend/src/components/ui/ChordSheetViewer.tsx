@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import { transposeChord, shouldUseFlats } from '@/utils/chordTransposer'
 import type { ChordLine, ChordSheetMetadata, ParsedChordContent } from '@/types/index'
 import './ChordSheetViewer.css'
@@ -181,9 +181,9 @@ function ChordLineView({
  * column is a chord-anchor position gets a `.chord-anchor` class for
  * underlining. Preserves whitespace (parent uses `white-space: pre`).
  */
-function renderTextWithAnchors(text: string, anchorCols: Set<number>) {
+function renderTextWithAnchors(text: string, anchorCols: Set<number>): ReactNode {
   if (anchorCols.size === 0) return text
-  const parts: Array<string | JSX.Element> = []
+  const parts: ReactNode[] = []
   let run = ''
   for (let i = 0; i < text.length; i++) {
     if (anchorCols.has(i)) {
