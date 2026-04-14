@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Blättermodus: Einstiege</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --confirm: #3b82f6; --confirm-hover: #2563eb;
+    --border: #334155;
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --setlist: #14b8a6;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #020617; color: var(--text);
+         -webkit-font-smoothing: antialiased; padding: 24px 12px; }
+  h1 { font-size: 18px; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 24px; max-width: 760px; margin-left: auto; margin-right: auto; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .scene { width: 360px; max-width: 100%; }
+  .scene-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+  .phone { background: var(--bg); border: 1px solid var(--border); border-radius: 18px;
+           overflow: hidden; position: relative; min-height: 680px; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+            border-bottom: 1px solid var(--border); }
+  .topbar h2 { font-size: 15px; font-weight: 700; flex: 1; }
+  .icon-btn { width: 34px; height: 34px; background: var(--bg2); border: 1px solid var(--border);
+              border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--text); }
+  .icon-btn.primary { background: var(--setlist); border-color: var(--setlist); color: #fff; }
+
+  .mode-toggle { display: flex; padding: 8px 14px; gap: 6px; border-bottom: 1px solid var(--border); background: var(--bg2); }
+  .mode-btn { padding: 6px 12px; border-radius: 6px; font-size: 11px; font-weight: 600; background: var(--bg3); color: var(--text2); border: 1px solid var(--border); }
+  .mode-btn.active { background: var(--accent-dim); color: var(--accent); border-color: var(--accent); }
+
+  .search-row { padding: 10px 14px; border-bottom: 1px solid var(--border); }
+  .search-input { width: 100%; padding: 9px 12px; background: var(--bg2); border: 1px solid var(--border);
+                  color: var(--text); border-radius: 8px; font-size: 13px; }
+
+  .result-bar {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px; border-bottom: 1px solid var(--border);
+    background: linear-gradient(90deg, rgba(20,184,166,0.10), transparent);
+  }
+  .result-info { flex: 1; font-size: 12px; color: var(--text2); }
+  .result-info b { color: var(--text); }
+  .flip-btn {
+    background: var(--setlist); color: #fff; border: 1px solid var(--setlist);
+    padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  .list { padding: 8px 14px; display: flex; flex-direction: column; gap: 6px; }
+  .row { display: flex; align-items: center; gap: 10px; padding: 10px;
+         background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; }
+  .icon-wrap { width: 32px; height: 32px; background: var(--bg3); border-radius: 6px;
+               display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .icon-wrap.cho { color: #fbbf24; }
+  .icon-wrap.pdf { color: #60a5fa; }
+  .row-info { flex: 1; min-width: 0; }
+  .row-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .row-meta { font-size: 11px; color: var(--text2); margin-top: 1px; }
+  .row .chevron { color: var(--text3); }
+
+  .caption { font-size: 12px; color: var(--text2); margin-top: 10px; line-height: 1.5; }
+  .caption b { color: var(--text); }
+  .caption code { background: var(--bg3); color: var(--accent); padding: 1px 5px; border-radius: 3px; font-size: 11px; }
+
+  /* Banner for freeze-info */
+  .freeze-banner {
+    margin: 10px 14px 0; background: var(--bg2); border: 1px solid var(--setlist);
+    border-radius: 8px; padding: 8px 10px; font-size: 11px; color: var(--text2);
+    display: flex; gap: 8px;
+  }
+  .freeze-banner svg { color: var(--setlist); flex-shrink: 0; }
+
+  .hint-inline {
+    font-size: 11px; padding: 6px 10px; background: var(--accent-dim); color: var(--accent);
+    border-radius: 6px; margin: 0 14px 10px; border: 1px dashed var(--accent);
+  }
+</style>
+</head>
+<body>
+
+<h1>Blättermodus — Einstiege</h1>
+<p class="subtitle">Drei Quellen für den Blättermodus: (1) Setlist-Detail, (2) Suchergebnisse im Texte-Modus, (3) Favoriten-Liste. Regel: Beim Start wird die Liste eingefroren — spätere Filter ändern den Blätter-Stream nicht. Nur im Texte-Modus aktiv.</p>
+
+<div class="scenes">
+
+  <!-- Scene 1: From Setlist -->
+  <div class="scene">
+    <div class="scene-label">Einstieg 1 — Setlist</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="arrow-left" style="width:16px;height:16px"></i></button>
+        <h2>Sommerkonzert 2026</h2>
+      </div>
+
+      <div class="result-bar">
+        <i data-lucide="list-music" style="width:18px;height:18px;color:var(--setlist)"></i>
+        <div class="result-info"><b>14 Lieder</b> · 42 Seiten gesamt</div>
+        <button class="flip-btn"><i data-lucide="layers" style="width:14px;height:14px"></i> Blättern</button>
+      </div>
+
+      <div class="list">
+        <div class="row">
+          <div class="icon-wrap cho"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">1. Es ist ein Ros entsprungen</div>
+            <div class="row-meta">1 Seite · CHO</div>
+          </div>
+          <i data-lucide="chevron-right" class="chevron" style="width:16px;height:16px"></i>
+        </div>
+        <div class="row">
+          <div class="icon-wrap pdf"><i data-lucide="file-text" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">2. Hallelujah — Cohen</div>
+            <div class="row-meta">2 Seiten · PDF</div>
+          </div>
+          <i data-lucide="chevron-right" class="chevron" style="width:16px;height:16px"></i>
+        </div>
+        <div class="row">
+          <div class="icon-wrap pdf"><i data-lucide="file-text" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">3. Bohemian Rhapsody</div>
+            <div class="row-meta">4 Seiten · PDF</div>
+          </div>
+          <i data-lucide="chevron-right" class="chevron" style="width:16px;height:16px"></i>
+        </div>
+        <div class="row">
+          <div class="icon-wrap cho"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">4. Africa — Toto</div>
+            <div class="row-meta">2 Seiten · CHO</div>
+          </div>
+          <i data-lucide="chevron-right" class="chevron" style="width:16px;height:16px"></i>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Setlist-Kontext:</b> "Blättern"-Button oben rechts startet den Modus ab Lied 1, S. 1. Tap auf einen Song startet <code>Blättern</code> <i>ab diesem Song</i>, nicht einzeln. Alternative Interaktion: Tap öffnet Song einzeln, "Blättern"-Button startet Modus.
+    </div>
+  </div>
+
+  <!-- Scene 2: Search results -->
+  <div class="scene">
+    <div class="scene-label">Einstieg 2 — Suchergebnis (Texte-Modus)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="arrow-left" style="width:16px;height:16px"></i></button>
+        <h2>Suche</h2>
+      </div>
+
+      <div class="mode-toggle">
+        <span class="mode-btn">Songs + Audio</span>
+        <span class="mode-btn active"><i data-lucide="file-text" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> Nur Texte</span>
+      </div>
+
+      <div class="search-row">
+        <input class="search-input" value="Halleluja" />
+      </div>
+
+      <div class="result-bar">
+        <i data-lucide="search" style="width:18px;height:18px;color:var(--setlist)"></i>
+        <div class="result-info"><b>7 Treffer</b> · 12 Seiten gesamt</div>
+        <button class="flip-btn"><i data-lucide="layers" style="width:14px;height:14px"></i> Alle blättern</button>
+      </div>
+
+      <div class="freeze-banner">
+        <i data-lucide="snowflake" style="width:14px;height:14px"></i>
+        <div>Beim Start wird diese Liste eingefroren — Filterungen danach ändern den Blätter-Stream nicht.</div>
+      </div>
+
+      <div class="list" style="margin-top:10px">
+        <div class="row">
+          <div class="icon-wrap cho"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name"><b style="color:var(--amber)">Halleluja</b> — Händel</div>
+            <div class="row-meta">Klassik · 1 Seite · CHO</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="icon-wrap pdf"><i data-lucide="file-text" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name"><b style="color:var(--amber)">Hallelujah</b> — Cohen</div>
+            <div class="row-meta">Weihnachten · 2 Seiten · PDF</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="icon-wrap pdf"><i data-lucide="file-text" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name"><b style="color:var(--amber)">Halleluja</b> — Gospel</div>
+            <div class="row-meta">Gospels · 3 Seiten · PDF</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Texte-Modus-Pflicht:</b> "Alle blättern" nur sichtbar wenn <code>Nur Texte</code> aktiv ist. Im Audio-Modus ist der Button ausgeblendet (Audio hat keine Seiten). Freeze-Banner erklärt das Snapshot-Verhalten einmalig, danach einklappbar.
+    </div>
+  </div>
+
+  <!-- Scene 3: Favorites -->
+  <div class="scene">
+    <div class="scene-label">Einstieg 3 — Favoriten</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="heart" style="width:16px;height:16px;color:var(--red);fill:currentColor"></i></button>
+        <h2>Favoriten</h2>
+        <button class="icon-btn"><i data-lucide="filter" style="width:16px;height:16px"></i></button>
+      </div>
+
+      <div class="mode-toggle">
+        <span class="mode-btn">Songs + Audio</span>
+        <span class="mode-btn active"><i data-lucide="file-text" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i> Nur Texte</span>
+      </div>
+
+      <div class="result-bar">
+        <i data-lucide="heart" style="width:18px;height:18px;color:var(--red)"></i>
+        <div class="result-info"><b>9 Favoriten</b> · 18 Seiten gesamt</div>
+        <button class="flip-btn"><i data-lucide="layers" style="width:14px;height:14px"></i> Alle blättern</button>
+      </div>
+
+      <div class="hint-inline">
+        <i data-lucide="info" style="width:11px;height:11px;display:inline;vertical-align:-1px"></i>
+        Blätter-Reihenfolge folgt der aktuellen Sortierung (z.B. Alphabetisch).
+      </div>
+
+      <div class="list">
+        <div class="row">
+          <div class="icon-wrap cho"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">Africa — Toto</div>
+            <div class="row-meta">2 Seiten</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="icon-wrap pdf"><i data-lucide="file-text" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">Bohemian Rhapsody</div>
+            <div class="row-meta">4 Seiten</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="icon-wrap cho"><i data-lucide="music" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">Es ist ein Ros entsprungen</div>
+            <div class="row-meta">1 Seite</div>
+          </div>
+        </div>
+        <div class="row">
+          <div class="icon-wrap pdf"><i data-lucide="file-text" style="width:16px;height:16px"></i></div>
+          <div class="row-info">
+            <div class="row-name">Hallelujah — Cohen</div>
+            <div class="row-meta">2 Seiten</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Favoriten-Einstieg:</b> Ideal für spontanes Üben — alle persönlichen Lieblingstexte hintereinander. Hinweis macht klar, dass die aktuelle Sortierung (Alphabetisch / manuell) die Blätter-Reihenfolge bestimmt.
+    </div>
+  </div>
+
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>

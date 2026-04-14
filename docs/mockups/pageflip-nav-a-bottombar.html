@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ChoirBox — Blättermodus A (Bottom-Bar)</title>
+<script src="./lucide.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #0f172a; --bg2: #1e293b; --bg3: #334155;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --accent: #818cf8; --accent-hover: #6366f1; --accent-dim: rgba(129,140,248,0.15);
+    --confirm: #3b82f6; --confirm-hover: #2563eb;
+    --border: #334155;
+    --green: #10b981; --red: #ef4444; --amber: #f59e0b;
+    --setlist: #14b8a6;
+    --paper: #faf8f3; --paper-text: #1a1a1a;
+  }
+  body { font-family: 'Inter', -apple-system, sans-serif; background: #020617; color: var(--text);
+         -webkit-font-smoothing: antialiased; padding: 24px 12px; }
+  h1 { font-size: 18px; margin-bottom: 4px; text-align: center; }
+  .subtitle { font-size: 13px; color: var(--text2); text-align: center; margin-bottom: 24px; max-width: 720px; margin-left: auto; margin-right: auto; }
+  .scenes { display: flex; flex-wrap: wrap; gap: 24px; justify-content: center; align-items: flex-start; }
+  .scene { width: 380px; max-width: 100%; }
+  .scene-label { font-size: 12px; color: var(--accent); font-weight: 600; margin-bottom: 8px;
+                 text-transform: uppercase; letter-spacing: 0.5px; }
+  .phone { background: var(--bg); border: 1px solid var(--border); border-radius: 18px;
+           overflow: hidden; position: relative; min-height: 720px; }
+
+  .topbar { display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            background: var(--bg2); border-bottom: 1px solid var(--border); }
+  .icon-btn { width: 32px; height: 32px; background: var(--bg3); border: 1px solid var(--border);
+              border-radius: 7px; display: flex; align-items: center; justify-content: center; color: var(--text); }
+  .title-col { flex: 1; min-width: 0; }
+  .title-main { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .title-sub { font-size: 10px; color: var(--text2); display: flex; align-items: center; gap: 4px; margin-top: 1px; }
+  .title-sub .chip { background: var(--setlist); color: #fff; padding: 1px 5px; border-radius: 3px; font-weight: 700; font-size: 9px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .sheet-container { background: var(--paper); color: var(--paper-text); min-height: 460px;
+                     padding: 16px 14px; font-family: 'Menlo', monospace; font-size: 12px;
+                     line-height: 2.2; position: relative; }
+  .sheet-line { position: relative; min-height: 2.2em; }
+  .sheet-chord { position: absolute; top: -0.4em; color: #1d4ed8; font-weight: 700; font-size: 10px; }
+
+  /* Song-boundary banner */
+  .boundary-banner {
+    position: absolute; top: 10px; left: 50%; transform: translateX(-50%);
+    background: rgba(20,184,166,0.95); color: #fff; padding: 8px 14px;
+    border-radius: 20px; font-size: 12px; font-weight: 700;
+    box-shadow: 0 4px 14px rgba(20,184,166,0.4);
+    display: flex; align-items: center; gap: 6px;
+  }
+
+  /* Bottom-Bar */
+  .pageflip-bar {
+    position: absolute; left: 0; right: 0; bottom: 0;
+    background: var(--bg2); border-top: 1px solid var(--border);
+    padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .nav-arrow {
+    width: 48px; height: 48px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center;
+    color: var(--text);
+  }
+  .nav-arrow.disabled { color: var(--text3); opacity: 0.4; }
+  .progress-col { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+  .progress-row { display: flex; justify-content: space-between; font-size: 11px; font-weight: 600; }
+  .progress-row .cur { color: var(--accent); }
+  .progress-row .total { color: var(--text2); }
+  .progress-bar { height: 4px; background: var(--bg3); border-radius: 2px; overflow: hidden; position: relative; }
+  .progress-fill { height: 100%; background: var(--setlist); border-radius: 2px; position: relative; }
+  .progress-dot { position: absolute; top: -3px; width: 10px; height: 10px; background: var(--accent);
+                  border-radius: 50%; box-shadow: 0 0 0 2px var(--bg2); }
+  /* Per-song segments */
+  .song-segments { display: flex; gap: 2px; margin-top: 2px; }
+  .seg { height: 3px; flex: 1; background: var(--bg3); border-radius: 1px; }
+  .seg.done { background: var(--setlist); }
+  .seg.current { background: var(--accent); }
+
+  .toc-btn {
+    width: 48px; height: 48px; background: var(--bg3); border: 1px solid var(--border);
+    border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--text);
+    position: relative;
+  }
+  .toc-badge { position: absolute; top: -4px; right: -4px; background: var(--setlist); color: #fff;
+               font-size: 9px; font-weight: 700; padding: 1px 4px; border-radius: 4px; min-width: 14px; text-align: center; }
+
+  .caption { font-size: 12px; color: var(--text2); margin-top: 10px; line-height: 1.5; }
+  .caption b { color: var(--text); }
+
+  /* PDF-like page preview */
+  .pdf-page { background: #fff; min-height: 430px; padding: 20px; color: #000; font-family: Georgia, serif; }
+  .pdf-page h3 { font-size: 15px; margin-bottom: 10px; }
+  .pdf-page p { font-size: 11px; line-height: 1.5; margin-bottom: 8px; color: #333; }
+  .pdf-watermark { position: absolute; bottom: 78px; right: 18px; font-size: 9px; color: #999;
+                   background: rgba(255,255,255,0.85); padding: 2px 6px; border-radius: 4px; }
+</style>
+</head>
+<body>
+
+<h1>Blättermodus — Variante A (Bottom-Bar)</h1>
+<p class="subtitle">Persistente Bottom-Bar mit Prev/Next-Buttons, Progressbar für die gesamte Setlist und TOC-Kurzzugriff. Oben ein Kontext-Header mit Setlist-Name und Lied-Position. Kurzer Banner beim Song-Wechsel.</p>
+
+<div class="scenes">
+
+  <!-- Scene 1: Mittendrin in einem Song -->
+  <div class="scene">
+    <div class="scene-label">Szene 1 — Mitten im Song (2. Seite von 4)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="arrow-left" style="width:16px;height:16px"></i></button>
+        <div class="title-col">
+          <div class="title-main">Bohemian Rhapsody</div>
+          <div class="title-sub">
+            <span class="chip">Setlist</span>
+            Sommerkonzert · Lied 3 / 6 · S. 2 / 4
+          </div>
+        </div>
+        <button class="icon-btn"><i data-lucide="zoom-in" style="width:16px;height:16px"></i></button>
+        <button class="icon-btn"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+      </div>
+
+      <div class="sheet-container">
+        <div class="pdf-page">
+          <h3>Bohemian Rhapsody — Seite 2</h3>
+          <p>Mama, just killed a man,<br>Put a gun against his head,<br>Pulled my trigger, now he's dead.</p>
+          <p>Mama, life had just begun,<br>But now I've gone and thrown it all away.</p>
+          <p>Mama, ooh, didn't mean to make you cry,<br>If I'm not back again this time tomorrow,<br>Carry on, carry on as if nothing really matters.</p>
+          <p style="margin-top:16px;font-style:italic;color:#666">— weiter auf Seite 3 —</p>
+        </div>
+      </div>
+
+      <div class="pageflip-bar">
+        <button class="nav-arrow"><i data-lucide="chevron-left" style="width:22px;height:22px"></i></button>
+        <div class="progress-col">
+          <div class="progress-row">
+            <span class="cur">Seite 5 / 13</span>
+            <span class="total">Bohemian Rhapsody · S. 2/4</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:38%"><span class="progress-dot" style="right:-5px"></span></div>
+          </div>
+          <div class="song-segments">
+            <div class="seg done" title="1 S."></div>
+            <div class="seg done" title="2 S."></div>
+            <div class="seg done" title="2 S."></div>
+            <div class="seg current" title="4 S."></div>
+            <div class="seg" title="3 S."></div>
+            <div class="seg" title="1 S."></div>
+          </div>
+        </div>
+        <button class="toc-btn">
+          <i data-lucide="list" style="width:20px;height:20px"></i>
+          <span class="toc-badge">6</span>
+        </button>
+        <button class="nav-arrow"><i data-lucide="chevron-right" style="width:22px;height:22px"></i></button>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Kontextheader:</b> Setlist-Name + Position in Setlist + Seite im aktuellen Song. <b>Progress-Bar:</b> globaler Fortschritt über alle 13 Seiten. <b>Song-Segmente</b> darunter zeigen die Aufteilung: erledigt (Teal), aktuell (Violett), offen (grau). <b>TOC-Icon</b> öffnet die Setlist-Übersicht.
+    </div>
+  </div>
+
+  <!-- Scene 2: Song-Wechsel -->
+  <div class="scene">
+    <div class="scene-label">Szene 2 — Song-Wechsel (Banner, 800ms)</div>
+    <div class="phone">
+      <div class="topbar">
+        <button class="icon-btn"><i data-lucide="arrow-left" style="width:16px;height:16px"></i></button>
+        <div class="title-col">
+          <div class="title-main">Africa — Toto</div>
+          <div class="title-sub">
+            <span class="chip">Setlist</span>
+            Sommerkonzert · Lied 4 / 6 · S. 1 / 2
+          </div>
+        </div>
+        <button class="icon-btn"><i data-lucide="zoom-in" style="width:16px;height:16px"></i></button>
+        <button class="icon-btn"><i data-lucide="more-vertical" style="width:16px;height:16px"></i></button>
+      </div>
+
+      <div class="sheet-container">
+        <div class="boundary-banner">
+          <i data-lucide="arrow-right" style="width:14px;height:14px"></i>
+          Lied 4: Africa — Toto
+        </div>
+        <div class="pdf-page" style="margin-top:0;opacity:0.6">
+          <h3 style="color:#000;opacity:1">Africa — Seite 1</h3>
+          <p style="font-family:'Menlo',monospace;font-size:10px;line-height:2">
+            <span style="color:#1d4ed8;font-weight:700">D</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#1d4ed8;font-weight:700">A</span><br>
+            I hear the drums echoing tonight<br>
+            <span style="color:#1d4ed8;font-weight:700">Bm</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#1d4ed8;font-weight:700">F#m</span><br>
+            But she hears only whispers of some…
+          </p>
+        </div>
+      </div>
+
+      <div class="pageflip-bar">
+        <button class="nav-arrow"><i data-lucide="chevron-left" style="width:22px;height:22px"></i></button>
+        <div class="progress-col">
+          <div class="progress-row">
+            <span class="cur">Seite 8 / 13</span>
+            <span class="total">Africa · S. 1/2</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" style="width:61%"><span class="progress-dot" style="right:-5px"></span></div>
+          </div>
+          <div class="song-segments">
+            <div class="seg done"></div>
+            <div class="seg done"></div>
+            <div class="seg done"></div>
+            <div class="seg done"></div>
+            <div class="seg current"></div>
+            <div class="seg"></div>
+          </div>
+        </div>
+        <button class="toc-btn">
+          <i data-lucide="list" style="width:20px;height:20px"></i>
+        </button>
+        <button class="nav-arrow"><i data-lucide="chevron-right" style="width:22px;height:22px"></i></button>
+      </div>
+    </div>
+    <div class="caption">
+      <b>Song-Wechsel-Banner</b> erscheint 800ms lang oben überlagert, damit klar ist, dass jetzt ein neuer Titel beginnt — wichtig weil die Blätter-Reihenfolge über Song-Grenzen hinweg flüssig ist. Segmente in der Progressbar rücken auf nächstes Segment.
+    </div>
+  </div>
+</div>
+
+<script>lucide.createIcons();</script>
+</body>
+</html>
