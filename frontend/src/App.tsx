@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { HashRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import { HashRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuthStore, consumeGuestGoodbyeFlag } from '@/stores/authStore.ts'
 import { usePolicyStore } from '@/stores/policyStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
@@ -8,6 +8,7 @@ import { RegisterPage } from '@/pages/RegisterPage.tsx'
 import { GuestRedeemPage } from '@/pages/GuestRedeemPage.tsx'
 import { GuestGoodbyePage } from '@/pages/GuestGoodbyePage.tsx'
 import { AppShell } from '@/components/layout/AppShell.tsx'
+import { MustChangePasswordScreen } from '@/components/ui/MustChangePasswordModal.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
 import { ViewerPage } from '@/pages/ViewerPage.tsx'
@@ -25,7 +26,6 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   const mustChangePw = useAuthStore((s) => s.user?.must_change_password)
   const policy = usePolicyStore((s) => s.policy)
   const loadPolicy = usePolicyStore((s) => s.loadPolicy)
-  const location = useLocation()
 
   // Policy nachladen, sobald der User eingeloggt ist. Laeuft einmal beim
   // Mount und jedes Mal, wenn sich das Token aendert (Login/Logout).
@@ -44,7 +44,9 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     }
     return <Navigate to="/login" replace />
   }
-  if (mustChangePw && location.pathname !== '/settings') return <Navigate to="/settings" replace />
+  // Temporaeres Passwort: statt der App eine reine Lock-Screen zeigen —
+  // kein Einblick in Inhalte, solange kein eigenes Passwort gesetzt ist.
+  if (mustChangePw) return <MustChangePasswordScreen />
   return <>{children}</>
 }
 

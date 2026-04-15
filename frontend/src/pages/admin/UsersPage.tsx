@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { ChevronLeft, Trash2, Bug, Music, FileText } from 'lucide-react'
+import { ChevronLeft, Trash2, Bug, Music, FileText, KeyRound, Copy, Check } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { ALL_ROLES, ROLE_LABELS, hasMinRole, type Role } from '@/utils/roles.ts'
+import { Modal } from '@/components/ui/Modal.tsx'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog.tsx'
 
 interface AdminUser {
   id: string
@@ -24,6 +26,10 @@ export function UsersPage() {
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [message, setMessage] = useState('')
+  const [resetConfirmUser, setResetConfirmUser] = useState<AdminUser | null>(null)
+  const [resetResult, setResetResult] = useState<{ user: AdminUser; password: string } | null>(null)
+  const [resetLoading, setResetLoading] = useState(false)
+  const [copied, setCopied] = useState(false)
   const navigate = useNavigate()
   const currentUser = useAuthStore((s) => s.user)
   const isDeveloper = currentUser ? hasMinRole(currentUser.role, 'developer') : false
@@ -97,6 +103,40 @@ export function UsersPage() {
     } catch {
       setMessage('Fehler beim Umschalten')
     }
+  }
+
+  const confirmResetPassword = async () => {
+    if (!resetConfirmUser) return
+    setResetLoading(true)
+    try {
+      const res = await api<{ password: string }>(
+        `/admin/users/${resetConfirmUser.id}/reset-password`,
+        { method: 'POST' },
+      )
+      setResetResult({ user: resetConfirmUser, password: res.password })
+      setResetConfirmUser(null)
+    } catch {
+      setMessage('Fehler beim Zuruecksetzen des Passworts')
+      setResetConfirmUser(null)
+    } finally {
+      setResetLoading(false)
+    }
+  }
+
+  const copyPassword = async () => {
+    if (!resetResult) return
+    try {
+      await navigator.clipboard.writeText(resetResult.password)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      setMessage('Kopieren fehlgeschlagen')
+    }
+  }
+
+  const closeResetResult = () => {
+    setResetResult(null)
+    setCopied(false)
   }
 
   const deleteUser = async (user: AdminUser) => {
@@ -195,6 +235,13 @@ export function UsersPage() {
                 </div>
                 <button
                   className="player-header-btn"
+                  title="Passwort zuruecksetzen"
+                  onClick={() => setResetConfirmUser(u)}
+                >
+                  <KeyRound size={16} />
+                </button>
+                <button
+                  className="player-header-btn"
                   title="Loeschen"
                   onClick={() => deleteUser(u)}
                   style={{ color: 'var(--danger)' }}
@@ -271,6 +318,61 @@ export function UsersPage() {
           )
         })}
       </ul>
+
+      {resetConfirmUser && (
+        <ConfirmDialog
+          title="Passwort zuruecksetzen?"
+          filename={resetConfirmUser.display_name}
+          hint={
+            'Es wird ein neues Zufallspasswort erzeugt. Bestehende Anmeldungen werden beendet. ' +
+            'Beim naechsten Login muss der Nutzer das Passwort selbst aendern.'
+          }
+          onClose={() => setResetConfirmUser(null)}
+          confirmLabel="Zuruecksetzen"
+          confirmLoadingLabel="Zuruecksetzen..."
+          onConfirm={confirmResetPassword}
+          loading={resetLoading}
+          variant="primary"
+        />
+      )}
+
+      {resetResult && (
+        <Modal title="Neues Passwort" onClose={closeResetResult} closeOnOverlay={false}>
+          <p style={{ marginTop: 0, color: 'var(--text-muted)', fontSize: 13 }}>
+            Gib dieses Passwort an <strong>{resetResult.user.display_name}</strong> weiter.
+            Es wird <strong>nur jetzt</strong> angezeigt.
+          </p>
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 'var(--space-2)',
+            padding: 'var(--space-3)', marginTop: 'var(--space-3)',
+            background: 'var(--bg-tertiary)', borderRadius: 'var(--radius-md)',
+            border: '1px solid var(--border)',
+          }}>
+            <code style={{
+              flex: 1, fontSize: 'var(--text-lg)', fontFamily: 'monospace',
+              userSelect: 'all', wordBreak: 'break-all',
+            }}>
+              {resetResult.password}
+            </code>
+            <button
+              className="btn btn-secondary"
+              onClick={copyPassword}
+              style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+            >
+              {copied ? <Check size={16} /> : <Copy size={16} />}
+              {copied ? 'Kopiert' : 'Kopieren'}
+            </button>
+          </div>
+          <p style={{ marginTop: 'var(--space-3)', fontSize: 12, color: 'var(--text-muted)' }}>
+            Beim naechsten Login muss der Nutzer das Passwort selbst aendern.
+          </p>
+          <div className="confirm-actions" style={{ marginTop: 'var(--space-3)' }}>
+            <button className="btn btn-primary" onClick={closeResetResult}>
+              Fertig
+            </button>
+          </div>
+        </Modal>
+      )}
     </div>
   )
 }

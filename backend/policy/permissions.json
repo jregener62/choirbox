@@ -272,6 +272,7 @@
     "POST /api/admin/users":                                        "users.manage",
     "POST /api/admin/users/bulk-view-mode":                         "users.manage",
     "PUT /api/admin/users/{user_id}":                               "users.manage",
+    "POST /api/admin/users/{user_id}/reset-password":               "users.manage",
     "DELETE /api/admin/users/{user_id}":                            "users.manage",
     "GET /api/admin/settings":                                      "settings.manage",
     "PUT /api/admin/settings":                                      "settings.manage",

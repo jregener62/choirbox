@@ -148,6 +148,8 @@ export function RegisterPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 autoComplete="new-password"
+                {...({ passwordrules: `minlength: ${MIN_PASSWORD_LENGTH}; required: lower; required: upper; required: digit;` } as Record<string, string>)}
+                minLength={MIN_PASSWORD_LENGTH}
                 required
               />
               <button
@@ -168,6 +170,7 @@ export function RegisterPage() {
               value={passwordConfirm}
               onChange={(e) => setPasswordConfirm(e.target.value)}
               autoComplete="new-password"
+              {...({ passwordrules: `minlength: ${MIN_PASSWORD_LENGTH}; required: lower; required: upper; required: digit;` } as Record<string, string>)}
               required
             />
           </div>

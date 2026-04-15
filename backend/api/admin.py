@@ -1,5 +1,6 @@
 """Admin API — user management and choir management."""
 
+import secrets
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
@@ -7,9 +8,19 @@ from sqlmodel import Session, select
 from backend.database import get_session
 from backend.models.choir import Choir
 from backend.models.user import User
+from backend.models.session_token import SessionToken
 from backend.api.auth import _hash_password, _valid_voice_parts, VALID_ROLES, MIN_PASSWORD_LENGTH
 from backend.policy import require_permission
 from backend.schemas import ActionResponse
+
+# Zeichen ohne leicht verwechselbare (0/O, 1/l/I) — Admin muss das
+# Passwort muendlich oder per Chat weitergeben, also Lesbarkeit wichtig.
+_RESET_PW_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"
+_RESET_PW_LENGTH = 10
+
+
+def _generate_reset_password() -> str:
+    return "".join(secrets.choice(_RESET_PW_ALPHABET) for _ in range(_RESET_PW_LENGTH))
 
 router = APIRouter(prefix="/admin", tags=["admin"])
 
@@ -172,6 +183,35 @@ def bulk_view_mode(
             updated += 1
     session.commit()
     return ActionResponse.success(data={"updated": updated, "skipped": skipped})
+
+
+@router.post("/users/{user_id}/reset-password")
+def reset_user_password(
+    user_id: str,
+    user: User = Depends(require_permission("users.manage")),
+    session: Session = Depends(get_session),
+):
+    """Erzeugt ein neues Zufallspasswort fuer den Ziel-User.
+
+    - Setzt ``must_change_password=True`` → erzwingt Passwort-Wechsel beim naechsten Login.
+    - Invalidiert alle bestehenden Session-Tokens des Users.
+    - Gibt das Klartext-Passwort einmalig zurueck; es wird nirgends gespeichert.
+    """
+    target = session.get(User, user_id)
+    if not target or target.choir_id != user.choir_id:
+        raise HTTPException(404, "User not found")
+
+    new_password = _generate_reset_password()
+    target.password_hash = _hash_password(new_password)
+    target.must_change_password = True
+    target.updated_at = datetime.utcnow()
+    session.add(target)
+
+    for st in session.exec(select(SessionToken).where(SessionToken.user_id == target.id)).all():
+        session.delete(st)
+
+    session.commit()
+    return ActionResponse.success(data={"password": new_password})
 
 
 @router.delete("/users/{user_id}")

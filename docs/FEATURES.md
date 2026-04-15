@@ -60,17 +60,17 @@ Chormitglieder registrieren sich ueber einen Einladungslink, der den Chor identi
 
 ### Erzwungene Passwort-Aenderung
 
-Wenn ein Chor-Admin vom Developer angelegt wird, erhaelt er ein initiales Passwort mit `must_change_password`-Flag.
+Wenn ein Chor-Admin vom Developer angelegt wird oder der Admin ein Passwort zuruecksetzt, erhaelt der User ein temporaeres Passwort mit `must_change_password`-Flag.
 
-- Nach Login: Redirect zu Einstellungen, Passwort-Formular automatisch offen
-- Hinweis: "Bitte aendere dein Standard-Passwort"
-- Abbrechen-Button ausgeblendet, Zurueck-Button zeigt Warnmeldung
-- Nach erfolgreicher Aenderung: Flag wird gecleared, App normal nutzbar
+- Nach Login erscheint ein **blockierendes Modal** ("Passwort festlegen") ueber der gesamten App
+- Modal-Felder: temporaeres Passwort, neues Passwort (mit Staerkemeter), neues Passwort wiederholen
+- Kein Close-Button, kein Overlay-Dismiss — der User muss das Passwort wechseln, um weiterzuarbeiten
+- Nach erfolgreicher Aenderung: Flag wird gecleared, Modal verschwindet, App normal nutzbar
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/App.tsx` | AuthGuard mit `must_change_password`-Redirect |
-| `frontend/src/pages/SettingsPage.tsx` | Erzwungenes PW-Formular |
+| `frontend/src/components/ui/MustChangePasswordModal.tsx` | Blockierendes Password-Modal |
+| `frontend/src/components/layout/AppShell.tsx` | Mount des Modals |
 | `backend/api/auth.py` | Flag in `_user_response`, Clear bei PW-Aenderung |
 
 ### Passwort vergessen (Admin-Reset)
