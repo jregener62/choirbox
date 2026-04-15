@@ -49,7 +49,10 @@ def get_refresh_token() -> str:
 
     if not row or not row[0]:
         raise RuntimeError("Kein Dropbox-Refresh-Token in der Datenbank — Dropbox nicht verbunden?")
-    return row[0]
+
+    from backend.utils.crypto import decrypt, is_encrypted
+    raw = row[0]
+    return decrypt(raw) if is_encrypted(raw) else raw
 
 
 def write_backup_status(ok: bool, size_bytes: int | None, error: str | None) -> None:

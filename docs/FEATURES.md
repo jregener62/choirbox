@@ -1791,6 +1791,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Nightly Backup: "refresh token is malformed"
+
+`backup_db.py` las den Dropbox-Refresh-Token roh aus `app_settings.dropbox_refresh_token` und schickte ihn direkt an den OAuth-Endpoint. Seit der Fernet-Verschluesselung des Tokens (Commit `acd5215`) ist der Wert in der DB jedoch Ciphertext — Dropbox antwortete mit `invalid_grant / refresh token is malformed` und der Cron-Backup brach ab. Fix: `get_refresh_token()` nutzt jetzt `backend.utils.crypto.decrypt` (mit `is_encrypted`-Check fuer Rueckwaerts-Kompatibilitaet zu evtl. noch vorhandenen Klartext-Tokens), analog zu `get_dropbox_service()`.
+
 ### Akkord-Buttons im Vollbild-Annotationsmodus von Toolbar ueberlagert
 
 Im Fullscreen-Modus positioniert sich die floatende `chord-toolbar` (Transpose-Stepper + Akkorde/Nur-Text-Toggle) oben rechts bei `top: var(--space-3)`. Sobald der Zeichenmodus aktiv war, legte sich die oben angedockte `AnnotationToolbar` (~45px hoch) darueber und verdeckte die Buttons. Fix: Neue Modifier-Klasse `chord-toolbar--below-annotation` setzt `top: calc(var(--space-3) + 45px)` und wird genau dann angehaengt, wenn `pdfFullscreen && drawingMode` gilt.
