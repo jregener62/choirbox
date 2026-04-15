@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Upload, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music } from 'lucide-react'
+import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
@@ -18,7 +18,6 @@ import type { DocumentItem } from '@/types/index.ts'
 
 interface DocumentPanelProps {
   folderPath: string
-  canUpload?: boolean
   /** If provided, show only this document (player mode). Otherwise use documents store. */
   document?: DocumentItem | null
   /** Show hint when no document is selected (player mode) */
@@ -65,11 +64,11 @@ function getDistance(t1: Touch, t2: Touch) {
 }
 
 
-export function DocumentPanel({ folderPath, canUpload = false, document: externalDoc, emptyHint }: DocumentPanelProps) {
+export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: DocumentPanelProps) {
   const token = useAuthStore((s) => s.token)
   const userRole = useAuthStore((s) => s.user?.role)
   const guest = isGuest(userRole)
-  const { documents, activeDocId, loading, uploading, upload } = useDocumentsStore()
+  const { documents, activeDocId, loading } = useDocumentsStore()
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentTime = usePlayerStore((s) => s.currentTime)
   const duration = usePlayerStore((s) => s.duration)
@@ -81,7 +80,6 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
   const chordInputMode = useChordInput((s) => s.mode)
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
-  const fileInputRef = useRef<HTMLInputElement>(null)
   const pagesRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
   const scrollTargetRef = useRef<HTMLElement | null>(null)
@@ -272,17 +270,6 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     lastTapRef.current = now
   }, [drawingMode])
 
-  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    try {
-      await upload(folderPath, file)
-    } catch {
-      // Error handled by store
-    }
-    e.target.value = ''
-  }
-
   if (!isPlayerMode && loading) {
     return (
       <div className="pdf-upload">
@@ -303,37 +290,9 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
     ) : null
   }
 
-  // DocViewer mode: no documents at all
-  if (!isPlayerMode && documents.length === 0) {
-    if (!canUpload) return null
-    return (
-      <div className="pdf-upload">
-        <div className="pdf-upload-icon">
-          <FileText size={24} />
-        </div>
-        <div className="pdf-upload-text">
-          Noch keine Dokumente in diesem Ordner.
-        </div>
-        <button
-          className="pdf-upload-btn"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={uploading}
-        >
-          <Upload size={14} />
-          {uploading ? 'Wird hochgeladen...' : 'Dokument hochladen'}
-        </button>
-        <span className="pdf-upload-hint">PDF, Video (MP4/WebM/MOV) oder TXT</span>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.txt,.cho"
-          style={{ display: 'none' }}
-          onChange={handleFileSelect}
-        />
-      </div>
-    )
-  }
-
+  // DocViewer mode without docs: render nothing — die aufrufende Seite
+  // zeigt bei Bedarf einen Fallback. Uploads laufen nicht ueber diesen Pfad.
+  if (!isPlayerMode && !activeDoc) return null
   if (!activeDoc) return null
 
   const isPdf = activeDoc.file_type === 'pdf'
@@ -518,15 +477,6 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
         </div>
       )}
 
-      {canUpload && (
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".pdf,.txt,.cho"
-          style={{ display: 'none' }}
-          onChange={handleFileSelect}
-        />
-      )}
     </div>
   )
 }

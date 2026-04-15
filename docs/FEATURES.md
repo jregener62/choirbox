@@ -621,8 +621,8 @@ Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent i
 - Route: `/#/doc-viewer?folder=<path>&name=<name>`
 - Erreichbar durch Klick auf ein Dokument in der Browse-Seite
 - Funktionalitaet: Annotationen, Fullscreen inkl. Topbar-Hide
-- Upload-Funktion fuer pro-member+
 - Fullscreen-Reset beim Verlassen der Seite
+- Fehler-/Offline-Fallback: Statt eines leeren Upload-Prompts erscheint „Dokument nicht verfuegbar" mit Hinweis auf Verbindung (Uploads laufen nicht ueber diesen Viewer, sondern ueber BrowsePage-Kebab bzw. ViewerPage-Topbar)
 
 ### Dokumente in der Browse-Seite
 
@@ -1798,6 +1798,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### DocViewer zeigte irrefuehrenden Upload-Prompt bei Sync-Fehlern/Offline
+
+Wenn `GET /documents/list` fehlschlug (Offline, 5xx, Race-Condition), fing `useDocuments.ts` die Exception ab und setzte `documents=[]` — die DocumentPanel-Logik konnte Fehler nicht von "leerer Ordner" unterscheiden und zeigte in der Folge fuer pro-member+ einen Upload-Prompt „Noch keine Dokumente in diesem Ordner. Dokument hochladen". Der Prompt war nicht nur in Fehler-Faellen falsch (Aufforderung zum Upload, obwohl gerade nichts geladen werden kann), sondern generell: Uploads laufen nicht ueber diesen Viewer. Fix: Upload-Leerbild + verwaister File-Input/`canUpload`-Prop aus `DocumentPanel.tsx` entfernt; `DocViewerPage` zeigt stattdessen einen neutralen Fallback „Dokument nicht verfuegbar" mit Online-/Offline-spezifischem Hinweis.
 
 ### Document-Sync: Race Condition → UNIQUE-Fehler → DocViewer leer
 

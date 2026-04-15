@@ -1,11 +1,12 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, Mic } from 'lucide-react'
+import { ChevronLeft, FileX, Mic } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
+import { useOnlineStatus } from '@/hooks/useOnlineStatus.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 
@@ -18,7 +19,8 @@ export function DocViewerPage() {
   const canUpload = hasMinRole(userRole, 'pro-member')
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
 
-  const { loadedFolder, load, documents, setActive } = useDocumentsStore()
+  const { loadedFolder, load, documents, activeDocId, loading, setActive } = useDocumentsStore()
+  const online = useOnlineStatus()
 
   useEffect(() => {
     if (folder && folder !== loadedFolder) {
@@ -66,7 +68,24 @@ export function DocViewerPage() {
         )}
       </div>
       <div className="player-scroll-content">
-        <DocumentPanel folderPath={folder} canUpload={canUpload} />
+        {(() => {
+          const hasDoc = documents.some((d) => d.id === activeDocId)
+          const finishedWithoutDoc = !loading && loadedFolder === folder && !hasDoc
+          if (finishedWithoutDoc) {
+            return (
+              <div className="doc-unavailable">
+                <FileX size={32} aria-hidden="true" />
+                <div className="doc-unavailable-title">Dokument nicht verfuegbar</div>
+                <div className="doc-unavailable-hint">
+                  {online
+                    ? 'Bitte zurueck zum Ordner und erneut versuchen.'
+                    : 'Keine Internetverbindung. Bitte zurueck zum Ordner und spaeter erneut versuchen.'}
+                </div>
+              </div>
+            )
+          }
+          return <DocumentPanel folderPath={folder} />
+        })()}
       </div>
     </div>
   )

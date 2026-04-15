@@ -5252,6 +5252,28 @@ body.body-scroll-fs .autoscroll-stepper {
   gap: var(--space-0-5);
 }
 
+.doc-unavailable {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8);
+  color: var(--text-muted);
+  text-align: center;
+}
+.doc-unavailable-title {
+  font-size: var(--text-body);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+.doc-unavailable-hint {
+  font-size: var(--text-caption);
+  max-width: 320px;
+  line-height: 1.5;
+}
+
 .offline-banner {
   position: fixed;
   top: 0;
