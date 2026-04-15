@@ -5251,3 +5251,23 @@ body.body-scroll-fs .autoscroll-stepper {
   flex-direction: column;
   gap: var(--space-0-5);
 }
+
+.offline-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-4);
+  padding-top: calc(var(--space-2) + env(safe-area-inset-top, 0px));
+  background: var(--danger);
+  color: #fff;
+  font-size: var(--text-body-sm);
+  font-weight: 500;
+  text-align: center;
+  box-shadow: var(--shadow-md);
+}

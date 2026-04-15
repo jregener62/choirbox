@@ -9,6 +9,7 @@ import { GuestRedeemPage } from '@/pages/GuestRedeemPage.tsx'
 import { GuestGoodbyePage } from '@/pages/GuestGoodbyePage.tsx'
 import { AppShell } from '@/components/layout/AppShell.tsx'
 import { MustChangePasswordScreen } from '@/components/ui/MustChangePasswordModal.tsx'
+import { OfflineBanner } from '@/components/ui/OfflineBanner.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
 import { ViewerPage } from '@/pages/ViewerPage.tsx'
@@ -75,6 +76,7 @@ function AppRoutes() {
 export function App() {
   return (
     <HashRouter>
+      <OfflineBanner />
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
