@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Bug, X, Send, ExternalLink } from 'lucide-react'
 import { api } from '@/api/client.ts'
+import { useAuthStore } from '@/stores/authStore.ts'
 
 interface GitHubIssue {
   number: number
@@ -18,6 +19,9 @@ interface IssuesResponse {
 }
 
 export function EdgeBugTab() {
+  const user = useAuthStore((s) => s.user)
+  const isDeveloper = user?.role === 'developer'
+
   const [drawerOpen, setDrawerOpen] = useState(false)
   const [issues, setIssues] = useState<GitHubIssue[]>([])
   const [openCount, setOpenCount] = useState(0)
@@ -41,8 +45,8 @@ export function EdgeBugTab() {
   }, [])
 
   useEffect(() => {
-    if (drawerOpen) loadIssues()
-  }, [drawerOpen, loadIssues])
+    if (drawerOpen && isDeveloper) loadIssues()
+  }, [drawerOpen, isDeveloper, loadIssues])
 
   const submitQuickIssue = async () => {
     if (!quickTitle.trim() || submitting) return
@@ -54,7 +58,7 @@ export function EdgeBugTab() {
       })
       setQuickTitle('')
       setMessage('Issue erstellt!')
-      loadIssues()
+      if (isDeveloper) loadIssues()
       setTimeout(() => setMessage(''), 3000)
     } catch {
       setMessage('Fehler beim Erstellen')
@@ -80,7 +84,7 @@ export function EdgeBugTab() {
       {/* Edge Tab — always visible */}
       <button className="edge-bug-tab" onClick={() => setDrawerOpen(true)}>
         <Bug size={14} />
-        {openCount > 0 && <span className="edge-bug-count">{openCount}</span>}
+        {isDeveloper && openCount > 0 && <span className="edge-bug-count">{openCount}</span>}
       </button>
 
       {/* Drawer overlay */}
@@ -96,9 +100,11 @@ export function EdgeBugTab() {
             </div>
 
             {/* Stats */}
-            <div className="issue-drawer-stats">
-              <span>{openCount} offen</span>
-            </div>
+            {isDeveloper && (
+              <div className="issue-drawer-stats">
+                <span>{openCount} offen</span>
+              </div>
+            )}
 
             {/* Message */}
             {message && (
@@ -108,43 +114,45 @@ export function EdgeBugTab() {
             )}
 
             {/* Issue List */}
-            <div className="issue-drawer-list">
-              {loading && <div className="issue-drawer-empty">Laden...</div>}
-              {!loading && issues.length === 0 && (
-                <div className="issue-drawer-empty">Keine Issues vorhanden</div>
-              )}
-              {issues.map((issue) => (
-                <div key={issue.number} className="issue-drawer-item">
-                  <div
-                    className="issue-drawer-dot"
-                    style={{ background: getIssueColor(issue) }}
-                  />
-                  <div className="issue-drawer-body">
-                    <div className="issue-drawer-item-title">{issue.title}</div>
-                    <div className="issue-drawer-labels">
-                      <span
-                        className="issue-drawer-label"
-                        style={{
-                          background: `color-mix(in srgb, ${getIssueColor(issue)} 15%, transparent)`,
-                          color: getIssueColor(issue),
-                        }}
-                      >
-                        {getIssueTypeLabel(issue)}
-                      </span>
+            {isDeveloper && (
+              <div className="issue-drawer-list">
+                {loading && <div className="issue-drawer-empty">Laden...</div>}
+                {!loading && issues.length === 0 && (
+                  <div className="issue-drawer-empty">Keine Issues vorhanden</div>
+                )}
+                {issues.map((issue) => (
+                  <div key={issue.number} className="issue-drawer-item">
+                    <div
+                      className="issue-drawer-dot"
+                      style={{ background: getIssueColor(issue) }}
+                    />
+                    <div className="issue-drawer-body">
+                      <div className="issue-drawer-item-title">{issue.title}</div>
+                      <div className="issue-drawer-labels">
+                        <span
+                          className="issue-drawer-label"
+                          style={{
+                            background: `color-mix(in srgb, ${getIssueColor(issue)} 15%, transparent)`,
+                            color: getIssueColor(issue),
+                          }}
+                        >
+                          {getIssueTypeLabel(issue)}
+                        </span>
+                      </div>
                     </div>
+                    <a
+                      href={issue.html_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="issue-drawer-link"
+                    >
+                      <ExternalLink size={14} />
+                    </a>
+                    <span className="issue-drawer-num">#{issue.number}</span>
                   </div>
-                  <a
-                    href={issue.html_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="issue-drawer-link"
-                  >
-                    <ExternalLink size={14} />
-                  </a>
-                  <span className="issue-drawer-num">#{issue.number}</span>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
 
             {/* Quick Add */}
             <div className="issue-drawer-quickadd">

@@ -1270,7 +1270,8 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 ### Bug-Reporting (Edge Drawer)
 
 - Amber-Tab am rechten Bildschirmrand, von jeder Seite aus erreichbar
-- Oeffnet Drawer mit Liste der **offenen** Issues (von GitHub geladen, 60s Cache)
+- **Developer-Rolle**: Drawer zeigt Liste der **offenen** Issues (von GitHub geladen, 60s Cache), Stats-Zeile und Count-Badge
+- **Andere Rollen mit `can_report_bugs`**: Drawer zeigt nur das Quick-Add-Eingabefeld (keine Liste, kein Count-Badge)
 - Quick-Add: Titel eingeben + Typ (Bug/Wunsch) waehlen → GitHub Issue wird erstellt
 - Issue-Body enthaelt automatisch User-Kontext (Name, Stimme, Chor)
 - Berechtigung `can_report_bugs` wird pro User individuell vergeben (nicht rollenbasiert)
