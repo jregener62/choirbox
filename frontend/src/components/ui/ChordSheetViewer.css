@@ -7,6 +7,11 @@
   padding: var(--space-3);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  /* iOS Safari blaeht Text im Landscape auf, ohne dass `ch` mitskaliert →
+     Akkorde driften gegenueber dem Text. Auto-Sizing hier abschalten. */
+  -webkit-text-size-adjust: 100%;
+  -moz-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 /* Sektionen */

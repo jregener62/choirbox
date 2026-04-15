@@ -1800,6 +1800,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### ChordPro: Akkorde driften gegenueber dem Text auf iPhone im Landscape
+
+Auf echten iPhones (nicht in Safari Responsive Design) waren die Akkorde im `.cho`-Viewer im Landscape-Modus deutlich gegenueber den Anker-Zeichen versetzt — der Versatz wuchs mit hoeheren Zoomstufen und zeigte sich auch im Portrait, dort aber viel schwaecher. Ursache: iOS Safari blaeht Lyric-/Akkord-Text per "Text Auto-Sizing" auf, wenn es ihn fuer zu klein haelt; die `ch`-Einheit, mit der `.chord-symbol` ueber `left: ${col}ch` positioniert wird, basiert aber auf der unaufgeblaehten Schriftgroesse. Dadurch waechst das tatsaechliche Zeichen-Raster schneller als die Akkord-Positionen, und der Versatz akkumuliert sich pro Spalte. Fix: `text-size-adjust: 100%` (mit `-webkit-`/`-moz-`-Prefixes) auf `.chord-sheet-viewer` schaltet das Auto-Sizing fuer den Viewer ab.
+
 ### DocViewer zeigte irrefuehrenden Upload-Prompt bei Sync-Fehlern/Offline
 
 Wenn `GET /documents/list` fehlschlug (Offline, 5xx, Race-Condition), fing `useDocuments.ts` die Exception ab und setzte `documents=[]` — die DocumentPanel-Logik konnte Fehler nicht von "leerer Ordner" unterscheiden und zeigte in der Folge fuer pro-member+ einen Upload-Prompt „Noch keine Dokumente in diesem Ordner. Dokument hochladen". Der Prompt war nicht nur in Fehler-Faellen falsch (Aufforderung zum Upload, obwohl gerade nichts geladen werden kann), sondern generell: Uploads laufen nicht ueber diesen Viewer. Fix: Upload-Leerbild + verwaister File-Input/`canUpload`-Prop aus `DocumentPanel.tsx` entfernt; `DocViewerPage` zeigt stattdessen einen neutralen Fallback „Dokument nicht verfuegbar" mit Online-/Offline-spezifischem Hinweis.
