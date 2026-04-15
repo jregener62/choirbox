@@ -269,12 +269,16 @@ async def _sync_documents_from_dropbox(
                             doc, dbx_hash, dbx_size, session, page_count=page_count,
                         )
                     except Exception:
-                        pass
+                        session.rollback()
                 else:
                     document_service.update_document_hash(doc, dbx_hash, dbx_size, session)
                 continue
 
             # --- New file → register ---
+            # Parallele Sync-Laeufe fuer denselben Folder koennen hier kollidieren
+            # (UNIQUE constraint auf dropbox_file_id). Nach IntegrityError muss die
+            # Session per rollback() wieder nutzbar gemacht werden, sonst kippt die
+            # nachgelagerte list_documents-Query mit PendingRollbackError um.
             if file_type == "pdf":
                 try:
                     link = await dbx.get_temporary_link(tx_folder.rstrip("/") + "/" + name)
@@ -296,7 +300,7 @@ async def _sync_documents_from_dropbox(
                     if dbx_id:
                         matched_dbx_ids.add(dbx_id)
                 except Exception:
-                    pass
+                    session.rollback()
             else:
                 new_doc = document_service.register_document(
                     folder_path=folder_path,
@@ -331,7 +335,7 @@ async def _sync_documents_from_dropbox(
             document_service.delete_document(doc.id, session)
 
     except Exception:
-        pass  # Sync failure must never block listing
+        session.rollback()  # Sync failure must never block listing
 
 
 # ---------------------------------------------------------------------------

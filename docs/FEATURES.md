@@ -1791,6 +1791,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Document-Sync: Race Condition → UNIQUE-Fehler → DocViewer leer
+
+`DocViewerPage.tsx` und `useDocuments.ts` feuerten bei jedem Ordnerwechsel zwei parallele `GET /api/documents/list?folder=…` (der `useEffect` setzte `loadedFolder: null` wahrend des Ladens und re-feuerte mit dem neuen Folder). Beide Requests liefen durch `_sync_documents_from_dropbox`, beide sahen das PDF noch nicht in der DB und versuchten dasselbe `INSERT` mit derselben `dropbox_file_id`. Einer gewann, der zweite kippte mit `sqlite3.IntegrityError: UNIQUE constraint failed: documents.dropbox_file_id`. Der generische `except Exception: pass` schluckte die Fehler, rief aber kein `session.rollback()` auf — die Session blieb im aborted-state, jede Folgequery warf `PendingRollbackError`, die HTTP-Antwort wurde zu `500`. Der Frontend-Catch setzte dann `documents=[]` und `loadedFolder=folderPath`, sodass kein Retry mehr ausgeloest wurde — der User sah "Noch keine Dokumente" obwohl der Ordner ein PDF enthielt. Fix: (a) Frontend dedupet parallele `load()`-Aufrufe per `Map<folderPath, Promise>` in `useDocuments.ts`, (b) Backend ruft in allen sync-Except-Bloecken `session.rollback()` auf, damit die Session nach einem kollidierenden INSERT wieder benutzbar ist.
+
 ### Nightly Backup: "refresh token is malformed"
 
 `backup_db.py` las den Dropbox-Refresh-Token roh aus `app_settings.dropbox_refresh_token` und schickte ihn direkt an den OAuth-Endpoint. Seit der Fernet-Verschluesselung des Tokens (Commit `acd5215`) ist der Wert in der DB jedoch Ciphertext — Dropbox antwortete mit `invalid_grant / refresh token is malformed` und der Cron-Backup brach ab. Fix: `get_refresh_token()` nutzt jetzt `backend.utils.crypto.decrypt` (mit `is_encrypted`-Check fuer Rueckwaerts-Kompatibilitaet zu evtl. noch vorhandenen Klartext-Tokens), analog zu `get_dropbox_service()`.

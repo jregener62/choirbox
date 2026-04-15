@@ -17,6 +17,11 @@ interface DocumentsState {
   clear: () => void
 }
 
+// Dedupe paralleler load()-Aufrufe fuer denselben Ordner. Ohne Dedupe feuert
+// der Backend-Sync zwei parallele INSERTs mit derselben dropbox_file_id, einer
+// kippt mit UNIQUE constraint und vergiftet die Session.
+const pendingLoads = new Map<string, Promise<void>>()
+
 export const useDocumentsStore = create<DocumentsState>((set, get) => ({
   documents: [],
   activeDocId: null,
@@ -25,23 +30,35 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
   uploading: false,
 
   load: async (folderPath: string) => {
-    const isDifferentFolder = get().loadedFolder !== folderPath
-    set({ loading: true, ...(isDifferentFolder ? { documents: [], loadedFolder: null } : {}) })
+    const existing = pendingLoads.get(folderPath)
+    if (existing) return existing
+
+    const promise = (async () => {
+      const isDifferentFolder = get().loadedFolder !== folderPath
+      set({ loading: true, ...(isDifferentFolder ? { documents: [], loadedFolder: null } : {}) })
+      try {
+        const data = await api<DocumentListResponse>(
+          `/documents/list?folder=${encodeURIComponent(folderPath)}`
+        )
+        const docs = data.documents
+        const current = get().activeDocId
+        const activeStillValid = docs.some((d) => d.id === current)
+        set({
+          documents: docs,
+          loadedFolder: folderPath,
+          activeDocId: activeStillValid ? current : (docs[0]?.id ?? null),
+          loading: false,
+        })
+      } catch {
+        set({ documents: [], loadedFolder: folderPath, loading: false })
+      }
+    })()
+
+    pendingLoads.set(folderPath, promise)
     try {
-      const data = await api<DocumentListResponse>(
-        `/documents/list?folder=${encodeURIComponent(folderPath)}`
-      )
-      const docs = data.documents
-      const current = get().activeDocId
-      const activeStillValid = docs.some((d) => d.id === current)
-      set({
-        documents: docs,
-        loadedFolder: folderPath,
-        activeDocId: activeStillValid ? current : (docs[0]?.id ?? null),
-        loading: false,
-      })
-    } catch {
-      set({ documents: [], loadedFolder: folderPath, loading: false })
+      await promise
+    } finally {
+      pendingLoads.delete(folderPath)
     }
   },
 
