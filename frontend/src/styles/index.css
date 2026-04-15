@@ -1733,6 +1733,10 @@ body.body-scroll-fs .autoscroll-stepper {
 .chord-toolbar--below-chrome {
   top: calc(var(--space-3) + 36px + 56px);
 }
+/* Fullscreen + Annotations-Modus: unter die Annotation-Toolbar (44px + 1px Border) schieben */
+.chord-toolbar--below-annotation {
+  top: calc(var(--space-3) + 45px);
+}
 
 /* Akkorde-Toggle: gleicher Pill-Stil wie Transpose, Text "Akkorde".
    Hoehe = 32px (Button innen) + 2*--space-1 Padding = exakt wie

@@ -1791,6 +1791,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Akkord-Buttons im Vollbild-Annotationsmodus von Toolbar ueberlagert
+
+Im Fullscreen-Modus positioniert sich die floatende `chord-toolbar` (Transpose-Stepper + Akkorde/Nur-Text-Toggle) oben rechts bei `top: var(--space-3)`. Sobald der Zeichenmodus aktiv war, legte sich die oben angedockte `AnnotationToolbar` (~45px hoch) darueber und verdeckte die Buttons. Fix: Neue Modifier-Klasse `chord-toolbar--below-annotation` setzt `top: calc(var(--space-3) + 45px)` und wird genau dann angehaengt, wenn `pdfFullscreen && drawingMode` gilt.
+
 ### ChordPro: Multi-Directive-Zeile frisst ueber `}` hinaus
 
 Eine Quellzeile wie `{title: Sonnenbadewanne} {comment: 3. Bund}` wurde als **ein** Directive interpretiert: die Value-Regex `.*?` expandierte lazy bis zur **letzten** `}` auf der Zeile — Titel-Wert wurde zu `"Sonnenbadewanne} {comment: 3. Bund"`. Fix: Value auf `[^}]*` begrenzt (stoppt an der ersten `}`) und Block-Directive-Erkennung akzeptiert mehrere `{...}`-Bloecke pro Zeile; jeder wird einzeln verarbeitet.

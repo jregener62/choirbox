@@ -460,7 +460,7 @@ export function DocumentPanel({ folderPath, canUpload = false, document: externa
       )}
       {isCho && !chordInputMode && (
         <div
-          className={`chord-toolbar chord-toolbar--floating${pdfFullscreen ? '' : ' chord-toolbar--below-chrome'}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
+          className={`chord-toolbar chord-toolbar--floating${pdfFullscreen ? '' : ' chord-toolbar--below-chrome'}${pdfFullscreen && drawingMode ? ' chord-toolbar--below-annotation' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
         >
           {!chordsHidden && (
