@@ -1320,6 +1320,14 @@ Betrifft: Player-Header-Menu, Player-Footer-Menu, Marker-Kebab-Menu, Skip-Interv
 - Funktioniert auch in der PWA
 - Umschalten unter Einstellungen > Darstellung > Schriftgroesse
 
+### Offline-Hinweis
+
+ChoirBox funktioniert ausschliesslich online (Dropbox-Streaming, API-Calls). Geht die Verbindung verloren, erscheint ganz oben ein fixierter roter Banner mit WLAN-Icon und dem Text *„Keine Internetverbindung — ChoirBox funktioniert nur online."*
+
+- Reagiert live auf `online`/`offline`-Events des Browsers
+- Sichtbar auf allen Seiten (Login, App, Gast-Flows)
+- Verschwindet automatisch, sobald die Verbindung wieder steht
+
 ### Einstellungen-Seite
 
 Zentrale Seite fuer alle User- und Admin-Konfigurationen:
