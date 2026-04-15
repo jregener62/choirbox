@@ -9,7 +9,7 @@ export function OfflineBanner() {
     <div className="offline-banner" role="alert" aria-live="assertive">
       <WifiOff size={18} aria-hidden="true" />
       <span>
-        Keine Internetverbindung — ChoirBox funktioniert nur online.
+        Keine Internetverbindung — CantaBox funktioniert nur online.
       </span>
     </div>
   )

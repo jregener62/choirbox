@@ -1322,7 +1322,7 @@ Betrifft: Player-Header-Menu, Player-Footer-Menu, Marker-Kebab-Menu, Skip-Interv
 
 ### Offline-Hinweis
 
-ChoirBox funktioniert ausschliesslich online (Dropbox-Streaming, API-Calls). Geht die Verbindung verloren, erscheint ganz oben ein fixierter roter Banner mit WLAN-Icon und dem Text *„Keine Internetverbindung — ChoirBox funktioniert nur online."*
+CantaBox funktioniert ausschliesslich online (Dropbox-Streaming, API-Calls). Geht die Verbindung verloren, erscheint ganz oben ein fixierter roter Banner mit WLAN-Icon und dem Text *„Keine Internetverbindung — CantaBox funktioniert nur online."*
 
 - Reagiert live auf `online`/`offline`-Events des Browsers
 - Sichtbar auf allen Seiten (Login, App, Gast-Flows)
