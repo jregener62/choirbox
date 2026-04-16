@@ -363,7 +363,7 @@ export function SheetEditor({
                           }}
                           title={activeTool === 'note' ? 'Tap entfernt diesen Kommentar' : meta?.label ?? token}
                         >
-                          {meta?.label}
+                          <span className="sheet-editor-note-pill-text">{meta?.label}</span>
                         </span>
                         <span
                           className="sheet-editor-note-tail"

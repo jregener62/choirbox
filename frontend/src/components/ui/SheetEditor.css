@@ -51,6 +51,9 @@
   height: 22px;
   pointer-events: none;
 }
+/* Pill-Wrapper erbt font-family/size vom Text-Container, damit
+   `left: Xch` in Text-Zeichen-Breiten rechnet (nicht in Pill-Font-Breiten —
+   die driften sonst mit steigender col-Position vom Text auseinander). */
 .sheet-editor-note-pill {
   position: absolute;
   top: 0;
@@ -59,19 +62,22 @@
   background: var(--v-note, #94a3b8);
   border: 1px solid var(--v-note, #94a3b8);
   color: var(--bg-primary);
-  font-size: 12px;
-  font-weight: 600;
-  font-family: 'Inter', sans-serif;
-  line-height: 1.35;
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
   z-index: 3;
+  line-height: 1;
   transition: background 0.12s, border-color 0.12s, transform 0.12s;
 }
 .sheet-editor-note-pill:hover {
   transform: translateY(-1px);
+}
+.sheet-editor-note-pill-text {
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.35;
 }
 /* Speech-bubble tail: a separate downward arrow positioned over the
    anchored character, independent of the pill's position/width.

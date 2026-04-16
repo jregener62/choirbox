@@ -184,7 +184,7 @@ function ChordLineView({
                 style={{ left: `${m.col}ch` }}
                 title={meta.label}
               >
-                {meta.symbol}
+                <span className="vocal-note-pill-text">{meta.symbol}</span>
               </span>
               <span
                 className="vocal-note-tail"
