@@ -61,7 +61,7 @@
   border-radius: 999px;
   background: var(--v-note, #94a3b8);
   border: 1px solid var(--v-note, #94a3b8);
-  color: var(--bg-primary);
+  color: #fde047; /* knallgelb fuer hohen Kontrast auf slate */
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
