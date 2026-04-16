@@ -109,12 +109,10 @@
 .vocal-note-tail {
   position: absolute;
   top: 100%;
-  width: 0;
-  height: 0;
-  border-left: 5px solid transparent;
-  border-right: 5px solid transparent;
-  border-top: 7px solid var(--v-note, #94a3b8);
-  margin-top: -1px;
+  width: 2px;
+  height: 9px;
+  background: var(--v-note, #94a3b8);
+  margin-top: -3px;
   pointer-events: none;
   z-index: 4;
   font-size: 1em;

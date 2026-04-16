@@ -367,7 +367,7 @@ export function SheetEditor({
                         </span>
                         <span
                           className="sheet-editor-note-tail"
-                          style={{ left: `calc(${col}ch + 0.5ch - 5px)` }}
+                          style={{ left: `calc(${col}ch + 0.5ch - 1px)` }}
                           aria-hidden="true"
                         />
                       </span>

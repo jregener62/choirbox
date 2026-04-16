@@ -188,7 +188,7 @@ function ChordLineView({
               </span>
               <span
                 className="vocal-note-tail"
-                style={{ left: `calc(${m.col}ch + 0.5ch - 5px)` }}
+                style={{ left: `calc(${m.col}ch + 0.5ch - 1px)` }}
                 aria-hidden="true"
               />
             </span>
