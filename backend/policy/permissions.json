@@ -74,7 +74,7 @@
       "permissions": ["annotations.read", "annotations.write"]
     },
     "chord_input": {
-      "description": "Akkorde per Tap + Popover in .txt-Texte setzen und als .cho exportieren.",
+      "description": "Akkorde und Gesangsanweisungen per Tap + Popover in .txt-Texte setzen und als .cho exportieren.",
       "permissions": ["chord_input.edit"]
     },
     "notes": {
@@ -153,7 +153,7 @@
     "annotations.read":        { "min_role": "member",     "description": "Chord-Annotationen lesen" },
     "annotations.write":       { "min_role": "member",     "description": "Chord-Annotationen schreiben" },
 
-    "chord_input.edit":        { "min_role": "pro-member", "description": "Akkorde in .txt setzen und als .cho exportieren" },
+    "chord_input.edit":        { "min_role": "pro-member", "description": "Akkorde und Gesangsanweisungen in .txt setzen und als .cho exportieren" },
 
     "notes.read":              { "min_role": "member",     "description": "Eigene Notizen lesen" },
     "notes.write":             { "min_role": "pro-member", "description": "Notizen schreiben (globale Lyrics-Verwaltung)" },
@@ -251,6 +251,7 @@
     "DELETE /api/annotations/all":                                  "annotations.write",
 
     "POST /api/chord-input/export":                                 "chord_input.edit",
+    "POST /api/vocal-input/export":                                 "chord_input.edit",
 
     "GET /api/notes":                                               "notes.read",
     "PUT /api/notes":                                               "notes.write",

@@ -3,7 +3,7 @@ import { Plus, PencilLine } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
-import { ChordInputViewer } from './ChordInputViewer'
+import { SheetEditor } from './SheetEditor'
 import { TextEditViewer } from './TextEditViewer'
 import './EditTopbar.css'
 
@@ -17,7 +17,7 @@ interface TextViewerProps {
   onChordSheetCreated?: () => void
 }
 
-type EditMode = 'chord' | 'text' | null
+type EditMode = 'sheet' | 'text' | null
 
 export function TextViewer({
   docId,
@@ -83,9 +83,9 @@ export function TextViewer({
     )
   }
 
-  if (editMode === 'chord') {
+  if (editMode === 'sheet') {
     return (
-      <ChordInputViewer
+      <SheetEditor
         text={content}
         onCreated={folderPath ? handleSaveCho : undefined}
         onCancel={() => setEditMode(null)}
@@ -116,7 +116,7 @@ export function TextViewer({
             <button
               type="button"
               className="edit-topbar-btn edit-topbar-btn--chord"
-              onClick={() => setEditMode('chord')}
+              onClick={() => setEditMode('sheet')}
             >
               <Plus size={16} />
               Chordsheet erstellen

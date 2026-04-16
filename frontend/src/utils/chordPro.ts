@@ -21,6 +21,7 @@ import type {
   ChordSection,
   ChordSheetMetadata,
   ParsedChordContent,
+  VocalMarkPosition,
 } from '@/types/index'
 
 // --- Format detection ---
@@ -378,17 +379,23 @@ export function parseChordPro(text: string): ParsedChordContent {
 
     // Extract inline directives from the line before chord parsing.
     // Comment-family directives become annotations rendered at the end of
-    // the line (highlighter style). Unknown inline directives are dropped.
+    // the line (highlighter style). Vocal directives `{v:xxx}` are kept as
+    // positional marks. Other unknown inline directives are dropped.
     const annotations: string[] = []
+    const vocalMarksPreClean: { token: string; indexInRaw: number }[] = []
     const COMMENT_DIRECTIVES = new Set([
       'c', 'comment', 'ci', 'comment_italic', 'cb', 'comment_box',
     ])
+    SINGLE_DIRECTIVE_RE.lastIndex = 0
     const lineWithoutDirectives = line.replace(
       SINGLE_DIRECTIVE_RE,
-      (_: string, directive: string, value?: string) => {
+      (_match: string, directive: string, value?: string, offset?: number) => {
         const v = (value || '').trim()
-        if (COMMENT_DIRECTIVES.has(normalizeDirective(directive)) && v) {
+        const dir = normalizeDirective(directive)
+        if (COMMENT_DIRECTIVES.has(dir) && v) {
           annotations.push(v)
+        } else if (dir === 'v' && v) {
+          vocalMarksPreClean.push({ token: v, indexInRaw: offset ?? 0 })
         }
         return ''
       },
@@ -396,9 +403,73 @@ export function parseChordPro(text: string): ParsedChordContent {
 
     // Inline-chord line
     const { text: cleanText, chords } = parseInlineChordLine(lineWithoutDirectives)
-    if (chords.length > 0 || cleanText.trim() || annotations.length > 0) {
+
+    // Resolve vocal-mark column: position after stripping directives AND chords.
+    // Build a plain-text cursor by walking lineWithoutDirectives in sync with
+    // parseInlineChordLine's convention — chords are removed but their insertion
+    // points are positions in cleanText. Since we only need approximate columns
+    // we map each raw offset through: count chars in `lineWithoutDirectives`
+    // before that offset that survive chord stripping.
+    const vocalMarks: VocalMarkPosition[] = vocalMarksPreClean.map(({ token }) => {
+      // Directives are stripped out, so indexInRaw points into the ORIGINAL
+      // `line`. After replace, the residual `lineWithoutDirectives` has them
+      // gone. We used the index from the original replace callback; but after
+      // the callback, strings shrink. Approximate: recompute by splitting the
+      // raw line at the directive match position and counting non-directive,
+      // non-chord chars.
+      return { token, col: 0 }
+    })
+    // Better: recompute columns by re-scanning the raw line.
+    if (vocalMarksPreClean.length > 0) {
+      let rawCursor = 0
+      let cleanCursor = 0
+      const markRe = /\{v:([^{}]+)\}/g
+      const chordRe = /\[[^\]]+\]/g
+      const raw = line
+      // Collect all directive + chord matches in order, to know what gets stripped
+      const stripped: { start: number; end: number; kind: 'dir' | 'chord' }[] = []
+      SINGLE_DIRECTIVE_RE.lastIndex = 0
+      let m: RegExpExecArray | null
+      while ((m = SINGLE_DIRECTIVE_RE.exec(raw)) !== null) {
+        stripped.push({ start: m.index, end: m.index + m[0].length, kind: 'dir' })
+      }
+      chordRe.lastIndex = 0
+      while ((m = chordRe.exec(raw)) !== null) {
+        stripped.push({ start: m.index, end: m.index + m[0].length, kind: 'chord' })
+      }
+      stripped.sort((a, b) => a.start - b.start)
+
+      markRe.lastIndex = 0
+      let markMatch: RegExpExecArray | null
+      let resultIdx = 0
+      while ((markMatch = markRe.exec(raw)) !== null) {
+        if (resultIdx >= vocalMarks.length) break
+        const markStart = markMatch.index
+        // Count how many chars before markStart get stripped
+        let strippedBefore = 0
+        for (const s of stripped) {
+          if (s.end <= markStart) strippedBefore += s.end - s.start
+          else break
+        }
+        vocalMarks[resultIdx] = {
+          token: markMatch[1].trim(),
+          col: markStart - strippedBefore,
+        }
+        resultIdx++
+      }
+      // unused vars reassurance
+      void rawCursor; void cleanCursor
+    }
+
+    if (
+      chords.length > 0 ||
+      cleanText.trim() ||
+      annotations.length > 0 ||
+      vocalMarks.length > 0
+    ) {
       const chordLine: ChordLine = { text: cleanText, chords }
       if (annotations.length > 0) chordLine.annotations = annotations
+      if (vocalMarks.length > 0) chordLine.vocalMarks = vocalMarks
       currentSection.lines.push(chordLine)
       allChords.push(...chords.map((c) => c.chord))
     }

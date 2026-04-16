@@ -859,43 +859,62 @@ Oberhalb des Text- bzw. Chord-Sheet-Viewers liegt eine feste Edit-Topbar mit zwe
 
 Sichtbar nur fuer pro-member+ und nicht im Vollbildmodus. Jeder Button wechselt in den entsprechenden Edit-Modus, der die Topbar durch eine zweireihige Edit-Toolbar (Status + Close + Vorschau + Speichern) ersetzt.
 
-### Akkord-Eingabe per Tap
+### Sheet-Editor (Akkorde + Anweisungen in einem)
 
-Strukturierter Editor, mit dem Akkorde ohne ChordPro-Kenntnisse an exakte Zeichen-Positionen gesetzt werden — statt Syntax zu tippen, wird auf eine Silbe getippt und der Akkord aus einem Keypad zusammengebaut.
+Ein vereinter Editor fuer **Akkorde, Taktanfang und Intervall** — statt zwei getrennter Edit-Seiten. Tool-Bar analog zur Annotations-Bar mit exklusiver Tool-Auswahl. Tool einmal waehlen, dann beliebig viele Positionen sequentiell antippen.
+
+**Tools & Rendering:**
+
+| Tool | Rendering im Text | ChordPro-Token |
+|------|-------------------|----------------|
+| Akkord | Overlay-Row oberhalb der Zeile + Unterstrich am Ziel-Zeichen (gelb) | `[A]` `[Dm7]` `[G/B]` … |
+| Taktanfang (Zaehlzeit 1) | farbiger Unterstrich am Zeichen (gruen) | `{v:1}` |
+| Intervall (+/- 1..12 Halbtoene) | inline-Symbol `↑5` / `↓3` vor dem Zeichen (amber) | `{v:+1}` … `{v:+12}`, `{v:-1}` … `{v:-12}` |
+| Kommentar (Freitext) | Pill oberhalb der Zeile, beginnt am Ziel-Zeichen (slate) | `{v:n:<text>}` |
 
 **Einstiegspunkte (via Edit-Topbar):**
 
-- **In `.txt`** — „Chordsheet erstellen": erzeugt eine neue `.cho`-Datei mit gleichem Inhalt im selben `Texte/`-Ordner und oeffnet direkt den Editor.
-- **In `.cho`** — „Akkorde bearbeiten": laedt das bestehende Chord-Sheet, parst die `[Akkord]`-Marker zu Zeichen-Offsets und ermoeglicht Aenderungen.
+- **In `.txt`** — „Chordsheet erstellen": erzeugt eine neue `.cho`-Datei im selben `Texte/`-Ordner
+- **In `.cho`** — „Bearbeiten": laedt das bestehende Sheet, parst `[Akkord]`- und `{v:xxx}`-Marker
 
 **Ablauf:**
 
-1. Tap auf eine Silbe oeffnet ein Keypad-Popover
-2. Akkord-Token aus Tasten zusammenbauen: Noten `A B C D E F G`, Modifier `♯ ♭ m maj sus dim aug`, Ziffern `2 4 5 6 7 9`, Slash fuer Bass-Note
-3. Live-Preview mit Regex-Validierung — "Setzen"-Button erst aktiv bei gueltigem Akkord
-4. Bestehender Akkord an der Position wird ersetzt, "Entfernen"-Button loescht ihn
-5. Vorschau zeigt den generierten ChordPro-Text vor dem Speichern
-6. Speichern **nur auf Knopfdruck** — kein Auto-Save
-   - **Neues `.cho`** (aus `.txt`): legt eine Datei im `Texte/`-Ordner an
-   - **Bestehendes `.cho`**: Bestaetigungs-Dialog warnt vor Ueberschreiben, danach In-Place-Update via `PUT /api/documents/{id}/content`
+1. In der Tool-Bar eines der drei Tools waehlen (Akkord, Taktanfang, Intervall). Tool-Wechsel ist exklusiv — vorheriges Tool wird deaktiviert.
+2. **Akkord-Tool**: Token in der Sub-Row bauen (A–G, ♯♭, m/maj/sus/dim/aug, 2–9, /, Backspace/Clear). Live-Preview mit Validierung.
+3. **Intervall-Tool**: Richtung (↑/↓) und Zahl (1..12) in der Sub-Row einstellen.
+4. **Taktanfang**: nur Demo-Preview, keine Eingabe noetig.
+5. **Kommentar-Tool**: Freitext-Eingabe in der Sub-Row. Braces `{` `}` werden beim Eintippen stillschweigend entfernt (Format-Anforderung). Text bleibt zwischen Taps geladen fuer wiederholtes Setzen.
+5. Zeichen im Text antippen → Mark wird dort gesetzt. Builder bleibt geladen fuer schnelles wiederholtes Setzen.
+6. Erneuter Tap auf bestehenden Mark → Toggle / Loeschen.
+7. **Undo** (global ueber alle Tools hinweg): macht die zuletzt gesetzte/geloeschte Markierung rueckgaengig, egal welches Tool sie erzeugt hat.
+8. **Alle loeschen**: loescht nur die Marks des **aktiven Tools** (z.B. alle Taktanfaenge, aber nicht die Akkorde).
+9. Speichern per „Als .cho" (neu) oder „Speichern" (Ueberschreiben). Beim Save werden alle drei Mark-Arten zusammen ins `.cho` geschrieben.
 
-**Resume:** Arbeit unterbrechen = `.cho` einfach wieder oeffnen und "Akkorde bearbeiten" klicken. Gesetzte Akkorde werden aus der Datei rekonstruiert.
+**Kompatibilitaet:** `[chord]`- und `{v:xxx}`-Direktiven sind beides ChordPro-konforme Syntax. Externe ChordPro-Reader zeigen Akkorde und ignorieren die Vocal-Direktiven still — `.cho`-Dateien bleiben lesbar.
+
+**Read-Modus (`.cho`-Viewer):** Alle drei Mark-Arten werden gerendert (Akkorde oben, Beat-Unterstrich, inline-Intervall). Ueber die Floating-Toolbar im Viewer lassen sich Akkorde und Anweisungen unabhaengig ein/ausblenden (geteilter Toggle-Button „Anweisungen | Akkorde").
+
+**Resume:** `.cho` einfach wieder oeffnen, „Bearbeiten" klicken. Marks werden aus der Datei rekonstruiert.
+
+**Dateien:**
 
 | Datei | Rolle |
 |-------|-------|
-| `backend/services/chord_export_service.py` | Build ChordPro aus Text + Positions-Liste (Offsets von hinten nach vorn) |
-| `backend/api/chord_input.py` | `POST /api/chord-input/export` |
-| `backend/api/documents.py` | `PUT /api/documents/{id}/content` (`.cho` und `.txt`) |
-| `frontend/src/components/ui/TextEditViewer.tsx` | Freier Text-Editor fuer `.txt` und `.cho`-Quelle |
-| `frontend/src/components/ui/EditTopbar.css` | Topbar mit zwei Edit-Buttons |
-| `backend/services/dropbox_service.py` | `upload_file(overwrite=True)` fuer In-Place-Update |
-| `frontend/src/utils/chordValidation.ts` | Regex-Validator fuer Akkord-Token |
-| `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — ChordPro-Marker zu Offsets |
-| `frontend/src/hooks/useChordInput.ts` | Zustand-Store: Chord-Map, `loadFromChordPro`, `updateCho` |
-| `frontend/src/components/ui/ChordKeypadPopover.tsx` | Token-Builder-UI |
-| `frontend/src/components/ui/ChordInputViewer.tsx` | Text-Layout mit tappbaren Zeichen, Preview-Overlay, Overwrite-Dialog |
-| `frontend/src/components/ui/TextViewer.tsx` | "Chordsheet erstellen"-Button |
-| `frontend/src/components/ui/ChordSheetTextViewer.tsx` | "Akkorde bearbeiten"-Button |
+| `backend/services/chord_export_service.py` | Chord-Validator (`A`…`G` + modifiers, Regex) |
+| `backend/services/vocal_export_service.py` | Vocal-Token-Validator + `build_merged_chordpro(text, chords, vocals)` — merged beide Mark-Arten |
+| `backend/api/chord_input.py` | `POST /api/chord-input/export` — akzeptiert `text`, `chords`, optional `vocals` |
+| `backend/api/vocal_input.py` | `POST /api/vocal-input/export` — symmetrisch, akzeptiert optional `chords` |
+| `frontend/src/utils/chordValidation.ts` | Regex fuer Akkord-Token |
+| `frontend/src/utils/vocalValidation.ts` | Whitelist + Katalog (beat, interval) |
+| `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — strippt `[chord]` UND `{v:xxx}`, letztere als `preservedVocals` |
+| `frontend/src/utils/vocalPositions.ts` | `parseVocalPositions(body)` — strippt beide, Akkorde als `preservedChords` |
+| `frontend/src/hooks/useChordInput.ts` | Zustand-Store: chords, chordBuilder, Undo-Stack, `toggleAt` |
+| `frontend/src/hooks/useVocalInput.ts` | Zustand-Store: marks, activeTool, intervalDir/Num, Undo-Stack, `toggleAt` |
+| `frontend/src/components/ui/SheetEditToolbar.tsx` | Vereinte Tool-Bar mit drei Tools und tool-abhaengiger Sub-Row |
+| `frontend/src/components/ui/SheetEditor.tsx` | Viewer mit beiden Mark-Arten, globalem Undo-Stack, merged Save |
+| `frontend/src/components/ui/ChordSheetViewer.tsx` | Read-Modus: rendert Akkorde, Beat-Unterstrich, inline-Intervall |
+| `frontend/src/components/ui/TextViewer.tsx` | „Chordsheet erstellen"-Button fuer `.txt` |
+| `frontend/src/components/ui/ChordSheetTextViewer.tsx` | „Bearbeiten"-Button fuer `.cho` |
 
 ### Berechtigungen
 

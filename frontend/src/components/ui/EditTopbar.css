@@ -45,6 +45,16 @@
   color: var(--chord, #fbbf24);
 }
 
+.edit-topbar-btn--vocal {
+  color: var(--v-breath, #22d3ee);
+  border-color: rgba(34, 211, 238, 0.4);
+}
+.edit-topbar-btn--vocal:hover {
+  background: rgba(34, 211, 238, 0.1);
+  border-color: var(--v-breath, #22d3ee);
+  color: var(--v-breath, #22d3ee);
+}
+
 .edit-topbar-btn--text {
   color: #a78bfa;
   border-color: rgba(167, 139, 250, 0.4);

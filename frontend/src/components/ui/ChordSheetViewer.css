@@ -69,6 +69,58 @@
   white-space: nowrap;
 }
 
+/* Gesangsanweisungs-Zeile (über der Akkord-Zeile) */
+.vocal-row {
+  position: relative;
+  height: 22px;
+  white-space: pre;
+}
+
+.vocal-row-mark {
+  position: absolute;
+  font-weight: 700;
+  white-space: nowrap;
+  line-height: 1;
+  font-size: 0.85em;
+}
+
+/* Notes as pills with a connector line to the anchored character. */
+.vocal-row-mark.vocal-mark--note {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--v-note, #94a3b8);
+  border: 1px solid var(--v-note, #94a3b8);
+  color: var(--bg-primary);
+  font-weight: 600;
+  font-size: 0.7em;
+  line-height: 1.35;
+  top: 0;
+}
+/* Tail points from the pill down to the anchored char. Rendered as a
+   separate element so its x-position tracks the character, not the pill. */
+.vocal-note-tail {
+  position: absolute;
+  top: 100%;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--v-note, #94a3b8);
+  margin-top: -1px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Farbcodierung der Vocal-Marks (auch im Popover genutzt) */
+.vocal-mark--breath   { color: var(--v-breath, #22d3ee); }
+.vocal-mark--beat     { color: var(--v-beat, #a3e635); }
+.vocal-mark--interval { color: var(--v-interval, #fbbf24); }
+.vocal-mark--dyn      { color: var(--v-dyn, #c084fc); font-style: italic; font-family: 'Georgia', serif; }
+.vocal-mark--artic    { color: var(--v-artic, var(--text-primary)); }
+.vocal-mark--entry    { color: var(--v-entry, #f87171); }
+.vocal-mark--nav      { color: var(--v-entry, #f87171); }
+.vocal-mark--note     { color: var(--v-note, #94a3b8); }
+
 /* Buchstabe im Text, ueber dem der Akkord steht — unterstrichen.
    skip-ink: none sorgt dafuer, dass die Linie auch unter Unterlaengen
    wie j/g/p/y sichtbar bleibt. */
@@ -78,6 +130,31 @@
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
   text-decoration-skip-ink: none;
+}
+
+/* Inline-Mark (Atempause, Intervall) — wird zwischen Zeichen im Textfluss gerendert */
+.vocal-inline {
+  display: inline-block;
+  padding: 0 1px;
+  font-weight: 700;
+  font-size: 0.9em;
+  vertical-align: baseline;
+}
+
+/* Zaehlzeit-1: dicker, farbiger Unterstrich am Zeichen */
+.vocal-beat-anchor {
+  text-decoration: underline;
+  text-decoration-color: var(--v-beat, #a3e635);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: none;
+}
+/* Beat + Akkord auf demselben Zeichen: beide Underlines uebereinander
+   (Browser stapeln mehrere decoration-lines nicht; wir nutzen box-shadow
+   als zweite Unterstreichung in der Akkord-Farbe) */
+.chord-anchor.vocal-beat-anchor {
+  text-decoration-color: var(--v-beat, #a3e635);
+  box-shadow: 0 4px 0 0 var(--accent);
 }
 
 /* Text-Zeile */

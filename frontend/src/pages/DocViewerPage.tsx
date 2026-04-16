@@ -1,12 +1,13 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, FileX, Mic } from 'lucide-react'
+import { ChevronLeft, FileX, Mic, Save, X } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus.ts'
+import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { hasMinRole } from '@/utils/roles.ts'
 import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 
@@ -21,6 +22,13 @@ export function DocViewerPage() {
 
   const { loadedFolder, load, documents, activeDocId, loading, setActive } = useDocumentsStore()
   const online = useOnlineStatus()
+
+  const editorActive = useEditorCommands((s) => s.active)
+  const editorSaving = useEditorCommands((s) => s.saving)
+  const editorSaveDisabled = useEditorCommands((s) => s.saveDisabled)
+  const editorSaveTitle = useEditorCommands((s) => s.saveTitle)
+  const editorOnSave = useEditorCommands((s) => s.onSave)
+  const editorOnClose = useEditorCommands((s) => s.onClose)
 
   useEffect(() => {
     if (folder && folder !== loadedFolder) {
@@ -53,18 +61,34 @@ export function DocViewerPage() {
   return (
     <div className="player-page">
       <div className={`topbar${pdfFullscreen ? ' topbar--hidden' : ''}`}>
-        <button className="topbar-back" onClick={() => navigate(-1)}>
-          <ChevronLeft size={22} />
+        <button
+          className="topbar-back"
+          onClick={editorActive ? editorOnClose : () => navigate(-1)}
+          title={editorActive ? 'Bearbeitung abbrechen' : 'Zurück'}
+        >
+          {editorActive ? <X size={22} /> : <ChevronLeft size={22} />}
         </button>
         <span className="topbar-title">{folderName}</span>
-        {canUpload && songFolderPath && (
+        {editorActive ? (
           <button
-            className="topbar-action"
-            onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
-            title="Aufnehmen"
+            className="topbar-action topbar-action--save"
+            onClick={editorOnSave}
+            disabled={editorSaveDisabled}
+            title={editorSaveTitle}
+            aria-busy={editorSaving}
           >
-            <Mic size={18} />
+            <Save size={18} />
           </button>
+        ) : (
+          canUpload && songFolderPath && (
+            <button
+              className="topbar-action"
+              onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
+              title="Aufnehmen"
+            >
+              <Mic size={18} />
+            </button>
+          )
         )}
       </div>
       <div className="player-scroll-content">

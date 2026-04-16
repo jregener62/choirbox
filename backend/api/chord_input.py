@@ -1,9 +1,7 @@
-"""Chord-Input API — build ChordPro from plain text + tapped chord positions.
+"""Chord-Input API — build ChordPro from plain text + chord positions.
 
-Phase 1 (Keypad-MVP): single stateless endpoint that takes text + chord list
-and returns the ChordPro body. No persistence, no drafts — the frontend
-manages editing state and either downloads or saves the result as a new
-.cho document via the existing documents endpoints.
+Accepts an optional `vocals` list so the chord editor can preserve
+vocal-instruction markers (`{v:xxx}`) across a round-trip.
 """
 
 from __future__ import annotations
@@ -15,7 +13,11 @@ from backend.policy import require_permission
 from backend.services.chord_export_service import (
     ChordPosition,
     InvalidChordError,
-    build_chordpro,
+)
+from backend.services.vocal_export_service import (
+    InvalidVocalTokenError,
+    VocalMark,
+    build_merged_chordpro,
 )
 
 router = APIRouter(prefix="/chord-input", tags=["chord-input"])
@@ -26,15 +28,13 @@ def export_chordpro(
     data: dict,
     user: User = Depends(require_permission("chord_input.edit")),
 ):
-    """Build ChordPro body from plain text + chord positions.
+    """Build ChordPro body with `[chord]` (and optionally `{v:token}`) markers.
 
     Request body:
     {
-      "text": "...",                     # original lines, \\n-separated
-      "chords": [
-        {"line": 0, "col": 0,  "chord": "G"},
-        {"line": 0, "col": 8,  "chord": "C"}
-      ]
+      "text": "...",
+      "chords": [{"line": 0, "col": 0, "chord": "G"}],
+      "vocals": [{"line": 0, "col": 5, "token": "1"}]    # optional
     }
     Response: { "cho_content": "..." }
     """
@@ -63,9 +63,32 @@ def export_chordpro(
             )
         positions.append(ChordPosition(line, col, chord.strip()))
 
+    raw_vocals = data.get("vocals", [])
+    if not isinstance(raw_vocals, list):
+        raise HTTPException(400, "vocals must be a list")
+
+    vocals: list[VocalMark] = []
+    for idx, v in enumerate(raw_vocals):
+        if not isinstance(v, dict):
+            raise HTTPException(400, f"vocals[{idx}] must be an object")
+        line = v.get("line")
+        col = v.get("col")
+        token = v.get("token")
+        if not isinstance(line, int) or not isinstance(col, int):
+            raise HTTPException(
+                400, f"vocals[{idx}] needs integer line and col"
+            )
+        if not isinstance(token, str) or not token.strip():
+            raise HTTPException(
+                400, f"vocals[{idx}] needs non-empty token string"
+            )
+        vocals.append(VocalMark(line, col, token.strip()))
+
     try:
-        cho_content = build_chordpro(text, positions)
+        cho_content = build_merged_chordpro(text, positions, vocals)
     except InvalidChordError as exc:
+        raise HTTPException(400, str(exc))
+    except InvalidVocalTokenError as exc:
         raise HTTPException(400, str(exc))
 
     return {"cho_content": cho_content}

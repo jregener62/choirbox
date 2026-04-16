@@ -1,8 +1,18 @@
 import { create } from 'zustand'
 import { api } from '@/api/client.ts'
-import { parseChordPositions } from '@/utils/chordPositions'
+import { parseChordPositions, type PreservedVocalMark } from '@/utils/chordPositions'
+import { isValidChord } from '@/utils/chordValidation'
 
 export interface ChordPosition {
+  line: number
+  col: number
+  chord: string
+}
+
+export type ChordTool = 'chord' | null
+
+interface UndoEntry {
+  kind: 'add' | 'remove'
   line: number
   col: number
   chord: string
@@ -11,20 +21,36 @@ export interface ChordPosition {
 interface ChordInputState {
   mode: boolean
   text: string
+  /** Map "line:col" -> chord token */
   chords: Record<string, string>
-  activeCell: { line: number; col: number } | null
+  /** Vocal markers stripped from the displayed text — re-inserted on save. */
+  preservedVocals: PreservedVocalMark[]
+
+  /** Currently active toolbar tool. null = no tool selected. */
+  activeTool: ChordTool
+  /** The chord token currently being built/loaded in the toolbar. */
+  chordBuilder: string
+
+  undoStack: UndoEntry[]
 
   setMode: (on: boolean) => void
   setText: (text: string) => void
   loadFromChordPro: (body: string) => void
-  setChord: (line: number, col: number, chord: string) => void
-  removeChord: (line: number, col: number) => void
-  /** Move an existing chord to a new column on the same line. Returns
-   *  true on success, false if the source is empty or the target is
-   *  already occupied by another chord. */
-  moveChord: (line: number, fromCol: number, toCol: number) => boolean
-  setActiveCell: (cell: { line: number; col: number } | null) => void
+
+  setActiveTool: (tool: ChordTool) => void
+  setChordBuilder: (token: string) => void
+  appendBuilder: (s: string) => void
+  backspaceBuilder: () => void
+  clearBuilder: () => void
+
+  /** Tap handler: if a chord exists at (line, col), remove it; else if the
+   *  builder holds a valid chord, set it there. Returns true if state changed. */
+  toggleAt: (line: number, col: number) => boolean
+
+  undo: () => boolean
+  clearAll: () => void
   reset: () => void
+
   list: () => ChordPosition[]
   exportChordPro: () => Promise<string>
   updateCho: (docId: number) => Promise<void>
@@ -38,53 +64,85 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   mode: false,
   text: '',
   chords: {},
-  activeCell: null,
+  preservedVocals: [],
 
-  setMode: (on) => set({ mode: on, activeCell: on ? get().activeCell : null }),
-  setText: (text) => set({ text }),
+  activeTool: null,
+  chordBuilder: '',
+
+  undoStack: [],
+
+  setMode: (on) => set({ mode: on, activeTool: on ? get().activeTool : null }),
+  setText: (text) => set({ text, preservedVocals: [] }),
 
   loadFromChordPro: (body) => {
-    const { text, chords } = parseChordPositions(body)
+    const { text, chords, preservedVocals } = parseChordPositions(body)
     const map: Record<string, string> = {}
-    for (const c of chords) map[`${c.line}:${c.col}`] = c.chord
-    set({ text, chords: map, activeCell: null })
+    for (const c of chords) map[cellKey(c.line, c.col)] = c.chord
+    set({ text, chords: map, preservedVocals, undoStack: [] })
   },
 
-  setChord: (line, col, chord) => {
-    const trimmed = chord.trim()
-    if (!trimmed) return
-    const key = cellKey(line, col)
-    set((s) => ({ chords: { ...s.chords, [key]: trimmed } }))
-  },
+  setActiveTool: (tool) => set({ activeTool: tool }),
+  setChordBuilder: (token) => set({ chordBuilder: token }),
+  appendBuilder: (s) => set((st) => ({ chordBuilder: st.chordBuilder + s })),
+  backspaceBuilder: () =>
+    set((st) => ({ chordBuilder: st.chordBuilder.slice(0, -1) })),
+  clearBuilder: () => set({ chordBuilder: '' }),
 
-  removeChord: (line, col) => {
+  toggleAt: (line, col) => {
+    const s = get()
+    if (s.activeTool !== 'chord') return false
     const key = cellKey(line, col)
-    set((s) => {
-      if (!(key in s.chords)) return s
+    const existing = s.chords[key]
+
+    if (existing) {
       const next = { ...s.chords }
       delete next[key]
-      return { chords: next }
-    })
-  },
+      set({
+        chords: next,
+        undoStack: [...s.undoStack, { kind: 'remove', line, col, chord: existing }],
+      })
+      return true
+    }
 
-  moveChord: (line, fromCol, toCol) => {
-    if (fromCol === toCol) return true
-    const fromKey = cellKey(line, fromCol)
-    const toKey = cellKey(line, toCol)
-    const s = get()
-    const chord = s.chords[fromKey]
-    if (!chord) return false
-    if (toKey in s.chords) return false
-    const next = { ...s.chords }
-    delete next[fromKey]
-    next[toKey] = chord
-    set({ chords: next })
+    const token = s.chordBuilder.trim()
+    if (!token || !isValidChord(token)) return false
+
+    set({
+      chords: { ...s.chords, [key]: token },
+      undoStack: [...s.undoStack, { kind: 'add', line, col, chord: token }],
+    })
     return true
   },
 
-  setActiveCell: (cell) => set({ activeCell: cell }),
+  undo: () => {
+    const s = get()
+    if (s.undoStack.length === 0) return false
+    const last = s.undoStack[s.undoStack.length - 1]
+    const nextStack = s.undoStack.slice(0, -1)
+    const key = cellKey(last.line, last.col)
+    if (last.kind === 'add') {
+      const next = { ...s.chords }
+      delete next[key]
+      set({ chords: next, undoStack: nextStack })
+    } else {
+      set({
+        chords: { ...s.chords, [key]: last.chord },
+        undoStack: nextStack,
+      })
+    }
+    return true
+  },
 
-  reset: () => set({ chords: {}, activeCell: null }),
+  clearAll: () => set({ chords: {}, undoStack: [] }),
+
+  reset: () =>
+    set({
+      chords: {},
+      preservedVocals: [],
+      undoStack: [],
+      activeTool: null,
+      chordBuilder: '',
+    }),
 
   list: () => {
     const chords = get().chords
@@ -95,10 +153,14 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   },
 
   exportChordPro: async () => {
-    const { text, list } = get()
+    const { text, list, preservedVocals } = get()
     const result = await api<{ cho_content: string }>('/chord-input/export', {
       method: 'POST',
-      body: { text, chords: list() },
+      body: {
+        text,
+        chords: list(),
+        vocals: preservedVocals.map(v => ({ line: v.line, col: v.col, token: v.token })),
+      },
     })
     return result.cho_content
   },

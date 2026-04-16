@@ -1,0 +1,254 @@
+.sheet-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.sheet-editor-error {
+  padding: var(--space-2) var(--space-3);
+  background: rgba(239, 68, 68, 0.1);
+  color: var(--danger, #ef4444);
+  font-size: var(--text-sm);
+}
+
+.sheet-editor-text {
+  font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 15px;
+  line-height: 2.4;
+  padding: var(--space-3);
+  background: var(--bg-primary);
+  flex: 1;
+  overflow: auto;
+  user-select: none;
+}
+
+.sheet-editor-line {
+  display: flex;
+  flex-direction: column;
+}
+.sheet-editor-line-body {
+  position: relative;
+  min-height: 2.4em;
+}
+
+.sheet-editor-chord-row {
+  position: absolute;
+  top: -0.4em;
+  left: 0;
+  height: 1em;
+  pointer-events: none;
+  z-index: 1;
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Comment/note pills — rendered above the chord row with a speech-bubble
+   tail pointing down at the anchored character. Row height matches the
+   pill so the tail sits directly below the pill edge (not inside it). */
+.sheet-editor-note-row {
+  position: relative;
+  height: 22px;
+  pointer-events: none;
+}
+.sheet-editor-note-pill {
+  position: absolute;
+  top: 0;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--v-note, #94a3b8);
+  border: 1px solid var(--v-note, #94a3b8);
+  color: var(--bg-primary);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  line-height: 1.35;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  z-index: 3;
+  transition: background 0.12s, border-color 0.12s, transform 0.12s;
+}
+.sheet-editor-note-pill:hover {
+  transform: translateY(-1px);
+}
+/* Speech-bubble tail: a separate downward arrow positioned over the
+   anchored character, independent of the pill's position/width.
+   `top: 100%` sits at the bottom of the note-row — directly above the
+   text of the line it belongs to. */
+.sheet-editor-note-tail {
+  position: absolute;
+  top: 100%;
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 7px solid var(--v-note, #94a3b8);
+  margin-top: -1px; /* sits seamlessly on the pill's bottom edge */
+  pointer-events: none;
+  z-index: 4;
+}
+
+
+.sheet-editor-chord {
+  position: absolute;
+  color: var(--chord, #fbbf24);
+  font-weight: 700;
+  white-space: nowrap;
+  pointer-events: auto;
+  cursor: pointer;
+  padding: 2px 3px;
+  border-radius: var(--radius-xs);
+  user-select: none;
+  transition: background 0.12s;
+}
+.sheet-editor-chord:hover {
+  background: rgba(251, 191, 36, 0.18);
+}
+
+.sheet-editor-text-row {
+  position: relative;
+  white-space: pre;
+  z-index: 2;
+}
+
+.sheet-editor-empty {
+  display: inline-block;
+  height: 1em;
+}
+
+.sheet-editor-char {
+  display: inline-block;
+  border-radius: var(--radius-xs);
+  padding: 0 1px;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+.sheet-editor-char--tappable { cursor: pointer; }
+
+/* Hover tints track the active tool */
+.sheet-editor-text--mode-chord .sheet-editor-char--tappable:hover {
+  background: rgba(251, 191, 36, 0.18);
+  outline: 1.5px dashed var(--chord, #fbbf24);
+  outline-offset: 1px;
+}
+.sheet-editor-text--mode-beat .sheet-editor-char--tappable:hover {
+  background: rgba(163, 230, 53, 0.18);
+  outline: 1.5px dashed var(--v-beat, #a3e635);
+  outline-offset: 1px;
+}
+.sheet-editor-text--mode-interval .sheet-editor-char--tappable:hover {
+  background: rgba(251, 191, 36, 0.18);
+  outline: 1.5px dashed var(--v-interval, #fbbf24);
+  outline-offset: 1px;
+}
+.sheet-editor-text--mode-note .sheet-editor-char--tappable:hover {
+  background: rgba(148, 163, 184, 0.18);
+  outline: 1.5px dashed var(--v-note, #94a3b8);
+  outline-offset: 1px;
+}
+
+.sheet-editor-char--has-chord {
+  color: var(--text-primary);
+  text-decoration: underline;
+  text-decoration-color: var(--chord, #fbbf24);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: none;
+}
+
+.sheet-editor-char--beat {
+  text-decoration: underline;
+  text-decoration-color: var(--v-beat, #a3e635);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: none;
+}
+
+/* Both chord and beat on same char: stack two underlines (beat below chord). */
+.sheet-editor-char--has-chord.sheet-editor-char--beat {
+  text-decoration-color: var(--v-beat, #a3e635);
+  box-shadow: 0 4px 0 0 var(--chord, #fbbf24);
+}
+
+/* Inline interval — rendered between characters */
+.sheet-editor-inline {
+  display: inline-block;
+  padding: 0 2px;
+  font-weight: 700;
+  font-size: 0.9em;
+  cursor: pointer;
+  user-select: none;
+  vertical-align: baseline;
+  color: var(--v-interval, #fbbf24);
+}
+.sheet-editor-inline:hover {
+  background: rgba(251, 191, 36, 0.15);
+  border-radius: var(--radius-xs);
+  outline: 1.5px dashed var(--v-interval, #fbbf24);
+  outline-offset: 1px;
+}
+
+/* Preview / confirm dialog */
+.sheet-editor-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-4);
+}
+
+.sheet-editor-preview-panel {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  max-width: 600px;
+  width: 100%;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.sheet-editor-preview-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.sheet-editor-preview-body {
+  padding: var(--space-3);
+  margin: 0;
+  overflow: auto;
+  font-family: 'Menlo', 'Courier New', monospace;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--text-primary);
+  white-space: pre;
+}
+
+.sheet-editor-confirm-body {
+  padding: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.sheet-editor-confirm-actions {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-top: 1px solid var(--border);
+}
+
+.sheet-editor-confirm-actions .btn { flex: 1; }

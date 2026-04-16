@@ -176,6 +176,28 @@ textarea::placeholder {
   opacity: 0.6;
 }
 
+.topbar-action--save {
+  color: var(--confirm, #3b82f6);
+  padding: var(--space-1) var(--space-2);
+  background: rgba(59, 130, 246, 0.12);
+  border-radius: var(--radius-sm);
+}
+.topbar-action--save:hover:not(:disabled) {
+  background: var(--confirm, #3b82f6);
+  color: #fff;
+}
+.topbar-action--save:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.topbar-action--save[aria-busy="true"] {
+  animation: topbar-save-pulse 1.2s ease-in-out infinite;
+}
+@keyframes topbar-save-pulse {
+  0%, 100% { opacity: 0.55; }
+  50%      { opacity: 1; }
+}
+
 .topbar-track {
   display: flex;
   align-items: center;
@@ -1333,6 +1355,17 @@ body.body-scroll-fs .autoscroll-stepper {
   background: var(--accent);
   opacity: 0.9;
 }
+.pdf-toolbar-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+.pdf-toolbar-btn:disabled:hover {
+  background: none;
+}
+.pdf-toolbar-btn--danger:hover:not(:disabled) {
+  color: var(--danger, #ef4444);
+  background: rgba(239, 68, 68, 0.1);
+}
 .pdf-pages {
   flex: 1;
   overflow: auto;
@@ -1758,6 +1791,46 @@ body.body-scroll-fs .autoscroll-stepper {
 }
 .chord-toggle-btn:active {
   background: rgba(255, 255, 255, 0.05);
+}
+
+/* Geteilter Toggle: links Anweisungen, rechts Akkorde — ein Pill mit zwei Segmenten */
+.chord-toggle-split {
+  display: inline-flex;
+  align-items: stretch;
+  height: calc(32px + 2 * var(--space-1));
+  border-radius: var(--radius-pill);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+.chord-toggle-segment {
+  background: transparent;
+  border: none;
+  padding: 0 var(--space-3);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  transition: background 0.15s, color 0.15s;
+}
+.chord-toggle-segment + .chord-toggle-segment {
+  border-left: 1px solid var(--border);
+}
+.chord-toggle-segment:active {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.chord-toggle-segment--vocal.chord-toggle-segment--active {
+  color: var(--v-breath, #22d3ee);
+  background: rgba(34, 211, 238, 0.1);
+}
+.chord-toggle-segment--chord.chord-toggle-segment--active {
+  color: var(--accent);
+  background: rgba(129, 140, 248, 0.1);
 }
 .transpose-stepper-btn {
   width: 32px;

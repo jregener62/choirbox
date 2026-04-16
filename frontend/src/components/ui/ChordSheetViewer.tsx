@@ -1,6 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { transposeChord, shouldUseFlats } from '@/utils/chordTransposer'
-import type { ChordLine, ChordSheetMetadata, ParsedChordContent } from '@/types/index'
+import { getVocalMeta } from '@/utils/vocalValidation'
+import type { ChordLine, ChordSheetMetadata, ParsedChordContent, VocalMarkPosition } from '@/types/index'
 import './ChordSheetViewer.css'
 
 interface ChordSheetViewerProps {
@@ -9,9 +10,11 @@ interface ChordSheetViewerProps {
   /** Wenn true: Akkord-Zeilen komplett ausblenden (reiner Text-Modus).
    *  Metadata, Section-Labels und Kommentare bleiben sichtbar. */
   hideChords?: boolean
+  /** Wenn true: Gesangsanweisungen (breath, fermata, dynamics, ...) ausblenden. */
+  hideVocal?: boolean
 }
 
-export function ChordSheetViewer({ content, transposition, hideChords = false }: ChordSheetViewerProps) {
+export function ChordSheetViewer({ content, transposition, hideChords = false, hideVocal = false }: ChordSheetViewerProps) {
   const flats = useMemo(
     () => shouldUseFlats(content.all_chords || []),
     [content.all_chords],
@@ -34,6 +37,7 @@ export function ChordSheetViewer({ content, transposition, hideChords = false }:
               transposition={transposition}
               flats={flats}
               hideChords={hideChords}
+              hideVocal={hideVocal}
             />
           ))}
         </div>
@@ -119,13 +123,20 @@ function ChordLineView({
   transposition,
   flats,
   hideChords,
+  hideVocal,
 }: {
   line: ChordLine
   transposition: number
   flats: boolean
   hideChords: boolean
+  hideVocal: boolean
 }) {
-  if (line.chords.length === 0 && !line.text && !line.annotations?.length) return null
+  if (
+    line.chords.length === 0 &&
+    !line.text &&
+    !line.annotations?.length &&
+    !line.vocalMarks?.length
+  ) return null
 
   const annotations = line.annotations?.length ? (
     <>
@@ -139,12 +150,71 @@ function ChordLineView({
     ? ` chord-line-comment chord-line-comment-${line.commentStyle ?? 'plain'}`
     : ''
 
+  const showVocal = !hideVocal && !!line.vocalMarks?.length
+
+  // Beat-Marks werden als Unterstrich am Text-Zeichen gerendert.
+  // Inline-Kategorien (breath, interval) werden zwischen die Zeichen gerendert.
+  // Alle anderen (artic, dyn, entry, nav) kommen in die "vocal-row" oberhalb.
+  const INLINE_CATEGORIES = new Set(['breath', 'interval'])
+  const allMarks: VocalMarkPosition[] = showVocal ? (line.vocalMarks || []) : []
+  const overlayMarks = allMarks.filter(m => {
+    const meta = getVocalMeta(m.token)
+    return meta && meta.category !== 'beat' && !INLINE_CATEGORIES.has(meta.category)
+  })
+  const beatCols = new Set<number>(
+    allMarks.filter(m => getVocalMeta(m.token)?.category === 'beat').map(m => m.col),
+  )
+  const inlineByCol = new Map<number, string>()
+  for (const m of allMarks) {
+    const meta = getVocalMeta(m.token)
+    if (meta && INLINE_CATEGORIES.has(meta.category)) {
+      inlineByCol.set(m.col, m.token)
+    }
+  }
+
+  const vocalRow = overlayMarks.length > 0 ? (
+    <div className="vocal-row">
+      {overlayMarks.map((m, i) => {
+        const meta = getVocalMeta(m.token)!
+        if (meta.category === 'note') {
+          return (
+            <span key={i} style={{ display: 'contents' }}>
+              <span
+                className={`vocal-row-mark vocal-mark vocal-mark--${meta.category}`}
+                style={{ left: `${m.col}ch` }}
+                title={meta.label}
+              >
+                {meta.symbol}
+              </span>
+              <span
+                className="vocal-note-tail"
+                style={{ left: `calc(${m.col}ch + 0.5ch - 5px)` }}
+                aria-hidden="true"
+              />
+            </span>
+          )
+        }
+        return (
+          <span
+            key={i}
+            className={`vocal-row-mark vocal-mark vocal-mark--${meta.category}`}
+            style={{ left: `${m.col}ch` }}
+            title={meta.label}
+          >
+            {meta.symbol}
+          </span>
+        )
+      })}
+    </div>
+  ) : null
+
   // No chords, or chords hidden → plain text row, no chord-row overlay
   if (line.chords.length === 0 || hideChords) {
     return (
       <div className={`chord-line${commentClass}`}>
+        {vocalRow}
         <div className="chord-text">
-          {line.text}
+          {renderTextWithAnchors(line.text, new Set(), beatCols, inlineByCol)}
           {annotations}
         </div>
       </div>
@@ -161,6 +231,7 @@ function ChordLineView({
 
   return (
     <div className={`chord-line${commentClass}`}>
+      {vocalRow}
       <div className="chord-row">
         {transposedChords.map((c, i) => (
           <span
@@ -174,7 +245,7 @@ function ChordLineView({
       </div>
       {(line.text || annotations) && (
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, anchorCols)}
+          {renderTextWithAnchors(line.text, anchorCols, beatCols, inlineByCol)}
           {annotations}
         </div>
       )}
@@ -183,22 +254,53 @@ function ChordLineView({
 }
 
 /**
- * Render lyric text as a sequence of spans, where each character whose
- * column is a chord-anchor position gets a `.chord-anchor` class for
- * underlining. Preserves whitespace (parent uses `white-space: pre`).
+ * Render lyric text as a sequence of spans. Characters at chord-anchor
+ * positions get `.chord-anchor`, those at beat positions get
+ * `.vocal-beat-anchor`. A character that is both becomes both.
+ * Preserves whitespace (parent uses `white-space: pre`).
  */
-function renderTextWithAnchors(text: string, anchorCols: Set<number>): ReactNode {
-  if (anchorCols.size === 0) return text
+function renderTextWithAnchors(
+  text: string,
+  anchorCols: Set<number>,
+  beatCols: Set<number>,
+  inlineByCol: Map<number, string>,
+): ReactNode {
+  if (anchorCols.size === 0 && beatCols.size === 0 && inlineByCol.size === 0)
+    return text
   const parts: ReactNode[] = []
   let run = ''
+  const flushRun = () => {
+    if (run) {
+      parts.push(run)
+      run = ''
+    }
+  }
   for (let i = 0; i < text.length; i++) {
-    if (anchorCols.has(i)) {
-      if (run) {
-        parts.push(run)
-        run = ''
+    const inlineToken = inlineByCol.get(i)
+    if (inlineToken) {
+      flushRun()
+      const meta = getVocalMeta(inlineToken)
+      if (meta) {
+        parts.push(
+          <span
+            key={`v${i}`}
+            className={`vocal-inline vocal-mark vocal-mark--${meta.category}`}
+            title={meta.label}
+          >
+            {meta.symbol}
+          </span>,
+        )
       }
+    }
+    const isAnchor = anchorCols.has(i)
+    const isBeat = beatCols.has(i)
+    if (isAnchor || isBeat) {
+      flushRun()
+      const cls =
+        (isAnchor ? 'chord-anchor' : '') +
+        (isBeat ? (isAnchor ? ' vocal-beat-anchor' : 'vocal-beat-anchor') : '')
       parts.push(
-        <span key={i} className="chord-anchor">{text[i]}</span>,
+        <span key={i} className={cls}>{text[i]}</span>,
       )
     } else {
       run += text[i]

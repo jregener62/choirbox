@@ -158,6 +158,11 @@ export interface ChordPosition {
   col: number
 }
 
+export interface VocalMarkPosition {
+  token: string
+  col: number
+}
+
 export interface ChordLine {
   text: string
   chords: ChordPosition[]
@@ -169,6 +174,8 @@ export interface ChordLine {
   /** Inline {c:...} / {ci:...} directives appearing mid-line — rendered
    *  at the end of the line with the same highlighter style. */
   annotations?: string[]
+  /** Inline {v:xxx} directives — vocal instructions (breath, dynamics, etc.) */
+  vocalMarks?: VocalMarkPosition[]
 }
 
 export interface ChordSection {

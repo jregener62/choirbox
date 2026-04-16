@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Music2, PencilLine } from 'lucide-react'
+import { PencilLine, SquarePen } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { parseChordSheet } from '@/utils/chordPro'
 import { ChordSheetViewer } from '@/components/ui/ChordSheetViewer'
-import { ChordInputViewer } from '@/components/ui/ChordInputViewer'
+import { SheetEditor } from '@/components/ui/SheetEditor'
 import { TextEditViewer } from '@/components/ui/TextEditViewer'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
@@ -20,6 +20,7 @@ interface ChordSheetTextViewerProps {
   fontSize?: number
   showName?: boolean
   hideChords?: boolean
+  hideVocal?: boolean
   scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
@@ -33,11 +34,12 @@ export function ChordSheetTextViewer({
   fontSize = 14,
   showName = true,
   hideChords = false,
+  hideVocal = false,
   scrollContainerRef,
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [editMode, setEditMode] = useState<'chord' | 'text' | null>(null)
+  const [editMode, setEditMode] = useState<'sheet' | 'text' | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const userRole = useAuthStore((s) => s.user?.role)
   const canEditChords = hasMinRole(userRole ?? 'guest', 'pro-member')
@@ -236,9 +238,9 @@ export function ChordSheetTextViewer({
     )
   }
 
-  if (editMode === 'chord' && text != null) {
+  if (editMode === 'sheet' && text != null) {
     return (
-      <ChordInputViewer
+      <SheetEditor
         chordProBody={text}
         editDocId={docId}
         onUpdated={() => {
@@ -272,10 +274,10 @@ export function ChordSheetTextViewer({
           <button
             type="button"
             className="edit-topbar-btn edit-topbar-btn--chord"
-            onClick={() => setEditMode('chord')}
+            onClick={() => setEditMode('sheet')}
           >
-            <Music2 size={16} />
-            Akkorde bearbeiten
+            <SquarePen size={16} />
+            Bearbeiten
           </button>
           <button
             type="button"
@@ -298,7 +300,7 @@ export function ChordSheetTextViewer({
       >
         <div className="cho-viewer-content" ref={contentRef}>
           {showName && <div className="cho-viewer-name">{originalName}</div>}
-          <ChordSheetViewer content={parsed} transposition={transposition} hideChords={hideChords} />
+          <ChordSheetViewer content={parsed} transposition={transposition} hideChords={hideChords} hideVocal={hideVocal} />
           <svg
             ref={svgRef}
             className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}

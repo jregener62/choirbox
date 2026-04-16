@@ -1,5 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music } from 'lucide-react'
+import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, Undo2, Trash2, Eye } from 'lucide-react'
+import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
@@ -7,6 +8,7 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useChordPreference } from '@/hooks/useChordPreference.ts'
 import { useChordInput } from '@/hooks/useChordInput.ts'
+import { useVocalInput } from '@/hooks/useVocalInput.ts'
 import { useAutoScroll } from '@/hooks/useAutoScroll.ts'
 import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
 import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
@@ -79,6 +81,8 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const setAutoScrollEnabled = usePlayerStore((s) => s.setAutoScrollEnabled)
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
   const chordInputMode = useChordInput((s) => s.mode)
+  const vocalInputMode = useVocalInput((s) => s.mode)
+  const editMode = chordInputMode || vocalInputMode
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
   const pagesRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
@@ -86,8 +90,11 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
-  // Default: Akkorde versteckt. User kann via Toggle explizit einschalten.
-  const [chordsHidden, setChordsHidden] = useState(true)
+  // Exclusive view toggle: entweder Anweisungen ODER Akkorde werden
+  // gerendert — nicht beide gleichzeitig (zu unübersichtlich).
+  const [activeView, setActiveView] = useState<'vocal' | 'chord'>('vocal')
+  const chordsHidden = activeView !== 'chord'
+  const vocalHidden = activeView !== 'vocal'
   const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
@@ -325,10 +332,11 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           <span className="pdf-toolbar-name">
             {getDocIcon(activeDoc.file_type)} {activeDoc.original_name}
           </span>
+          {editMode && <EditorActionsInline />}
         </div>
       )}
 
-      {(isPdf || isCho) && drawingMode && (
+      {(isPdf || isCho) && drawingMode && !editMode && (
         <AnnotationToolbar pageKey={`${activeDoc.id}::1`} />
       )}
 
@@ -380,6 +388,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
           hideChords={chordsHidden}
+          hideVocal={vocalHidden}
           scrollContainerRef={scrollContainerRef}
         />
       )}
@@ -387,7 +396,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
       {/* FABs — PDF/CHO: Draw + Fullscreen, TXT/CHO: Zoom + Fullscreen, CHO: Transpose.
           Annotations sind ein per-User-Feature (annotations.write = member+) —
           Gaeste sehen den Zeichenmodus-FAB nicht. */}
-      {!guest && (isPdf || isCho) && !chordInputMode && (
+      {!guest && (isPdf || isCho) && !editMode && (
         <button
           className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={() => setDrawingMode(!drawingMode)}
@@ -417,7 +426,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           </button>
         </>
       )}
-      {isCho && !chordInputMode && (
+      {isCho && !editMode && (
         <div
           className={`chord-toolbar chord-toolbar--floating${pdfFullscreen ? '' : ' chord-toolbar--below-chrome'}${pdfFullscreen && drawingMode ? ' chord-toolbar--below-annotation' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
@@ -430,18 +439,29 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
               />
             </div>
           )}
-          <button
-            type="button"
-            className="chord-toggle-btn"
-            onClick={() => { setChordsHidden((v) => !v); resetFadeTimer() }}
-            aria-pressed={!chordsHidden}
-            title={chordsHidden ? 'Akkorde anzeigen' : 'Nur Text anzeigen'}
-          >
-            {chordsHidden ? 'Akkorde' : 'Nur Text'}
-          </button>
+          <div className="chord-toggle-split" role="group" aria-label="Anzeige-Umschalter">
+            <button
+              type="button"
+              className={`chord-toggle-segment chord-toggle-segment--vocal${activeView === 'vocal' ? ' chord-toggle-segment--active' : ''}`}
+              onClick={() => { setActiveView('vocal'); resetFadeTimer() }}
+              aria-pressed={activeView === 'vocal'}
+              title="Nur Anweisungen anzeigen"
+            >
+              Anweisungen
+            </button>
+            <button
+              type="button"
+              className={`chord-toggle-segment chord-toggle-segment--chord${activeView === 'chord' ? ' chord-toggle-segment--active' : ''}`}
+              onClick={() => { setActiveView('chord'); resetFadeTimer() }}
+              aria-pressed={activeView === 'chord'}
+              title="Nur Akkorde anzeigen"
+            >
+              Akkorde
+            </button>
+          </div>
         </div>
       )}
-      {pdfFullscreen && (isPdf || isTxt || isCho) && !chordInputMode && (
+      {pdfFullscreen && (isPdf || isTxt || isCho) && !editMode && (
         <AutoScrollStepper
           faded={fabFaded}
           onInteract={resetFadeTimer}
@@ -449,7 +469,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           onPageDown={() => handlePageScroll('down')}
         />
       )}
-      {(isPdf || isTxt || isCho) && !chordInputMode && (
+      {(isPdf || isTxt || isCho) && !editMode && (
         <button
           className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={handleFabClick}
@@ -477,6 +497,52 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
         </div>
       )}
 
+    </div>
+  )
+}
+
+/** Utility actions (Undo / Clear / Preview) for the file-info bar while
+ *  the sheet editor is active. Reads all state from useEditorCommands. */
+function EditorActionsInline() {
+  const active = useEditorCommands((s) => s.active)
+  const undoDisabled = useEditorCommands((s) => s.undoDisabled)
+  const clearDisabled = useEditorCommands((s) => s.clearDisabled)
+  const clearTitle = useEditorCommands((s) => s.clearTitle)
+  const previewDisabled = useEditorCommands((s) => s.previewDisabled)
+  const onUndo = useEditorCommands((s) => s.onUndo)
+  const onClear = useEditorCommands((s) => s.onClear)
+  const onPreview = useEditorCommands((s) => s.onPreview)
+
+  if (!active) return null
+  return (
+    <div className="pdf-toolbar-actions">
+      <button
+        type="button"
+        className="pdf-toolbar-btn"
+        onClick={onUndo}
+        disabled={undoDisabled}
+        title="Rückgängig"
+      >
+        <Undo2 size={16} />
+      </button>
+      <button
+        type="button"
+        className="pdf-toolbar-btn pdf-toolbar-btn--danger"
+        onClick={onClear}
+        disabled={clearDisabled}
+        title={clearTitle}
+      >
+        <Trash2 size={16} />
+      </button>
+      <button
+        type="button"
+        className="pdf-toolbar-btn"
+        onClick={onPreview}
+        disabled={previewDisabled}
+        title="ChordPro-Vorschau"
+      >
+        <Eye size={16} />
+      </button>
     </div>
   )
 }
