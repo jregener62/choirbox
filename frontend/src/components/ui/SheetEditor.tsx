@@ -3,6 +3,7 @@ import { X } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
+import { useTextFormat } from '@/hooks/useTextFormat'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
@@ -53,6 +54,12 @@ export function SheetEditor({
   const vocalReset = useVocalInput((s) => s.reset)
   const setVocalTool = useVocalInput((s) => s.setActiveTool)
 
+  // Text format hook
+  const formats = useTextFormat((s) => s.formats)
+  const selection = useTextFormat((s) => s.selection)
+  const setSelection = useTextFormat((s) => s.setSelection)
+  const formatReset = useTextFormat((s) => s.reset)
+
   const [activeTool, setActiveToolLocal] = useState<ActiveTool>(null)
   const [saving, setSaving] = useState(false)
   const [previewCho, setPreviewCho] = useState<string | null>(null)
@@ -62,6 +69,8 @@ export function SheetEditor({
   const [sourceText, setSourceText] = useState('')
   /** Global action history — tracks which hook produced each action. */
   const actionStack = useRef<Array<'chord' | 'vocal'>>([])
+  /** Anker der laufenden Drag-Selection (single-line). */
+  const selectingRef = useRef<{ line: number; anchorCol: number } | null>(null)
 
   const isEditMode = editDocId != null
 
@@ -80,6 +89,7 @@ export function SheetEditor({
     }
     setChordMode(true)
     setVocalMode(true)
+    formatReset()
     actionStack.current = []
     return () => {
       setChordMode(false)
@@ -91,6 +101,7 @@ export function SheetEditor({
     loadChordFrom, loadVocalFrom,
     chordReset, vocalReset,
     setChordMode, setVocalMode,
+    formatReset,
   ])
 
   const buildMergedCho = async () => {
@@ -136,9 +147,53 @@ export function SheetEditor({
         setChordTool(null)
         setVocalTool(null)
       }
+
+      if (tool !== 'format') {
+        setSelection(null)
+        selectingRef.current = null
+      }
     },
     [activeTool, sourceText, setChordTool, setVocalTool, loadChordFrom, loadVocalFrom],
   )
+
+  const handleSelectPointerDown = useCallback((e: React.PointerEvent) => {
+    if (activeTool !== 'format') return
+    const target = (e.target as HTMLElement).closest<HTMLElement>('.sheet-editor-char')
+    if (!target) {
+      setSelection(null)
+      return
+    }
+    const line = Number(target.dataset.line)
+    const col = Number(target.dataset.col)
+    if (Number.isNaN(line) || Number.isNaN(col)) return
+    selectingRef.current = { line, anchorCol: col }
+    setSelection({ line, start: col, end: col })
+    ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
+  }, [activeTool])
+
+  const handleSelectPointerMove = useCallback((e: React.PointerEvent) => {
+    const anchor = selectingRef.current
+    if (!anchor) return
+    const el = document.elementFromPoint(e.clientX, e.clientY)
+    if (!el) return
+    const target = (el as HTMLElement).closest<HTMLElement>('.sheet-editor-char')
+    if (!target) return
+    const line = Number(target.dataset.line)
+    const col = Number(target.dataset.col)
+    if (Number.isNaN(line) || Number.isNaN(col)) return
+    if (line !== anchor.line) return
+    setSelection({
+      line: anchor.line,
+      start: Math.min(anchor.anchorCol, col),
+      end: Math.max(anchor.anchorCol, col),
+    })
+  }, [])
+
+  const handleSelectPointerUp = useCallback((e: React.PointerEvent) => {
+    if (!selectingRef.current) return
+    selectingRef.current = null
+    ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
+  }, [])
 
   const lines = useMemo(() => chordText.split('\n'), [chordText])
 
@@ -350,7 +405,8 @@ export function SheetEditor({
     'sheet-editor-text' +
     (activeTool === 'chord' ? ' sheet-editor-text--mode-chord' : '') +
     (activeTool === 'beat' ? ' sheet-editor-text--mode-beat' : '') +
-    (activeTool === 'note' ? ' sheet-editor-text--mode-note' : '')
+    (activeTool === 'note' ? ' sheet-editor-text--mode-note' : '') +
+    (activeTool === 'format' ? ' sheet-editor-text--mode-format' : '')
 
   return (
     <div className="sheet-editor">
@@ -364,7 +420,13 @@ export function SheetEditor({
       {activeTool === 'source' ? (
         <SyntaxTextarea value={sourceText} onChange={setSourceText} />
       ) : (
-      <div className={textClass}>
+      <div
+        className={textClass}
+        onPointerDown={handleSelectPointerDown}
+        onPointerMove={handleSelectPointerMove}
+        onPointerUp={handleSelectPointerUp}
+        onPointerCancel={handleSelectPointerUp}
+      >
         {lines.map((line, lineIndex) => {
           const ld = linesData[lineIndex]
           const lineChords = chordsByLine.get(lineIndex) ?? []
@@ -411,6 +473,12 @@ export function SheetEditor({
                     const hasChord = chords[`${lineIndex}:${col}`] != null
                     const inlineNote = ld.notesInline.get(col)
                     const inlineMeta = inlineNote ? getVocalMeta(inlineNote) : null
+                    const isSelected =
+                      selection != null &&
+                      selection.line === lineIndex &&
+                      col >= selection.start &&
+                      col <= selection.end
+                    const fmt = formats[`${lineIndex}:${col}`]
                     return (
                       <span key={col} style={{ display: 'contents' }}>
                         {inlineMeta && (
@@ -427,8 +495,16 @@ export function SheetEditor({
                             'sheet-editor-char' +
                             (activeTool ? ' sheet-editor-char--tappable' : '') +
                             (hasChord ? ' sheet-editor-char--has-chord' : '') +
-                            (isBeat ? ' sheet-editor-char--beat' : '')
+                            (isBeat ? ' sheet-editor-char--beat' : '') +
+                            (isSelected ? ' sheet-editor-char--selected' : '') +
+                            (fmt?.b ? ' sheet-editor-char--fmt-b' : '') +
+                            (fmt?.i ? ' sheet-editor-char--fmt-i' : '') +
+                            (fmt?.u ? ' sheet-editor-char--fmt-u' : '') +
+                            (fmt?.s ? ' sheet-editor-char--fmt-s' : '') +
+                            (fmt?.color ? ` sheet-editor-char--clr-${fmt.color}` : '')
                           }
+                          data-line={lineIndex}
+                          data-col={col}
                           onClick={() => handleCharClick(lineIndex, col)}
                           onContextMenu={(e) => e.preventDefault()}
                         >

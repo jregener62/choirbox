@@ -156,6 +156,38 @@
   outline-offset: 1px;
 }
 
+/* Format mode: drag-to-select. Disable native text selection + touch scroll
+ * only within the editor area to avoid jitter during drag. */
+.sheet-editor-text--mode-format {
+  touch-action: none;
+  cursor: text;
+}
+.sheet-editor-text--mode-format .sheet-editor-char {
+  touch-action: none;
+}
+.sheet-editor-char--selected {
+  background: rgba(34, 211, 238, 0.25);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.55);
+}
+
+/* Text format flags — sichtbar im Editor. */
+.sheet-editor-char--fmt-b { font-weight: 700; }
+.sheet-editor-char--fmt-i { font-style: italic; }
+.sheet-editor-char--fmt-u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: none;
+}
+.sheet-editor-char--fmt-s { text-decoration: line-through; }
+.sheet-editor-char--fmt-u.sheet-editor-char--fmt-s {
+  text-decoration: underline line-through;
+  text-underline-offset: 2px;
+}
+.sheet-editor-char--clr-red    { color: #DC2626; }
+.sheet-editor-char--clr-green  { color: #16A34A; }
+.sheet-editor-char--clr-blue   { color: #2563EB; }
+.sheet-editor-char--clr-orange { color: #EA580C; }
+
 .sheet-editor-char--has-chord {
   color: var(--text-primary);
   text-decoration: underline;
