@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, ArrowUpDown, Delete, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Delete, Minus, X } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
 import type { NotePosition } from '@/utils/vocalValidation'
@@ -141,7 +141,7 @@ export function SheetEditToolbar({
         <div className="set-sub-row">
           <div className="set-sub-row-line">
             <div className="set-note-pos" role="group" aria-label="Kommentar-Position">
-              {([['t', 'Über der Zeile', ArrowUp], ['i', 'Inline', ArrowUpDown], ['b', 'Unter der Zeile', ArrowDown]] as const).map(([pos, title, Icon]) => (
+              {([['t', 'Über der Zeile', ArrowUp], ['i', 'Inline', Minus], ['b', 'Unter der Zeile', ArrowDown]] as const).map(([pos, title, Icon]) => (
                 <button
                   key={pos}
                   type="button"
@@ -150,7 +150,8 @@ export function SheetEditToolbar({
                   title={title}
                   aria-pressed={notePos === pos}
                 >
-                  <Icon size={14} />
+                  <span className="set-note-pos-char">a</span>
+                  <Icon size={12} />
                 </button>
               ))}
             </div>
