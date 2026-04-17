@@ -90,9 +90,9 @@
 .vocal-row-mark.vocal-mark--note {
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--v-note, #94a3b8);
-  border: 1px solid var(--v-note, #94a3b8);
-  color: #fde047; /* knallgelb fuer hohen Kontrast auf slate */
+  background: var(--v-note-bg, #FCD34D);
+  border: 1px solid var(--v-note-bg, #FCD34D);
+  color: var(--v-note-text, #1F2937);
   font-size: 1em;
   line-height: 1;
   top: 0;
@@ -111,41 +111,24 @@
   top: 100%;
   width: 2px;
   height: 9px;
-  background: var(--v-note, #94a3b8);
+  background: var(--v-note-bg, #FCD34D);
   margin-top: -3px;
   pointer-events: none;
   z-index: 4;
   font-size: 1em;
 }
 
-/* Farbcodierung der Vocal-Marks (auch im Popover genutzt) */
-.vocal-mark--breath   { color: var(--v-breath, #22d3ee); }
+/* Farbcodierung der Vocal-Marks */
 .vocal-mark--beat     { color: var(--v-beat, #a3e635); }
-.vocal-mark--interval { color: var(--v-interval, #fbbf24); }
-.vocal-mark--dyn      { color: var(--v-dyn, #c084fc); font-style: italic; font-family: 'Georgia', serif; }
-.vocal-mark--artic    { color: var(--v-artic, var(--text-primary)); }
-.vocal-mark--entry    { color: var(--v-entry, #f87171); }
-.vocal-mark--nav      { color: var(--v-entry, #f87171); }
-.vocal-mark--note     { color: var(--v-note, #94a3b8); }
+.vocal-mark--note     { color: var(--v-note-bg, #FCD34D); }
 
-/* Buchstabe im Text, ueber dem der Akkord steht — unterstrichen.
-   skip-ink: none sorgt dafuer, dass die Linie auch unter Unterlaengen
-   wie j/g/p/y sichtbar bleibt. */
+/* Buchstabe im Text, ueber dem der Akkord steht — unterstrichen. */
 .chord-anchor {
   text-decoration: underline;
   text-decoration-color: var(--accent);
   text-decoration-thickness: 2px;
   text-underline-offset: 2px;
   text-decoration-skip-ink: none;
-}
-
-/* Inline-Mark (Atempause, Intervall) — wird zwischen Zeichen im Textfluss gerendert */
-.vocal-inline {
-  display: inline-block;
-  padding: 0 1px;
-  font-weight: 700;
-  font-size: 0.9em;
-  vertical-align: baseline;
 }
 
 /* Zaehlzeit-1: dicker, farbiger Unterstrich am Zeichen */

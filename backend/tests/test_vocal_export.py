@@ -21,7 +21,6 @@ from backend.services.vocal_export_service import (
     "token",
     [
         "1",  # beat (Zaehlzeit 1)
-        "+1", "+5", "+12", "-1", "-7", "-12",  # intervals
         "n:Hier zart beginnen",
         "n:x",
         "n:mit Akzent!",
@@ -36,8 +35,9 @@ def test_validate_accepts(token):
 @pytest.mark.parametrize(
     "token",
     [
-        "", " ", "0", "2", "3", "9", "+0", "-0", "+13", "-13",
-        "breath", "fermata", "mf", "staccato",  # not in current scope
+        "", " ", "0", "2", "3", "9",
+        "+1", "+5", "-7",  # intervals no longer in scope
+        "breath", "fermata", "mf", "staccato",
         "BREATH", "cresc(", "{breath}",
         "n:",              # empty note text
         "n:with{brace}",   # braces forbidden
@@ -63,11 +63,11 @@ def test_build_single_beat_at_start():
     assert out == "{v:1}Hello"
 
 
-def test_build_interval_mid_line():
+def test_build_note_mid_line():
     out = build_chordpro_with_vocals(
-        "und Stille", [VocalMark(0, 4, "+5")]
+        "und Stille", [VocalMark(0, 4, "n:leise")]
     )
-    assert out == "und {v:+5}Stille"
+    assert out == "und {v:n:leise}Stille"
 
 
 def test_build_multiple_same_line_order_stable():
@@ -77,17 +77,17 @@ def test_build_multiple_same_line_order_stable():
         [
             VocalMark(0, 0, "1"),
             VocalMark(0, 7, "1"),
-            VocalMark(0, 17, "-3"),
+            VocalMark(0, 17, "n:betont"),
         ],
     )
-    assert out == "{v:1}Großer {v:1}Gott, wir {v:-3}loben dich"
+    assert out == "{v:1}Großer {v:1}Gott, wir {v:n:betont}loben dich"
 
 
 def test_build_multiple_lines():
     text = "line one\nline two\nline three"
-    marks = [VocalMark(0, 0, "1"), VocalMark(2, 5, "+12")]
+    marks = [VocalMark(0, 0, "1"), VocalMark(2, 5, "n:langsam")]
     out = build_chordpro_with_vocals(text, marks)
-    assert out == "{v:1}line one\nline two\nline {v:+12}three"
+    assert out == "{v:1}line one\nline two\nline {v:n:langsam}three"
 
 
 def test_build_offset_clamped_to_end():
@@ -110,11 +110,6 @@ def test_build_out_of_range_line_silently_dropped():
 def test_build_preserves_trailing_newline():
     out = build_chordpro_with_vocals("hello\n", [VocalMark(0, 0, "1")])
     assert out == "{v:1}hello\n"
-
-
-def test_build_interval_token():
-    out = build_chordpro_with_vocals("Ton", [VocalMark(0, 0, "+5")])
-    assert out == "{v:+5}Ton"
 
 
 def test_build_note_token():
@@ -162,10 +157,10 @@ def test_merged_vocals_only():
 def test_merged_round_trip_preserves_both():
     text = "Hello world"
     chords = [ChordPosition(0, 0, "C"), ChordPosition(0, 6, "G")]
-    vocals = [VocalMark(0, 0, "1"), VocalMark(0, 6, "+5")]
+    vocals = [VocalMark(0, 0, "1"), VocalMark(0, 6, "n:laut")]
     out = build_merged_chordpro(text, chords, vocals)
     assert "[C]" in out and "[G]" in out
-    assert "{v:1}" in out and "{v:+5}" in out
+    assert "{v:1}" in out and "{v:n:laut}" in out
     assert out.endswith("world")
 
 
@@ -215,11 +210,11 @@ def test_api_chord_export_preserves_vocals(client, pro_member):
         json={
             "text": "Hello world",
             "chords": [{"line": 0, "col": 0, "chord": "C"}],
-            "vocals": [{"line": 0, "col": 6, "token": "+5"}],
+            "vocals": [{"line": 0, "col": 6, "token": "n:laut"}],
         },
     )
     assert resp.status_code == 200
-    assert resp.json() == {"cho_content": "[C]Hello {v:+5}world"}
+    assert resp.json() == {"cho_content": "[C]Hello {v:n:laut}world"}
 
 
 # ---------------------------------------------------------------------------
@@ -250,13 +245,13 @@ def test_api_export_roundtrip_for_pro_member(client, pro_member):
             "text": "Amazing grace",
             "marks": [
                 {"line": 0, "col": 0, "token": "1"},
-                {"line": 0, "col": 8, "token": "+5"},
+                {"line": 0, "col": 8, "token": "n:sanft"},
             ],
         },
     )
     assert resp.status_code == 200
     assert resp.json() == {
-        "cho_content": "{v:1}Amazing {v:+5}grace"
+        "cho_content": "{v:1}Amazing {v:n:sanft}grace"
     }
 
 

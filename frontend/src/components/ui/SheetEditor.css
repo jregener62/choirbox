@@ -59,9 +59,9 @@
   top: 0;
   padding: 1px 8px;
   border-radius: 999px;
-  background: var(--v-note, #94a3b8);
-  border: 1px solid var(--v-note, #94a3b8);
-  color: #fde047; /* knallgelb fuer hohen Kontrast auf slate */
+  background: var(--v-note-bg, #FCD34D);
+  border: 1px solid var(--v-note-bg, #FCD34D);
+  color: var(--v-note-text, #1F2937);
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
@@ -88,7 +88,7 @@
   top: 100%;
   width: 2px;
   height: 9px;
-  background: var(--v-note, #94a3b8);
+  background: var(--v-note-bg, #FCD34D);
   margin-top: -3px; /* slight overlap into the pill */
   pointer-events: none;
   z-index: 4;
@@ -145,14 +145,9 @@
   outline: 1.5px dashed var(--v-beat, #a3e635);
   outline-offset: 1px;
 }
-.sheet-editor-text--mode-interval .sheet-editor-char--tappable:hover {
-  background: rgba(251, 191, 36, 0.18);
-  outline: 1.5px dashed var(--v-interval, #fbbf24);
-  outline-offset: 1px;
-}
 .sheet-editor-text--mode-note .sheet-editor-char--tappable:hover {
-  background: rgba(148, 163, 184, 0.18);
-  outline: 1.5px dashed var(--v-note, #94a3b8);
+  background: rgba(252, 211, 77, 0.18);
+  outline: 1.5px dashed var(--v-note-bg, #FCD34D);
   outline-offset: 1px;
 }
 
@@ -177,24 +172,6 @@
 .sheet-editor-char--has-chord.sheet-editor-char--beat {
   text-decoration-color: var(--v-beat, #a3e635);
   box-shadow: 0 4px 0 0 var(--chord, #fbbf24);
-}
-
-/* Inline interval — rendered between characters */
-.sheet-editor-inline {
-  display: inline-block;
-  padding: 0 2px;
-  font-weight: 700;
-  font-size: 0.9em;
-  cursor: pointer;
-  user-select: none;
-  vertical-align: baseline;
-  color: var(--v-interval, #fbbf24);
-}
-.sheet-editor-inline:hover {
-  background: rgba(251, 191, 36, 0.15);
-  border-radius: var(--radius-xs);
-  outline: 1.5px dashed var(--v-interval, #fbbf24);
-  outline-offset: 1px;
 }
 
 /* Preview / confirm dialog */

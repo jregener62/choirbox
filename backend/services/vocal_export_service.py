@@ -11,7 +11,7 @@ versa for the chord editor).
 
 Token vocabulary — current scope:
 - beat: `{v:1}` (Taktanfang / Zaehlzeit 1)
-- interval: `{v:+1}`..`{v:+12}`, `{v:-1}`..`{v:-12}`
+- note: `{v:n:<text>}` (Freitext-Kommentar)
 """
 
 from __future__ import annotations
@@ -21,11 +21,9 @@ from collections import defaultdict
 from dataclasses import dataclass
 
 
-# Current scope: beat (Zaehlzeit 1), intervals (+/-1..+/-12), and free-text
-# notes with the `n:` namespace prefix. Additional ABC-tokens (breath,
-# fermata, dynamics ...) can be added later via new toolbar tools.
+# Current scope: beat (Zaehlzeit 1) and free-text notes with the `n:`
+# namespace prefix. Additional tokens can be added later via new toolbar tools.
 ABC_TOKENS: set[str] = set()
-INTERVAL_RE = re.compile(r"^[+-]([1-9]|1[0-2])$")
 BEAT_RE = re.compile(r"^1$")
 # Free-text note: `n:` followed by at least one non-brace character.
 NOTE_RE = re.compile(r"^n:[^{}]+$")
@@ -44,8 +42,6 @@ class InvalidVocalTokenError(ValueError):
 
 def is_valid_token(token: str) -> bool:
     if token in ABC_TOKENS:
-        return True
-    if INTERVAL_RE.match(token):
         return True
     if BEAT_RE.match(token):
         return True

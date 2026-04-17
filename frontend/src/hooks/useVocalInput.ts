@@ -8,7 +8,7 @@ export interface VocalMark {
   token: string
 }
 
-export type VocalTool = 'beat' | 'interval' | 'note' | null
+export type VocalTool = 'beat' | 'note' | null
 
 interface UndoEntry {
   kind: 'add' | 'remove'
@@ -20,18 +20,10 @@ interface UndoEntry {
 interface VocalInputState {
   mode: boolean
   text: string
-  /** Map "line:col" -> token */
   marks: Record<string, string>
-  /** Chord markers stripped from the displayed text — re-inserted on save. */
   preservedChords: PreservedChord[]
 
-  /** Currently active toolbar tool. null = no tool selected. */
   activeTool: VocalTool
-  /** Interval direction when interval tool is active. */
-  intervalDir: '+' | '-'
-  /** Interval magnitude (1..12) when interval tool is active. */
-  intervalNum: number
-  /** Free-text comment for the note tool. */
   noteText: string
 
   undoStack: UndoEntry[]
@@ -41,14 +33,9 @@ interface VocalInputState {
   loadFromChordPro: (body: string) => void
 
   setActiveTool: (tool: VocalTool) => void
-  setIntervalDir: (dir: '+' | '-') => void
-  setIntervalNum: (n: number) => void
   setNoteText: (text: string) => void
   clearNoteText: () => void
 
-  /** Tap handler: if a mark exists at (line, col), remove it; otherwise
-   *  set a new mark with the token derived from the active tool.
-   *  Returns true if the state changed, false if no tool active or noop. */
   toggleAt: (line: number, col: number) => boolean
 
   undo: () => boolean
@@ -71,8 +58,6 @@ export const useVocalInput = create<VocalInputState>((set, get) => ({
   preservedChords: [],
 
   activeTool: null,
-  intervalDir: '+',
-  intervalNum: 5,
   noteText: '',
 
   undoStack: [],
@@ -88,13 +73,6 @@ export const useVocalInput = create<VocalInputState>((set, get) => ({
   },
 
   setActiveTool: (tool) => set({ activeTool: tool }),
-  setIntervalDir: (dir) => set({ intervalDir: dir }),
-  setIntervalNum: (n) => {
-    const clamped = Math.max(1, Math.min(12, Math.floor(n)))
-    set({ intervalNum: clamped })
-  },
-  // Strip braces — token format forbids `{` and `}`. Trim leading/trailing
-  // whitespace but keep internal spaces for readable comments.
   setNoteText: (text) => set({ noteText: text.replace(/[{}]/g, '') }),
   clearNoteText: () => set({ noteText: '' }),
 
@@ -117,10 +95,7 @@ export const useVocalInput = create<VocalInputState>((set, get) => ({
     let token: string
     if (s.activeTool === 'beat') {
       token = '1'
-    } else if (s.activeTool === 'interval') {
-      token = `${s.intervalDir}${s.intervalNum}`
     } else {
-      // note tool — requires non-empty text
       const text = s.noteText.trim()
       if (!text) return false
       token = `n:${text}`

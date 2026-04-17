@@ -1825,8 +1825,8 @@ body.body-scroll-fs .autoscroll-stepper {
 }
 
 .chord-toggle-segment--vocal.chord-toggle-segment--active {
-  color: var(--v-breath, #22d3ee);
-  background: rgba(34, 211, 238, 0.1);
+  color: var(--v-note-bg, #FCD34D);
+  background: rgba(252, 211, 77, 0.1);
 }
 .chord-toggle-segment--chord.chord-toggle-segment--active {
   color: var(--accent);

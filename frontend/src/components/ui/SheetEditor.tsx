@@ -20,8 +20,6 @@ interface SheetEditorProps {
   onCancel?: () => void
 }
 
-/** Categories that render INLINE between characters. */
-const INLINE_CATEGORIES = new Set(['interval'])
 
 export function SheetEditor({
   text,
@@ -97,7 +95,7 @@ export function SheetEditor({
       if (tool === 'chord') {
         setChordTool('chord')
         setVocalTool(null)
-      } else if (tool === 'beat' || tool === 'interval' || tool === 'note') {
+      } else if (tool === 'beat' || tool === 'note') {
         setChordTool(null)
         setVocalTool(tool)
       } else {
@@ -123,7 +121,6 @@ export function SheetEditor({
   const linesData = useMemo(() => {
     return lines.map((lineText, lineIndex) => {
       const beatCols = new Set<number>()
-      const inlineAtCol = new Map<number, string>()
       const notes: { col: number; token: string }[] = []
       for (const [key, token] of Object.entries(vocalMarks)) {
         const [li, ci] = key.split(':').map(Number)
@@ -132,14 +129,12 @@ export function SheetEditor({
         if (!meta) continue
         if (meta.category === 'beat') {
           beatCols.add(ci)
-        } else if (INLINE_CATEGORIES.has(meta.category)) {
-          inlineAtCol.set(ci, token)
         } else if (meta.category === 'note') {
           notes.push({ col: ci, token })
         }
       }
       notes.sort((a, b) => a.col - b.col)
-      return { text: lineText, beatCols, inlineAtCol, notes }
+      return { text: lineText, beatCols, notes }
     })
   }, [lines, vocalMarks])
 
@@ -153,7 +148,6 @@ export function SheetEditor({
         if (chordToggleAt(line, col)) actionStack.current.push('chord')
       } else if (
         activeTool === 'beat' ||
-        activeTool === 'interval' ||
         activeTool === 'note'
       ) {
         if (vocalToggleAt(line, col)) actionStack.current.push('vocal')
@@ -176,7 +170,6 @@ export function SheetEditor({
       actionStack.current = actionStack.current.filter((x) => x !== 'chord')
     } else if (
       activeTool === 'beat' ||
-      activeTool === 'interval' ||
       activeTool === 'note'
     ) {
       vocalClearAll()
@@ -186,7 +179,7 @@ export function SheetEditor({
 
   const clearDisabled =
     (activeTool === 'chord' && chordCount === 0) ||
-    ((activeTool === 'beat' || activeTool === 'interval' || activeTool === 'note') &&
+    ((activeTool === 'beat' || activeTool === 'note') &&
       vocalCount === 0) ||
     activeTool === null
 
@@ -256,9 +249,7 @@ export function SheetEditor({
       ? 'Alle Akkorde löschen'
       : activeTool === 'beat'
         ? 'Alle Taktanfänge löschen'
-        : activeTool === 'interval'
-          ? 'Alle Intervalle löschen'
-          : activeTool === 'note'
+        : activeTool === 'note'
             ? 'Alle Kommentare löschen'
             : 'Löschen (Tool wählen)'
 
@@ -330,7 +321,6 @@ export function SheetEditor({
     'sheet-editor-text' +
     (activeTool === 'chord' ? ' sheet-editor-text--mode-chord' : '') +
     (activeTool === 'beat' ? ' sheet-editor-text--mode-beat' : '') +
-    (activeTool === 'interval' ? ' sheet-editor-text--mode-interval' : '') +
     (activeTool === 'note' ? ' sheet-editor-text--mode-note' : '')
 
   return (
@@ -394,36 +384,21 @@ export function SheetEditor({
                   <span className="sheet-editor-empty">&nbsp;</span>
                 ) : (
                   [...line].map((ch, col) => {
-                    const inlineToken = ld.inlineAtCol.get(col)
-                    const inlineMeta = inlineToken ? getVocalMeta(inlineToken) : null
                     const isBeat = ld.beatCols.has(col)
                     const hasChord = chords[`${lineIndex}:${col}`] != null
                     return (
-                      <span key={col} style={{ display: 'contents' }}>
-                        {inlineMeta && (
-                          <span
-                            className={`sheet-editor-inline vocal-mark vocal-mark--${inlineMeta.category}`}
-                            title={inlineMeta.label}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleCharClick(lineIndex, col)
-                            }}
-                          >
-                            {inlineMeta.symbol}
-                          </span>
-                        )}
-                        <span
-                          className={
-                            'sheet-editor-char' +
-                            (activeTool ? ' sheet-editor-char--tappable' : '') +
-                            (hasChord ? ' sheet-editor-char--has-chord' : '') +
-                            (isBeat ? ' sheet-editor-char--beat' : '')
-                          }
-                          onClick={() => handleCharClick(lineIndex, col)}
-                          onContextMenu={(e) => e.preventDefault()}
-                        >
+                      <span
+                        key={col}
+                        className={
+                          'sheet-editor-char' +
+                          (activeTool ? ' sheet-editor-char--tappable' : '') +
+                          (hasChord ? ' sheet-editor-char--has-chord' : '') +
+                          (isBeat ? ' sheet-editor-char--beat' : '')
+                        }
+                        onClick={() => handleCharClick(lineIndex, col)}
+                        onContextMenu={(e) => e.preventDefault()}
+                      >
                           {ch === ' ' ? '\u00A0' : ch}
-                        </span>
                       </span>
                     )
                   })

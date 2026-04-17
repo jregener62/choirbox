@@ -88,13 +88,9 @@
   /* Section color */
   --sec-color: #64748b;
   /* Vocal-instruction marks */
-  --v-breath: #0e7490;
   --v-beat: #65a30d;
-  --v-interval: #b45309;
-  --v-dyn: #7c3aed;
-  --v-artic: var(--text-primary);
-  --v-entry: #dc2626;
-  --v-note: #64748b;
+  --v-note-bg: #FCD34D;
+  --v-note-text: #1F2937;
 }
 
 /* --- Colors: Dark Theme --- */
@@ -122,12 +118,8 @@
   --confirm-hover: #2563eb;
   --player-bg: #2A3348;
   --player-text: #E4E8EE;
-  /* Vocal-instruction marks (dark theme — brighter) */
-  --v-breath: #22d3ee;
+  /* Vocal-instruction marks (dark theme) */
   --v-beat: #a3e635;
-  --v-interval: #fbbf24;
-  --v-dyn: #c084fc;
-  --v-artic: var(--text-primary);
-  --v-entry: #f87171;
-  --v-note: #94a3b8;
+  --v-note-bg: #FCD34D;
+  --v-note-text: #1F2937;
 }

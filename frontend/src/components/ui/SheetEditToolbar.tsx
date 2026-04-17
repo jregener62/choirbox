@@ -1,10 +1,10 @@
-import { Delete, Minus, Plus, X } from 'lucide-react'
+import { Delete, X } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
 
-export type ActiveTool = 'chord' | 'beat' | 'interval' | 'note' | null
+export type ActiveTool = 'chord' | 'beat' | 'note' | null
 
 interface SheetEditToolbarProps {
   activeTool: ActiveTool
@@ -20,19 +20,11 @@ export function SheetEditToolbar({
   activeTool,
   onSelectTool,
 }: SheetEditToolbarProps) {
-  // Chord-builder state from hook
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const appendBuilder = useChordInput((s) => s.appendBuilder)
   const backspaceBuilder = useChordInput((s) => s.backspaceBuilder)
   const clearBuilder = useChordInput((s) => s.clearBuilder)
 
-  // Interval state from hook
-  const intervalDir = useVocalInput((s) => s.intervalDir)
-  const intervalNum = useVocalInput((s) => s.intervalNum)
-  const setIntervalDir = useVocalInput((s) => s.setIntervalDir)
-  const setIntervalNum = useVocalInput((s) => s.setIntervalNum)
-
-  // Note state from hook
   const noteText = useVocalInput((s) => s.noteText)
   const setNoteText = useVocalInput((s) => s.setNoteText)
   const clearNoteText = useVocalInput((s) => s.clearNoteText)
@@ -47,7 +39,6 @@ export function SheetEditToolbar({
   return (
     <div className="set-toolbar" role="toolbar" aria-label="Bearbeiten">
       <div className="set-main-row">
-        {/* Tool buttons */}
         <button
           type="button"
           className={`set-tool set-tool--chord${activeTool === 'chord' ? ' set-tool--active' : ''}`}
@@ -70,16 +61,6 @@ export function SheetEditToolbar({
 
         <button
           type="button"
-          className={`set-tool set-tool--interval${activeTool === 'interval' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('interval')}
-          title="Intervall"
-          aria-pressed={activeTool === 'interval'}
-        >
-          <span className="set-tool-label">Intervall</span>
-        </button>
-
-        <button
-          type="button"
           className={`set-tool set-tool--note${activeTool === 'note' ? ' set-tool--active' : ''}`}
           onClick={() => toggle('note')}
           title="Kommentar"
@@ -87,23 +68,14 @@ export function SheetEditToolbar({
         >
           <span className="set-tool-label">Kommentar</span>
         </button>
-
       </div>
 
-      {/* Sub-row: chord keypad — two lines so preview sits next to A..G */}
       {activeTool === 'chord' && (
         <div className="set-sub-row">
           <div className="set-sub-row-line">
             <div className="set-keypad-group">
               {NOTES.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="set-key set-key--note"
-                  onClick={() => appendBuilder(n)}
-                >
-                  {n}
-                </button>
+                <button key={n} type="button" className="set-key set-key--note" onClick={() => appendBuilder(n)}>{n}</button>
               ))}
             </div>
             <div className={`set-preview${chordShowError ? ' set-preview--error' : ''}`}>
@@ -113,81 +85,33 @@ export function SheetEditToolbar({
                   {!chordValid && <span className="set-preview-hint">ungültig</span>}
                 </>
               ) : (
-                <span className="set-preview-hint set-preview-hint--empty">
-                  bauen…
-                </span>
+                <span className="set-preview-hint set-preview-hint--empty">bauen…</span>
               )}
             </div>
           </div>
-
           <div className="set-sub-row-line">
             <div className="set-keypad-group">
               {ACCIDENTALS.map((a) => (
-                <button
-                  key={a}
-                  type="button"
-                  className="set-key set-key--mod"
-                  onClick={() => appendBuilder(a)}
-                >
-                  {a === '#' ? '♯' : '♭'}
-                </button>
+                <button key={a} type="button" className="set-key set-key--mod" onClick={() => appendBuilder(a)}>{a === '#' ? '♯' : '♭'}</button>
               ))}
               {QUALITIES.map((q) => (
-                <button
-                  key={q}
-                  type="button"
-                  className="set-key set-key--mod"
-                  onClick={() => appendBuilder(q)}
-                >
-                  {q}
-                </button>
+                <button key={q} type="button" className="set-key set-key--mod" onClick={() => appendBuilder(q)}>{q}</button>
               ))}
             </div>
             <div className="set-keypad-group">
               {NUMBERS.map((n) => (
-                <button
-                  key={n}
-                  type="button"
-                  className="set-key set-key--num"
-                  onClick={() => appendBuilder(n)}
-                >
-                  {n}
-                </button>
+                <button key={n} type="button" className="set-key set-key--num" onClick={() => appendBuilder(n)}>{n}</button>
               ))}
-              <button
-                type="button"
-                className="set-key set-key--mod"
-                onClick={() => appendBuilder('/')}
-                title="Slash (Bass-Note)"
-              >
-                /
-              </button>
+              <button type="button" className="set-key set-key--mod" onClick={() => appendBuilder('/')} title="Slash (Bass-Note)">/</button>
             </div>
             <div className="set-keypad-group set-keypad-group--actions">
-              <button
-                type="button"
-                className="set-key set-key--util"
-                onClick={backspaceBuilder}
-                disabled={chordBuilder.length === 0}
-                title="Letztes Zeichen entfernen"
-              >
-                <Delete size={16} />
-              </button>
-              <button
-                type="button"
-                className="set-key set-key--util"
-                onClick={clearBuilder}
-                disabled={chordBuilder.length === 0}
-                title="Akkord leeren"
-              >
-                ×
-              </button>
+              <button type="button" className="set-key set-key--util" onClick={backspaceBuilder} disabled={chordBuilder.length === 0} title="Letztes Zeichen entfernen"><Delete size={16} /></button>
+              <button type="button" className="set-key set-key--util" onClick={clearBuilder} disabled={chordBuilder.length === 0} title="Akkord leeren">×</button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Sub-row: beat demo preview */}
       {activeTool === 'beat' && (
         <div className="set-sub-row">
           <div className="set-sub-row-line">
@@ -200,61 +124,6 @@ export function SheetEditToolbar({
         </div>
       )}
 
-      {/* Sub-row: interval controls */}
-      {activeTool === 'interval' && (
-        <div className="set-sub-row">
-          <div className="set-sub-row-line">
-            <div className="set-preview">
-              <span className="set-preview-token set-preview-token--interval">
-                {intervalDir === '+' ? '↑' : '↓'}{intervalNum}
-              </span>
-            </div>
-            <div className="set-direction-pill">
-              <button
-                type="button"
-                className={`set-dir-btn${intervalDir === '+' ? ' set-dir-btn--active' : ''}`}
-                onClick={() => setIntervalDir('+')}
-                title="aufwärts"
-                aria-pressed={intervalDir === '+'}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                className={`set-dir-btn${intervalDir === '-' ? ' set-dir-btn--active' : ''}`}
-                onClick={() => setIntervalDir('-')}
-                title="abwärts"
-                aria-pressed={intervalDir === '-'}
-              >
-                ↓
-              </button>
-            </div>
-            <div className="set-number">
-              <button
-                type="button"
-                className="set-num-btn"
-                onClick={() => setIntervalNum(intervalNum - 1)}
-                disabled={intervalNum <= 1}
-                title="kleiner"
-              >
-                <Minus size={14} />
-              </button>
-              <span className="set-num-value">{intervalNum}</span>
-              <button
-                type="button"
-                className="set-num-btn"
-                onClick={() => setIntervalNum(intervalNum + 1)}
-                disabled={intervalNum >= 12}
-                title="größer"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Sub-row: note text input */}
       {activeTool === 'note' && (
         <div className="set-sub-row">
           <div className="set-sub-row-line">
@@ -266,13 +135,7 @@ export function SheetEditToolbar({
               placeholder="Kommentar eingeben, dann Zeichen antippen"
               autoFocus
             />
-            <button
-              type="button"
-              className="set-note-clear"
-              onClick={clearNoteText}
-              disabled={noteText.length === 0}
-              title="Text leeren"
-            >
+            <button type="button" className="set-note-clear" onClick={clearNoteText} disabled={noteText.length === 0} title="Text leeren">
               <X size={14} />
             </button>
           </div>
