@@ -15,6 +15,9 @@ interface State {
   onSave: () => void
   onClose: () => void
 
+  /** When true, undo/clear are hidden (source/text-edit has its own undo). */
+  sourceMode: boolean
+
   /** Utility actions (undo / clear / preview) rendered in the file-info bar. */
   undoDisabled: boolean
   clearDisabled: boolean
@@ -59,6 +62,7 @@ export const useEditorCommands = create<State>((set) => ({
   saveTitle: 'Speichern',
   onSave: noop,
   onClose: noop,
+  sourceMode: false,
   undoDisabled: true,
   clearDisabled: true,
   clearTitle: 'Löschen',
@@ -79,6 +83,7 @@ export const useEditorCommands = create<State>((set) => ({
       saveTitle: 'Speichern',
       onSave: noop,
       onClose: noop,
+      sourceMode: false,
       undoDisabled: true,
       clearDisabled: true,
       clearTitle: 'Löschen',

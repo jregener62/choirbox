@@ -328,8 +328,9 @@ export function SheetEditor({
       clearDisabled,
       clearTitle,
       previewDisabled: totalCount === 0,
+      sourceMode: activeTool === 'source',
     })
-  }, [saving, saveDisabled, saveTitle, clearDisabled, clearTitle, totalCount])
+  }, [saving, saveDisabled, saveTitle, clearDisabled, clearTitle, totalCount, activeTool])
 
   // Sync undo-disabled based on actionStack depth.
   useEffect(() => {

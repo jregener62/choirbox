@@ -504,6 +504,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
  *  the sheet editor is active. Reads all state from useEditorCommands. */
 function EditorActionsInline() {
   const active = useEditorCommands((s) => s.active)
+  const sourceMode = useEditorCommands((s) => s.sourceMode)
   const undoDisabled = useEditorCommands((s) => s.undoDisabled)
   const clearDisabled = useEditorCommands((s) => s.clearDisabled)
   const clearTitle = useEditorCommands((s) => s.clearTitle)
@@ -515,24 +516,28 @@ function EditorActionsInline() {
   if (!active) return null
   return (
     <div className="pdf-toolbar-actions">
-      <button
-        type="button"
-        className="pdf-toolbar-btn"
-        onClick={onUndo}
-        disabled={undoDisabled}
-        title="Rückgängig"
-      >
-        <Undo2 size={16} />
-      </button>
-      <button
-        type="button"
-        className="pdf-toolbar-btn pdf-toolbar-btn--danger"
-        onClick={onClear}
-        disabled={clearDisabled}
-        title={clearTitle}
-      >
-        <Trash2 size={16} />
-      </button>
+      {!sourceMode && (
+        <>
+          <button
+            type="button"
+            className="pdf-toolbar-btn"
+            onClick={onUndo}
+            disabled={undoDisabled}
+            title="Rückgängig"
+          >
+            <Undo2 size={16} />
+          </button>
+          <button
+            type="button"
+            className="pdf-toolbar-btn pdf-toolbar-btn--danger"
+            onClick={onClear}
+            disabled={clearDisabled}
+            title={clearTitle}
+          >
+            <Trash2 size={16} />
+          </button>
+        </>
+      )}
       <button
         type="button"
         className="pdf-toolbar-btn"
