@@ -91,6 +91,10 @@
   --v-beat: #65a30d;
   --v-note-bg: #FCD34D;
   --v-note-text: #1F2937;
+  --v-note-inline-bg: #5EEAD4;
+  --v-note-inline-text: #134E4A;
+  --v-note-bottom-bg: #FDA4AF;
+  --v-note-bottom-text: #881337;
 }
 
 /* --- Colors: Dark Theme --- */
@@ -122,4 +126,8 @@
   --v-beat: #a3e635;
   --v-note-bg: #FCD34D;
   --v-note-text: #1F2937;
+  --v-note-inline-bg: #5EEAD4;
+  --v-note-inline-text: #134E4A;
+  --v-note-bottom-bg: #FDA4AF;
+  --v-note-bottom-text: #881337;
 }

@@ -21,10 +21,12 @@ from backend.services.vocal_export_service import (
     "token",
     [
         "1",  # beat (Zaehlzeit 1)
-        "n:Hier zart beginnen",
+        "n:Hier zart beginnen",  # legacy (no position = top)
+        "n:t:oben",
+        "n:i:inline",
+        "n:b:unten",
         "n:x",
         "n:mit Akzent!",
-        "n:Einzelwort",
     ],
 )
 def test_validate_accepts(token):

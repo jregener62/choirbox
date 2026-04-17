@@ -83,17 +83,65 @@
    anchored character, independent of the pill's position/width.
    `top: 100%` sits at the bottom of the note-row — directly above the
    text of the line it belongs to. */
-.sheet-editor-note-tail {
+/* Top tail — hangs below pill, pointing down to anchored char */
+.sheet-editor-note-tail--top {
   position: absolute;
   top: 100%;
   width: 2px;
   height: 9px;
   background: var(--v-note-bg, #FCD34D);
-  margin-top: -3px; /* slight overlap into the pill */
+  margin-top: -3px;
   pointer-events: none;
   z-index: 4;
 }
 
+/* Bottom tail — sits above pill, pointing up to anchored char */
+.sheet-editor-note-tail--bottom {
+  position: absolute;
+  bottom: 100%;
+  width: 2px;
+  height: 9px;
+  background: var(--v-note-bottom-bg, #FDA4AF);
+  margin-bottom: -3px;
+  pointer-events: none;
+  z-index: 4;
+}
+
+/* Bottom-pill colors */
+.sheet-editor-note-pill--bottom {
+  background: var(--v-note-bottom-bg, #FDA4AF);
+  border-color: var(--v-note-bottom-bg, #FDA4AF);
+  color: var(--v-note-bottom-text, #881337);
+}
+
+/* Bottom note-row sits below the line-body */
+.sheet-editor-note-row--bottom {
+  position: relative;
+  height: 22px;
+  pointer-events: none;
+}
+.sheet-editor-note-row--bottom .sheet-editor-note-pill {
+  bottom: 0;
+  top: auto;
+}
+
+/* Inline note — rendered between characters */
+.sheet-editor-note-inline {
+  display: inline-block;
+  padding: 0 4px;
+  background: var(--v-note-inline-bg, #5EEAD4);
+  color: var(--v-note-inline-text, #134E4A);
+  font-size: 12px;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  user-select: none;
+  vertical-align: baseline;
+}
+.sheet-editor-note-inline:hover {
+  opacity: 0.8;
+}
 
 .sheet-editor-chord {
   position: absolute;

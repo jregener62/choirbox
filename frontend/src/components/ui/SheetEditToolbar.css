@@ -123,6 +123,45 @@
   font-style: italic;
 }
 
+/* Note position buttons */
+.set-note-pos {
+  display: inline-flex;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  flex-shrink: 0;
+}
+.set-note-pos-btn {
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.set-note-pos-btn--t.set-note-pos-btn--active {
+  background: var(--v-note-bg, #FCD34D);
+  color: var(--v-note-text, #1F2937);
+}
+.set-note-pos-btn--i.set-note-pos-btn--active {
+  background: var(--v-note-inline-bg, #5EEAD4);
+  color: var(--v-note-inline-text, #134E4A);
+}
+.set-note-pos-btn--b.set-note-pos-btn--active {
+  background: var(--v-note-bottom-bg, #FDA4AF);
+  color: var(--v-note-bottom-text, #881337);
+}
+
+/* Input border color tracks active position */
+.set-note-input--t:focus { border-color: var(--v-note-bg, #FCD34D); box-shadow: 0 0 0 2px rgba(252, 211, 77, 0.18); }
+.set-note-input--i:focus { border-color: var(--v-note-inline-bg, #5EEAD4); box-shadow: 0 0 0 2px rgba(94, 234, 212, 0.18); }
+.set-note-input--b:focus { border-color: var(--v-note-bottom-bg, #FDA4AF); box-shadow: 0 0 0 2px rgba(253, 164, 175, 0.18); }
+
 .set-note-clear {
   width: 32px;
   height: 32px;

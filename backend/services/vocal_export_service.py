@@ -25,8 +25,9 @@ from dataclasses import dataclass
 # namespace prefix. Additional tokens can be added later via new toolbar tools.
 ABC_TOKENS: set[str] = set()
 BEAT_RE = re.compile(r"^1$")
-# Free-text note: `n:` followed by at least one non-brace character.
-NOTE_RE = re.compile(r"^n:[^{}]+$")
+# Free-text note with position prefix: n:t: (top), n:i: (inline), n:b: (bottom).
+# Legacy format `n:<text>` (no position) is accepted as top.
+NOTE_RE = re.compile(r"^n:(?:[tib]:)?[^{}]+$")
 
 
 @dataclass(frozen=True)

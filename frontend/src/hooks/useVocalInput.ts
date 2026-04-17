@@ -1,6 +1,7 @@
 import { create } from 'zustand'
 import { api } from '@/api/client.ts'
 import { parseVocalPositions, type PreservedChord } from '@/utils/vocalPositions'
+import { type NotePosition, buildNoteToken } from '@/utils/vocalValidation'
 
 export interface VocalMark {
   line: number
@@ -25,6 +26,7 @@ interface VocalInputState {
 
   activeTool: VocalTool
   noteText: string
+  notePosition: NotePosition
 
   undoStack: UndoEntry[]
 
@@ -34,6 +36,7 @@ interface VocalInputState {
 
   setActiveTool: (tool: VocalTool) => void
   setNoteText: (text: string) => void
+  setNotePosition: (pos: NotePosition) => void
   clearNoteText: () => void
 
   toggleAt: (line: number, col: number) => boolean
@@ -59,6 +62,7 @@ export const useVocalInput = create<VocalInputState>((set, get) => ({
 
   activeTool: null,
   noteText: '',
+  notePosition: 't' as NotePosition,
 
   undoStack: [],
 
@@ -74,6 +78,7 @@ export const useVocalInput = create<VocalInputState>((set, get) => ({
 
   setActiveTool: (tool) => set({ activeTool: tool }),
   setNoteText: (text) => set({ noteText: text.replace(/[{}]/g, '') }),
+  setNotePosition: (pos) => set({ notePosition: pos }),
   clearNoteText: () => set({ noteText: '' }),
 
   toggleAt: (line, col) => {
@@ -98,7 +103,7 @@ export const useVocalInput = create<VocalInputState>((set, get) => ({
     } else {
       const text = s.noteText.trim()
       if (!text) return false
-      token = `n:${text}`
+      token = buildNoteToken(s.notePosition, text)
     }
     set({
       marks: { ...s.marks, [key]: token },

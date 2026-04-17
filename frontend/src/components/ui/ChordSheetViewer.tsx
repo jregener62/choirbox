@@ -167,7 +167,7 @@ function ChordLineView({
     <div className="vocal-row">
       {overlayMarks.map((m, i) => {
         const meta = getVocalMeta(m.token)!
-        if (meta.category === 'note') {
+        if (meta.category === 'note-top' || meta.category === 'note-bottom') {
           return (
             <span key={i} style={{ display: 'contents' }}>
               <span

@@ -1,6 +1,7 @@
-import { Delete, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowUpDown, Delete, X } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
+import type { NotePosition } from '@/utils/vocalValidation'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
 
@@ -26,7 +27,9 @@ export function SheetEditToolbar({
   const clearBuilder = useChordInput((s) => s.clearBuilder)
 
   const noteText = useVocalInput((s) => s.noteText)
+  const notePos = useVocalInput((s) => s.notePosition)
   const setNoteText = useVocalInput((s) => s.setNoteText)
+  const setNotePos = useVocalInput((s) => s.setNotePosition)
   const clearNoteText = useVocalInput((s) => s.clearNoteText)
 
   const displayToken = chordBuilder.replaceAll('#', '♯').replaceAll('b', '♭')
@@ -137,9 +140,23 @@ export function SheetEditToolbar({
       {activeTool === 'note' && (
         <div className="set-sub-row">
           <div className="set-sub-row-line">
+            <div className="set-note-pos" role="group" aria-label="Kommentar-Position">
+              {([['t', 'Über der Zeile', ArrowUp], ['i', 'Inline', ArrowUpDown], ['b', 'Unter der Zeile', ArrowDown]] as const).map(([pos, title, Icon]) => (
+                <button
+                  key={pos}
+                  type="button"
+                  className={`set-note-pos-btn set-note-pos-btn--${pos}${notePos === pos ? ' set-note-pos-btn--active' : ''}`}
+                  onClick={() => setNotePos(pos as NotePosition)}
+                  title={title}
+                  aria-pressed={notePos === pos}
+                >
+                  <Icon size={14} />
+                </button>
+              ))}
+            </div>
             <input
               type="text"
-              className="set-note-input"
+              className={`set-note-input set-note-input--${notePos}`}
               value={noteText}
               onChange={(e) => setNoteText(e.target.value)}
               placeholder="Kommentar eingeben, dann Zeichen antippen"

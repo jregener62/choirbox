@@ -155,7 +155,9 @@ export function SheetEditor({
   const linesData = useMemo(() => {
     return lines.map((lineText, lineIndex) => {
       const beatCols = new Set<number>()
-      const notes: { col: number; token: string }[] = []
+      const notesTop: { col: number; token: string }[] = []
+      const notesInline = new Map<number, string>()
+      const notesBottom: { col: number; token: string }[] = []
       for (const [key, token] of Object.entries(vocalMarks)) {
         const [li, ci] = key.split(':').map(Number)
         if (li !== lineIndex) continue
@@ -163,12 +165,17 @@ export function SheetEditor({
         if (!meta) continue
         if (meta.category === 'beat') {
           beatCols.add(ci)
-        } else if (meta.category === 'note') {
-          notes.push({ col: ci, token })
+        } else if (meta.category === 'note-top') {
+          notesTop.push({ col: ci, token })
+        } else if (meta.category === 'note-inline') {
+          notesInline.set(ci, token)
+        } else if (meta.category === 'note-bottom') {
+          notesBottom.push({ col: ci, token })
         }
       }
-      notes.sort((a, b) => a.col - b.col)
-      return { text: lineText, beatCols, notes }
+      notesTop.sort((a, b) => a.col - b.col)
+      notesBottom.sort((a, b) => a.col - b.col)
+      return { text: lineText, beatCols, notesTop, notesInline, notesBottom }
     })
   }, [lines, vocalMarks])
 
@@ -363,28 +370,21 @@ export function SheetEditor({
           const lineChords = chordsByLine.get(lineIndex) ?? []
           return (
             <div key={lineIndex} className="sheet-editor-line">
-              {ld.notes.length > 0 && (
+              {ld.notesTop.length > 0 && (
                 <div className="sheet-editor-note-row">
-                  {ld.notes.map(({ col, token }) => {
+                  {ld.notesTop.map(({ col, token }) => {
                     const meta = getVocalMeta(token)
                     return (
-                      <span key={`n-${col}`} style={{ display: 'contents' }}>
+                      <span key={`nt-${col}`} style={{ display: 'contents' }}>
                         <span
-                          className="sheet-editor-note-pill"
+                          className="sheet-editor-note-pill sheet-editor-note-pill--top"
                           style={{ left: `${col}ch` }}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            handleCharClick(lineIndex, col)
-                          }}
-                          title={activeTool === 'note' ? 'Tap entfernt diesen Kommentar' : meta?.label ?? token}
+                          onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
+                          title={meta?.label ?? token}
                         >
                           <span className="sheet-editor-note-pill-text">{meta?.label}</span>
                         </span>
-                        <span
-                          className="sheet-editor-note-tail"
-                          style={{ left: `calc(${col}ch + 0.5ch - 1px)` }}
-                          aria-hidden="true"
-                        />
+                        <span className="sheet-editor-note-tail sheet-editor-note-tail--top" style={{ left: `calc(${col}ch + 0.5ch - 1px)` }} aria-hidden="true" />
                       </span>
                     )
                   })}
@@ -411,25 +411,57 @@ export function SheetEditor({
                   [...line].map((ch, col) => {
                     const isBeat = ld.beatCols.has(col)
                     const hasChord = chords[`${lineIndex}:${col}`] != null
+                    const inlineNote = ld.notesInline.get(col)
+                    const inlineMeta = inlineNote ? getVocalMeta(inlineNote) : null
                     return (
-                      <span
-                        key={col}
-                        className={
-                          'sheet-editor-char' +
-                          (activeTool ? ' sheet-editor-char--tappable' : '') +
-                          (hasChord ? ' sheet-editor-char--has-chord' : '') +
-                          (isBeat ? ' sheet-editor-char--beat' : '')
-                        }
-                        onClick={() => handleCharClick(lineIndex, col)}
-                        onContextMenu={(e) => e.preventDefault()}
-                      >
+                      <span key={col} style={{ display: 'contents' }}>
+                        {inlineMeta && (
+                          <span
+                            className="sheet-editor-note-inline"
+                            onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
+                            title={inlineMeta.label}
+                          >
+                            {inlineMeta.label}
+                          </span>
+                        )}
+                        <span
+                          className={
+                            'sheet-editor-char' +
+                            (activeTool ? ' sheet-editor-char--tappable' : '') +
+                            (hasChord ? ' sheet-editor-char--has-chord' : '') +
+                            (isBeat ? ' sheet-editor-char--beat' : '')
+                          }
+                          onClick={() => handleCharClick(lineIndex, col)}
+                          onContextMenu={(e) => e.preventDefault()}
+                        >
                           {ch === ' ' ? '\u00A0' : ch}
+                        </span>
                       </span>
                     )
                   })
                 )}
               </div>
               </div>
+              {ld.notesBottom.length > 0 && (
+                <div className="sheet-editor-note-row sheet-editor-note-row--bottom">
+                  {ld.notesBottom.map(({ col, token }) => {
+                    const meta = getVocalMeta(token)
+                    return (
+                      <span key={`nb-${col}`} style={{ display: 'contents' }}>
+                        <span className="sheet-editor-note-tail sheet-editor-note-tail--bottom" style={{ left: `calc(${col}ch + 0.5ch - 1px)` }} aria-hidden="true" />
+                        <span
+                          className="sheet-editor-note-pill sheet-editor-note-pill--bottom"
+                          style={{ left: `${col}ch` }}
+                          onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
+                          title={meta?.label ?? token}
+                        >
+                          <span className="sheet-editor-note-pill-text">{meta?.label}</span>
+                        </span>
+                      </span>
+                    )
+                  })}
+                </div>
+              )}
             </div>
           )
         })}
