@@ -152,16 +152,20 @@ function ChordLineView({
 
   const showVocal = !hideVocal && !!line.vocalMarks?.length
 
-  // Beat-Marks werden als Unterstrich am Text-Zeichen gerendert.
-  // Note-Marks kommen in die "vocal-row" oberhalb als Pills.
+  // Beat-Marks: Unterstrich. Note-top/bottom: Pills. Note-inline: between chars.
   const allMarks: VocalMarkPosition[] = showVocal ? (line.vocalMarks || []) : []
   const overlayMarks = allMarks.filter(m => {
     const meta = getVocalMeta(m.token)
-    return meta && meta.category !== 'beat'
+    return meta && (meta.category === 'note-top' || meta.category === 'note-bottom')
   })
   const beatCols = new Set<number>(
     allMarks.filter(m => getVocalMeta(m.token)?.category === 'beat').map(m => m.col),
   )
+  const inlineNotes = new Map<number, string>()
+  for (const m of allMarks) {
+    const meta = getVocalMeta(m.token)
+    if (meta?.category === 'note-inline') inlineNotes.set(m.col, m.token)
+  }
 
   const vocalRow = overlayMarks.length > 0 ? (
     <div className="vocal-row">
@@ -205,7 +209,7 @@ function ChordLineView({
       <div className={`chord-line${commentClass}`}>
         {vocalRow}
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, new Set(), beatCols)}
+          {renderTextWithAnchors(line.text, new Set(), beatCols, inlineNotes)}
           {annotations}
         </div>
       </div>
@@ -236,7 +240,7 @@ function ChordLineView({
       </div>
       {(line.text || annotations) && (
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, anchorCols, beatCols)}
+          {renderTextWithAnchors(line.text, anchorCols, beatCols, inlineNotes)}
           {annotations}
         </div>
       )}
@@ -254,15 +258,28 @@ function renderTextWithAnchors(
   text: string,
   anchorCols: Set<number>,
   beatCols: Set<number>,
+  inlineNotes: Map<number, string>,
 ): ReactNode {
-  if (anchorCols.size === 0 && beatCols.size === 0) return text
+  if (anchorCols.size === 0 && beatCols.size === 0 && inlineNotes.size === 0)
+    return text
   const parts: ReactNode[] = []
   let run = ''
+  const flush = () => { if (run) { parts.push(run); run = '' } }
   for (let i = 0; i < text.length; i++) {
+    const noteToken = inlineNotes.get(i)
+    if (noteToken) {
+      flush()
+      const meta = getVocalMeta(noteToken)
+      if (meta) {
+        parts.push(
+          <span key={`ni-${i}`} className="vocal-note-inline">{meta.label}</span>,
+        )
+      }
+    }
     const isAnchor = anchorCols.has(i)
     const isBeat = beatCols.has(i)
     if (isAnchor || isBeat) {
-      if (run) { parts.push(run); run = '' }
+      flush()
       const cls =
         (isAnchor ? 'chord-anchor' : '') +
         (isBeat ? (isAnchor ? ' vocal-beat-anchor' : 'vocal-beat-anchor') : '')

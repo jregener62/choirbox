@@ -120,7 +120,21 @@
 
 /* Farbcodierung der Vocal-Marks */
 .vocal-mark--beat     { color: var(--v-beat, #a3e635); }
-.vocal-mark--note     { color: var(--v-note-bg, #FCD34D); }
+.vocal-mark--note-top     { color: var(--v-note-bg, #FCD34D); }
+.vocal-mark--note-bottom  { color: var(--v-note-bottom-bg, #FDA4AF); }
+
+/* Inline note — rendered between characters in the text row */
+.vocal-note-inline {
+  display: inline-block;
+  padding: 0 4px;
+  background: var(--v-note-inline-bg, #5EEAD4);
+  color: var(--v-note-inline-text, #134E4A);
+  font-size: 0.8em;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  border-radius: var(--radius-xs, 4px);
+  vertical-align: baseline;
+}
 
 /* Buchstabe im Text, ueber dem der Akkord steht — unterstrichen. */
 .chord-anchor {
