@@ -4,7 +4,7 @@ import { useVocalInput } from '@/hooks/useVocalInput'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
 
-export type ActiveTool = 'chord' | 'beat' | 'note' | null
+export type ActiveTool = 'chord' | 'beat' | 'note' | 'source' | null
 
 interface SheetEditToolbarProps {
   activeTool: ActiveTool
@@ -67,6 +67,16 @@ export function SheetEditToolbar({
           aria-pressed={activeTool === 'note'}
         >
           <span className="set-tool-label">Kommentar</span>
+        </button>
+
+        <button
+          type="button"
+          className={`set-tool set-tool--source${activeTool === 'source' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('source')}
+          title="Text / Quelltext bearbeiten"
+          aria-pressed={activeTool === 'source'}
+        >
+          <span className="set-tool-label">Text</span>
         </button>
       </div>
 

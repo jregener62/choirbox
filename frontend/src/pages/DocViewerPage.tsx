@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, FileX, Mic, Save, X } from 'lucide-react'
+import { ChevronLeft, FileX, Mic, X } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -77,7 +77,7 @@ export function DocViewerPage() {
             title={editorSaveTitle}
             aria-busy={editorSaving}
           >
-            <Save size={18} />
+            Speichern
           </button>
         ) : (
           canUpload && songFolderPath && (

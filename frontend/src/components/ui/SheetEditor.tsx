@@ -5,6 +5,7 @@ import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
+import { SyntaxTextarea } from './SyntaxTextarea'
 import { getVocalMeta } from '@/utils/vocalValidation'
 import './SheetEditor.css'
 
@@ -57,6 +58,8 @@ export function SheetEditor({
   const [previewCho, setPreviewCho] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
+  /** Raw source for the source-editor (syntax-highlighted textarea). */
+  const [sourceText, setSourceText] = useState('')
   /** Global action history — tracks which hook produced each action. */
   const actionStack = useRef<Array<'chord' | 'vocal'>>([])
 
@@ -64,6 +67,8 @@ export function SheetEditor({
 
   useEffect(() => {
     // Load both hooks from the same source so text + preserved* are in sync.
+    const raw = chordProBody ?? text ?? ''
+    setSourceText(raw)
     if (chordProBody != null) {
       loadChordFrom(chordProBody)
       loadVocalFrom(chordProBody)
@@ -88,9 +93,38 @@ export function SheetEditor({
     setChordMode, setVocalMode,
   ])
 
+  const buildMergedCho = async () => {
+    const chordList = useChordInput.getState().list()
+    const vocalList = useVocalInput.getState().list()
+    const textNow = useChordInput.getState().text
+    const result = await api<{ cho_content: string }>('/chord-input/export', {
+      method: 'POST',
+      body: { text: textNow, chords: chordList, vocals: vocalList },
+    })
+    return result.cho_content
+  }
+
   // Coordinate tool selection: activating a tool in one hook deactivates the other.
+  // When switching TO source: build merged cho into sourceText.
+  // When switching FROM source: re-parse sourceText into both hooks.
   const selectTool = useCallback(
-    (tool: ActiveTool) => {
+    async (tool: ActiveTool) => {
+      const prev = activeTool
+
+      // Leaving source mode → re-parse sourceText into hooks
+      if (prev === 'source' && tool !== 'source') {
+        loadChordFrom(sourceText)
+        loadVocalFrom(sourceText)
+      }
+
+      // Entering source mode → build merged cho from hooks
+      if (tool === 'source' && prev !== 'source') {
+        try {
+          const cho = await buildMergedCho()
+          setSourceText(cho)
+        } catch { /* keep current sourceText */ }
+      }
+
       setActiveToolLocal(tool)
       if (tool === 'chord') {
         setChordTool('chord')
@@ -103,7 +137,7 @@ export function SheetEditor({
         setVocalTool(null)
       }
     },
-    [setChordTool, setVocalTool],
+    [activeTool, sourceText, setChordTool, setVocalTool, loadChordFrom, loadVocalFrom],
   )
 
   const lines = useMemo(() => chordText.split('\n'), [chordText])
@@ -183,21 +217,6 @@ export function SheetEditor({
       vocalCount === 0) ||
     activeTool === null
 
-  const buildMergedCho = async () => {
-    const chordList = useChordInput.getState().list()
-    const vocalList = useVocalInput.getState().list()
-    const textNow = useChordInput.getState().text
-    const result = await api<{ cho_content: string }>('/chord-input/export', {
-      method: 'POST',
-      body: {
-        text: textNow,
-        chords: chordList,
-        vocals: vocalList,
-      },
-    })
-    return result.cho_content
-  }
-
   const handlePreview = async () => {
     setError(null)
     try {
@@ -212,7 +231,9 @@ export function SheetEditor({
     setSaving(true)
     setError(null)
     try {
-      const cho = await buildMergedCho()
+      // In source mode, save the raw textarea content directly.
+      // In tool mode, build merged ChordPro from both hooks.
+      const cho = activeTool === 'source' ? sourceText : await buildMergedCho()
       if (isEditMode && editDocId != null) {
         await api(`/documents/${editDocId}/content`, {
           method: 'PUT',
@@ -332,6 +353,9 @@ export function SheetEditor({
 
       {error && <div className="sheet-editor-error">{error}</div>}
 
+      {activeTool === 'source' ? (
+        <SyntaxTextarea value={sourceText} onChange={setSourceText} />
+      ) : (
       <div className={textClass}>
         {lines.map((line, lineIndex) => {
           const ld = linesData[lineIndex]
@@ -409,6 +433,7 @@ export function SheetEditor({
           )
         })}
       </div>
+      )}
 
       {confirmOverwrite && (
         <div

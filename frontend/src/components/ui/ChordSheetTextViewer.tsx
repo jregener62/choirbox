@@ -1,10 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { PencilLine, SquarePen } from 'lucide-react'
+import { SquarePen } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { parseChordSheet } from '@/utils/chordPro'
 import { ChordSheetViewer } from '@/components/ui/ChordSheetViewer'
 import { SheetEditor } from '@/components/ui/SheetEditor'
-import { TextEditViewer } from '@/components/ui/TextEditViewer'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
@@ -39,7 +38,7 @@ export function ChordSheetTextViewer({
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [editMode, setEditMode] = useState<'sheet' | 'text' | null>(null)
+  const [editMode, setEditMode] = useState<'sheet' | null>(null)
   const [reloadToken, setReloadToken] = useState(0)
   const userRole = useAuthStore((s) => s.user?.role)
   const canEditChords = hasMinRole(userRole ?? 'guest', 'pro-member')
@@ -252,21 +251,6 @@ export function ChordSheetTextViewer({
     )
   }
 
-  if (editMode === 'text' && text != null) {
-    return (
-      <TextEditViewer
-        docId={docId}
-        fileType="cho"
-        initialContent={text}
-        onSaved={() => {
-          setEditMode(null)
-          setReloadToken((n) => n + 1)
-        }}
-        onCancel={() => setEditMode(null)}
-      />
-    )
-  }
-
   return (
     <>
       {canEditChords && showName && (
@@ -278,14 +262,6 @@ export function ChordSheetTextViewer({
           >
             <SquarePen size={16} />
             Bearbeiten
-          </button>
-          <button
-            type="button"
-            className="edit-topbar-btn edit-topbar-btn--text"
-            onClick={() => setEditMode('text')}
-          >
-            <PencilLine size={16} />
-            Text bearbeiten
           </button>
         </div>
       )}

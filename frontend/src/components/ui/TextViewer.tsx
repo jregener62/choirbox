@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react'
-import { Plus, PencilLine } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { hasMinRole } from '@/utils/roles.ts'
 import { SheetEditor } from './SheetEditor'
-import { TextEditViewer } from './TextEditViewer'
 import './EditTopbar.css'
 
 interface TextViewerProps {
@@ -17,7 +16,7 @@ interface TextViewerProps {
   onChordSheetCreated?: () => void
 }
 
-type EditMode = 'sheet' | 'text' | null
+type EditMode = 'sheet' | null
 
 export function TextViewer({
   docId,
@@ -31,7 +30,7 @@ export function TextViewer({
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState<EditMode>(null)
-  const [reloadToken, setReloadToken] = useState(0)
+  const [reloadToken] = useState(0)
   const userRole = useAuthStore((s) => s.user?.role)
   const canEdit = hasMinRole(userRole ?? 'guest', 'pro-member')
 
@@ -93,21 +92,6 @@ export function TextViewer({
     )
   }
 
-  if (editMode === 'text') {
-    return (
-      <TextEditViewer
-        docId={docId}
-        fileType="txt"
-        initialContent={content}
-        onSaved={() => {
-          setEditMode(null)
-          setReloadToken((n) => n + 1)
-        }}
-        onCancel={() => setEditMode(null)}
-      />
-    )
-  }
-
   return (
     <>
       {canEdit && showName && (
@@ -122,14 +106,6 @@ export function TextViewer({
               Chordsheet erstellen
             </button>
           )}
-          <button
-            type="button"
-            className="edit-topbar-btn edit-topbar-btn--text"
-            onClick={() => setEditMode('text')}
-          >
-            <PencilLine size={16} />
-            Text bearbeiten
-          </button>
         </div>
       )}
       <div className="text-viewer">

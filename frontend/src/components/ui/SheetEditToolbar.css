@@ -68,6 +68,22 @@
   box-shadow: 0 0 0 3px rgba(163, 230, 53, 0.18);
 }
 
+.set-tool--source {
+  background: rgba(167, 139, 250, 0.08);
+  border-color: rgba(167, 139, 250, 0.35);
+  color: #a78bfa;
+}
+.set-tool--source:hover {
+  background: rgba(167, 139, 250, 0.16);
+  border-color: #a78bfa;
+}
+.set-tool--source.set-tool--active {
+  background: rgba(167, 139, 250, 0.22);
+  border-color: #a78bfa;
+  color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.18);
+}
+
 .set-tool--note {
   background: rgba(252, 211, 77, 0.08);
   border-color: rgba(252, 211, 77, 0.35);
