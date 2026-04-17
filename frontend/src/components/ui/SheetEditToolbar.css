@@ -411,7 +411,8 @@
   background: var(--swatch-color, currentColor);
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
-.set-format-swatch--default::after {
+.set-format-swatch--default::after,
+.set-format-swatch--bg-default::after {
   background: transparent;
   border: 1.5px dashed var(--text-secondary);
 }

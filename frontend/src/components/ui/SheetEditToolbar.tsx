@@ -16,6 +16,12 @@ const FORMAT_COLORS = [
   { key: 'orange',  label: 'Orange',   value: '#EA580C' },
 ] as const
 
+const FORMAT_BGS = [
+  { key: 'default', label: 'Keine Markierung', value: 'transparent' },
+  { key: 'yellow',  label: 'Gelb markieren',   value: 'rgba(250, 204, 21, 0.55)' },
+  { key: 'red',     label: 'Rot markieren',    value: 'rgba(248, 113, 113, 0.45)' },
+] as const
+
 interface SheetEditToolbarProps {
   activeTool: ActiveTool
   onSelectTool: (tool: ActiveTool) => void
@@ -45,6 +51,7 @@ export function SheetEditToolbar({
   const formats = useTextFormat((s) => s.formats)
   const toggleFormatFlag = useTextFormat((s) => s.toggleFlag)
   const setFormatColor = useTextFormat((s) => s.setColor)
+  const setFormatBg = useTextFormat((s) => s.setBg)
   const formatDisabled = formatSelection == null
   const flagActive = (flag: FormatFlag) => {
     if (!formatSelection) return false
@@ -53,17 +60,19 @@ export function SheetEditToolbar({
     }
     return true
   }
-  const activeColor = (() => {
+  const pickUniform = (prop: 'color' | 'bg'): string | null => {
     if (!formatSelection) return ''
     let first: string | undefined
     let init = false
     for (let col = formatSelection.start; col <= formatSelection.end; col++) {
-      const c = formats[`${formatSelection.line}:${col}`]?.color
+      const c = formats[`${formatSelection.line}:${col}`]?.[prop]
       if (!init) { first = c; init = true }
       else if (c !== first) return null
     }
     return first ?? ''
-  })()
+  }
+  const activeColor = pickUniform('color')
+  const activeBg = pickUniform('bg')
 
   const displayToken = chordBuilder.replaceAll('#', '♯').replaceAll('b', '♭')
   const chordValid = chordBuilder !== '' && isValidChord(chordBuilder)
@@ -245,6 +254,24 @@ export function SheetEditToolbar({
                     aria-pressed={isActive}
                     disabled={formatDisabled}
                     onClick={() => setFormatColor(c.key === 'default' ? undefined : c.key)}
+                  />
+                )
+              })}
+            </div>
+            <div className="set-format-colors set-format-colors--bg" role="group" aria-label="Textmarker">
+              {FORMAT_BGS.map((c) => {
+                const isActive = activeBg === (c.key === 'default' ? '' : c.key)
+                return (
+                  <button
+                    key={c.key}
+                    type="button"
+                    className={`set-format-swatch set-format-swatch--bg-${c.key}`}
+                    style={{ '--swatch-color': c.value } as React.CSSProperties}
+                    title={c.label}
+                    aria-label={c.label}
+                    aria-pressed={isActive}
+                    disabled={formatDisabled}
+                    onClick={() => setFormatBg(c.key === 'default' ? undefined : c.key)}
                   />
                 )
               })}

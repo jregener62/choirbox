@@ -209,6 +209,23 @@
   border-radius: var(--radius-xs);
 }
 
+/* Text-Formatierung im Read-Modus (Bold/Italic/Underline/Strike + Farbe) */
+.chord-text-fmt-b { font-weight: 700; }
+.chord-text-fmt-i { font-style: italic; }
+.chord-text-fmt-u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: none;
+}
+.chord-text-fmt-s { text-decoration: line-through; }
+.chord-text-fmt-u.chord-text-fmt-s { text-decoration: underline line-through; }
+.chord-text-clr-red    { color: #DC2626; }
+.chord-text-clr-green  { color: #16A34A; }
+.chord-text-clr-blue   { color: #2563EB; }
+.chord-text-clr-orange { color: #EA580C; }
+.chord-text-bg-yellow { background: rgba(250, 204, 21, 0.55); padding: 0 2px; border-radius: 2px; }
+.chord-text-bg-red    { background: rgba(248, 113, 113, 0.45); padding: 0 2px; border-radius: 2px; }
+
 /* Metadata-Header — Song-Info (Titel, Kuenstler, Key, ...) */
 .chord-sheet-meta {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;

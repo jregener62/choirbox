@@ -163,9 +163,20 @@ export interface VocalMarkPosition {
   col: number
 }
 
+export interface ChordLineFormat {
+  b?: boolean
+  i?: boolean
+  u?: boolean
+  s?: boolean
+  color?: string
+  bg?: string
+}
+
 export interface ChordLine {
   text: string
   chords: ChordPosition[]
+  /** Per-Char Textformat-Flags (aus `# choirbox-format:` Kommentaren). */
+  formats?: Record<number, ChordLineFormat>
   /** Leerzeile aus dem Quelltext — gerendert als vertikaler Abstand. */
   isBlank?: boolean
   /** ChordPro {comment:} line — styled according to commentStyle. */

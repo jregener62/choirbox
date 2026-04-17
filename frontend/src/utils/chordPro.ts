@@ -15,14 +15,38 @@
  */
 
 import { parseChordText } from '@/utils/chordParser'
+import { parseFormatComments } from '@/utils/textFormat'
+import type { FormatFlags } from '@/hooks/useTextFormat'
 import type {
   ChordLine,
+  ChordLineFormat,
   ChordPosition,
   ChordSection,
   ChordSheetMetadata,
   ParsedChordContent,
   VocalMarkPosition,
 } from '@/types/index'
+
+function groupFormatsByLine(flat: Record<string, FormatFlags>): Record<number, Record<number, ChordLineFormat>> {
+  const out: Record<number, Record<number, ChordLineFormat>> = {}
+  for (const [key, flags] of Object.entries(flat)) {
+    const [l, c] = key.split(':').map(Number)
+    if (Number.isNaN(l) || Number.isNaN(c)) continue
+    if (!out[l]) out[l] = {}
+    out[l][c] = flags
+  }
+  return out
+}
+
+function attachLineFormats(
+  line: ChordLine,
+  sourceLineIndex: number,
+  byLine: Record<number, Record<number, ChordLineFormat>>,
+): ChordLine {
+  const f = byLine[sourceLineIndex]
+  if (f && Object.keys(f).length > 0) return { ...line, formats: f }
+  return line
+}
 
 // --- Format detection ---
 
@@ -151,7 +175,9 @@ function detectKey(chords: string[]): { key: string; confidence: number } {
  * Parse a ChordPro string into the canonical ParsedChordContent structure.
  */
 export function parseChordPro(text: string): ParsedChordContent {
-  const lines = text.split('\n')
+  const { formats: flatFormats, cleanText: fileBody } = parseFormatComments(text)
+  const formatsByLine = groupFormatsByLine(flatFormats)
+  const lines = fileBody.split('\n')
   const sections: ChordSection[] = []
   let currentSection: ChordSection = { type: 'intro', label: '', lines: [] }
   const allChords: string[] = []
@@ -307,7 +333,8 @@ export function parseChordPro(text: string): ParsedChordContent {
     }
   }
 
-  for (const rawLine of lines) {
+  for (let sourceLineIndex = 0; sourceLineIndex < lines.length; sourceLineIndex++) {
+    const rawLine = lines[sourceLineIndex]
     const line = rawLine.replace(/\s+$/, '')
 
     if (!line.trim()) {
@@ -378,7 +405,9 @@ export function parseChordPro(text: string): ParsedChordContent {
     // no chord parsing (grid blocks use a rhythmic notation that we render
     // as-is, just like tablature).
     if (inTabBlock || inGridBlock) {
-      currentSection.lines.push({ text: line, chords: [] })
+      currentSection.lines.push(
+        attachLineFormats({ text: line, chords: [] }, sourceLineIndex, formatsByLine),
+      )
       continue
     }
 
@@ -475,7 +504,7 @@ export function parseChordPro(text: string): ParsedChordContent {
       const chordLine: ChordLine = { text: cleanText, chords }
       if (annotations.length > 0) chordLine.annotations = annotations
       if (vocalMarks.length > 0) chordLine.vocalMarks = vocalMarks
-      currentSection.lines.push(chordLine)
+      currentSection.lines.push(attachLineFormats(chordLine, sourceLineIndex, formatsByLine))
       allChords.push(...chords.map((c) => c.chord))
     }
   }

@@ -8,7 +8,30 @@
  * existing ChordSheetViewer renders identically.
  */
 
-import type { ParsedChordContent, ChordPosition, ChordSection } from '@/types/index'
+import type { ParsedChordContent, ChordPosition, ChordSection, ChordLine, ChordLineFormat } from '@/types/index'
+import { parseFormatComments } from '@/utils/textFormat'
+import type { FormatFlags } from '@/hooks/useTextFormat'
+
+function groupFormatsByLine(flat: Record<string, FormatFlags>): Record<number, Record<number, ChordLineFormat>> {
+  const out: Record<number, Record<number, ChordLineFormat>> = {}
+  for (const [key, flags] of Object.entries(flat)) {
+    const [l, c] = key.split(':').map(Number)
+    if (Number.isNaN(l) || Number.isNaN(c)) continue
+    if (!out[l]) out[l] = {}
+    out[l][c] = flags
+  }
+  return out
+}
+
+function attachLineFormats(
+  line: ChordLine,
+  sourceLineIndex: number,
+  byLine: Record<number, Record<number, ChordLineFormat>>,
+): ChordLine {
+  const f = byLine[sourceLineIndex]
+  if (f && Object.keys(f).length > 0) return { ...line, formats: f }
+  return line
+}
 
 // Chord symbol pattern: root + optional quality/extension/bass
 const CHORD_PATTERN =
@@ -95,20 +118,26 @@ function detectKey(chords: string[]): { key: string; confidence: number } {
  * Parse raw chord-sheet text into the structured format the viewer expects.
  */
 export function parseChordText(text: string): ParsedChordContent {
-  const lines = text.split('\n')
+  const { formats: flatFormats, cleanText } = parseFormatComments(text)
+  const formatsByLine = groupFormatsByLine(flatFormats)
+  const lines = cleanText.split('\n')
   const sections: ChordSection[] = []
   let currentSection: ChordSection = { type: 'intro', label: '', lines: [] }
   const allChords: string[] = []
   let pendingChords: ChordPosition[] | null = null
+  let pendingSourceLine = 0
 
   const flushPendingAsInstrumental = () => {
     if (pendingChords !== null) {
-      currentSection.lines.push({ text: '', chords: pendingChords })
+      currentSection.lines.push(
+        attachLineFormats({ text: '', chords: pendingChords }, pendingSourceLine, formatsByLine),
+      )
       pendingChords = null
     }
   }
 
-  for (const rawLine of lines) {
+  for (let sourceLineIndex = 0; sourceLineIndex < lines.length; sourceLineIndex++) {
+    const rawLine = lines[sourceLineIndex]
     const stripped = rawLine.replace(/\s+$/, '')
 
     if (!stripped.trim()) {
@@ -138,15 +167,20 @@ export function parseChordText(text: string): ParsedChordContent {
       const chords = extractChordsWithPositions(stripped)
       allChords.push(...chords.map((c) => c.chord))
       pendingChords = chords
+      pendingSourceLine = sourceLineIndex
       continue
     }
 
     // Lyrics line — pair with pending chords (if any)
     if (pendingChords !== null) {
-      currentSection.lines.push({ text: stripped, chords: pendingChords })
+      currentSection.lines.push(
+        attachLineFormats({ text: stripped, chords: pendingChords }, sourceLineIndex, formatsByLine),
+      )
       pendingChords = null
     } else {
-      currentSection.lines.push({ text: stripped, chords: [] })
+      currentSection.lines.push(
+        attachLineFormats({ text: stripped, chords: [] }, sourceLineIndex, formatsByLine),
+      )
     }
   }
 

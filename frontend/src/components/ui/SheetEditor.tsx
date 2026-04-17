@@ -5,6 +5,7 @@ import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
 import { useTextFormat } from '@/hooks/useTextFormat'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
+import { appendFormatComments } from '@/utils/textFormat'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
 import { getVocalMeta } from '@/utils/vocalValidation'
@@ -59,6 +60,7 @@ export function SheetEditor({
   const selection = useTextFormat((s) => s.selection)
   const setSelection = useTextFormat((s) => s.setSelection)
   const formatReset = useTextFormat((s) => s.reset)
+  const loadFormatFrom = useTextFormat((s) => s.loadFromChordPro)
 
   const [activeTool, setActiveToolLocal] = useState<ActiveTool>(null)
   const [saving, setSaving] = useState(false)
@@ -71,6 +73,8 @@ export function SheetEditor({
   const actionStack = useRef<Array<'chord' | 'vocal'>>([])
   /** Anker der laufenden Drag-Selection (single-line). */
   const selectingRef = useRef<{ line: number; anchorCol: number } | null>(null)
+  /** True, solange ein Drag laeuft — blockiert Touch-Scroll im Editor. */
+  const [isDragging, setIsDragging] = useState(false)
 
   const isEditMode = editDocId != null
 
@@ -81,15 +85,16 @@ export function SheetEditor({
     if (chordProBody != null) {
       loadChordFrom(chordProBody)
       loadVocalFrom(chordProBody)
+      loadFormatFrom(chordProBody)
     } else {
       setChordText(text ?? '')
       setVocalText(text ?? '')
       chordReset()
       vocalReset()
+      formatReset()
     }
     setChordMode(true)
     setVocalMode(true)
-    formatReset()
     actionStack.current = []
     return () => {
       setChordMode(false)
@@ -98,7 +103,7 @@ export function SheetEditor({
   }, [
     text, chordProBody,
     setChordText, setVocalText,
-    loadChordFrom, loadVocalFrom,
+    loadChordFrom, loadVocalFrom, loadFormatFrom,
     chordReset, vocalReset,
     setChordMode, setVocalMode,
     formatReset,
@@ -112,7 +117,8 @@ export function SheetEditor({
       method: 'POST',
       body: { text: textNow, chords: chordList, vocals: vocalList },
     })
-    return result.cho_content
+    const fmt = useTextFormat.getState().formats
+    return appendFormatComments(result.cho_content, fmt)
   }
 
   // Coordinate tool selection: activating a tool in one hook deactivates the other.
@@ -126,6 +132,7 @@ export function SheetEditor({
       if (prev === 'source' && tool !== 'source') {
         loadChordFrom(sourceText)
         loadVocalFrom(sourceText)
+        loadFormatFrom(sourceText)
       }
 
       // Entering source mode → build merged cho from hooks
@@ -153,7 +160,7 @@ export function SheetEditor({
         selectingRef.current = null
       }
     },
-    [activeTool, sourceText, setChordTool, setVocalTool, loadChordFrom, loadVocalFrom],
+    [activeTool, sourceText, setChordTool, setVocalTool, loadChordFrom, loadVocalFrom, loadFormatFrom, setSelection],
   )
 
   const handleSelectPointerDown = useCallback((e: React.PointerEvent) => {
@@ -168,8 +175,9 @@ export function SheetEditor({
     if (Number.isNaN(line) || Number.isNaN(col)) return
     selectingRef.current = { line, anchorCol: col }
     setSelection({ line, start: col, end: col })
+    setIsDragging(true)
     ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-  }, [activeTool])
+  }, [activeTool, setSelection])
 
   const handleSelectPointerMove = useCallback((e: React.PointerEvent) => {
     const anchor = selectingRef.current
@@ -192,6 +200,7 @@ export function SheetEditor({
   const handleSelectPointerUp = useCallback((e: React.PointerEvent) => {
     if (!selectingRef.current) return
     selectingRef.current = null
+    setIsDragging(false)
     ;(e.currentTarget as HTMLElement).releasePointerCapture?.(e.pointerId)
   }, [])
 
@@ -406,7 +415,8 @@ export function SheetEditor({
     (activeTool === 'chord' ? ' sheet-editor-text--mode-chord' : '') +
     (activeTool === 'beat' ? ' sheet-editor-text--mode-beat' : '') +
     (activeTool === 'note' ? ' sheet-editor-text--mode-note' : '') +
-    (activeTool === 'format' ? ' sheet-editor-text--mode-format' : '')
+    (activeTool === 'format' ? ' sheet-editor-text--mode-format' : '') +
+    (isDragging ? ' sheet-editor-text--dragging' : '')
 
   return (
     <div className="sheet-editor">
@@ -501,7 +511,8 @@ export function SheetEditor({
                             (fmt?.i ? ' sheet-editor-char--fmt-i' : '') +
                             (fmt?.u ? ' sheet-editor-char--fmt-u' : '') +
                             (fmt?.s ? ' sheet-editor-char--fmt-s' : '') +
-                            (fmt?.color ? ` sheet-editor-char--clr-${fmt.color}` : '')
+                            (fmt?.color ? ` sheet-editor-char--clr-${fmt.color}` : '') +
+                            (fmt?.bg ? ` sheet-editor-char--bg-${fmt.bg}` : '')
                           }
                           data-line={lineIndex}
                           data-col={col}

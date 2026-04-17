@@ -1,7 +1,7 @@
 import { useMemo, type ReactNode } from 'react'
 import { transposeChord, shouldUseFlats } from '@/utils/chordTransposer'
 import { getVocalMeta } from '@/utils/vocalValidation'
-import type { ChordLine, ChordSheetMetadata, ParsedChordContent, VocalMarkPosition } from '@/types/index'
+import type { ChordLine, ChordLineFormat, ChordSheetMetadata, ParsedChordContent, VocalMarkPosition } from '@/types/index'
 import './ChordSheetViewer.css'
 
 interface ChordSheetViewerProps {
@@ -241,7 +241,7 @@ function ChordLineView({
         {topRow}
         {vocalRow}
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, new Set(), beatCols, inlineNotes)}
+          {renderTextWithAnchors(line.text, new Set(), beatCols, inlineNotes, line.formats)}
           {annotations}
         </div>
         {bottomRow}
@@ -273,7 +273,7 @@ function ChordLineView({
       </div>
       {(line.text || annotations) && (
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, anchorCols, beatCols, inlineNotes)}
+          {renderTextWithAnchors(line.text, anchorCols, beatCols, inlineNotes, line.formats)}
           {annotations}
         </div>
       )}
@@ -288,17 +288,62 @@ function ChordLineView({
  * `.vocal-beat-anchor`. A character that is both becomes both.
  * Preserves whitespace (parent uses `white-space: pre`).
  */
+function formatClassName(f?: ChordLineFormat): string {
+  if (!f) return ''
+  let cls = ''
+  if (f.b) cls += ' chord-text-fmt-b'
+  if (f.i) cls += ' chord-text-fmt-i'
+  if (f.u) cls += ' chord-text-fmt-u'
+  if (f.s) cls += ' chord-text-fmt-s'
+  if (f.color) cls += ` chord-text-clr-${f.color}`
+  if (f.bg) cls += ` chord-text-bg-${f.bg}`
+  return cls
+}
+
+function formatsEqual(a?: ChordLineFormat, b?: ChordLineFormat): boolean {
+  if (!a && !b) return true
+  if (!a || !b) return false
+  return (
+    !!a.b === !!b.b &&
+    !!a.i === !!b.i &&
+    !!a.u === !!b.u &&
+    !!a.s === !!b.s &&
+    (a.color ?? '') === (b.color ?? '') &&
+    (a.bg ?? '') === (b.bg ?? '')
+  )
+}
+
 function renderTextWithAnchors(
   text: string,
   anchorCols: Set<number>,
   beatCols: Set<number>,
   inlineNotes: Map<number, string>,
+  formats?: Record<number, ChordLineFormat>,
 ): ReactNode {
-  if (anchorCols.size === 0 && beatCols.size === 0 && inlineNotes.size === 0)
+  const hasFormats = formats && Object.keys(formats).length > 0
+  if (
+    anchorCols.size === 0 &&
+    beatCols.size === 0 &&
+    inlineNotes.size === 0 &&
+    !hasFormats
+  ) {
     return text
+  }
   const parts: ReactNode[] = []
   let run = ''
-  const flush = () => { if (run) { parts.push(run); run = '' } }
+  let runFmt: ChordLineFormat | undefined = undefined
+  const flush = () => {
+    if (!run) return
+    if (runFmt) {
+      parts.push(
+        <span key={`rf-${parts.length}`} className={formatClassName(runFmt).trim()}>{run}</span>,
+      )
+    } else {
+      parts.push(run)
+    }
+    run = ''
+    runFmt = undefined
+  }
   for (let i = 0; i < text.length; i++) {
     const noteToken = inlineNotes.get(i)
     if (noteToken) {
@@ -312,16 +357,20 @@ function renderTextWithAnchors(
     }
     const isAnchor = anchorCols.has(i)
     const isBeat = beatCols.has(i)
+    const f = formats?.[i]
     if (isAnchor || isBeat) {
       flush()
       const cls =
         (isAnchor ? 'chord-anchor' : '') +
-        (isBeat ? (isAnchor ? ' vocal-beat-anchor' : 'vocal-beat-anchor') : '')
+        (isBeat ? (isAnchor ? ' vocal-beat-anchor' : 'vocal-beat-anchor') : '') +
+        formatClassName(f)
       parts.push(<span key={i} className={cls}>{text[i]}</span>)
     } else {
+      if (!formatsEqual(f, runFmt)) flush()
+      runFmt = f
       run += text[i]
     }
   }
-  if (run) parts.push(run)
+  flush()
   return parts
 }
