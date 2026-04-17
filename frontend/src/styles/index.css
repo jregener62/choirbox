@@ -159,6 +159,14 @@ textarea::placeholder {
   font-weight: 600;
 }
 
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
 .topbar-action {
   background: none;
   border: none;

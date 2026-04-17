@@ -85,7 +85,7 @@ export function DocViewerPage() {
             Speichern
           </button>
         ) : (
-          <>
+          <div className="topbar-actions">
             {canEdit && (
               <button
                 className="topbar-action"
@@ -104,7 +104,7 @@ export function DocViewerPage() {
                 <Mic size={18} />
               </button>
             )}
-          </>
+          </div>
         )}
       </div>
       <div className="player-scroll-content">
