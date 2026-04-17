@@ -85,7 +85,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const vocalInputMode = useVocalInput((s) => s.mode)
   const editMode = chordInputMode || vocalInputMode
   const startEdit = useSheetEditMode((s) => s.start)
-  const canEditSheet = hasMinRole(userRole, 'pro-member')
+  const canEditSheet = hasMinRole(userRole ?? 'guest', 'pro-member')
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
   const pagesRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
