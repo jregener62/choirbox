@@ -375,16 +375,14 @@ export function SheetEditor({
                   {ld.notesTop.map(({ col, token }) => {
                     const meta = getVocalMeta(token)
                     return (
-                      <span key={`nt-${col}`} style={{ display: 'contents' }}>
-                        <span
-                          className="sheet-editor-note-pill sheet-editor-note-pill--top"
-                          style={{ left: `${col}ch` }}
-                          onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
-                          title={meta?.label ?? token}
-                        >
-                          <span className="sheet-editor-note-pill-text">{meta?.label}</span>
-                        </span>
-                        <span className="sheet-editor-note-tail sheet-editor-note-tail--top" style={{ left: `calc(${col}ch + 0.5ch - 1px)` }} aria-hidden="true" />
+                      <span
+                        key={`nt-${col}`}
+                        className="sheet-editor-note-label sheet-editor-note-label--top"
+                        style={{ left: `${col}ch` }}
+                        onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
+                        title={meta?.label ?? token}
+                      >
+                        <span className="sheet-editor-note-label-text">{meta?.label}</span>
                       </span>
                     )
                   })}
@@ -447,16 +445,14 @@ export function SheetEditor({
                   {ld.notesBottom.map(({ col, token }) => {
                     const meta = getVocalMeta(token)
                     return (
-                      <span key={`nb-${col}`} style={{ display: 'contents' }}>
-                        <span className="sheet-editor-note-tail sheet-editor-note-tail--bottom" style={{ left: `calc(${col}ch + 0.5ch - 1px)` }} aria-hidden="true" />
-                        <span
-                          className="sheet-editor-note-pill sheet-editor-note-pill--bottom"
-                          style={{ left: `${col}ch` }}
-                          onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
-                          title={meta?.label ?? token}
-                        >
-                          <span className="sheet-editor-note-pill-text">{meta?.label}</span>
-                        </span>
+                      <span
+                        key={`nb-${col}`}
+                        className="sheet-editor-note-label sheet-editor-note-label--bottom"
+                        style={{ left: `${col}ch` }}
+                        onClick={(e) => { e.stopPropagation(); handleCharClick(lineIndex, col) }}
+                        title={meta?.label ?? token}
+                      >
+                        <span className="sheet-editor-note-label-text">{meta?.label}</span>
                       </span>
                     )
                   })}

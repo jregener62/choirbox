@@ -167,28 +167,55 @@ function ChordLineView({
     if (meta?.category === 'note-inline') inlineNotes.set(m.col, m.token)
   }
 
-  const vocalRow = overlayMarks.length > 0 ? (
+  // Split overlays into top and bottom for separate rows
+  const notesTop = overlayMarks.filter(m => getVocalMeta(m.token)?.category === 'note-top')
+  const notesBottom = overlayMarks.filter(m => getVocalMeta(m.token)?.category === 'note-bottom')
+
+  const topRow = notesTop.length > 0 ? (
     <div className="vocal-row">
-      {overlayMarks.map((m, i) => {
+      {notesTop.map((m, i) => {
         const meta = getVocalMeta(m.token)!
-        if (meta.category === 'note-top' || meta.category === 'note-bottom') {
-          return (
-            <span key={i} style={{ display: 'contents' }}>
-              <span
-                className={`vocal-row-mark vocal-mark vocal-mark--${meta.category}`}
-                style={{ left: `${m.col}ch` }}
-                title={meta.label}
-              >
-                <span className="vocal-note-pill-text">{meta.symbol}</span>
-              </span>
-              <span
-                className="vocal-note-tail"
-                style={{ left: `calc(${m.col}ch + 0.5ch - 1px)` }}
-                aria-hidden="true"
-              />
-            </span>
-          )
-        }
+        return (
+          <span
+            key={i}
+            className="vocal-note-label vocal-note-label--top"
+            style={{ left: `${m.col}ch` }}
+            title={meta.label}
+          >
+            {meta.symbol}
+          </span>
+        )
+      })}
+    </div>
+  ) : null
+
+  const bottomRow = notesBottom.length > 0 ? (
+    <div className="vocal-row vocal-row--bottom">
+      {notesBottom.map((m, i) => {
+        const meta = getVocalMeta(m.token)!
+        return (
+          <span
+            key={i}
+            className="vocal-note-label vocal-note-label--bottom"
+            style={{ left: `${m.col}ch` }}
+            title={meta.label}
+          >
+            {meta.symbol}
+          </span>
+        )
+      })}
+    </div>
+  ) : null
+
+  // Legacy: any non-note overlay marks (shouldn't exist in current scope but safe)
+  const otherOverlays = overlayMarks.filter(m => {
+    const cat = getVocalMeta(m.token)?.category
+    return cat !== 'note-top' && cat !== 'note-bottom'
+  })
+  const vocalRow = otherOverlays.length > 0 ? (
+    <div className="vocal-row">
+      {otherOverlays.map((m, i) => {
+        const meta = getVocalMeta(m.token)!
         return (
           <span
             key={i}
@@ -207,11 +234,13 @@ function ChordLineView({
   if (line.chords.length === 0 || hideChords) {
     return (
       <div className={`chord-line${commentClass}`}>
+        {topRow}
         {vocalRow}
         <div className="chord-text">
           {renderTextWithAnchors(line.text, new Set(), beatCols, inlineNotes)}
           {annotations}
         </div>
+        {bottomRow}
       </div>
     )
   }
@@ -244,6 +273,7 @@ function ChordLineView({
           {annotations}
         </div>
       )}
+      {bottomRow}
     </div>
   )
 }

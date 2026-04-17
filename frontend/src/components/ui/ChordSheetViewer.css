@@ -69,10 +69,10 @@
   white-space: nowrap;
 }
 
-/* Gesangsanweisungs-Zeile (über der Akkord-Zeile) */
+/* Gesangsanweisungs-Zeile (über/unter der Text-Zeile) */
 .vocal-row {
   position: relative;
-  height: 22px;
+  height: 14px;
   white-space: pre;
 }
 
@@ -84,38 +84,22 @@
   font-size: 0.85em;
 }
 
-/* Notes as pills. Pill keeps the text-container's font metrics so
-   `left: Xch` aligns with the lyric row at any column. Inner .vocal-note-pill-text
-   styles the label. */
-.vocal-row-mark.vocal-mark--note {
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--v-note-bg, #FCD34D);
-  border: 1px solid var(--v-note-bg, #FCD34D);
-  color: var(--v-note-text, #1F2937);
-  font-size: 1em;
-  line-height: 1;
-  top: 0;
-}
-.vocal-note-pill-text {
-  font-weight: 600;
-  font-size: 0.7em;
-  line-height: 1.35;
-}
-/* Tail points from the pill down to the anchored char. Rendered as a
-   separate element so its x-position tracks the character, not the pill.
-   font-size: 1em resets the vocal-row's 0.85em scaling so `ch` here matches
-   the text metric (same logic as for the pill wrapper). */
-.vocal-note-tail {
+/* Top/bottom notes — plain colored text, no pill. */
+.vocal-note-label {
   position: absolute;
-  top: 100%;
-  width: 2px;
-  height: 9px;
-  background: var(--v-note-bg, #FCD34D);
-  margin-top: -3px;
-  pointer-events: none;
-  z-index: 4;
-  font-size: 1em;
+  white-space: nowrap;
+  font-size: 0.7em;
+  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  line-height: 1;
+}
+.vocal-note-label--top {
+  bottom: 0;
+  color: var(--v-note-bg, #FCD34D);
+}
+.vocal-note-label--bottom {
+  top: 0;
+  color: var(--v-note-bottom-bg, #FDA4AF);
 }
 
 /* Farbcodierung der Vocal-Marks */

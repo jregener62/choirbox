@@ -43,86 +43,43 @@
   line-height: 1;
 }
 
-/* Comment/note pills — rendered above the chord row with a speech-bubble
-   tail pointing down at the anchored character. Row height matches the
-   pill so the tail sits directly below the pill edge (not inside it). */
+/* Top/Bottom notes — plain colored text, no pill, compact row. */
 .sheet-editor-note-row {
   position: relative;
-  height: 22px;
+  height: 14px;
   pointer-events: none;
 }
-/* Pill-Wrapper erbt font-family/size vom Text-Container, damit
-   `left: Xch` in Text-Zeichen-Breiten rechnet (nicht in Pill-Font-Breiten —
-   die driften sonst mit steigender col-Position vom Text auseinander). */
-.sheet-editor-note-pill {
+.sheet-editor-note-row--bottom {
+  position: relative;
+  height: 14px;
+  pointer-events: none;
+}
+
+/* Top/Bottom note label — just colored text, positioned at col*ch */
+.sheet-editor-note-label {
   position: absolute;
-  top: 0;
-  padding: 1px 8px;
-  border-radius: 999px;
-  background: var(--v-note-bg, #FCD34D);
-  border: 1px solid var(--v-note-bg, #FCD34D);
-  color: var(--v-note-text, #1F2937);
   white-space: nowrap;
   pointer-events: auto;
   cursor: pointer;
   user-select: none;
   z-index: 3;
-  line-height: 1;
-  transition: background 0.12s, border-color 0.12s, transform 0.12s;
 }
-.sheet-editor-note-pill:hover {
-  transform: translateY(-1px);
-}
-.sheet-editor-note-pill-text {
-  font-size: 12px;
+.sheet-editor-note-label-text {
+  font-size: 11px;
   font-weight: 600;
   font-family: 'Inter', sans-serif;
-  line-height: 1.35;
+  line-height: 1;
 }
-/* Speech-bubble tail: a separate downward arrow positioned over the
-   anchored character, independent of the pill's position/width.
-   `top: 100%` sits at the bottom of the note-row — directly above the
-   text of the line it belongs to. */
-/* Top tail — hangs below pill, pointing down to anchored char */
-.sheet-editor-note-tail--top {
-  position: absolute;
-  top: 100%;
-  width: 2px;
-  height: 9px;
-  background: var(--v-note-bg, #FCD34D);
-  margin-top: -3px;
-  pointer-events: none;
-  z-index: 4;
-}
-
-/* Bottom tail — sits above pill, pointing up to anchored char */
-.sheet-editor-note-tail--bottom {
-  position: absolute;
-  bottom: 100%;
-  width: 2px;
-  height: 9px;
-  background: var(--v-note-bottom-bg, #FDA4AF);
-  margin-bottom: -3px;
-  pointer-events: none;
-  z-index: 4;
-}
-
-/* Bottom-pill colors */
-.sheet-editor-note-pill--bottom {
-  background: var(--v-note-bottom-bg, #FDA4AF);
-  border-color: var(--v-note-bottom-bg, #FDA4AF);
-  color: var(--v-note-bottom-text, #881337);
-}
-
-/* Bottom note-row sits below the line-body */
-.sheet-editor-note-row--bottom {
-  position: relative;
-  height: 22px;
-  pointer-events: none;
-}
-.sheet-editor-note-row--bottom .sheet-editor-note-pill {
+.sheet-editor-note-label--top {
   bottom: 0;
-  top: auto;
+  color: var(--v-note-bg, #FCD34D);
+}
+.sheet-editor-note-label--bottom {
+  top: 0;
+  color: var(--v-note-bottom-bg, #FDA4AF);
+}
+.sheet-editor-note-label:hover {
+  opacity: 0.7;
 }
 
 /* Inline note — rendered between characters */
