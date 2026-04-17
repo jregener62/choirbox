@@ -40,17 +40,9 @@
   -webkit-text-fill-color: transparent;
 }
 
-/* Syntax colors */
-.syn-chord {
-  color: var(--chord, #fbbf24);
-  font-weight: 700;
-}
-
-.syn-vocal {
-  color: var(--v-beat, #a3e635);
-  font-weight: 600;
-}
-
+/* All tags are uniformly muted so the lyric text stands out clearly. */
+.syn-chord,
+.syn-vocal,
 .syn-directive {
   color: var(--text-muted, #6A7484);
   font-style: italic;
