@@ -131,6 +131,10 @@ function ChordLineView({
   hideChords: boolean
   hideVocal: boolean
 }) {
+  if (line.isBlank) {
+    return <div className="chord-line chord-line-blank" aria-hidden="true">&nbsp;</div>
+  }
+
   if (
     line.chords.length === 0 &&
     !line.text &&

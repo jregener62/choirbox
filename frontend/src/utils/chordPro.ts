@@ -310,7 +310,12 @@ export function parseChordPro(text: string): ParsedChordContent {
   for (const rawLine of lines) {
     const line = rawLine.replace(/\s+$/, '')
 
-    if (!line.trim()) continue
+    if (!line.trim()) {
+      if (currentSection.lines.length > 0) {
+        currentSection.lines.push({ text: '', chords: [], isBlank: true })
+      }
+      continue
+    }
 
     // Hash-prefix line comment (ChordPro spec) — skip entirely
     if (/^\s*#/.test(line)) continue

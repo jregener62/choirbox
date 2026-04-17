@@ -166,6 +166,8 @@ export interface VocalMarkPosition {
 export interface ChordLine {
   text: string
   chords: ChordPosition[]
+  /** Leerzeile aus dem Quelltext — gerendert als vertikaler Abstand. */
+  isBlank?: boolean
   /** ChordPro {comment:} line — styled according to commentStyle. */
   isComment?: boolean
   /** Visual style for comment lines: 'plain' (highlighter), 'italic' (italic

@@ -113,6 +113,9 @@ export function parseChordText(text: string): ParsedChordContent {
 
     if (!stripped.trim()) {
       flushPendingAsInstrumental()
+      if (currentSection.lines.length > 0) {
+        currentSection.lines.push({ text: '', chords: [], isBlank: true })
+      }
       continue
     }
 
