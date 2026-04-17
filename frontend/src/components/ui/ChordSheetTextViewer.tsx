@@ -1,12 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { SquarePen } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { parseChordSheet } from '@/utils/chordPro'
 import { ChordSheetViewer } from '@/components/ui/ChordSheetViewer'
 import { SheetEditor } from '@/components/ui/SheetEditor'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
-import { useAuthStore } from '@/stores/authStore.ts'
-import { hasMinRole } from '@/utils/roles.ts'
+import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { toNormalized, getSvgPathFromStroke, getViewBoxHeight } from '@/utils/strokeUtils.ts'
 import type { Stroke } from '@/types/index.ts'
 import './ChordSheetTextViewer.css'
@@ -38,10 +36,9 @@ export function ChordSheetTextViewer({
 }: ChordSheetTextViewerProps) {
   const [text, setText] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [editMode, setEditMode] = useState<'sheet' | null>(null)
+  const sheetEditActive = useSheetEditMode((s) => s.active)
+  const stopEdit = useSheetEditMode((s) => s.stop)
   const [reloadToken, setReloadToken] = useState(0)
-  const userRole = useAuthStore((s) => s.user?.role)
-  const canEditChords = hasMinRole(userRole ?? 'guest', 'pro-member')
   const contentRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const activePointersRef = useRef<Set<number>>(new Set())
@@ -237,34 +234,22 @@ export function ChordSheetTextViewer({
     )
   }
 
-  if (editMode === 'sheet' && text != null) {
+  if (sheetEditActive && text != null) {
     return (
       <SheetEditor
         chordProBody={text}
         editDocId={docId}
         onUpdated={() => {
-          setEditMode(null)
+          stopEdit()
           setReloadToken((n) => n + 1)
         }}
-        onCancel={() => setEditMode(null)}
+        onCancel={stopEdit}
       />
     )
   }
 
   return (
     <>
-      {canEditChords && showName && (
-        <div className="edit-topbar">
-          <button
-            type="button"
-            className="edit-topbar-btn edit-topbar-btn--chord"
-            onClick={() => setEditMode('sheet')}
-          >
-            <SquarePen size={16} />
-            Bearbeiten
-          </button>
-        </div>
-      )}
       <div
         className="cho-viewer-wrap"
         style={{ fontSize }}

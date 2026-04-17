@@ -90,9 +90,8 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
-  // Exclusive view toggle: entweder Anweisungen ODER Akkorde werden
-  // gerendert — nicht beide gleichzeitig (zu unübersichtlich).
-  const [activeView, setActiveView] = useState<'vocal' | 'chord'>('vocal')
+  // View toggle: Anweisungen, Akkorde, oder beides aus. Default: aus.
+  const [activeView, setActiveView] = useState<'vocal' | 'chord' | null>(null)
   const chordsHidden = activeView !== 'chord'
   const vocalHidden = activeView !== 'vocal'
   const [showSwipeHint, setShowSwipeHint] = useState(false)
@@ -443,7 +442,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
             <button
               type="button"
               className={`chord-toggle-segment chord-toggle-segment--vocal${activeView === 'vocal' ? ' chord-toggle-segment--active' : ''}`}
-              onClick={() => { setActiveView('vocal'); resetFadeTimer() }}
+              onClick={() => { setActiveView(activeView === 'vocal' ? null : 'vocal'); resetFadeTimer() }}
               aria-pressed={activeView === 'vocal'}
               title="Nur Anweisungen anzeigen"
             >
@@ -452,7 +451,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
             <button
               type="button"
               className={`chord-toggle-segment chord-toggle-segment--chord${activeView === 'chord' ? ' chord-toggle-segment--active' : ''}`}
-              onClick={() => { setActiveView('chord'); resetFadeTimer() }}
+              onClick={() => { setActiveView(activeView === 'chord' ? null : 'chord'); resetFadeTimer() }}
               aria-pressed={activeView === 'chord'}
               title="Nur Akkorde anzeigen"
             >

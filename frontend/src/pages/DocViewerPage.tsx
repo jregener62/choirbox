@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, FileX, Mic, X } from 'lucide-react'
+import { ChevronLeft, FileX, Mic, SquarePen, X } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/authStore.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus.ts'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
+import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole } from '@/utils/roles.ts'
 import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 
@@ -22,6 +23,10 @@ export function DocViewerPage() {
 
   const { loadedFolder, load, documents, activeDocId, loading, setActive } = useDocumentsStore()
   const online = useOnlineStatus()
+
+  const startEdit = useSheetEditMode((s) => s.start)
+  const activeDoc = documents.find((d) => d.id === activeDocId)
+  const canEdit = canUpload && (activeDoc?.file_type === 'cho' || activeDoc?.file_type === 'txt')
 
   const editorActive = useEditorCommands((s) => s.active)
   const editorSaving = useEditorCommands((s) => s.saving)
@@ -80,15 +85,26 @@ export function DocViewerPage() {
             Speichern
           </button>
         ) : (
-          canUpload && songFolderPath && (
-            <button
-              className="topbar-action"
-              onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
-              title="Aufnehmen"
-            >
-              <Mic size={18} />
-            </button>
-          )
+          <>
+            {canEdit && (
+              <button
+                className="topbar-action"
+                onClick={startEdit}
+                title="Bearbeiten"
+              >
+                <SquarePen size={18} />
+              </button>
+            )}
+            {canUpload && songFolderPath && (
+              <button
+                className="topbar-action"
+                onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
+                title="Aufnehmen"
+              >
+                <Mic size={18} />
+              </button>
+            )}
+          </>
         )}
       </div>
       <div className="player-scroll-content">
