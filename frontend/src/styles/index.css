@@ -1374,6 +1374,13 @@ body.body-scroll-fs .autoscroll-stepper {
   color: var(--danger, #ef4444);
   background: rgba(239, 68, 68, 0.1);
 }
+.pdf-toolbar-btn--save:not(:disabled) {
+  color: var(--confirm, #16a34a);
+  background: rgba(22, 163, 74, 0.12);
+}
+.pdf-toolbar-btn--save:hover:not(:disabled) {
+  background: rgba(22, 163, 74, 0.22);
+}
 .pdf-pages {
   flex: 1;
   overflow: auto;

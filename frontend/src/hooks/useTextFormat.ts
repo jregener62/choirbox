@@ -29,9 +29,13 @@ interface TextFormatState {
   formats: Record<string, FormatFlags>
   /** Aktuelle Drag-Selection (single-line). */
   selection: FormatSelection | null
+  /** Format-Modus: schaltet Drag-Selection, Editor-Visualisierung und
+   *  die Format-Sub-Bar-Buttons aktiv. */
+  formatMode: boolean
 
   setSelection: (sel: FormatSelection | null) => void
   setFormats: (formats: Record<string, FormatFlags>) => void
+  setFormatMode: (on: boolean) => void
 
   /** Laede per-Char-Formate aus den `# choirbox-format:` Kommentaren
    *  eines cho-Bodies. */
@@ -59,9 +63,11 @@ interface TextFormatState {
 export const useTextFormat = create<TextFormatState>((set, get) => ({
   formats: {},
   selection: null,
+  formatMode: false,
 
   setSelection: (sel) => set({ selection: sel }),
   setFormats: (formats) => set({ formats }),
+  setFormatMode: (on) => set({ formatMode: on, selection: on ? get().selection : null }),
 
   loadFromChordPro: (body) => {
     const { formats } = parseFormatComments(body)
@@ -153,5 +159,5 @@ export const useTextFormat = create<TextFormatState>((set, get) => ({
   },
 
   clearAll: () => set({ formats: {} }),
-  reset: () => set({ formats: {}, selection: null }),
+  reset: () => set({ formats: {}, selection: null, formatMode: false }),
 }))

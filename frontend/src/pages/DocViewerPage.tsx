@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, FileX, Mic, SquarePen, X } from 'lucide-react'
+import { ChevronLeft, FileX, Mic } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -8,7 +8,6 @@ import { useAuthStore } from '@/stores/authStore.ts'
 import { useRecordingStore } from '@/stores/recordingStore'
 import { useOnlineStatus } from '@/hooks/useOnlineStatus.ts'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
-import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole } from '@/utils/roles.ts'
 import { stripFolderExtension, isReservedName } from '@/utils/folderTypes.ts'
 
@@ -24,15 +23,7 @@ export function DocViewerPage() {
   const { loadedFolder, load, documents, activeDocId, loading, setActive } = useDocumentsStore()
   const online = useOnlineStatus()
 
-  const startEdit = useSheetEditMode((s) => s.start)
-  const activeDoc = documents.find((d) => d.id === activeDocId)
-  const canEdit = canUpload && (activeDoc?.file_type === 'cho' || activeDoc?.file_type === 'txt')
-
   const editorActive = useEditorCommands((s) => s.active)
-  const editorSaving = useEditorCommands((s) => s.saving)
-  const editorSaveDisabled = useEditorCommands((s) => s.saveDisabled)
-  const editorSaveTitle = useEditorCommands((s) => s.saveTitle)
-  const editorOnSave = useEditorCommands((s) => s.onSave)
   const editorOnClose = useEditorCommands((s) => s.onClose)
 
   useEffect(() => {
@@ -71,41 +62,20 @@ export function DocViewerPage() {
           onClick={editorActive ? editorOnClose : () => navigate(-1)}
           title={editorActive ? 'Bearbeitung abbrechen' : 'Zurück'}
         >
-          {editorActive ? <X size={22} /> : <ChevronLeft size={22} />}
+          <ChevronLeft size={22} />
         </button>
         <span className="topbar-title">{folderName}</span>
-        {editorActive ? (
-          <button
-            className="topbar-action topbar-action--save"
-            onClick={editorOnSave}
-            disabled={editorSaveDisabled}
-            title={editorSaveTitle}
-            aria-busy={editorSaving}
-          >
-            Speichern
-          </button>
-        ) : (
-          <div className="topbar-actions">
-            {canEdit && (
-              <button
-                className="topbar-action"
-                onClick={startEdit}
-                title="Bearbeiten"
-              >
-                <SquarePen size={18} />
-              </button>
-            )}
-            {canUpload && songFolderPath && (
-              <button
-                className="topbar-action"
-                onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
-                title="Aufnehmen"
-              >
-                <Mic size={18} />
-              </button>
-            )}
-          </div>
-        )}
+        <div className="topbar-actions">
+          {canUpload && songFolderPath && !editorActive && (
+            <button
+              className="topbar-action"
+              onClick={() => useRecordingStore.getState().startSession(songFolderPath)}
+              title="Aufnehmen"
+            >
+              <Mic size={18} />
+            </button>
+          )}
+        </div>
       </div>
       <div className="player-scroll-content">
         {(() => {

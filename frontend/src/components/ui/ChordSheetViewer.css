@@ -84,23 +84,36 @@
   font-size: 0.85em;
 }
 
-/* Top/bottom notes — plain colored text, no pill. */
+/* Top/bottom notes — plain colored text, no pill.
+ *
+ * The outer span sits at `left: {col}ch` — `ch` is the width of "0" in the
+ * element's own font, so we must inherit the Courier-monospace font here.
+ * Otherwise a non-monospace font (e.g. Inter) produces a narrower `ch`,
+ * which shifts the label to the left of the char it belongs to.
+ * The inner `-text` span restores the nicer sans-serif visual. */
 .vocal-note-label {
   position: absolute;
   white-space: nowrap;
+  font-family: inherit;
+  line-height: 1;
+}
+.vocal-note-label-text {
+  font-family: 'Inter', sans-serif;
   font-size: 0.7em;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
   line-height: 1;
+  display: inline-block;
 }
 .vocal-note-label--top {
   bottom: 0;
-  color: var(--v-note-bg, #FCD34D);
+  color: #B45309;
 }
 .vocal-note-label--bottom {
   top: 0;
   color: var(--v-note-bottom-bg, #FDA4AF);
 }
+.vocal-row--top { margin-bottom: -4px; }
+.vocal-row--bottom { margin-top: -5px; }
 
 /* Farbcodierung der Vocal-Marks */
 .vocal-mark--beat     { color: var(--v-beat, #a3e635); }

@@ -1,4 +1,4 @@
-import { ArrowDown, ArrowUp, Bold, Delete, Italic, Minus, Strikethrough, Underline, X } from 'lucide-react'
+import { ArrowDown, ArrowUp, Bold, Delete, Italic, Minus, Strikethrough, Type, Underline, X } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useVocalInput } from '@/hooks/useVocalInput'
 import { useTextFormat, type FormatFlag } from '@/hooks/useTextFormat'
@@ -6,7 +6,7 @@ import type { NotePosition } from '@/utils/vocalValidation'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
 
-export type ActiveTool = 'chord' | 'beat' | 'note' | 'format' | 'source' | null
+export type ActiveTool = 'chord' | 'beat' | 'note' | 'source' | null
 
 const FORMAT_COLORS = [
   { key: 'default', label: 'Standard', value: 'currentColor' },
@@ -49,10 +49,12 @@ export function SheetEditToolbar({
 
   const formatSelection = useTextFormat((s) => s.selection)
   const formats = useTextFormat((s) => s.formats)
+  const formatMode = useTextFormat((s) => s.formatMode)
+  const setFormatMode = useTextFormat((s) => s.setFormatMode)
   const toggleFormatFlag = useTextFormat((s) => s.toggleFlag)
   const setFormatColor = useTextFormat((s) => s.setColor)
   const setFormatBg = useTextFormat((s) => s.setBg)
-  const formatDisabled = formatSelection == null
+  const formatDisabled = !formatMode || formatSelection == null
   const flagActive = (flag: FormatFlag) => {
     if (!formatSelection) return false
     for (let col = formatSelection.start; col <= formatSelection.end; col++) {
@@ -112,16 +114,6 @@ export function SheetEditToolbar({
           aria-pressed={activeTool === 'note'}
         >
           <span className="set-tool-label">Kommentar</span>
-        </button>
-
-        <button
-          type="button"
-          className={`set-tool set-tool--format${activeTool === 'format' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('format')}
-          title="Text formatieren"
-          aria-pressed={activeTool === 'format'}
-        >
-          <span className="set-tool-label">Format</span>
         </button>
 
         <button
@@ -222,66 +214,81 @@ export function SheetEditToolbar({
         </div>
       )}
 
-      {activeTool === 'format' && (
+      {activeTool === null && (
         <div className="set-sub-row">
           <div className="set-sub-row-line">
-            <div className="set-format-group" role="group" aria-label="Textformatierung">
-              {([['b', 'Fett', Bold], ['i', 'Kursiv', Italic], ['u', 'Unterstrichen', Underline], ['s', 'Durchgestrichen', Strikethrough]] as const).map(([flag, title, Icon]) => (
-                <button
-                  key={flag}
-                  type="button"
-                  className="set-format-btn"
-                  title={title}
-                  aria-pressed={flagActive(flag)}
-                  disabled={formatDisabled}
-                  onClick={() => toggleFormatFlag(flag)}
-                >
-                  <Icon size={16} />
-                </button>
-              ))}
-            </div>
-            <div className="set-format-colors" role="group" aria-label="Textfarbe">
-              {FORMAT_COLORS.map((c) => {
-                const isActive = activeColor === (c.key === 'default' ? '' : c.key)
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    className={`set-format-swatch set-format-swatch--${c.key}`}
-                    style={{ '--swatch-color': c.value } as React.CSSProperties}
-                    title={c.label}
-                    aria-label={c.label}
-                    aria-pressed={isActive}
-                    disabled={formatDisabled}
-                    onClick={() => setFormatColor(c.key === 'default' ? undefined : c.key)}
-                  />
-                )
-              })}
-            </div>
-            <div className="set-format-colors set-format-colors--bg" role="group" aria-label="Textmarker">
-              {FORMAT_BGS.map((c) => {
-                const isActive = activeBg === (c.key === 'default' ? '' : c.key)
-                return (
-                  <button
-                    key={c.key}
-                    type="button"
-                    className={`set-format-swatch set-format-swatch--bg-${c.key}`}
-                    style={{ '--swatch-color': c.value } as React.CSSProperties}
-                    title={c.label}
-                    aria-label={c.label}
-                    aria-pressed={isActive}
-                    disabled={formatDisabled}
-                    onClick={() => setFormatBg(c.key === 'default' ? undefined : c.key)}
-                  />
-                )
-              })}
-            </div>
+            <button
+              type="button"
+              className={`set-format-toggle${formatMode ? ' set-format-toggle--active' : ''}`}
+              onClick={() => setFormatMode(!formatMode)}
+              title={formatMode ? 'Formatierungen ausblenden' : 'Formatierungen bearbeiten'}
+              aria-pressed={formatMode}
+            >
+              <Type size={16} />
+            </button>
+            {formatMode && (
+              <>
+                <div className="set-format-group" role="group" aria-label="Textformatierung">
+                  {([['b', 'Fett', Bold], ['i', 'Kursiv', Italic], ['u', 'Unterstrichen', Underline], ['s', 'Durchgestrichen', Strikethrough]] as const).map(([flag, title, Icon]) => (
+                    <button
+                      key={flag}
+                      type="button"
+                      className="set-format-btn"
+                      title={title}
+                      aria-pressed={flagActive(flag)}
+                      disabled={formatDisabled}
+                      onClick={() => toggleFormatFlag(flag)}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  ))}
+                </div>
+                <div className="set-format-colors" role="group" aria-label="Textfarbe">
+                  {FORMAT_COLORS.map((c) => {
+                    const isActive = activeColor === (c.key === 'default' ? '' : c.key)
+                    return (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className={`set-format-swatch set-format-swatch--${c.key}`}
+                        style={{ '--swatch-color': c.value } as React.CSSProperties}
+                        title={c.label}
+                        aria-label={c.label}
+                        aria-pressed={isActive}
+                        disabled={formatDisabled}
+                        onClick={() => setFormatColor(c.key === 'default' ? undefined : c.key)}
+                      />
+                    )
+                  })}
+                </div>
+                <div className="set-format-colors set-format-colors--bg" role="group" aria-label="Textmarker">
+                  {FORMAT_BGS.map((c) => {
+                    const isActive = activeBg === (c.key === 'default' ? '' : c.key)
+                    return (
+                      <button
+                        key={c.key}
+                        type="button"
+                        className={`set-format-swatch set-format-swatch--bg-${c.key}`}
+                        style={{ '--swatch-color': c.value } as React.CSSProperties}
+                        title={c.label}
+                        aria-label={c.label}
+                        aria-pressed={isActive}
+                        disabled={formatDisabled}
+                        onClick={() => setFormatBg(c.key === 'default' ? undefined : c.key)}
+                      />
+                    )
+                  })}
+                </div>
+              </>
+            )}
           </div>
           <div className="set-sub-row-line set-format-hint-row">
             <span className="set-format-hint">
-              {formatDisabled
-                ? 'Text markieren, dann Stil oder Farbe antippen'
-                : 'Auswahl aktiv — Stil oder Farbe antippen'}
+              {!formatMode
+                ? 'Formatierung einschalten, um Text zu markieren'
+                : formatSelection == null
+                  ? 'Text markieren, dann Stil oder Farbe antippen'
+                  : 'Auswahl aktiv — Stil oder Farbe antippen'}
             </span>
           </div>
         </div>

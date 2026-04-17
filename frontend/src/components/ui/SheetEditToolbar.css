@@ -332,21 +332,31 @@
 .set-key--num { color: var(--text-secondary); }
 .set-key--util { color: var(--text-secondary); }
 
-/* --- Format tool (B/I/U/S + colors) --- */
-.set-tool--format {
-  background: rgba(34, 211, 238, 0.08);
-  border-color: rgba(34, 211, 238, 0.35);
+/* --- Format Sub-Bar (B/I/U/S + colors) --- */
+.set-format-toggle {
+  width: 36px;
+  height: 34px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s, color 0.12s, box-shadow 0.12s;
+}
+.set-format-toggle:hover {
+  background: rgba(34, 211, 238, 0.1);
   color: #22d3ee;
+  border-color: rgba(34, 211, 238, 0.5);
 }
-.set-tool--format:hover {
-  background: rgba(34, 211, 238, 0.16);
-  border-color: #22d3ee;
-}
-.set-tool--format.set-tool--active {
+.set-format-toggle--active {
   background: rgba(34, 211, 238, 0.22);
   border-color: #22d3ee;
   color: #22d3ee;
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.18);
+  box-shadow: 0 0 0 2px rgba(34, 211, 238, 0.18);
 }
 
 .set-format-group {
@@ -375,11 +385,15 @@
   background: rgba(34, 211, 238, 0.12);
   color: #22d3ee;
 }
-.set-format-btn[aria-pressed="true"] {
+.set-format-btn:not(:disabled)[aria-pressed="true"] {
   background: rgba(34, 211, 238, 0.22);
   color: #22d3ee;
 }
-.set-format-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.set-format-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  color: var(--text-muted, var(--text-secondary));
+}
 
 .set-format-colors {
   display: inline-flex;
@@ -416,12 +430,16 @@
   background: transparent;
   border: 1.5px dashed var(--text-secondary);
 }
-.set-format-swatch:hover {
+.set-format-swatch:hover:not(:disabled) {
   border-color: rgba(255, 255, 255, 0.18);
   transform: scale(1.05);
 }
-.set-format-swatch[aria-pressed="true"] {
+.set-format-swatch:not(:disabled)[aria-pressed="true"] {
   border-color: var(--text-primary);
+}
+.set-format-swatch:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }
 
 .set-format-hint-row { justify-content: flex-start; }

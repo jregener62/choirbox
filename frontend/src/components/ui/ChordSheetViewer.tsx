@@ -176,7 +176,7 @@ function ChordLineView({
   const notesBottom = overlayMarks.filter(m => getVocalMeta(m.token)?.category === 'note-bottom')
 
   const topRow = notesTop.length > 0 ? (
-    <div className="vocal-row">
+    <div className="vocal-row vocal-row--top">
       {notesTop.map((m, i) => {
         const meta = getVocalMeta(m.token)!
         return (
@@ -186,7 +186,7 @@ function ChordLineView({
             style={{ left: `${m.col}ch` }}
             title={meta.label}
           >
-            {meta.symbol}
+            <span className="vocal-note-label-text">{meta.symbol}</span>
           </span>
         )
       })}
@@ -204,7 +204,7 @@ function ChordLineView({
             style={{ left: `${m.col}ch` }}
             title={meta.label}
           >
-            {meta.symbol}
+            <span className="vocal-note-label-text">{meta.symbol}</span>
           </span>
         )
       })}

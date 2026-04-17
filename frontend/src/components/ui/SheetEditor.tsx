@@ -59,6 +59,7 @@ export function SheetEditor({
   const formats = useTextFormat((s) => s.formats)
   const selection = useTextFormat((s) => s.selection)
   const setSelection = useTextFormat((s) => s.setSelection)
+  const formatMode = useTextFormat((s) => s.formatMode)
   const formatReset = useTextFormat((s) => s.reset)
   const loadFormatFrom = useTextFormat((s) => s.loadFromChordPro)
 
@@ -155,7 +156,9 @@ export function SheetEditor({
         setVocalTool(null)
       }
 
-      if (tool !== 'format') {
+      // Drag-selection lebt im 'Text Modus' (kein Tool aktiv). Sobald ein
+      // anderes Tool aktiviert wird, Auswahl loeschen.
+      if (tool !== null) {
         setSelection(null)
         selectingRef.current = null
       }
@@ -164,7 +167,7 @@ export function SheetEditor({
   )
 
   const handleSelectPointerDown = useCallback((e: React.PointerEvent) => {
-    if (activeTool !== 'format') return
+    if (activeTool !== null || !formatMode) return
     const target = (e.target as HTMLElement).closest<HTMLElement>('.sheet-editor-char')
     if (!target) {
       setSelection(null)
@@ -177,7 +180,7 @@ export function SheetEditor({
     setSelection({ line, start: col, end: col })
     setIsDragging(true)
     ;(e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId)
-  }, [activeTool, setSelection])
+  }, [activeTool, formatMode, setSelection])
 
   const handleSelectPointerMove = useCallback((e: React.PointerEvent) => {
     const anchor = selectingRef.current
@@ -415,7 +418,7 @@ export function SheetEditor({
     (activeTool === 'chord' ? ' sheet-editor-text--mode-chord' : '') +
     (activeTool === 'beat' ? ' sheet-editor-text--mode-beat' : '') +
     (activeTool === 'note' ? ' sheet-editor-text--mode-note' : '') +
-    (activeTool === 'format' ? ' sheet-editor-text--mode-format' : '') +
+    (activeTool === null && formatMode ? ' sheet-editor-text--mode-format' : '') +
     (isDragging ? ' sheet-editor-text--dragging' : '')
 
   return (
@@ -488,7 +491,7 @@ export function SheetEditor({
                       selection.line === lineIndex &&
                       col >= selection.start &&
                       col <= selection.end
-                    const fmt = formats[`${lineIndex}:${col}`]
+                    const fmt = formatMode ? formats[`${lineIndex}:${col}`] : undefined
                     return (
                       <span key={col} style={{ display: 'contents' }}>
                         {inlineMeta && (

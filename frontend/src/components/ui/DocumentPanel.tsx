@@ -1,8 +1,9 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, Undo2, Trash2, Eye } from 'lucide-react'
+import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X } from 'lucide-react'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { useAuthStore } from '@/stores/authStore.ts'
-import { isGuest } from '@/utils/roles.ts'
+import { useSheetEditMode } from '@/hooks/useSheetEditMode'
+import { hasMinRole, isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
@@ -83,6 +84,8 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const chordInputMode = useChordInput((s) => s.mode)
   const vocalInputMode = useVocalInput((s) => s.mode)
   const editMode = chordInputMode || vocalInputMode
+  const startEdit = useSheetEditMode((s) => s.start)
+  const canEditSheet = hasMinRole(userRole, 'pro-member')
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
   const pagesRef = useRef<HTMLDivElement>(null)
   const scrollContainerRef = useRef<HTMLElement | null>(null)
@@ -331,6 +334,18 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           <span className="pdf-toolbar-name">
             {getDocIcon(activeDoc.file_type)} {activeDoc.original_name}
           </span>
+          {!editMode && canEditSheet && isCho && (
+            <div className="pdf-toolbar-actions">
+              <button
+                type="button"
+                className="pdf-toolbar-btn"
+                onClick={startEdit}
+                title="Text bearbeiten"
+              >
+                <SquarePen size={16} />
+              </button>
+            </div>
+          )}
           {editMode && <EditorActionsInline />}
         </div>
       )}
@@ -509,9 +524,14 @@ function EditorActionsInline() {
   const clearDisabled = useEditorCommands((s) => s.clearDisabled)
   const clearTitle = useEditorCommands((s) => s.clearTitle)
   const previewDisabled = useEditorCommands((s) => s.previewDisabled)
+  const saving = useEditorCommands((s) => s.saving)
+  const saveDisabled = useEditorCommands((s) => s.saveDisabled)
+  const saveTitle = useEditorCommands((s) => s.saveTitle)
   const onUndo = useEditorCommands((s) => s.onUndo)
   const onClear = useEditorCommands((s) => s.onClear)
   const onPreview = useEditorCommands((s) => s.onPreview)
+  const onSave = useEditorCommands((s) => s.onSave)
+  const onClose = useEditorCommands((s) => s.onClose)
 
   if (!active) return null
   return (
@@ -546,6 +566,24 @@ function EditorActionsInline() {
         title="ChordPro-Vorschau"
       >
         <Eye size={16} />
+      </button>
+      <button
+        type="button"
+        className="pdf-toolbar-btn"
+        onClick={onClose}
+        title="Bearbeitung abbrechen"
+      >
+        <X size={16} />
+      </button>
+      <button
+        type="button"
+        className="pdf-toolbar-btn pdf-toolbar-btn--save"
+        onClick={onSave}
+        disabled={saveDisabled}
+        title={saveTitle}
+        aria-busy={saving}
+      >
+        <Check size={16} />
       </button>
     </div>
   )
