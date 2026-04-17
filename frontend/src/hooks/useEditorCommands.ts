@@ -45,6 +45,7 @@ interface State {
     saving: boolean
     saveDisabled: boolean
     saveTitle: string
+    sourceMode: boolean
     undoDisabled: boolean
     clearDisabled: boolean
     clearTitle: string
