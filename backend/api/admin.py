@@ -25,6 +25,7 @@ def _generate_reset_password() -> str:
 router = APIRouter(prefix="/admin", tags=["admin"])
 
 VALID_VIEW_MODES = {"songs", "texts"}
+VALID_DISPLAY_MODES = {"vocal", "instrumental", "gemischt"}
 # Rollen, fuer die view_mode angewendet wird. Chorleiter/Admin/Developer
 # brauchen immer vollen Zugriff und werden im Bulk-Endpunkt uebersprungen.
 VIEW_MODE_APPLICABLE_ROLES = {"member", "pro-member"}
@@ -258,6 +259,7 @@ def get_settings(user: User = Depends(require_permission("settings.manage")), se
         "invite_code": choir.invite_code if choir else None,
         "dropbox_root_folder": choir.dropbox_root_folder if choir else None,
         "default_view_mode": choir.default_view_mode if choir else "songs",
+        "display_mode": choir.display_mode if choir else "instrumental",
     }
 
 
@@ -282,6 +284,10 @@ def update_settings(data: dict, user: User = Depends(require_permission("setting
         if data["default_view_mode"] not in VALID_VIEW_MODES:
             raise HTTPException(400, f"default_view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
         choir.default_view_mode = data["default_view_mode"]
+    if "display_mode" in data:
+        if data["display_mode"] not in VALID_DISPLAY_MODES:
+            raise HTTPException(400, f"display_mode must be one of: {', '.join(sorted(VALID_DISPLAY_MODES))}")
+        choir.display_mode = data["display_mode"]
 
     session.add(choir)
     session.commit()

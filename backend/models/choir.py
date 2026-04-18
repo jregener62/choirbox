@@ -14,4 +14,9 @@ class Choir(SQLModel, table=True):
     # "texts" (nur Texte/Noten). Admin kann pro Chor setzen — z.B. "texts"
     # waehrend einer Jam-Session-Phase, spaeter umstellen auf "songs".
     default_view_mode: str = Field(default="songs", max_length=10)
+    # Anzeige-Modus fuer .cho-Dateien:
+    #   "vocal"        — nur Text + Anweisungen, keine Akkorde, Akkord-Tools aus
+    #   "instrumental" — volle Anzeige inkl. Akkorde (bisheriges Verhalten)
+    #   "gemischt"     — User kann pro Song umschalten, alle Tools verfuegbar
+    display_mode: str = Field(default="instrumental", max_length=15)
     created_at: datetime = Field(default_factory=datetime.utcnow)
