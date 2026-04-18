@@ -482,8 +482,8 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
                 aria-label="Akkorde"
                 title="Nur Akkorde anzeigen"
               >
-                <svg width="34" height="18" viewBox="0 0 34 18" fill="currentColor" aria-hidden="true">
-                  <text x="0" y="14" fontFamily="Georgia, serif" fontSize="14" fontWeight="700">Am/G</text>
+                <svg width="20" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <text x="6" y="18" fontFamily="Georgia, serif" fontSize="17" fontWeight="700">C</text>
                 </svg>
               </button>
             )}
