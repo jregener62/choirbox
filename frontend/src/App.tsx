@@ -12,6 +12,8 @@ import { MustChangePasswordScreen } from '@/components/ui/MustChangePasswordModa
 import { OfflineBanner } from '@/components/ui/OfflineBanner.tsx'
 import { BrowsePage } from '@/pages/BrowsePage.tsx'
 import { SettingsPage } from '@/pages/SettingsPage.tsx'
+import { ChoirSettingsPage } from '@/pages/settings/ChoirSettingsPage.tsx'
+import { DataSettingsPage } from '@/pages/settings/DataSettingsPage.tsx'
 import { ViewerPage } from '@/pages/ViewerPage.tsx'
 import { SectionEditorPage } from '@/pages/SectionEditorPage.tsx'
 import { DocViewerPage } from '@/pages/DocViewerPage.tsx'
@@ -63,6 +65,8 @@ function AppRoutes() {
       <Route path="/doc-viewer" element={<DocViewerPage />} />
       {isBeta && <Route path="/sections" element={<SectionEditorPage />} />}
       <Route path="/settings" element={<SettingsPage />} />
+      <Route path="/settings/choir" element={<ChoirSettingsPage />} />
+      <Route path="/settings/data" element={<DataSettingsPage />} />
       <Route path="/admin/users" element={<UsersPage />} />
       <Route path="/admin/labels" element={<LabelsPage />} />
       <Route path="/admin/section-presets" element={<SectionPresetsPage />} />

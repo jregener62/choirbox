@@ -345,7 +345,7 @@ Ein Developer verbindet ChoirBox einmalig mit einem Dropbox-Account. Alle Choere
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/SettingsPage.tsx` | Dropbox-Sektion |
+| `frontend/src/pages/settings/DataSettingsPage.tsx` | Dropbox-Sektion (Developer), Re-Sync-Buttons (Admin) |
 | `backend/api/dropbox.py` | `/dropbox/authorize`, `/dropbox/callback`, `/dropbox/status`, `/dropbox/disconnect` |
 | `backend/models/app_settings.py` | Refresh-Token, Account-Info |
 
@@ -1251,7 +1251,7 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/admin/UsersPage.tsx` | User-Verwaltungs-UI (incl. View-Mode-Toggle + Bulk-Toolbar) |
-| `frontend/src/pages/SettingsPage.tsx` | Default-Ansicht-Section (Admin) |
+| `frontend/src/pages/settings/ChoirSettingsPage.tsx` | Default-Ansicht-Section (Admin) |
 | `frontend/src/stores/viewModeStore.ts` | `applyUserViewMode(user)` synchronisiert Store mit `user.view_mode` |
 | `backend/api/admin.py` | `/admin/users` Endpoints, `POST /admin/users/bulk-view-mode`, `default_view_mode` in `/admin/settings` |
 | `backend/api/auth.py` | `register` uebernimmt `choir.default_view_mode` fuer neue Mitglieder |
@@ -1265,12 +1265,12 @@ Steuert, ob Akkorde in `.cho`-Dateien gerendert und editierbar sind — orthogon
 - **`instrumental`** (Default): volle Anzeige inkl. Akkorde — bisheriges Verhalten. Anweisungen- und Akkorde-Toggle beide sichtbar.
 - **`vocal`**: nur Gesangstext und Anweisungen, keine Akkorde. "Akkorde"-Toggle verschwindet komplett aus der Viewer-Toolbar.
 - **`gemischt`**: User kann pro Song umschalten — UI identisch zu `instrumental` (Persistenz der User-Wahl pro Song ist optional/spaeter).
-- Einstellbar in `/#/settings` unter "Anzeige-Modus fuer Texte/Noten" (Admin-Only).
+- Einstellbar in `/#/settings/choir` unter "Anzeige-Modus fuer Texte/Noten" (Admin-Only).
 - Wirkt fuer alle Mitglieder nach dem naechsten Login (Feld kommt via `/auth/me` → `user.choir_display_mode`).
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/SettingsPage.tsx` | Admin-Toggle-Section (Gesang/Instrumental/Gemischt) |
+| `frontend/src/pages/settings/ChoirSettingsPage.tsx` | Admin-Toggle-Section (Gesang/Instrumental/Gemischt) |
 | `frontend/src/stores/displayModeStore.ts` | `applyUserDisplayMode(user)` synchronisiert Store mit `user.choir_display_mode` |
 | `frontend/src/components/ui/DocumentPanel.tsx` | Blendet "Akkorde"-Toggle bei `vocal` aus, erzwingt `activeView !== 'chord'` |
 | `backend/api/admin.py` | `display_mode` in `GET/PUT /admin/settings` + `VALID_DISPLAY_MODES` |
@@ -1287,7 +1287,7 @@ Steuert, ob Akkorde in `.cho`-Dateien gerendert und editierbar sind — orthogon
 
 | Datei | Rolle |
 |-------|-------|
-| `frontend/src/pages/SettingsPage.tsx` | Einladungslink-Sektion |
+| `frontend/src/pages/settings/ChoirSettingsPage.tsx` | Einladungslink-Sektion |
 | `backend/api/admin.py` | `GET/PUT /admin/settings` |
 
 ### Chor-Verwaltung (nur Developer)
@@ -1367,22 +1367,29 @@ CantaBox funktioniert ausschliesslich online (Dropbox-Streaming, API-Calls). Geh
 - Sichtbar auf allen Seiten (Login, App, Gast-Flows)
 - Verschwindet automatisch, sobald die Verbindung wieder steht
 
-### Einstellungen-Seite
+### Einstellungen-Seiten
 
-Zentrale Seite fuer alle User- und Admin-Konfigurationen:
+Die Settings sind in eine schlanke Hauptseite und thematische Sub-Seiten aufgeteilt, damit insbesondere Chorleiter (Admin) nicht mehr durch eine lange Liste scrollen muessen.
+
+**`/settings` — persoenlich (alle User):**
 - Profil (Anzeigename, Stimme, Chor-Name)
 - Passwort aendern
 - Theme-Toggle
 - Zoom-Stufen (Schriftgroesse)
-- Dropbox-Verbindung (nur Developer)
-- Einladungslink mit Copy-Button und klickbarer URL (nur Admin)
-- Chor-Ordner in der Dropbox (nur Admin)
-- Wartung: Dropbox Re-Sync — vollstaendiger DB-Abgleich (nur Admin, nur bei verbundener Dropbox)
-- Labels verwalten (ab Pro-Mitglied)
-- Sektionsvorlagen verwalten (ab Pro-Mitglied)
-- Choere verwalten (nur Developer)
-- Nutzer verwalten (nur Admin)
+- Navigation "Chor-Verwaltung" (nur Admin): verlinkt auf `/settings/choir` und `/settings/data`
+- Navigation "Verwaltung" (ab Pro-Mitglied): Nutzer, Labels, Sektionsvorlagen, Datenpflege, Gast-Zugaenge, Choere
 - Logout
+
+**`/settings/choir` — Chor-Einstellungen (Admin):**
+- Einladungslink mit Copy-Button und klickbarer URL
+- Chor-Ordner in der Dropbox
+- Default-Ansicht fuer neue Mitglieder (songs / texts)
+- Anzeige-Modus fuer Texte/Noten (vocal / instrumental / gemischt)
+
+**`/settings/data` — Daten &amp; Sync (Admin):**
+- Dropbox-Verbindung (nur Developer sichtbar): Connect/Disconnect, Account-Status, Backup-Status
+- Wartung: Dropbox Re-Sync (Dry-Run und Echt-Lauf) — verfuegbar fuer Admin sobald Dropbox verbunden ist
+- OAuth-Redirect landet nach Connect auf `/settings/data?dropbox=connected`
 
 ---
 
@@ -1476,7 +1483,9 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 | `/join/:inviteCode` | Registrierung mit Chor-Kontext | Oeffentlich |
 | `/browse` | Datei-Browser | Authentifiziert |
 | `/viewer` | Dokument-Viewer | Authentifiziert |
-| `/settings` | Einstellungen | Authentifiziert |
+| `/settings` | Einstellungen (persoenlich + Navigation) | Authentifiziert |
+| `/settings/choir` | Chor-Einstellungen (Einladungslink, Chor-Ordner, Default-Ansicht, Anzeige-Modus) | Admin |
+| `/settings/data` | Daten &amp; Sync (Dropbox-Verbindung, Re-Sync, Backup-Status) | Admin |
 | `/sections` | Section-Editor | Pro-Mitglied+ |
 | `/admin/users` | Nutzerverwaltung | Admin |
 | `/admin/labels` | Label-Verwaltung | Pro-Mitglied+ |

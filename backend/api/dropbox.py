@@ -182,7 +182,7 @@ async def dropbox_callback(
     frontend_url = str(request.base_url).rstrip("/")
     if "localhost:8001" in frontend_url or "127.0.0.1:8001" in frontend_url:
         frontend_url = "http://localhost:5174"
-    return RedirectResponse(f"{frontend_url}/#/settings?dropbox=connected")
+    return RedirectResponse(f"{frontend_url}/#/settings/data?dropbox=connected")
 
 
 @router.get("/browse")
