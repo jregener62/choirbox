@@ -112,6 +112,11 @@
   top: 0;
   color: var(--v-note-bottom-bg, #FDA4AF);
 }
+.vocal-note-label--bottom .vocal-note-label-text {
+  border: 1px solid currentColor;
+  border-radius: var(--radius-xs, 4px);
+  padding: 0 4px;
+}
 .vocal-row--top { margin-bottom: -4px; }
 .vocal-row--bottom { margin-top: -5px; }
 
