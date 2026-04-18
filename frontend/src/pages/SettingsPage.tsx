@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music, RefreshCw, Eye, FileText } from 'lucide-react'
+import { User, Sun, Moon, Cloud, CloudOff, Link, Users, Tag, LayoutList, LogOut, ChevronRight, ChevronLeft, Pencil, Lock, Check, X, Folder, Copy, Music, RefreshCw, Eye, FileText, Mic, Guitar, Shuffle } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useAppStore, ZOOM_LABELS, type ZoomLevel } from '@/stores/appStore.ts'
 import { api } from '@/api/client.ts'
@@ -23,6 +23,7 @@ interface AdminSettings {
   invite_code: string | null
   dropbox_root_folder: string | null
   default_view_mode: 'songs' | 'texts'
+  display_mode: 'vocal' | 'instrumental' | 'gemischt'
 }
 
 export function SettingsPage() {
@@ -65,6 +66,8 @@ export function SettingsPage() {
   const [rootFolderSaving, setRootFolderSaving] = useState(false)
   const [defaultViewMode, setDefaultViewMode] = useState<'songs' | 'texts'>('songs')
   const [defaultViewModeSaving, setDefaultViewModeSaving] = useState(false)
+  const [displayMode, setDisplayMode] = useState<'vocal' | 'instrumental' | 'gemischt'>('instrumental')
+  const [displayModeSaving, setDisplayModeSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   // Re-Sync state
@@ -124,6 +127,8 @@ export function SettingsPage() {
       setInviteCode(settings.invite_code || '')
       setRootFolder(settings.dropbox_root_folder || '')
       setDefaultViewMode(settings.default_view_mode === 'texts' ? 'texts' : 'songs')
+      const dm = settings.display_mode
+      setDisplayMode(dm === 'vocal' || dm === 'gemischt' ? dm : 'instrumental')
     } catch {
       // ignore
     }
@@ -294,6 +299,25 @@ export function SettingsPage() {
       setMessage('Fehler beim Speichern')
     } finally {
       setDefaultViewModeSaving(false)
+    }
+  }
+
+  const saveDisplayMode = async (mode: 'vocal' | 'instrumental' | 'gemischt') => {
+    if (mode === displayMode) return
+    setDisplayModeSaving(true)
+    try {
+      await api('/admin/settings', { method: 'PUT', body: { display_mode: mode } })
+      setDisplayMode(mode)
+      const labels: Record<typeof mode, string> = {
+        vocal: 'Gesang (ohne Akkorde)',
+        instrumental: 'Instrumental (mit Akkorden)',
+        gemischt: 'Gemischt (User entscheidet)',
+      }
+      setMessage(`Anzeige-Modus: ${labels[mode]}. Wirkt nach dem naechsten Login.`)
+    } catch {
+      setMessage('Fehler beim Speichern')
+    } finally {
+      setDisplayModeSaving(false)
     }
   }
 
@@ -655,6 +679,66 @@ export function SettingsPage() {
                 }}
               >
                 <FileText size={16} /> Nur Texte
+              </button>
+            </div>
+          </section>
+        )}
+
+        {/* -- Anzeige-Modus fuer .cho-Dateien (Admin) -- */}
+        {isAdmin && (
+          <section>
+            <h3 className="settings-heading"><Music size={14} /> Anzeige-Modus fuer Texte/Noten</h3>
+            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
+              Bestimmt, ob Akkorde angezeigt und editiert werden koennen. Wirkt fuer alle Mitglieder nach dem naechsten Login.
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => saveDisplayMode('vocal')}
+                disabled={displayModeSaving}
+                title="Nur Gesangstexte und Anweisungen, keine Akkorde"
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', borderRadius: 8,
+                  border: `2px solid ${displayMode === 'vocal' ? 'var(--accent)' : 'var(--border)'}`,
+                  background: displayMode === 'vocal' ? 'rgba(129,140,248,0.10)' : 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+                  cursor: displayModeSaving ? 'wait' : 'pointer',
+                }}
+              >
+                <Mic size={16} /> Gesang
+              </button>
+              <button
+                onClick={() => saveDisplayMode('instrumental')}
+                disabled={displayModeSaving}
+                title="Texte mit Akkorden — volle Anzeige (Standard)"
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', borderRadius: 8,
+                  border: `2px solid ${displayMode === 'instrumental' ? 'var(--accent)' : 'var(--border)'}`,
+                  background: displayMode === 'instrumental' ? 'rgba(129,140,248,0.10)' : 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+                  cursor: displayModeSaving ? 'wait' : 'pointer',
+                }}
+              >
+                <Guitar size={16} /> Instrumental
+              </button>
+              <button
+                onClick={() => saveDisplayMode('gemischt')}
+                disabled={displayModeSaving}
+                title="User entscheidet pro Song, ob Akkorde gezeigt werden"
+                style={{
+                  flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  padding: '10px 12px', borderRadius: 8,
+                  border: `2px solid ${displayMode === 'gemischt' ? 'var(--accent)' : 'var(--border)'}`,
+                  background: displayMode === 'gemischt' ? 'rgba(129,140,248,0.10)' : 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  fontSize: 13, fontFamily: 'inherit', fontWeight: 600,
+                  cursor: displayModeSaving ? 'wait' : 'pointer',
+                }}
+              >
+                <Shuffle size={16} /> Gemischt
               </button>
             </div>
           </section>

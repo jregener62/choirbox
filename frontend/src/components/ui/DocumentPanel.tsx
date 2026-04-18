@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X } from 'lucide-react'
+import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X, ClipboardList } from 'lucide-react'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useDisplayModeStore } from '@/stores/displayModeStore.ts'
@@ -468,9 +468,10 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
               className={`chord-toggle-segment chord-toggle-segment--vocal${activeView === 'vocal' ? ' chord-toggle-segment--active' : ''}`}
               onClick={() => { setActiveView(activeView === 'vocal' ? null : 'vocal'); resetFadeTimer() }}
               aria-pressed={activeView === 'vocal'}
+              aria-label="Anweisungen"
               title="Nur Anweisungen anzeigen"
             >
-              Anweisungen
+              <ClipboardList size={18} />
             </button>
             {chordsAllowed && (
               <button
@@ -478,9 +479,12 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
                 className={`chord-toggle-segment chord-toggle-segment--chord${activeView === 'chord' ? ' chord-toggle-segment--active' : ''}`}
                 onClick={() => { setActiveView(activeView === 'chord' ? null : 'chord'); resetFadeTimer() }}
                 aria-pressed={activeView === 'chord'}
+                aria-label="Akkorde"
                 title="Nur Akkorde anzeigen"
               >
-                Akkorde
+                <svg width="34" height="18" viewBox="0 0 34 18" fill="currentColor" aria-hidden="true">
+                  <text x="0" y="14" fontFamily="Georgia, serif" fontSize="14" fontWeight="700">Am/G</text>
+                </svg>
               </button>
             )}
           </div>

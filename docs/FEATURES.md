@@ -1258,6 +1258,25 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 | `backend/models/user.py` | Feld `view_mode` ("songs" \| "texts", Default "songs") |
 | `backend/models/choir.py` | Feld `default_view_mode` ("songs" \| "texts", Default "songs") |
 
+### Anzeige-Modus fuer .cho-Dateien (`choir.display_mode`)
+
+Steuert, ob Akkorde in `.cho`-Dateien gerendert und editierbar sind — orthogonal zum `view_mode`. Das `.cho`-Austauschformat bleibt universell (Akkorde stehen immer im File), nur Anzeige und Toolbar richten sich nach dem Chor-Typ.
+
+- **`instrumental`** (Default): volle Anzeige inkl. Akkorde — bisheriges Verhalten. Anweisungen- und Akkorde-Toggle beide sichtbar.
+- **`vocal`**: nur Gesangstext und Anweisungen, keine Akkorde. "Akkorde"-Toggle verschwindet komplett aus der Viewer-Toolbar.
+- **`gemischt`**: User kann pro Song umschalten — UI identisch zu `instrumental` (Persistenz der User-Wahl pro Song ist optional/spaeter).
+- Einstellbar in `/#/settings` unter "Anzeige-Modus fuer Texte/Noten" (Admin-Only).
+- Wirkt fuer alle Mitglieder nach dem naechsten Login (Feld kommt via `/auth/me` → `user.choir_display_mode`).
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/pages/SettingsPage.tsx` | Admin-Toggle-Section (Gesang/Instrumental/Gemischt) |
+| `frontend/src/stores/displayModeStore.ts` | `applyUserDisplayMode(user)` synchronisiert Store mit `user.choir_display_mode` |
+| `frontend/src/components/ui/DocumentPanel.tsx` | Blendet "Akkorde"-Toggle bei `vocal` aus, erzwingt `activeView !== 'chord'` |
+| `backend/api/admin.py` | `display_mode` in `GET/PUT /admin/settings` + `VALID_DISPLAY_MODES` |
+| `backend/api/auth.py` | `_user_response` liefert `choir_display_mode` (wirkt fuer Login, Register, `/auth/me`, Guest-Redeem) |
+| `backend/models/choir.py` | Feld `display_mode` ("vocal" \| "instrumental" \| "gemischt", Default "instrumental") |
+
 ### Einladungslink
 
 - Jeder Chor hat einen eindeutigen Einladungscode (`invite_code`)

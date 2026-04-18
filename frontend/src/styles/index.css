@@ -1844,8 +1844,7 @@ body.body-scroll-fs .autoscroll-stepper {
   background: rgba(252, 211, 77, 0.1);
 }
 .chord-toggle-segment--chord.chord-toggle-segment--active {
-  color: var(--accent);
-  background: rgba(129, 140, 248, 0.1);
+  color: var(--v-note-bg, #FCD34D);
 }
 .transpose-stepper-btn {
   width: 32px;
