@@ -155,6 +155,7 @@ function ChordLineView({
     : ''
 
   const showVocal = !hideVocal && !!line.vocalMarks?.length
+  const lineFormats = hideVocal ? undefined : line.formats
 
   // Beat-Marks: Unterstrich. Note-top/bottom: Pills. Note-inline: between chars.
   const allMarks: VocalMarkPosition[] = showVocal ? (line.vocalMarks || []) : []
@@ -241,7 +242,7 @@ function ChordLineView({
         {topRow}
         {vocalRow}
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, new Set(), beatCols, inlineNotes, line.formats)}
+          {renderTextWithAnchors(line.text, new Set(), beatCols, inlineNotes, lineFormats)}
           {annotations}
         </div>
         {bottomRow}
@@ -273,7 +274,7 @@ function ChordLineView({
       </div>
       {(line.text || annotations) && (
         <div className="chord-text">
-          {renderTextWithAnchors(line.text, anchorCols, beatCols, inlineNotes, line.formats)}
+          {renderTextWithAnchors(line.text, anchorCols, beatCols, inlineNotes, lineFormats)}
           {annotations}
         </div>
       )}
