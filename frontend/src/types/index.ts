@@ -19,6 +19,9 @@ export interface User {
   can_report_bugs: boolean
   /** "songs" (Vollzugriff) oder "texts" (nur Texte/Noten). */
   view_mode: 'songs' | 'texts'
+  /** Anzeige-Modus fuer .cho-Dateien — kommt vom Chor, nicht pro User editierbar.
+   *  vocal = keine Akkorde, instrumental = wie bisher, gemischt = User toggelt. */
+  choir_display_mode: 'vocal' | 'instrumental' | 'gemischt'
 }
 
 export interface LoginResponse {

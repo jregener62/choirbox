@@ -2,6 +2,7 @@ import { useRef, useState, useCallback, useEffect } from 'react'
 import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X } from 'lucide-react'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { useAuthStore } from '@/stores/authStore.ts'
+import { useDisplayModeStore } from '@/stores/displayModeStore.ts'
 import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole, isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
@@ -95,7 +96,15 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const [textSizeIndex, setTextSizeIndex] = useState(2)
   // View toggle: Anweisungen, Akkorde, oder beides aus. Default: aus.
   const [activeView, setActiveView] = useState<'vocal' | 'chord' | null>(null)
-  const chordsHidden = activeView !== 'chord'
+  const choirDisplayMode = useDisplayModeStore((s) => s.choirMode)
+  const chordsAllowed = choirDisplayMode !== 'vocal'
+  // Im vocal-Modus darf activeView nie 'chord' sein — falls doch, zurueck auf null.
+  useEffect(() => {
+    if (!chordsAllowed && activeView === 'chord') {
+      setActiveView(null)
+    }
+  }, [chordsAllowed, activeView])
+  const chordsHidden = !chordsAllowed || activeView !== 'chord'
   const vocalHidden = activeView !== 'vocal'
   const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -463,15 +472,17 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
             >
               Anweisungen
             </button>
-            <button
-              type="button"
-              className={`chord-toggle-segment chord-toggle-segment--chord${activeView === 'chord' ? ' chord-toggle-segment--active' : ''}`}
-              onClick={() => { setActiveView(activeView === 'chord' ? null : 'chord'); resetFadeTimer() }}
-              aria-pressed={activeView === 'chord'}
-              title="Nur Akkorde anzeigen"
-            >
-              Akkorde
-            </button>
+            {chordsAllowed && (
+              <button
+                type="button"
+                className={`chord-toggle-segment chord-toggle-segment--chord${activeView === 'chord' ? ' chord-toggle-segment--active' : ''}`}
+                onClick={() => { setActiveView(activeView === 'chord' ? null : 'chord'); resetFadeTimer() }}
+                aria-pressed={activeView === 'chord'}
+                title="Nur Akkorde anzeigen"
+              >
+                Akkorde
+              </button>
+            )}
           </div>
         </div>
       )}
