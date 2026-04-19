@@ -49,7 +49,7 @@ export function ImportModal({ files, targetPath, isAdmin, rootUpload, onClose, o
       try {
         const name = entries[i].file.name.toLowerCase()
         // Always detect by file extension — backend handles routing to correct subfolder
-        const isDocument = name.endsWith('.pdf') || name.endsWith('.txt') || name.endsWith('.cho')
+        const isDocument = name.endsWith('.pdf') || name.endsWith('.txt') || name.endsWith('.cho') || name.endsWith('.rtf')
         // Use .song parent folder when inside a reserved subfolder (Audio, Texte, etc.)
         const uploadPath = deriveSongFolderPath(targetPath) || targetPath || '/'
         // Root-Modus: pro Datei eigenen .song-Ordner anlegen (Name = Dateiname ohne Extension)

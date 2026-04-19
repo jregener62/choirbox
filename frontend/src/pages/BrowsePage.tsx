@@ -17,6 +17,7 @@ import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { UploadChoiceModal } from '@/components/ui/UploadChoiceModal'
 import { PasteTextModal } from '@/components/ui/PasteTextModal'
+import { NewRtfModal } from '@/components/ui/NewRtfModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useShareTarget } from '@/hooks/useShareTarget'
@@ -98,6 +99,7 @@ export function BrowsePage() {
   const [importedFiles, setImportedFiles] = useState<File[]>([])
   const [uploadChoiceOpen, setUploadChoiceOpen] = useState(false)
   const [pasteMode, setPasteMode] = useState<null | 'txt' | 'cho'>(null)
+  const [newRtfOpen, setNewRtfOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sharedFiles = useShareTarget()
 
@@ -873,7 +875,7 @@ export function BrowsePage() {
 
           // File extension for badge text
           const fileExt = (isFile || isDoc) ? (entry.name.split('.').pop()?.toLowerCase() || '') : ''
-          const isTextFile = fileExt === 'pdf' || fileExt === 'txt'
+          const isTextFile = fileExt === 'pdf' || fileExt === 'txt' || fileExt === 'rtf'
           const isChordFile = fileExt === 'cho'
           const isVideoFile = fileExt === 'mp4' || fileExt === 'webm' || fileExt === 'mov'
           const isSelectedText = entry.selected || (isInTexteFolder && isDoc && selectedDoc?.id === entry.doc_id)
@@ -1320,7 +1322,7 @@ export function BrowsePage() {
         ref={fileInputRef}
         type="file"
         multiple
-        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.txt,.cho"
+        accept=".mp3,.m4a,.ogg,.opus,.webm,.wav,.mid,.midi,.pdf,.txt,.cho,.rtf"
         style={{ display: 'none' }}
         onChange={(e) => {
           const files = e.target.files
@@ -1379,6 +1381,7 @@ export function BrowsePage() {
           onClose={() => setUploadChoiceOpen(false)}
           onPasteText={() => setPasteMode('txt')}
           onPasteChord={() => setPasteMode('cho')}
+          onNewRtf={() => setNewRtfOpen(true)}
           onPickFile={() => fileInputRef.current?.click()}
         />
       )}
@@ -1404,6 +1407,32 @@ export function BrowsePage() {
               // In root mode also invalidate parent so the new .song shows up
               if (isRootMode) useBrowseStore.getState().invalidate(parentPath)
               loadFolder(folderPath, true)
+            }}
+          />
+        )
+      })()}
+
+      {newRtfOpen && (() => {
+        const songFolder = deriveSongFolderPath(browsePath)
+        const isRootMode = !songFolder
+        const parentPath = songFolder ?? (browsePath || '/')
+        const defaultTitle = songFolder
+          ? stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
+          : ''
+        return (
+          <NewRtfModal
+            parentPath={parentPath}
+            defaultTitle={defaultTitle}
+            createSongFolder={isRootMode}
+            onClose={() => setNewRtfOpen(false)}
+            onSaved={(folderPath, filename) => {
+              setNewRtfOpen(false)
+              useDocumentsStore.setState({ loadedFolder: null })
+              useBrowseStore.getState().invalidate(folderPath)
+              if (isRootMode) useBrowseStore.getState().invalidate(parentPath)
+              navigate(
+                `/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(filename)}&edit=1`,
+              )
             }}
           />
         )

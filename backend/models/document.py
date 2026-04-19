@@ -14,7 +14,7 @@ class Document(SQLModel, table=True):
     # .song-Ordnern) noch unterstuetzt werden.
     song_id: Optional[int] = Field(default=None, foreign_key="songs.id", index=True)
     folder_path: str = Field(max_length=1000, index=True)
-    file_type: str = Field(max_length=10)  # 'pdf', 'video', 'txt'
+    file_type: str = Field(max_length=10)  # 'pdf', 'video', 'txt', 'cho', 'rtf'
     original_name: str = Field(max_length=500)
     file_size: int = Field(default=0)
     page_count: int = Field(default=0)

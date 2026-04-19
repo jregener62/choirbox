@@ -17,6 +17,8 @@ import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
 import { VideoViewer } from '@/components/ui/VideoViewer.tsx'
 import { TextViewer } from '@/components/ui/TextViewer.tsx'
 import { ChordSheetTextViewer } from '@/components/ui/ChordSheetTextViewer.tsx'
+import { RtfViewer } from '@/components/ui/RtfViewer.tsx'
+import { RtfEditor } from '@/components/ui/RtfEditor.tsx'
 import { AutoScrollStepper } from '@/components/ui/AutoScrollStepper.tsx'
 import type { DocumentItem } from '@/types/index.ts'
 
@@ -26,12 +28,15 @@ interface DocumentPanelProps {
   document?: DocumentItem | null
   /** Show hint when no document is selected (player mode) */
   emptyHint?: string
+  /** If true and the active document is an .rtf, open the editor immediately. */
+  autoEditRtf?: boolean
 }
 
 function getDocIcon(type: string, size = 14) {
   if (type === 'pdf') return <FileText size={size} />
   if (type === 'video') return <Video size={size} />
   if (type === 'cho') return <Music size={size} />
+  if (type === 'rtf') return <FileText size={size} />
   return <File size={size} />
 }
 
@@ -68,7 +73,7 @@ function getDistance(t1: Touch, t2: Touch) {
 }
 
 
-export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: DocumentPanelProps) {
+export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, autoEditRtf }: DocumentPanelProps) {
   const token = useAuthStore((s) => s.token)
   const userRole = useAuthStore((s) => s.user?.role)
   const guest = isGuest(userRole)
@@ -85,6 +90,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const chordInputMode = useChordInput((s) => s.mode)
   const vocalInputMode = useVocalInput((s) => s.mode)
   const editMode = chordInputMode || vocalInputMode
+  // anyEditorActive gating: verbirgt Viewer-FABs auch im RTF-Edit-Mode.
   const startEdit = useSheetEditMode((s) => s.start)
   const canEditSheet = hasMinRole(userRole ?? 'guest', 'pro-member')
   const setDrawingMode = useAnnotationStore((s) => s.setDrawingMode)
@@ -96,6 +102,9 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const [textSizeIndex, setTextSizeIndex] = useState(2)
   // View toggle: Anweisungen, Akkorde, oder beides aus. Default: aus.
   const [activeView, setActiveView] = useState<'vocal' | 'chord' | null>(null)
+  const [rtfEditing, setRtfEditing] = useState(false)
+  const [rtfReloadToken, setRtfReloadToken] = useState(0)
+  const [autoEditConsumed, setAutoEditConsumed] = useState(false)
   const choirDisplayMode = useDisplayModeStore((s) => s.choirMode)
   const chordsAllowed = choirDisplayMode !== 'vocal'
   // Im vocal-Modus darf activeView nie 'chord' sein — falls doch, zurueck auf null.
@@ -142,6 +151,16 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   useEffect(() => {
     return () => { useAnnotationStore.getState().flushAll() }
   }, [])
+
+  // Auto-edit consumer: opens the RTF editor automatically once we've loaded
+  // the active document (used by the "Neuer Rich-Text" flow which navigates
+  // here with ?edit=1).
+  useEffect(() => {
+    if (!autoEditRtf || autoEditConsumed) return
+    if (activeDoc?.file_type !== 'rtf') return
+    setRtfEditing(true)
+    setAutoEditConsumed(true)
+  }, [autoEditRtf, autoEditConsumed, activeDoc?.id, activeDoc?.file_type])
 
   // Set theme-color to white in fullscreen so iOS Safari safe-area/notch
   // regions match the viewer background during rotation
@@ -215,8 +234,8 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
     el.scrollBy({ top: direction === 'down' ? step : -step, behavior: 'smooth' })
   }, [])
 
-  // Autoscroll: nur im Vollbild, nur bei Text/Chord/PDF, pausiert wenn Audio geladen aber nicht spielt
-  const isScrollableType = activeDoc?.file_type === 'pdf' || activeDoc?.file_type === 'txt' || activeDoc?.file_type === 'cho'
+  // Autoscroll: nur im Vollbild, nur bei Text/Chord/PDF/RTF, pausiert wenn Audio geladen aber nicht spielt
+  const isScrollableType = activeDoc?.file_type === 'pdf' || activeDoc?.file_type === 'txt' || activeDoc?.file_type === 'cho' || activeDoc?.file_type === 'rtf'
   const autoScrollActive =
     pdfFullscreen &&
     isScrollableType &&
@@ -316,6 +335,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
   const isPdf = activeDoc.file_type === 'pdf'
   const isTxt = activeDoc.file_type === 'txt'
   const isCho = activeDoc.file_type === 'cho'
+  const isRtf = activeDoc.file_type === 'rtf'
   const pdfUrl = `/api/documents/${activeDoc.id}/download?token=${token}`
 
   return (
@@ -349,6 +369,18 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
                 type="button"
                 className="pdf-toolbar-btn"
                 onClick={startEdit}
+                title="Text bearbeiten"
+              >
+                <SquarePen size={16} />
+              </button>
+            </div>
+          )}
+          {!rtfEditing && canEditSheet && isRtf && (
+            <div className="pdf-toolbar-actions">
+              <button
+                type="button"
+                className="pdf-toolbar-btn"
+                onClick={() => setRtfEditing(true)}
                 title="Text bearbeiten"
               >
                 <SquarePen size={16} />
@@ -403,6 +435,26 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
         />
       )}
 
+      {activeDoc.file_type === 'rtf' && !rtfEditing && (
+        <RtfViewer
+          key={rtfReloadToken}
+          docId={activeDoc.id}
+          originalName={activeDoc.original_name}
+          fontSize={TEXT_FONT_SIZES[textSizeIndex]}
+          showName={!pdfFullscreen}
+          scrollContainerRef={scrollContainerRef}
+        />
+      )}
+
+      {activeDoc.file_type === 'rtf' && rtfEditing && (
+        <RtfEditor
+          docId={activeDoc.id}
+          originalName={activeDoc.original_name}
+          onSaved={() => { setRtfEditing(false); setRtfReloadToken((n) => n + 1) }}
+          onCancel={() => setRtfEditing(false)}
+        />
+      )}
+
       {activeDoc.file_type === 'cho' && (
         <ChordSheetTextViewer
           docId={activeDoc.id}
@@ -429,7 +481,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           <PenLine size={18} />
         </button>
       )}
-      {(isTxt || isCho) && pdfFullscreen && (
+      {(isTxt || isCho || (isRtf && !rtfEditing)) && pdfFullscreen && (
         <>
           <button
             className={`pdf-fab pdf-fab--small pdf-fab--zoom-in${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
@@ -490,7 +542,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           </div>
         </div>
       )}
-      {pdfFullscreen && (isPdf || isTxt || isCho) && !editMode && (
+      {pdfFullscreen && (isPdf || isTxt || isCho || (isRtf && !rtfEditing)) && !editMode && (
         <AutoScrollStepper
           faded={fabFaded}
           onInteract={resetFadeTimer}
@@ -498,7 +550,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint }: 
           onPageDown={() => handlePageScroll('down')}
         />
       )}
-      {(isPdf || isTxt || isCho) && !editMode && (
+      {(isPdf || isTxt || isCho || (isRtf && !rtfEditing)) && !editMode && (
         <button
           className={`pdf-fab${pdfFullscreen ? ' pdf-fab--fullscreen' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={handleFabClick}

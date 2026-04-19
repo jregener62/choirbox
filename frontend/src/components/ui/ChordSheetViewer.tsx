@@ -153,6 +153,7 @@ function ChordLineView({
   const commentClass = line.isComment
     ? ` chord-line-comment chord-line-comment-${line.commentStyle ?? 'plain'}`
     : ''
+  const barLeadClass = line.isBarLead ? ' chord-line--bar-lead' : ''
 
   const showVocal = !hideVocal && !!line.vocalMarks?.length
   const lineFormats = hideVocal ? undefined : line.formats
@@ -238,7 +239,7 @@ function ChordLineView({
   // No chords, or chords hidden → plain text row, no chord-row overlay
   if (line.chords.length === 0 || hideChords) {
     return (
-      <div className={`chord-line${commentClass}`}>
+      <div className={`chord-line${commentClass}${barLeadClass}`}>
         {topRow}
         {vocalRow}
         <div className="chord-text">
@@ -259,7 +260,7 @@ function ChordLineView({
   const anchorCols = new Set(line.chords.map((c) => c.col))
 
   return (
-    <div className={`chord-line${commentClass}`}>
+    <div className={`chord-line${commentClass}${barLeadClass}`}>
       {vocalRow}
       <div className="chord-row">
         {transposedChords.map((c, i) => (

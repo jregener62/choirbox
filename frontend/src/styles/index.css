@@ -1232,7 +1232,8 @@ textarea::placeholder {
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
-.pdf-panel--fullscreen .text-viewer-content {
+.pdf-panel--fullscreen .text-viewer-content,
+.pdf-panel--fullscreen .rtf-viewer-content {
   display: flex;
   flex-direction: column;
   justify-content: safe center;
@@ -1273,6 +1274,7 @@ body.body-scroll-fs .pdf-panel--fullscreen::after {
 }
 body.body-scroll-fs .pdf-panel--fullscreen .cho-viewer-wrap,
 body.body-scroll-fs .pdf-panel--fullscreen .text-viewer-content,
+body.body-scroll-fs .pdf-panel--fullscreen .rtf-viewer-content,
 body.body-scroll-fs .pdf-panel--fullscreen .pdf-pages {
   overflow: visible !important;
   flex: none;
@@ -1728,6 +1730,168 @@ body.body-scroll-fs .autoscroll-stepper {
   background: #ffffff;
   margin: 0;
   transition: font-size 0.15s ease;
+}
+
+/* RTF Viewer — Rich Text, proportionale Schrift, paragraph-based Layout. */
+.rtf-viewer-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3);
+  padding-bottom: var(--space-12);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  word-break: break-word;
+  line-height: 1.55;
+  color: #1a1f2e;
+  background: #ffffff;
+  transition: font-size 0.15s ease;
+}
+.rtf-viewer-para {
+  margin: 0 0 var(--space-2) 0;
+  white-space: pre-wrap;
+}
+.rtf-viewer-para--empty {
+  height: 1em;
+}
+.rtf-viewer-heading {
+  margin: var(--space-4) 0 var(--space-2) 0;
+  font-weight: 700;
+  color: #4a5064;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding-bottom: var(--space-1);
+}
+.rtf-viewer-heading--l1 { font-size: 1.75em; }
+.rtf-viewer-heading--l2 { font-size: 1.5em; }
+.rtf-viewer-heading--l3 { font-size: 1.3em; }
+.rtf-viewer-heading--l4 { font-size: 1.15em; }
+.rtf-viewer-heading--l5 { font-size: 1.05em; }
+.rtf-viewer-heading--l6 { font-size: 1em; opacity: 0.75; }
+.rtf-viewer-bar-initial {
+  text-decoration: underline;
+  text-decoration-color: #c55a11;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+.rtf-viewer-comment {
+  font-style: italic;
+  color: #8a6d20;
+  background: rgba(255, 235, 59, 0.35);
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-xs);
+}
+.rtf-viewer-comment-block {
+  font-style: italic;
+  color: #8a6d20;
+  background: rgba(255, 235, 59, 0.35);
+  padding: var(--space-1) var(--space-2);
+  border-left: 3px solid #c9a227;
+  border-radius: var(--radius-xs);
+}
+
+/* RTF-Editor (Phase 3) */
+.rtf-editor {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  background: #ffffff;
+  color: #1a1f2e;
+}
+.rtf-editor-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  flex-shrink: 0;
+  background: #ffffff;
+}
+.rtf-editor-name {
+  font-size: var(--text-sm);
+  color: #4a5064;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.rtf-editor-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  flex-shrink: 0;
+}
+.rtf-editor-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: #4a5064;
+  cursor: pointer;
+}
+.rtf-editor-btn:hover { background: rgba(0, 0, 0, 0.04); }
+.rtf-editor-btn--active {
+  background: rgba(0, 102, 204, 0.12);
+  border-color: rgba(0, 102, 204, 0.35);
+  color: var(--confirm);
+}
+.rtf-editor-btn--save {
+  background: var(--confirm);
+  border-color: var(--confirm);
+  color: #fff;
+}
+.rtf-editor-btn--save:hover { filter: brightness(1.06); }
+.rtf-editor-btn--save:disabled { opacity: 0.6; cursor: default; }
+.rtf-editor-sep {
+  width: 1px;
+  height: 20px;
+  background: rgba(0, 0, 0, 0.12);
+  margin: 0 var(--space-1);
+}
+.rtf-editor-error {
+  padding: var(--space-2) var(--space-3);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  background: rgba(220, 38, 38, 0.06);
+  border-bottom: 1px solid rgba(220, 38, 38, 0.2);
+}
+.rtf-editor-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.55;
+}
+.rtf-editor-content .tiptap {
+  outline: none;
+  min-height: 100%;
+}
+.rtf-editor-content .tiptap p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  height: 0;
+}
+.rtf-editor-content .tiptap p {
+  margin: 0 0 var(--space-2) 0;
+}
+.rtf-editor-content .tiptap h1,
+.rtf-editor-content .tiptap h2,
+.rtf-editor-content .tiptap h3,
+.rtf-editor-content .tiptap h4,
+.rtf-editor-content .tiptap h5,
+.rtf-editor-content .tiptap h6 {
+  margin: var(--space-4) 0 var(--space-2) 0;
+  font-weight: 700;
+  color: #4a5064;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  padding-bottom: var(--space-1);
 }
 .pdf-fab--zoom-in {
   bottom: calc(var(--space-3) + 48px + var(--space-2) + 40px + var(--space-2));

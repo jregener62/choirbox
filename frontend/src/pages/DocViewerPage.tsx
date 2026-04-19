@@ -16,6 +16,7 @@ export function DocViewerPage() {
   const [params] = useSearchParams()
   const folder = params.get('folder') || ''
   const docName = params.get('name') || ''
+  const autoEdit = params.get('edit') === '1'
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const canUpload = hasMinRole(userRole, 'pro-member')
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
@@ -94,7 +95,7 @@ export function DocViewerPage() {
               </div>
             )
           }
-          return <DocumentPanel folderPath={folder} />
+          return <DocumentPanel folderPath={folder} autoEditRtf={autoEdit} />
         })()}
       </div>
     </div>

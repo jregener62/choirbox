@@ -1,4 +1,4 @@
-import { ClipboardPaste, Music, FileUp, ChevronRight } from 'lucide-react'
+import { ClipboardPaste, Music, FileUp, FileText, ChevronRight } from 'lucide-react'
 import { Modal } from './Modal'
 import './UploadChoiceModal.css'
 
@@ -6,6 +6,7 @@ interface UploadChoiceModalProps {
   onClose: () => void
   onPasteText: () => void
   onPasteChord: () => void
+  onNewRtf: () => void
   onPickFile: () => void
 }
 
@@ -19,6 +20,7 @@ export function UploadChoiceModal({
   onClose,
   onPasteText,
   onPasteChord,
+  onNewRtf,
   onPickFile,
 }: UploadChoiceModalProps) {
   return (
@@ -54,6 +56,23 @@ export function UploadChoiceModal({
           <div className="upload-choice-info">
             <div className="upload-choice-label">Chordsheet einfuegen</div>
             <div className="upload-choice-desc">Akkord-Text aus Zwischenablage einfuegen</div>
+          </div>
+          <ChevronRight size={18} className="upload-choice-arrow" />
+        </button>
+
+        <button
+          className="upload-choice"
+          onClick={() => {
+            onClose()
+            onNewRtf()
+          }}
+        >
+          <div className="upload-choice-icon upload-choice-icon--text">
+            <FileText size={20} />
+          </div>
+          <div className="upload-choice-info">
+            <div className="upload-choice-label">Neuer Rich-Text</div>
+            <div className="upload-choice-desc">Leere .rtf anlegen und direkt im Editor bearbeiten</div>
           </div>
           <ChevronRight size={18} className="upload-choice-arrow" />
         </button>

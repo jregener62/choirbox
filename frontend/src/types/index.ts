@@ -126,7 +126,7 @@ export interface Note {
 
 export interface DocumentItem {
   id: number
-  file_type: 'pdf' | 'video' | 'txt' | 'cho'
+  file_type: 'pdf' | 'video' | 'txt' | 'cho' | 'rtf'
   original_name: string
   file_size: number
   page_count: number
@@ -192,6 +192,8 @@ export interface ChordLine {
   annotations?: string[]
   /** Inline {v:xxx} directives — vocal instructions (breath, dynamics, etc.) */
   vocalMarks?: VocalMarkPosition[]
+  /** Takt-Marker: `|` am Zeilenanfang. Wird vom Viewer vor dem Text gerendert. */
+  isBarLead?: boolean
 }
 
 export interface ChordSection {

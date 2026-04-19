@@ -170,6 +170,16 @@
   min-height: 1em;
 }
 
+/* Takt-Marker: `|` am Zeilenanfang (Eingabe) wird im Parser gestrippt und zu
+   isBarLead=true; der Viewer markiert stattdessen den ersten sichtbaren
+   Buchstaben der Textzeile mit einem farbigen Unterstrich. */
+.chord-line--bar-lead .chord-text::first-letter {
+  text-decoration: underline;
+  text-decoration-color: #c55a11;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
 /* Kommentar-Zeile ({comment:} / {c:}) — Textmarker-Stil (Default) */
 .chord-line-comment .chord-text,
 .chord-line-comment-plain .chord-text {

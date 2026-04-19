@@ -335,7 +335,7 @@ export function parseChordPro(text: string): ParsedChordContent {
 
   for (let sourceLineIndex = 0; sourceLineIndex < lines.length; sourceLineIndex++) {
     const rawLine = lines[sourceLineIndex]
-    const line = rawLine.replace(/\s+$/, '')
+    let line = rawLine.replace(/\s+$/, '')
 
     if (!line.trim()) {
       if (currentSection.lines.length > 0) {
@@ -346,6 +346,24 @@ export function parseChordPro(text: string): ParsedChordContent {
 
     // Hash-prefix line comment (ChordPro spec) — skip entirely
     if (/^\s*#/.test(line)) continue
+
+    // ChoirBox-Marker-Erweiterungen (funktionieren ausserhalb von tab/grid-Bloecken,
+    // damit Tabulatur-Notation mit Pipes nicht falsch interpretiert wird).
+    let isBarLead = false
+    if (!inTabBlock && !inGridBlock) {
+      // `| ` am Zeilenanfang → Takt-Marker. Leading Pipe+Whitespace durch Spaces
+      // ersetzen, damit Chord-Columns weiterhin stimmen.
+      const barMatch = /^(\s*)\|(\s+)/.exec(line)
+      if (barMatch) {
+        isBarLead = true
+        line = ' '.repeat(barMatch[0].length) + line.slice(barMatch[0].length)
+      }
+      // `[[ ... ]]` zu `{c: ...}` umschreiben — der existierende Comment-Code
+      // uebernimmt dann (ganze Zeile → isComment, inline → annotation).
+      if (line.includes('[[')) {
+        line = line.replace(/\[\[\s*([^\]]+?)\s*\]\]/g, (_m, inner) => `{c: ${inner}}`)
+      }
+    }
 
     // Block-level directive line: one or more `{...}` with only whitespace
     // in between. Each directive is processed in order (so multiple
@@ -499,11 +517,13 @@ export function parseChordPro(text: string): ParsedChordContent {
       chords.length > 0 ||
       cleanText.trim() ||
       annotations.length > 0 ||
-      vocalMarks.length > 0
+      vocalMarks.length > 0 ||
+      isBarLead
     ) {
       const chordLine: ChordLine = { text: cleanText, chords }
       if (annotations.length > 0) chordLine.annotations = annotations
       if (vocalMarks.length > 0) chordLine.vocalMarks = vocalMarks
+      if (isBarLead) chordLine.isBarLead = true
       currentSection.lines.push(attachLineFormats(chordLine, sourceLineIndex, formatsByLine))
       allChords.push(...chords.map((c) => c.chord))
     }

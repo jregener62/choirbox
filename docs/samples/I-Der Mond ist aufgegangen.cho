@@ -1,0 +1,31 @@
+{title: Der Mond ist aufgegangen}
+{subtitle: Instrumentalsatz}
+{composer: Johann Abraham Peter Schulz}
+{lyricist: Matthias Claudius}
+{key: F}
+{time: 4/4}
+{tempo: 72}
+
+{comment: Vorspiel 4 Takte, dann Einsatz Stimmen}
+
+{start_of_verse: Strophe 1}
+| [F]Der Mond ist auf[C]gegangen,
+Die [Dm]goldnen [Bb]Sternlein [F]prangen
+Am [F]Himmel hell und [C]klar.
+| Der [Dm]Wald steht [Bb]schwarz und [F]schweigt,
+Und [Dm]aus den [Bb]Wiesen [C]steiget
+Der [F]wei\u00dfe [Bb]Nebel wunder[C]bar.
+{end_of_verse}
+
+[[ ritardando am Ende jeder Strophe ]]
+
+{start_of_verse: Strophe 2}
+| [F]Seht ihr den [C]Mond dort stehen?
+Er [Dm]ist nur [Bb]halb zu [F]sehen
+Und [F]ist doch rund und [C]sch\u00f6n.
+| So [Dm]sind wohl [Bb]manche [F]Sachen,
+Die [Dm]wir ge[Bb]trost be[C]lachen,
+Weil [F]unsre [Bb]Augen sie nicht [C]sehn.
+{end_of_verse}
+
+[[ Zwischenspiel 2 Takte vor Strophe 3 ]]

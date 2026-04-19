@@ -415,7 +415,7 @@ async def upload_document(
         except ValueError as e:
             raise HTTPException(400, str(e))
     else:
-        if file_type in ("txt", "cho") and len(content) > document_service.MAX_TXT_SIZE:
+        if file_type in ("txt", "cho", "rtf") and len(content) > document_service.MAX_TXT_SIZE:
             raise HTTPException(400, "Textdatei zu gross (max. 2 MB)")
         doc = document_service.register_document(
             folder_path=folder_path,
@@ -443,7 +443,7 @@ class PasteTextBody(BaseModel):
     folder_path: str
     title: str
     text: str
-    file_type: str  # "txt" or "cho"
+    file_type: str  # "txt", "cho", or "rtf"
     song_folder_name: str | None = None  # Optional: create a new .song folder
 
 
@@ -462,19 +462,29 @@ async def paste_text(
     If `song_folder_name` is set, a new `<song_folder_name>.song` folder is
     created under `folder_path` first (root-upload mode).
     """
-    if body.file_type not in ("txt", "cho"):
-        raise HTTPException(400, "file_type muss 'txt' oder 'cho' sein")
+    if body.file_type not in ("txt", "cho", "rtf"):
+        raise HTTPException(400, "file_type muss 'txt', 'cho' oder 'rtf' sein")
 
-    text = body.text.strip()
+    # RTF darf auch leer angelegt werden (neuer Editor-Workflow) — wir wrappen
+    # einen Default-RTF-Header, wenn der Body keinen enthaelt.
+    text = body.text if body.file_type == "rtf" else body.text.strip()
     if not text:
-        raise HTTPException(400, "Kein Text uebergeben")
+        if body.file_type == "rtf":
+            text = (
+                "{\\rtf1\\ansi\\ansicpg1252\\deff0\n"
+                "{\\fonttbl{\\f0\\fnil Helvetica;}}\n"
+                "\\fs24\n}"
+            )
+        else:
+            raise HTTPException(400, "Kein Text uebergeben")
 
     content_bytes = text.encode("utf-8")
     if len(content_bytes) > document_service.MAX_TXT_SIZE:
         raise HTTPException(400, "Text zu gross (max. 2 MB)")
 
     # Build a safe filename from the title
-    safe_title = _safe_filename(body.title) or ("Akkorde" if body.file_type == "cho" else "Text")
+    default_title = {"cho": "Akkorde", "rtf": "Text", "txt": "Text"}[body.file_type]
+    safe_title = _safe_filename(body.title) or default_title
     filename = f"{safe_title}.{body.file_type}"
 
     folder_path = body.folder_path
@@ -659,9 +669,9 @@ async def get_text_content(
     user: User = Depends(require_permission("documents.read")),
     session: Session = Depends(get_session),
 ):
-    """Get the text content of a TXT or CHO document via Dropbox."""
+    """Get the text content of a TXT, CHO or RTF document via Dropbox."""
     doc = document_service.get_document(doc_id, session)
-    if not doc or doc.file_type not in ("txt", "cho"):
+    if not doc or doc.file_type not in ("txt", "cho", "rtf"):
         raise HTTPException(404, "Kein Textdokument")
 
     cached = document_service._get_cached_text(doc_id, doc.content_hash)
@@ -692,14 +702,14 @@ async def update_text_content(
     user: User = Depends(require_permission("chord_input.edit")),
     session: Session = Depends(get_session),
 ):
-    """Overwrite the content of an existing .cho or .txt document.
+    """Overwrite the content of an existing .cho, .txt or .rtf document.
 
-    Used by the chord-input editor (.cho) and by the text-edit mode
-    (both .cho ChordPro source and plain .txt lyrics) to persist
-    changes in place. Other file types (PDF, video, audio) are rejected.
+    Used by the chord-input editor (.cho), the text-edit mode (plain .txt),
+    and the RTF-Editor (.rtf) to persist changes in place. Other file types
+    (PDF, video, audio) are rejected.
     """
     doc = document_service.get_document(doc_id, session)
-    if not doc or doc.file_type not in ("cho", "txt"):
+    if not doc or doc.file_type not in ("cho", "txt", "rtf"):
         raise HTTPException(404, "Textdokument nicht gefunden")
 
     content = data.get("content")
