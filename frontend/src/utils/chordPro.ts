@@ -62,6 +62,7 @@ function classifySectionType(label: string): string {
   if (l.includes('verse') || l.includes('strophe')) return 'verse'
   if (l.includes('chorus') || l.includes('refrain')) return 'chorus'
   if (l.includes('bridge')) return 'bridge'
+  if (l.includes('interlude') || l.includes('zwischenspiel')) return 'interlude'
   if (l.includes('intro')) return 'intro'
   if (l.includes('outro')) return 'outro'
   if (l.includes('solo')) return 'solo'
@@ -496,8 +497,20 @@ export function serializeToChordPro(
         startDirective = `{start_of_bridge${labelText ? `: ${labelText}` : ''}}`
         endDirective = '{end_of_bridge}'
         break
+      case 'intro':
+        startDirective = `{start_of_intro${labelText ? `: ${labelText}` : ''}}`
+        endDirective = '{end_of_intro}'
+        break
+      case 'interlude':
+        startDirective = `{start_of_interlude${labelText ? `: ${labelText}` : ''}}`
+        endDirective = '{end_of_interlude}'
+        break
+      case 'outro':
+        startDirective = `{start_of_outro${labelText ? `: ${labelText}` : ''}}`
+        endDirective = '{end_of_outro}'
+        break
       default:
-        // Intro, Outro, Solo, etc. — use a comment directive as the section label
+        // Solo, pre-chorus, etc. — use a comment directive as the section label
         if (labelText) startDirective = `{comment: ${labelText}}`
         break
     }

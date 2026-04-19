@@ -9,8 +9,13 @@ export type ActiveTool =
   | 'verse'
   | 'chorus'
   | 'bridge'
+  | 'intro'
+  | 'interlude'
+  | 'outro'
   | 'source'
   | null
+
+export type SectionTool = 'verse' | 'chorus' | 'bridge' | 'intro' | 'interlude' | 'outro'
 
 interface SheetEditToolbarProps {
   activeTool: ActiveTool
@@ -22,17 +27,25 @@ const ACCIDENTALS = ['#', 'b'] as const
 const QUALITIES = ['m', 'maj', 'sus', 'dim', 'aug'] as const
 const NUMBERS = ['2', '4', '5', '6', '7', '9'] as const
 
-const SECTION_PLACEHOLDER: Record<'verse' | 'chorus' | 'bridge', string> = {
+const SECTION_PLACEHOLDER: Record<SectionTool, string> = {
   verse: 'Strophe 1',
   chorus: 'Refrain',
   bridge: 'Bridge',
+  intro: 'Intro',
+  interlude: 'Zwischenspiel',
+  outro: 'Outro',
 }
+
+const SECTION_HINT = 'Label eingeben, dann Zeile antippen — Sektion startet davor'
 
 const TOOL_HINT: Record<Exclude<ActiveTool, null | 'source' | 'chord'>, string> = {
   comment: 'Text eingeben, dann Zeichen im Lyric antippen',
-  verse: 'Label eingeben, dann Zeile antippen — Sektion startet davor',
-  chorus: 'Label eingeben, dann Zeile antippen — Sektion startet davor',
-  bridge: 'Label eingeben, dann Zeile antippen — Sektion startet davor',
+  verse: SECTION_HINT,
+  chorus: SECTION_HINT,
+  bridge: SECTION_HINT,
+  intro: SECTION_HINT,
+  interlude: SECTION_HINT,
+  outro: SECTION_HINT,
 }
 
 export function SheetEditToolbar({
@@ -55,7 +68,13 @@ export function SheetEditToolbar({
   const toggle = (tool: Exclude<ActiveTool, null>) =>
     onSelectTool(activeTool === tool ? null : tool)
 
-  const isSection = activeTool === 'verse' || activeTool === 'chorus' || activeTool === 'bridge'
+  const isSection =
+    activeTool === 'verse' ||
+    activeTool === 'chorus' ||
+    activeTool === 'bridge' ||
+    activeTool === 'intro' ||
+    activeTool === 'interlude' ||
+    activeTool === 'outro'
 
   return (
     <div className="set-toolbar" role="toolbar" aria-label="Bearbeiten">
@@ -95,6 +114,33 @@ export function SheetEditToolbar({
           aria-pressed={activeTool === 'bridge'}
         >
           <span className="set-tool-label">Bridge</span>
+        </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'intro' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('intro')}
+          title="Intro"
+          aria-pressed={activeTool === 'intro'}
+        >
+          <span className="set-tool-label">Intro</span>
+        </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'interlude' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('interlude')}
+          title="Zwischenspiel"
+          aria-pressed={activeTool === 'interlude'}
+        >
+          <span className="set-tool-label">Interlude</span>
+        </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'outro' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('outro')}
+          title="Outro"
+          aria-pressed={activeTool === 'outro'}
+        >
+          <span className="set-tool-label">Outro</span>
         </button>
         <button
           type="button"

@@ -64,6 +64,22 @@ describe('findOpenSectionAbove', () => {
     expect(findOpenSectionAbove(['{start_of_bridge}'], 1)).toBe('bridge')
   })
 
+  it('handles intro, interlude and outro', () => {
+    expect(findOpenSectionAbove(['{start_of_intro}'], 1)).toBe('intro')
+    expect(findOpenSectionAbove(['{start_of_interlude}'], 1)).toBe('interlude')
+    expect(findOpenSectionAbove(['{start_of_outro}'], 1)).toBe('outro')
+  })
+
+  it('auto-closes intro when checked before a later line', () => {
+    const lines = ['{start_of_intro}', 'Instrumental']
+    expect(findOpenSectionAbove(lines, 2)).toBe('intro')
+  })
+
+  it('ignores a closed intro section', () => {
+    const lines = ['{start_of_intro}', 'A', '{end_of_intro}']
+    expect(findOpenSectionAbove(lines, 3)).toBeNull()
+  })
+
   it('respects beforeLine boundary', () => {
     const lines = ['A', '{start_of_verse}', 'B']
     expect(findOpenSectionAbove(lines, 1)).toBeNull()

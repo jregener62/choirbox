@@ -4,7 +4,13 @@
  * verwendet.
  */
 
-export type SectionType = 'verse' | 'chorus' | 'bridge'
+export type SectionType =
+  | 'verse'
+  | 'chorus'
+  | 'bridge'
+  | 'intro'
+  | 'interlude'
+  | 'outro'
 
 function cellKey(line: number, col: number): string {
   return `${line}:${col}`
@@ -45,7 +51,16 @@ export function shiftChordsByLines(
   return next
 }
 
-const SECTION_TYPES: readonly SectionType[] = ['verse', 'chorus', 'bridge']
+const SECTION_TYPES: readonly SectionType[] = [
+  'verse', 'chorus', 'bridge', 'intro', 'interlude', 'outro',
+]
+
+const SECTION_ALTERNATION = SECTION_TYPES.join('|')
+const END_RE = new RegExp(`^\\{\\s*end_of_(${SECTION_ALTERNATION})\\s*\\}`, 'i')
+const START_RE = new RegExp(
+  `^\\{\\s*start_of_(${SECTION_ALTERNATION})(?:\\s*:[^}]*)?\\s*\\}`,
+  'i',
+)
 
 /** Sucht rueckwaerts ab `beforeLine` (exklusiv) nach einem offenen
  *  `{start_of_<type>}` (ohne zugehoeriges `{end_of_<type>}` davor).
@@ -56,9 +71,8 @@ export function findOpenSectionAbove(
 ): SectionType | null {
   for (let i = beforeLine - 1; i >= 0; i--) {
     const raw = lines[i].trim()
-    const endMatch = /^\{\s*end_of_(verse|chorus|bridge)\s*\}/i.exec(raw)
-    if (endMatch) return null
-    const startMatch = /^\{\s*start_of_(verse|chorus|bridge)(?:\s*:[^}]*)?\s*\}/i.exec(raw)
+    if (END_RE.test(raw)) return null
+    const startMatch = START_RE.exec(raw)
     if (startMatch) {
       const t = startMatch[1].toLowerCase() as SectionType
       return SECTION_TYPES.includes(t) ? t : null

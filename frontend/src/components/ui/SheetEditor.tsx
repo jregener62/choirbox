@@ -143,7 +143,14 @@ export function SheetEditor({
         }
         return
       }
-      if (activeTool === 'verse' || activeTool === 'chorus' || activeTool === 'bridge') {
+      if (
+        activeTool === 'verse' ||
+        activeTool === 'chorus' ||
+        activeTool === 'bridge' ||
+        activeTool === 'intro' ||
+        activeTool === 'interlude' ||
+        activeTool === 'outro'
+      ) {
         if (insertSectionBefore(line, activeTool, toolText)) {
           actionStack.current.push('chord')
         }
