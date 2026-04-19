@@ -1,9 +1,16 @@
-import { Delete } from 'lucide-react'
+import { Delete, X } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
 
-export type ActiveTool = 'chord' | 'source' | null
+export type ActiveTool =
+  | 'chord'
+  | 'comment'
+  | 'verse'
+  | 'chorus'
+  | 'bridge'
+  | 'source'
+  | null
 
 interface SheetEditToolbarProps {
   activeTool: ActiveTool
@@ -15,6 +22,19 @@ const ACCIDENTALS = ['#', 'b'] as const
 const QUALITIES = ['m', 'maj', 'sus', 'dim', 'aug'] as const
 const NUMBERS = ['2', '4', '5', '6', '7', '9'] as const
 
+const SECTION_PLACEHOLDER: Record<'verse' | 'chorus' | 'bridge', string> = {
+  verse: 'Strophe 1',
+  chorus: 'Refrain',
+  bridge: 'Bridge',
+}
+
+const TOOL_HINT: Record<Exclude<ActiveTool, null | 'source' | 'chord'>, string> = {
+  comment: 'Text eingeben, dann Zeichen im Lyric antippen',
+  verse: 'Label eingeben, dann Zeile antippen — Sektion startet davor',
+  chorus: 'Label eingeben, dann Zeile antippen — Sektion startet davor',
+  bridge: 'Label eingeben, dann Zeile antippen — Sektion startet davor',
+}
+
 export function SheetEditToolbar({
   activeTool,
   onSelectTool,
@@ -24,12 +44,18 @@ export function SheetEditToolbar({
   const backspaceBuilder = useChordInput((s) => s.backspaceBuilder)
   const clearBuilder = useChordInput((s) => s.clearBuilder)
 
+  const toolText = useChordInput((s) => s.toolText)
+  const setToolText = useChordInput((s) => s.setToolText)
+  const clearToolText = useChordInput((s) => s.clearToolText)
+
   const displayToken = chordBuilder.replaceAll('#', '♯').replaceAll('b', '♭')
   const chordValid = chordBuilder !== '' && isValidChord(chordBuilder)
   const chordShowError = chordBuilder !== '' && !chordValid
 
   const toggle = (tool: Exclude<ActiveTool, null>) =>
     onSelectTool(activeTool === tool ? null : tool)
+
+  const isSection = activeTool === 'verse' || activeTool === 'chorus' || activeTool === 'bridge'
 
   return (
     <div className="set-toolbar" role="toolbar" aria-label="Bearbeiten">
@@ -43,7 +69,42 @@ export function SheetEditToolbar({
         >
           <span className="set-tool-label">Akkord</span>
         </button>
-
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'verse' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('verse')}
+          title="Strophe"
+          aria-pressed={activeTool === 'verse'}
+        >
+          <span className="set-tool-label">Strophe</span>
+        </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'chorus' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('chorus')}
+          title="Refrain"
+          aria-pressed={activeTool === 'chorus'}
+        >
+          <span className="set-tool-label">Refrain</span>
+        </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'bridge' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('bridge')}
+          title="Bridge"
+          aria-pressed={activeTool === 'bridge'}
+        >
+          <span className="set-tool-label">Bridge</span>
+        </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === 'comment' ? ' set-tool--active' : ''}`}
+          onClick={() => toggle('comment')}
+          title="Kommentar"
+          aria-pressed={activeTool === 'comment'}
+        >
+          <span className="set-tool-label">Kommentar</span>
+        </button>
         <button
           type="button"
           className={`set-tool set-tool--source${activeTool === 'source' ? ' set-tool--active' : ''}`}
@@ -93,6 +154,37 @@ export function SheetEditToolbar({
               <button type="button" className="set-key set-key--util" onClick={backspaceBuilder} disabled={chordBuilder.length === 0} title="Letztes Zeichen entfernen"><Delete size={16} /></button>
               <button type="button" className="set-key set-key--util" onClick={clearBuilder} disabled={chordBuilder.length === 0} title="Akkord leeren">×</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {(activeTool === 'comment' || isSection) && (
+        <div className="set-sub-row">
+          <div className="set-sub-row-line">
+            <input
+              type="text"
+              className="set-note-input"
+              value={toolText}
+              onChange={(e) => setToolText(e.target.value)}
+              placeholder={
+                activeTool === 'comment'
+                  ? 'Kommentartext…'
+                  : SECTION_PLACEHOLDER[activeTool]
+              }
+              autoFocus
+            />
+            <button
+              type="button"
+              className="set-note-clear"
+              onClick={clearToolText}
+              disabled={toolText.length === 0}
+              title="Text leeren"
+            >
+              <X size={14} />
+            </button>
+          </div>
+          <div className="set-sub-row-line set-format-hint-row">
+            <span className="set-format-hint">{TOOL_HINT[activeTool]}</span>
           </div>
         </div>
       )}

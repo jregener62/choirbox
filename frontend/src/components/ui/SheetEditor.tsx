@@ -39,6 +39,8 @@ export function SheetEditor({
   const chordClearAll = useChordInput((s) => s.clearAll)
   const chordReset = useChordInput((s) => s.reset)
   const setChordTool = useChordInput((s) => s.setActiveTool)
+  const insertCommentAt = useChordInput((s) => s.insertCommentAt)
+  const insertSectionBefore = useChordInput((s) => s.insertSectionBefore)
 
   const [activeTool, setActiveToolLocal] = useState<ActiveTool>(null)
   const [saving, setSaving] = useState(false)
@@ -127,20 +129,35 @@ export function SheetEditor({
   const chordCount = Object.keys(chords).length
   const totalCount = chordCount
 
+  const toolText = useChordInput((s) => s.toolText)
+
   const handleCharClick = useCallback(
     (line: number, col: number) => {
       if (activeTool === 'chord') {
         if (chordToggleAt(line, col)) actionStack.current.push('chord')
+        return
+      }
+      if (activeTool === 'comment') {
+        if (insertCommentAt(line, col, toolText)) {
+          actionStack.current.push('chord')
+        }
+        return
+      }
+      if (activeTool === 'verse' || activeTool === 'chorus' || activeTool === 'bridge') {
+        if (insertSectionBefore(line, activeTool, toolText)) {
+          actionStack.current.push('chord')
+        }
+        return
       }
     },
-    [activeTool, chordToggleAt],
+    [activeTool, chordToggleAt, insertCommentAt, insertSectionBefore, toolText],
   )
 
   const handleUndo = useCallback(() => {
     const last = actionStack.current[actionStack.current.length - 1]
     if (!last) return
     actionStack.current = actionStack.current.slice(0, -1)
-    if (last === 'chord') chordUndo()
+    chordUndo()
   }, [chordUndo])
 
   const handleClearActiveTool = useCallback(() => {
