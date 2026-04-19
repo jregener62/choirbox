@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, createElement } from 'react'
 import { useNavigate, useSearchParams, useLocation } from 'react-router-dom'
-import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut, Headphones, FileEdit } from 'lucide-react'
+import { Folder, ChevronLeft, ChevronRight, Search, X, Heart, Mic, Trash2, SlidersHorizontal, Settings, Tag, EllipsisVertical, Pencil, FileText, Video, Music, Check, RefreshCw, Volume2, LogOut, Headphones, FileEdit, Copy } from 'lucide-react'
 import { setDraft, unsetDraft } from '@/api/drafts'
 import { FolderImportIcon } from '@/components/ui/FolderImportIcon'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -119,6 +119,9 @@ export function BrowsePage() {
   const [renameName, setRenameName] = useState('')
   const [renameExt, setRenameExt] = useState<string | null>(null)
   const [renaming, setRenaming] = useState(false)
+
+  // Duplicate state — path des gerade laufenden Duplikats fuer Disabled-State
+  const [duplicatingPath, setDuplicatingPath] = useState<string | null>(null)
 
   // Video modal state
   const [videoEntry, setVideoEntry] = useState<DropboxEntry | null>(null)
@@ -286,6 +289,20 @@ export function BrowsePage() {
       await loadFolder(browsePath, true)
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Fehler beim Markieren als Entwurf')
+    }
+  }
+
+  const handleDuplicate = async (entry: DropboxEntry) => {
+    if (duplicatingPath) return
+    setDuplicatingPath(entry.path)
+    setRevealedPath(null)
+    try {
+      await api('/dropbox/duplicate', { method: 'POST', body: { path: entry.path } })
+      await loadFolder(browsePath, true)
+    } catch (err) {
+      setMutationError(err instanceof Error ? err.message : 'Fehler beim Duplizieren')
+    } finally {
+      setDuplicatingPath(null)
     }
   }
 
@@ -1126,6 +1143,17 @@ export function BrowsePage() {
                     }}
                   >
                     <Pencil size={18} />
+                  </button>
+                )}
+                {isProMember && !isTexteFolder && (
+                  <button
+                    className="swipe-action-btn swipe-action-duplicate"
+                    title={`${entry.name} duplizieren`}
+                    aria-label={`${entry.name} duplizieren`}
+                    disabled={duplicatingPath === entry.path}
+                    onClick={(e) => { e.stopPropagation(); handleDuplicate(entry) }}
+                  >
+                    <Copy size={18} />
                   </button>
                 )}
                 {isProMember && (

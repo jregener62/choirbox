@@ -1119,6 +1119,93 @@ async def dropbox_rename(
     })
 
 
+def _split_name(name: str, is_folder: bool) -> tuple[str, str]:
+    """Split a Dropbox entry name into (stem, ext). Ordner behalten `.song` als Extension."""
+    import os as _os
+    if is_folder:
+        if name.lower().endswith(".song"):
+            return name[:-5], name[-5:]
+        return name, ""
+    return _os.path.splitext(name)
+
+
+def _find_kopie_name(stem: str, ext: str, existing_names_lower: set[str]) -> str | None:
+    """Waehle 'stem (Kopie)ext' oder 'stem (Kopie N)ext' — erster freier Name, sonst None."""
+    candidate = f"{stem} (Kopie){ext}"
+    if candidate.lower() not in existing_names_lower:
+        return candidate
+    for n in range(2, 100):
+        candidate = f"{stem} (Kopie {n}){ext}"
+        if candidate.lower() not in existing_names_lower:
+            return candidate
+    return None
+
+
+@router.post("/duplicate")
+async def dropbox_duplicate(
+    data: dict,
+    user: User = Depends(require_permission("documents.duplicate")),
+    session: Session = Depends(get_session),
+):
+    """Duplicate a file or folder in Dropbox with auto-generated '(Kopie)' suffix.
+    Ordner werden rekursiv kopiert. DB-Records (Favoriten, Notes, Labels, Sections,
+    Documents, Songs) werden NICHT mitkopiert — das Duplikat startet leer, Documents
+    regenerieren sich beim naechsten Browse."""
+    from backend.services.dropbox_service import get_dropbox_service
+
+    path = (data.get("path") or "").strip()
+    if not path:
+        raise HTTPException(400, "path ist erforderlich")
+
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(400, "Dropbox not connected")
+
+    root_folder = _get_root_folder(user, session)
+    from_dropbox = _to_dropbox_path(path, root_folder)
+
+    metadata = await dbx.get_metadata(from_dropbox)
+    if metadata is None:
+        raise HTTPException(404, "Datei/Ordner nicht gefunden")
+
+    is_folder = metadata.get(".tag") == "folder"
+    original_name = metadata.get("name", from_dropbox.rsplit("/", 1)[-1])
+
+    parent_dropbox = from_dropbox.rsplit("/", 1)[0] if "/" in from_dropbox else ""
+
+    try:
+        siblings = await dbx.list_folder(parent_dropbox, use_cache=True)
+    except RuntimeError as e:
+        raise HTTPException(502, str(e))
+    existing_names_lower = {s.get("name", "").lower() for s in siblings}
+
+    stem, ext = _split_name(original_name, is_folder)
+    new_name = _find_kopie_name(stem, ext, existing_names_lower)
+    if new_name is None:
+        raise HTTPException(409, "Zu viele Duplikate — bitte alte Kopien aufraeumen")
+
+    to_dropbox = f"{parent_dropbox}/{new_name}" if parent_dropbox else f"/{new_name}"
+
+    try:
+        result = await dbx.copy_file(from_dropbox, to_dropbox)
+    except RuntimeError as e:
+        if "to/conflict" in str(e) or "path/conflict" in str(e):
+            raise HTTPException(409, "Name bereits vergeben")
+        if "path_lookup/not_found" in str(e) or "from_lookup/not_found" in str(e):
+            raise HTTPException(404, "Datei/Ordner nicht gefunden")
+        if "too_many_files" in str(e):
+            raise HTTPException(507, "Ordner enthaelt zu viele Dateien zum Kopieren")
+        raise HTTPException(502, str(e))
+
+    from backend.services.dropbox_cache import folder_cache
+    folder_cache.invalidate_subtree(parent_dropbox)
+
+    return ActionResponse.success(data={
+        "name": result.get("name", new_name),
+        "path": _to_user_path(result.get("path_display", to_dropbox), root_folder),
+    })
+
+
 @router.post("/duration")
 def report_duration(
     data: dict,

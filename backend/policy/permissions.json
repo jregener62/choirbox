@@ -91,10 +91,11 @@
       ]
     },
     "upload": {
-      "description": "Dateien hochladen, umbenennen, loeschen, Ordner verwalten, Per-User-Hide.",
+      "description": "Dateien hochladen, umbenennen, duplizieren, loeschen, Ordner verwalten, Per-User-Hide.",
       "permissions": [
         "documents.upload",
         "documents.rename",
+        "documents.duplicate",
         "documents.delete",
         "documents.hide",
         "folders.create",
@@ -165,6 +166,7 @@
 
     "documents.upload":        { "min_role": "pro-member", "description": "Dateien hochladen / Chord-Sheets einfuegen" },
     "documents.rename":        { "min_role": "pro-member", "description": "Dateien umbenennen" },
+    "documents.duplicate":     { "min_role": "pro-member", "description": "Dateien oder Ordner duplizieren" },
     "documents.delete":        { "min_role": "chorleiter", "description": "Dateien endgueltig loeschen" },
     "documents.hide":          { "min_role": "member",     "description": "Dateien fuer sich selbst ausblenden" },
     "folders.create":          { "min_role": "admin",      "description": "Neue Dropbox-Ordner anlegen" },
@@ -212,6 +214,7 @@
     "POST /api/dropbox/folder":                                     "folders.create",
     "DELETE /api/dropbox/folder":                                   "folders.delete",
     "POST /api/dropbox/rename":                                     "documents.rename",
+    "POST /api/dropbox/duplicate":                                  "documents.duplicate",
 
     "GET /api/documents/list":                                      "documents.list",
     "POST /api/documents/upload":                                   "documents.upload",

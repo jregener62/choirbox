@@ -332,6 +332,17 @@ class DropboxService:
         })
         return result.get("metadata", {})
 
+    async def copy_file(self, from_path: str, to_path: str) -> dict:
+        """Copy a file or folder via Dropbox /2/files/copy_v2.
+        Folders werden rekursiv inklusive aller enthaltenen Dateien kopiert."""
+        result = await self.api_call("files/copy_v2", {
+            "from_path": from_path,
+            "to_path": to_path,
+            "allow_ownership_transfer": False,
+            "autorename": False,
+        })
+        return result.get("metadata", {})
+
     async def move_to_trash(self, dropbox_path: str, trash_folder: str) -> dict:
         """Move a file/folder to the trash folder, handling name collisions."""
         import datetime

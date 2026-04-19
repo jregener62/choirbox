@@ -188,6 +188,7 @@ Regressionstests).
 | Datei-Einstellungen (Info)    |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Datei loeschen                |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
 | Umbenennen (Stift)            |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Duplizieren (Copy)            |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Ordner loeschen               |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
 | Als Entwurf markieren         |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Entwuerfe sehen (Badge)       |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
@@ -446,10 +447,12 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
 - **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+) sichtbar. Bestaetigungsdialog vor dem Loeschen.
 - **Umbenennen** (Stift): Ab Pro-Mitglied (Level 2+). Dialog mit vorausgefuelltem Namen.
+- **Duplizieren** (Copy): Ab Pro-Mitglied (Level 2+). Legt im selben Ordner eine Kopie mit Auto-Suffix `(Kopie)` bzw. `(Kopie 2)`, `(Kopie 3)`, ... an — ohne Dialog.
 
 **Ordner:**
 - **Favorit** (Herz): Ordner als Favorit markieren/entfernen
 - **Umbenennen** (Stift): Ab Pro-Mitglied (Level 2+). Dialog mit vorausgefuelltem Namen.
+- **Duplizieren** (Copy): Ab Pro-Mitglied (Level 2+). Dropbox-seitige rekursive Kopie inklusive aller enthaltenen Dateien (Audios, Documents). DB-Records (Song, Sections, Documents, Favoriten, Notes, Labels) werden NICHT mitkopiert — sie regenerieren sich beim naechsten Browse aus den Dateinamen. `.song`-Ordner behalten die `.song`-Endung.
 - **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+). `.song`-Ordner werden samt Inhalt in einen `Trash`-Ordner im Chor-Root verschoben (Papierkorb). Normale Ordner muessen leer sein fuer permanentes Loeschen.
 
 **Aufnahme-Button (Mic-Icon im Header):**
@@ -466,8 +469,8 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 | Datei | Rolle |
 |-------|-------|
 | `frontend/src/pages/BrowsePage.tsx` | Swipe-UI, Drei-Punkte-Button, Kebab-Menue, Dialoge |
-| `backend/api/dropbox.py` | `DELETE /dropbox/file`, `POST/DELETE /dropbox/folder`, `POST /dropbox/rename` |
-| `backend/services/dropbox_service.py` | `delete_file()`, `create_folder()`, `move_file()`, `move_to_trash()` |
+| `backend/api/dropbox.py` | `DELETE /dropbox/file`, `POST/DELETE /dropbox/folder`, `POST /dropbox/rename`, `POST /dropbox/duplicate` |
+| `backend/services/dropbox_service.py` | `delete_file()`, `create_folder()`, `move_file()`, `copy_file()`, `move_to_trash()` |
 
 ### Suche
 
