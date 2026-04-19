@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/api/client.ts'
-import { parseChordPositions, type PreservedVocalMark } from '@/utils/chordPositions'
+import { parseChordPositions } from '@/utils/chordPositions'
 import { isValidChord } from '@/utils/chordValidation'
 
 export interface ChordPosition {
@@ -23,8 +23,6 @@ interface ChordInputState {
   text: string
   /** Map "line:col" -> chord token */
   chords: Record<string, string>
-  /** Vocal markers stripped from the displayed text — re-inserted on save. */
-  preservedVocals: PreservedVocalMark[]
 
   /** Currently active toolbar tool. null = no tool selected. */
   activeTool: ChordTool
@@ -64,7 +62,6 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   mode: false,
   text: '',
   chords: {},
-  preservedVocals: [],
 
   activeTool: null,
   chordBuilder: '',
@@ -72,13 +69,13 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   undoStack: [],
 
   setMode: (on) => set({ mode: on, activeTool: on ? get().activeTool : null }),
-  setText: (text) => set({ text, preservedVocals: [] }),
+  setText: (text) => set({ text }),
 
   loadFromChordPro: (body) => {
-    const { text, chords, preservedVocals } = parseChordPositions(body)
+    const { text, chords } = parseChordPositions(body)
     const map: Record<string, string> = {}
     for (const c of chords) map[cellKey(c.line, c.col)] = c.chord
-    set({ text, chords: map, preservedVocals, undoStack: [] })
+    set({ text, chords: map, undoStack: [] })
   },
 
   setActiveTool: (tool) => set({ activeTool: tool }),
@@ -138,7 +135,6 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   reset: () =>
     set({
       chords: {},
-      preservedVocals: [],
       undoStack: [],
       activeTool: null,
       chordBuilder: '',
@@ -153,14 +149,10 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   },
 
   exportChordPro: async () => {
-    const { text, list, preservedVocals } = get()
+    const { text, list } = get()
     const result = await api<{ cho_content: string }>('/chord-input/export', {
       method: 'POST',
-      body: {
-        text,
-        chords: list(),
-        vocals: preservedVocals.map(v => ({ line: v.line, col: v.col, token: v.token })),
-      },
+      body: { text, chords: list() },
     })
     return result.cho_content
   },

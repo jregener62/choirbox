@@ -161,25 +161,9 @@ export interface ChordPosition {
   col: number
 }
 
-export interface VocalMarkPosition {
-  token: string
-  col: number
-}
-
-export interface ChordLineFormat {
-  b?: boolean
-  i?: boolean
-  u?: boolean
-  s?: boolean
-  color?: string
-  bg?: string
-}
-
 export interface ChordLine {
   text: string
   chords: ChordPosition[]
-  /** Per-Char Textformat-Flags (aus `# choirbox-format:` Kommentaren). */
-  formats?: Record<number, ChordLineFormat>
   /** Leerzeile aus dem Quelltext — gerendert als vertikaler Abstand. */
   isBlank?: boolean
   /** ChordPro {comment:} line — styled according to commentStyle. */
@@ -190,10 +174,6 @@ export interface ChordLine {
   /** Inline {c:...} / {ci:...} directives appearing mid-line — rendered
    *  at the end of the line with the same highlighter style. */
   annotations?: string[]
-  /** Inline {v:xxx} directives — vocal instructions (breath, dynamics, etc.) */
-  vocalMarks?: VocalMarkPosition[]
-  /** Takt-Marker: `|` am Zeilenanfang. Wird vom Viewer vor dem Text gerendert. */
-  isBarLead?: boolean
 }
 
 export interface ChordSection {

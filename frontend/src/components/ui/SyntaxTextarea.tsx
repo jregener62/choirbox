@@ -1,9 +1,11 @@
-import { useCallback, useRef, type ChangeEvent } from 'react'
+import { useCallback, useRef, useEffect, type ChangeEvent, type RefObject } from 'react'
 import './SyntaxTextarea.css'
 
 interface SyntaxTextareaProps {
   value: string
   onChange: (value: string) => void
+  /** Optional: externer Ref auf das Textarea (fuer Cursor-Operationen von aussen). */
+  textareaRef?: RefObject<HTMLTextAreaElement | null>
 }
 
 const TAG_RE = /(\[[^\]]+\])|(\{v:[^{}]+\})|(\{[^{}]+\})/g
@@ -21,14 +23,23 @@ function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-export function SyntaxTextarea({ value, onChange }: SyntaxTextareaProps) {
+export function SyntaxTextarea({ value, onChange, textareaRef: externalRef }: SyntaxTextareaProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
-  const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const internalRef = useRef<HTMLTextAreaElement>(null)
+
+  // Externer Ref wird per Effekt gespiegelt, damit wir intern mit einem
+  // stabilen Ref arbeiten (fuers Scroll-Sync) und trotzdem dem Parent
+  // Cursor-Zugriff geben koennen.
+  useEffect(() => {
+    if (externalRef) {
+      (externalRef as { current: HTMLTextAreaElement | null }).current = internalRef.current
+    }
+  })
 
   const syncScroll = useCallback(() => {
-    if (backdropRef.current && textareaRef.current) {
-      backdropRef.current.scrollTop = textareaRef.current.scrollTop
-      backdropRef.current.scrollLeft = textareaRef.current.scrollLeft
+    if (backdropRef.current && internalRef.current) {
+      backdropRef.current.scrollTop = internalRef.current.scrollTop
+      backdropRef.current.scrollLeft = internalRef.current.scrollLeft
     }
   }, [])
 
@@ -47,7 +58,7 @@ export function SyntaxTextarea({ value, onChange }: SyntaxTextareaProps) {
         dangerouslySetInnerHTML={{ __html: highlighted }}
       />
       <textarea
-        ref={textareaRef}
+        ref={internalRef}
         className="syntax-textarea"
         value={value}
         onChange={handleChange}

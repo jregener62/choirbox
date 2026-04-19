@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X, ClipboardList } from 'lucide-react'
+import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X } from 'lucide-react'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useDisplayModeStore } from '@/stores/displayModeStore.ts'
@@ -10,7 +10,6 @@ import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { useChordPreference } from '@/hooks/useChordPreference.ts'
 import { useChordInput } from '@/hooks/useChordInput.ts'
-import { useVocalInput } from '@/hooks/useVocalInput.ts'
 import { useAutoScroll } from '@/hooks/useAutoScroll.ts'
 import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
 import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
@@ -88,8 +87,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const setAutoScrollEnabled = usePlayerStore((s) => s.setAutoScrollEnabled)
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
   const chordInputMode = useChordInput((s) => s.mode)
-  const vocalInputMode = useVocalInput((s) => s.mode)
-  const editMode = chordInputMode || vocalInputMode
+  const editMode = chordInputMode
   // anyEditorActive gating: verbirgt Viewer-FABs auch im RTF-Edit-Mode.
   const startEdit = useSheetEditMode((s) => s.start)
   const canEditSheet = hasMinRole(userRole ?? 'guest', 'pro-member')
@@ -100,21 +98,19 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
-  // View toggle: Anweisungen, Akkorde, oder beides aus. Default: aus.
-  const [activeView, setActiveView] = useState<'vocal' | 'chord' | null>(null)
+  // View toggle: Akkorde ein/aus (Default: aus). Vocal-Marks sind entfallen
+  // — .cho haelt sich jetzt strikt an den ChordPro-Standard.
+  const [showChords, setShowChords] = useState(false)
   const [rtfEditing, setRtfEditing] = useState(false)
   const [rtfReloadToken, setRtfReloadToken] = useState(0)
   const [autoEditConsumed, setAutoEditConsumed] = useState(false)
   const choirDisplayMode = useDisplayModeStore((s) => s.choirMode)
   const chordsAllowed = choirDisplayMode !== 'vocal'
-  // Im vocal-Modus darf activeView nie 'chord' sein — falls doch, zurueck auf null.
+  // Im vocal-Modus duerfen chords nie sichtbar sein.
   useEffect(() => {
-    if (!chordsAllowed && activeView === 'chord') {
-      setActiveView(null)
-    }
-  }, [chordsAllowed, activeView])
-  const chordsHidden = !chordsAllowed || activeView !== 'chord'
-  const vocalHidden = activeView !== 'vocal'
+    if (!chordsAllowed && showChords) setShowChords(false)
+  }, [chordsAllowed, showChords])
+  const chordsHidden = !chordsAllowed || !showChords
   const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
@@ -463,7 +459,6 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
           hideChords={chordsHidden}
-          hideVocal={vocalHidden}
           scrollContainerRef={scrollContainerRef}
         />
       )}
@@ -514,32 +509,22 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
               />
             </div>
           )}
-          <div className="chord-toggle-split" role="group" aria-label="Anzeige-Umschalter">
-            <button
-              type="button"
-              className={`chord-toggle-segment chord-toggle-segment--vocal${activeView === 'vocal' ? ' chord-toggle-segment--active' : ''}`}
-              onClick={() => { setActiveView(activeView === 'vocal' ? null : 'vocal'); resetFadeTimer() }}
-              aria-pressed={activeView === 'vocal'}
-              aria-label="Anweisungen"
-              title="Nur Anweisungen anzeigen"
-            >
-              <ClipboardList size={18} />
-            </button>
-            {chordsAllowed && (
+          {chordsAllowed && (
+            <div className="chord-toggle-split" role="group" aria-label="Anzeige-Umschalter">
               <button
                 type="button"
-                className={`chord-toggle-segment chord-toggle-segment--chord${activeView === 'chord' ? ' chord-toggle-segment--active' : ''}`}
-                onClick={() => { setActiveView(activeView === 'chord' ? null : 'chord'); resetFadeTimer() }}
-                aria-pressed={activeView === 'chord'}
+                className={`chord-toggle-segment chord-toggle-segment--chord${showChords ? ' chord-toggle-segment--active' : ''}`}
+                onClick={() => { setShowChords((v) => !v); resetFadeTimer() }}
+                aria-pressed={showChords}
                 aria-label="Akkorde"
-                title="Nur Akkorde anzeigen"
+                title={showChords ? 'Akkorde ausblenden' : 'Akkorde anzeigen'}
               >
                 <svg width="20" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
                   <text x="6" y="18" fontFamily="Georgia, serif" fontSize="17" fontWeight="700">C</text>
                 </svg>
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
       {pdfFullscreen && (isPdf || isTxt || isCho || (isRtf && !rtfEditing)) && !editMode && (
