@@ -23,6 +23,10 @@ interface ChordInputState {
   /** Free-text input for comment / section tools. */
   toolText: string
 
+  /** Liste bereits eingefuegter Akkord-Tokens fuer die aktuelle Session —
+   *  neueste zuerst. Ueberlebt Editor-Open/Close, aber nicht Page-Reload. */
+  chordHistory: string[]
+
   /** Text-Snapshots fuer Undo. */
   undoStack: string[]
 
@@ -39,6 +43,10 @@ interface ChordInputState {
   setToolText: (t: string) => void
   clearToolText: () => void
 
+  /** Fuegt `chord` oben in die History ein. Vorhandene Duplikate wandern
+   *  nach oben (neueste Position). History ist gedeckelt bei 24 Eintraegen. */
+  addChordToHistory: (chord: string) => void
+
   undo: () => boolean
   reset: () => void
 
@@ -46,6 +54,7 @@ interface ChordInputState {
 }
 
 const UNDO_LIMIT = 100
+const CHORD_HISTORY_LIMIT = 24
 
 export const useChordInput = create<ChordInputState>((set, get) => ({
   mode: false,
@@ -54,6 +63,8 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   activeTool: null,
   chordBuilder: '',
   toolText: '',
+
+  chordHistory: [],
 
   undoStack: [],
 
@@ -75,6 +86,15 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   clearBuilder: () => set({ chordBuilder: '' }),
   setToolText: (t) => set({ toolText: t }),
   clearToolText: () => set({ toolText: '' }),
+
+  addChordToHistory: (chord) => {
+    const token = chord.trim()
+    if (!token) return
+    set((st) => {
+      const without = st.chordHistory.filter((c) => c !== token)
+      return { chordHistory: [token, ...without].slice(0, CHORD_HISTORY_LIMIT) }
+    })
+  },
 
   undo: () => {
     const s = get()

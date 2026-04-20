@@ -483,3 +483,33 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* Akkord-Verlauf — Chip-Leiste oberhalb des Keypads (horizontal scrollbar). */
+.set-chord-history-row {
+  flex-wrap: nowrap;
+  gap: var(--space-1);
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+}
+.set-chord-chip {
+  flex-shrink: 0;
+  min-height: 28px;
+  padding: 0 var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(251, 191, 36, 0.35);
+  background: rgba(251, 191, 36, 0.08);
+  color: var(--chord, #fbbf24);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.set-chord-chip:hover {
+  background: rgba(251, 191, 36, 0.2);
+  border-color: var(--chord, #fbbf24);
+}
+.set-chord-chip:active {
+  transform: scale(0.97);
+}

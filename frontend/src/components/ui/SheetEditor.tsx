@@ -50,6 +50,7 @@ export function SheetEditor({
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const clearBuilder = useChordInput((s) => s.clearBuilder)
   const toolText = useChordInput((s) => s.toolText)
+  const addChordToHistory = useChordInput((s) => s.addChordToHistory)
 
   const [activeTool, setActiveToolLocal] = useState<ActiveTool>(null)
   const [saving, setSaving] = useState(false)
@@ -112,7 +113,17 @@ export function SheetEditor({
     const { start } = getSelection()
     const r = insertAtOffset(chordText, start, `[${token}]`)
     applyTextChange(r.text)
+    addChordToHistory(token)
     clearBuilder()
+    refocusCaret(r.caret)
+  }
+
+  const insertChordFromHistory = (token: string) => {
+    if (!token || !isValidChord(token)) return
+    const { start } = getSelection()
+    const r = insertAtOffset(chordText, start, `[${token}]`)
+    applyTextChange(r.text)
+    addChordToHistory(token)
     refocusCaret(r.caret)
   }
 
@@ -249,6 +260,7 @@ export function SheetEditor({
         onSelectTool={selectTool}
         onToolApply={handleToolApply}
         toolApplyDisabled={toolApplyDisabled}
+        onInsertChordFromHistory={insertChordFromHistory}
       />
 
       {error && <div className="sheet-editor-error">{error}</div>}

@@ -23,6 +23,8 @@ interface SheetEditToolbarProps {
    *  wrapt die Selektion als Sektion. */
   onToolApply: () => void
   toolApplyDisabled: boolean
+  /** Direkter Insert eines History-Akkords (ohne ueber den Builder zu gehen). */
+  onInsertChordFromHistory: (chord: string) => void
 }
 
 const NOTES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
@@ -56,11 +58,13 @@ export function SheetEditToolbar({
   onSelectTool,
   onToolApply,
   toolApplyDisabled,
+  onInsertChordFromHistory,
 }: SheetEditToolbarProps) {
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const appendBuilder = useChordInput((s) => s.appendBuilder)
   const backspaceBuilder = useChordInput((s) => s.backspaceBuilder)
   const clearBuilder = useChordInput((s) => s.clearBuilder)
+  const chordHistory = useChordInput((s) => s.chordHistory)
 
   const toolText = useChordInput((s) => s.toolText)
   const setToolText = useChordInput((s) => s.setToolText)
@@ -160,6 +164,21 @@ export function SheetEditToolbar({
 
       {activeTool === 'chord' && (
         <div className="set-sub-row">
+          {chordHistory.length > 0 && (
+            <div className="set-sub-row-line set-chord-history-row" aria-label="Akkord-Verlauf">
+              {chordHistory.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className="set-chord-chip"
+                  onClick={() => onInsertChordFromHistory(c)}
+                  title={`${c} an Cursor-Position einfuegen`}
+                >
+                  {c.replaceAll('#', '♯').replaceAll('b', '♭')}
+                </button>
+              ))}
+            </div>
+          )}
           <div className="set-sub-row-line">
             <div className="set-keypad-group">
               {NOTES.map((n) => (
