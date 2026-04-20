@@ -145,34 +145,8 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     editor.chain().focus().toggleHeading({ level }).run()
   }
 
-  /** Exklusiver Mark-Setter: macht `target` zum einzigen aktiven Format-Mark.
-   *  Ist `target` bereits aktiv, wird es entfernt (Toggle-off). Heading-Level
-   *  werden NICHT angetastet (separate Block-Semantik). */
-  const setExclusiveMark = (
-    target: 'bold' | 'italic' | 'underline' | 'strike',
-  ) => {
-    const isActiveAlready = editor.isActive(target)
-    if (isActiveAlready) {
-      editor.chain().focus().unsetAllMarks().run()
-      return
-    }
-    const chain = editor.chain().focus().unsetAllMarks()
-    switch (target) {
-      case 'bold':      chain.setBold(); break
-      case 'italic':    chain.setItalic(); break
-      case 'underline': chain.setUnderline(); break
-      case 'strike':    chain.setStrike(); break
-    }
-    chain.run()
-  }
-
   const applyHighlight = (color: string) => {
-    const isActiveAlready = editor.isActive('highlight', { color })
-    if (isActiveAlready) {
-      editor.chain().focus().unsetAllMarks().run()
-      return
-    }
-    editor.chain().focus().unsetAllMarks().setHighlight({ color }).run()
+    editor.chain().focus().toggleHighlight({ color }).run()
   }
 
   const clearHighlight = () => {
@@ -198,7 +172,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           <button
             type="button"
             className={`rtf-editor-btn${bActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => setExclusiveMark('bold')}
+            onClick={() => editor.chain().focus().toggleBold().run()}
             title="Fett"
           >
             <Bold size={16} />
@@ -206,7 +180,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           <button
             type="button"
             className={`rtf-editor-btn${iActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => setExclusiveMark('italic')}
+            onClick={() => editor.chain().focus().toggleItalic().run()}
             title="Kursiv"
           >
             <Italic size={16} />
@@ -214,7 +188,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           <button
             type="button"
             className={`rtf-editor-btn${uActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => setExclusiveMark('underline')}
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
             title="Unterstrichen"
           >
             <UnderlineIcon size={16} />
@@ -222,7 +196,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           <button
             type="button"
             className={`rtf-editor-btn${sActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => setExclusiveMark('strike')}
+            onClick={() => editor.chain().focus().toggleStrike().run()}
             title="Durchgestrichen"
           >
             <Strikethrough size={16} />
