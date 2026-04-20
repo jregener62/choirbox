@@ -1,12 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { isValidChord } from '@/utils/chordValidation'
 import { insertAtOffset, wrapLinesAsSection, type SectionType } from '@/utils/chordProEdit'
+import { parseChordPro } from '@/utils/chordPro'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
+import { ChordSheetViewer } from './ChordSheetViewer'
 import './SheetEditor.css'
 
 interface SheetEditorProps {
@@ -330,25 +332,53 @@ export function SheetEditor({
       )}
 
       {previewCho !== null && (
-        <div className="sheet-editor-preview-overlay" onClick={() => setPreviewCho(null)}>
-          <div
-            className="sheet-editor-preview-panel"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="sheet-editor-preview-header">
-              <span>ChordPro-Vorschau</span>
-              <button
-                type="button"
-                className="btn-icon"
-                onClick={() => setPreviewCho(null)}
-              >
-                <X size={18} />
-              </button>
-            </div>
-            <pre className="sheet-editor-preview-body">{previewCho}</pre>
-          </div>
-        </div>
+        <SheetPreviewModal
+          cho={previewCho}
+          onClose={() => setPreviewCho(null)}
+        />
       )}
+    </div>
+  )
+}
+
+/** Vorschau-Modal: parst den aktuellen ChordPro-Quelltext und rendert ihn
+ *  via ChordSheetViewer — ohne zu speichern. */
+function SheetPreviewModal({ cho, onClose }: { cho: string; onClose: () => void }) {
+  const parsed = useMemo(() => {
+    try {
+      return { ok: parseChordPro(cho) }
+    } catch (err) {
+      return { error: err instanceof Error ? err.message : 'Parse-Fehler' }
+    }
+  }, [cho])
+
+  return (
+    <div className="sheet-editor-preview-overlay" onClick={onClose}>
+      <div
+        className="sheet-editor-preview-panel sheet-editor-preview-panel--render"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="sheet-editor-preview-header">
+          <span>Vorschau</span>
+          <button
+            type="button"
+            className="btn-icon"
+            onClick={onClose}
+            aria-label="Schliessen"
+          >
+            <X size={18} />
+          </button>
+        </div>
+        <div className="sheet-editor-preview-body sheet-editor-preview-body--render">
+          {'error' in parsed ? (
+            <div style={{ color: 'var(--danger, #ef4444)', padding: 'var(--space-3)' }}>
+              Parse-Fehler: {parsed.error}
+            </div>
+          ) : (
+            <ChordSheetViewer content={parsed.ok} transposition={0} />
+          )}
+        </div>
+      </div>
     </div>
   )
 }

@@ -358,3 +358,21 @@
   background: rgba(255, 255, 255, 0.06);
   color: var(--text-primary);
 }
+
+/* Preview-Panel im Render-Modus: groesserer Content-Bereich + helle
+   Viewer-Darstellung (kein Monospace-Source, sondern geparster ChordPro). */
+.sheet-editor-preview-panel--render {
+  max-width: 860px;
+  max-height: 90vh;
+}
+.sheet-editor-preview-body--render {
+  padding: 0;
+  font-family: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  background: #ffffff;
+  color: #1a1f2e;
+}
+.sheet-editor-preview-body--render .chord-sheet-viewer {
+  padding: var(--space-4);
+}
