@@ -5,7 +5,7 @@ import Placeholder from '@tiptap/extension-placeholder'
 import Highlight from '@tiptap/extension-highlight'
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
-  Heading3, MessageSquareQuote, Pilcrow,
+  Heading, MessageSquareQuote, Pilcrow,
   Highlighter, X, Check,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
@@ -29,6 +29,16 @@ const HIGHLIGHT_COLORS: Array<{ key: string; label: string; value: string }> = [
   { key: 'green',  label: 'Gruen', value: '#bbf7d0' },
   { key: 'blue',   label: 'Blau',  value: '#bfdbfe' },
   { key: 'gray',   label: 'Grau',  value: '#e5e7eb' },
+]
+
+/** Heading-Styles: Label + Heading-Level. Werden via Tiptap-`toggleHeading`
+ *  auf das Level gesetzt und als `### Titel`-Zeile in RTF serialisiert.
+ *  Der Viewer rendert sie wieder als `<h1>`..`<h6>` (rtf-viewer-heading--lN). */
+const HEADING_STYLES: Array<{ key: string; label: string; level: 1 | 2 | 3 | 4 | 5 | 6 }> = [
+  { key: 'title',   label: 'Titel',     level: 1 },
+  { key: 'section', label: 'Abschnitt', level: 3 },
+  { key: 'info',    label: 'Info',      level: 4 },
+  { key: 'footer',  label: 'Fusszeile', level: 6 },
 ]
 
 export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorProps) {
@@ -62,6 +72,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
 
   const [dirty, setDirty] = useState(false)
   const [highlightOpen, setHighlightOpen] = useState(false)
+  const [headingOpen, setHeadingOpen] = useState(false)
 
   const editor = useEditor({
     extensions: [
@@ -130,8 +141,8 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     editor.chain().focus().insertContent('| ').run()
   }
 
-  const toggleSection = () => {
-    editor.chain().focus().toggleHeading({ level: 3 }).run()
+  const applyHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => {
+    editor.chain().focus().toggleHeading({ level }).run()
   }
 
   const applyHighlight = (color: string) => {
@@ -146,11 +157,12 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const iActive = editor.isActive('italic')
   const uActive = editor.isActive('underline')
   const sActive = editor.isActive('strike')
-  const hActive = editor.isActive('heading', { level: 3 })
+  const headingActive = editor.isActive('heading')
   const activeHighlight = (() => {
     const attrs = editor.getAttributes('highlight')
     return typeof attrs.color === 'string' ? attrs.color.toLowerCase() : null
   })()
+  const highlightMarkActive = editor.isActive('highlight')
 
   return (
     <div className="rtf-editor">
@@ -191,21 +203,28 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           </button>
           <button
             type="button"
-            className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => setHighlightOpen((v) => !v)}
+            className={`rtf-editor-btn${highlightOpen || highlightMarkActive ? ' rtf-editor-btn--active' : ''}`}
+            onClick={() => {
+              setHighlightOpen((v) => !v)
+              if (!highlightOpen) setHeadingOpen(false)
+            }}
             title="Markieren (Hintergrundfarbe)"
-            aria-pressed={highlightOpen}
+            aria-pressed={highlightOpen || highlightMarkActive}
           >
             <Highlighter size={16} />
           </button>
           <div className="rtf-editor-sep" />
           <button
             type="button"
-            className={`rtf-editor-btn${hActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={toggleSection}
-            title="Abschnitt (H3)"
+            className={`rtf-editor-btn${headingOpen || headingActive ? ' rtf-editor-btn--active' : ''}`}
+            onClick={() => {
+              setHeadingOpen((v) => !v)
+              if (!headingOpen) setHighlightOpen(false)
+            }}
+            title="Ueberschrift"
+            aria-pressed={headingOpen || headingActive}
           >
-            <Heading3 size={16} />
+            <Heading size={16} />
           </button>
           <button
             type="button"
@@ -243,6 +262,26 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           </button>
         </div>
       </div>
+      {headingOpen && (
+        <div className="rtf-editor-subbar" role="toolbar" aria-label="Ueberschriften-Stil">
+          <span className="rtf-editor-subbar-label">Ueberschrift:</span>
+          {HEADING_STYLES.map((h) => {
+            const isActive = editor.isActive('heading', { level: h.level })
+            return (
+              <button
+                key={h.key}
+                type="button"
+                className={`rtf-editor-heading-btn rtf-editor-heading-btn--${h.key}${isActive ? ' rtf-editor-heading-btn--active' : ''}`}
+                onClick={() => applyHeading(h.level)}
+                aria-pressed={isActive}
+                title={h.label}
+              >
+                {h.label}
+              </button>
+            )
+          })}
+        </div>
+      )}
       {highlightOpen && (
         <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
           <span className="rtf-editor-subbar-label">Markieren:</span>

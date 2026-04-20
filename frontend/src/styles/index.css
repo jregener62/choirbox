@@ -1756,16 +1756,43 @@ body.body-scroll-fs .autoscroll-stepper {
 .rtf-viewer-heading {
   margin: var(--space-4) 0 var(--space-2) 0;
   font-weight: 700;
+  color: #1a1f2e;
+  border-bottom: none;
+  padding-bottom: 0;
+}
+/* Titel */
+.rtf-viewer-heading--l1 {
+  font-size: 1.6em;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+.rtf-viewer-heading--l2 { font-size: 1.4em; }
+/* Abschnitt — mit dezenter Trennlinie */
+.rtf-viewer-heading--l3 {
+  font-size: 1.25em;
   color: #4a5064;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   padding-bottom: var(--space-1);
 }
-.rtf-viewer-heading--l1 { font-size: 1.75em; }
-.rtf-viewer-heading--l2 { font-size: 1.5em; }
-.rtf-viewer-heading--l3 { font-size: 1.3em; }
-.rtf-viewer-heading--l4 { font-size: 1.15em; }
-.rtf-viewer-heading--l5 { font-size: 1.05em; }
-.rtf-viewer-heading--l6 { font-size: 1em; opacity: 0.75; }
+/* Info */
+.rtf-viewer-heading--l4 {
+  font-size: 1em;
+  font-weight: 500;
+  font-style: italic;
+  color: #6b7280;
+  margin: var(--space-2) 0;
+}
+.rtf-viewer-heading--l5 { font-size: 1.05em; color: #6b7280; }
+/* Fusszeile */
+.rtf-viewer-heading--l6 {
+  font-size: 0.85em;
+  font-weight: 400;
+  font-style: italic;
+  color: #9ca3af;
+  margin: var(--space-3) 0 var(--space-1) 0;
+  text-align: right;
+  border-bottom: none;
+}
 .rtf-viewer-bar-initial {
   text-decoration: underline;
   text-decoration-color: #c55a11;
@@ -1905,6 +1932,35 @@ body.body-scroll-fs .autoscroll-stepper {
   transform: none;
 }
 
+/* Heading-Style-Buttons in der Sub-Bar. */
+.rtf-editor-heading-btn {
+  height: 26px;
+  padding: 0 var(--space-2);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: var(--radius-xs);
+  background: #ffffff;
+  color: #4a5064;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.08s, border-color 0.08s, color 0.08s;
+}
+.rtf-editor-heading-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: #4a5064;
+}
+.rtf-editor-heading-btn--active {
+  background: rgba(59, 130, 246, 0.14);
+  border-color: var(--confirm, #3b82f6);
+  color: var(--confirm, #3b82f6);
+  box-shadow: 0 0 0 1px var(--confirm, #3b82f6);
+}
+.rtf-editor-heading-btn--title    { font-weight: 700; font-size: var(--text-sm); }
+.rtf-editor-heading-btn--section  { font-weight: 600; }
+.rtf-editor-heading-btn--info     { font-style: italic; color: #6b7280; }
+.rtf-editor-heading-btn--footer   { font-style: italic; color: #6b7280; font-size: var(--text-2xs); }
+
 /* Highlight im Editor-Content so rendern wie Tiptap es markiert —
    tiptap setzt `<mark>` mit style="background-color: …" inline. Um
    spaeter im Viewer identisch zu erscheinen, delegieren wir an den
@@ -1944,9 +2000,39 @@ body.body-scroll-fs .autoscroll-stepper {
 .rtf-editor-content .tiptap h6 {
   margin: var(--space-4) 0 var(--space-2) 0;
   font-weight: 700;
+  color: #1a1f2e;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+/* Titel */
+.rtf-editor-content .tiptap h1 {
+  font-size: 1.6em;
+  text-align: center;
+  letter-spacing: 0.01em;
+}
+/* Abschnitt — mit dezenter Trennlinie */
+.rtf-editor-content .tiptap h3 {
+  font-size: 1.25em;
   color: #4a5064;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   padding-bottom: var(--space-1);
+}
+/* Info */
+.rtf-editor-content .tiptap h4 {
+  font-size: 1em;
+  font-weight: 500;
+  font-style: italic;
+  color: #6b7280;
+  margin: var(--space-2) 0;
+}
+/* Fusszeile */
+.rtf-editor-content .tiptap h6 {
+  font-size: 0.85em;
+  font-weight: 400;
+  font-style: italic;
+  color: #9ca3af;
+  margin: var(--space-3) 0 var(--space-1) 0;
+  text-align: right;
 }
 .pdf-fab--zoom-in {
   bottom: calc(var(--space-3) + 48px + var(--space-2) + 40px + var(--space-2));
