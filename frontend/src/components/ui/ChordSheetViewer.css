@@ -55,11 +55,11 @@
   white-space: pre;
 }
 
-/* Akkord-Zeile (über dem Text) — 4px vertikaler Abstand zur Lyric-Zeile. */
+/* Akkord-Zeile (über dem Text) — kein Extra-Abstand zur Lyric-Zeile. */
 .chord-row {
   position: relative;
   height: 1em;
-  margin-bottom: 4px;
+  margin-bottom: 0;
   line-height: 1;
   white-space: pre;
 }
