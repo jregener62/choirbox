@@ -24,7 +24,9 @@ interface ChordInputState {
   toolText: string
 
   /** Liste bereits eingefuegter Akkord-Tokens fuer die aktuelle Session —
-   *  neueste zuerst. Ueberlebt Editor-Open/Close, aber nicht Page-Reload. */
+   *  in der Reihenfolge, in der sie das erste Mal gebaut wurden. Duplikate
+   *  aendern die Position nicht. Ueberlebt Editor-Open/Close, aber nicht
+   *  Page-Reload. */
   chordHistory: string[]
 
   /** Aktiver Insert-Tag, der beim Klick in die Textarea an die Cursor-Position
@@ -48,8 +50,9 @@ interface ChordInputState {
   setToolText: (t: string) => void
   clearToolText: () => void
 
-  /** Fuegt `chord` oben in die History ein. Vorhandene Duplikate wandern
-   *  nach oben (neueste Position). History ist gedeckelt bei 24 Eintraegen. */
+  /** Fuegt `chord` ans Ende der History, wenn er noch nicht drin ist.
+   *  Vorhandene Akkorde werden nicht umsortiert — die Reihenfolge bleibt
+   *  stabil. History ist gedeckelt bei 24 Eintraegen (aelteste fallen raus). */
   addChordToHistory: (chord: string) => void
 
   /** Setzt den aktiven Insert-Tag. `null` deaktiviert. */
@@ -101,8 +104,8 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
     const token = chord.trim()
     if (!token) return
     set((st) => {
-      const without = st.chordHistory.filter((c) => c !== token)
-      return { chordHistory: [token, ...without].slice(0, CHORD_HISTORY_LIMIT) }
+      if (st.chordHistory.includes(token)) return st
+      return { chordHistory: [...st.chordHistory, token].slice(-CHORD_HISTORY_LIMIT) }
     })
   },
 
