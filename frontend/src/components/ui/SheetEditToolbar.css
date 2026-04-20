@@ -513,3 +513,15 @@
 .set-chord-chip:active {
   transform: scale(0.97);
 }
+
+/* Aktiver Insert-Chip — zeigt, welcher Tag gerade "click-to-place" scharf ist. */
+.set-chord-chip--active {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: #22c55e;
+  color: #22c55e;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.25);
+}
+.set-chord-chip--active:hover {
+  background: rgba(34, 197, 94, 0.3);
+  border-color: #22c55e;
+}

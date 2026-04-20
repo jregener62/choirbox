@@ -282,27 +282,6 @@ export function SheetEditor({
 
       {error && <div className="sheet-editor-error">{error}</div>}
 
-      {activeInsert && (
-        <div className="sheet-editor-active-insert" role="status">
-          <span className="sheet-editor-active-insert-label">Aktiv:</span>
-          <code className="sheet-editor-active-insert-tag">
-            {activeInsert.replaceAll('#', '♯').replaceAll('b', '♭')}
-          </code>
-          <span className="sheet-editor-active-insert-hint">
-            Klick im Text setzt ihn am Cursor
-          </span>
-          <button
-            type="button"
-            className="sheet-editor-active-insert-close"
-            onClick={() => setActiveInsert(null)}
-            title="Deaktivieren"
-            aria-label="Deaktivieren"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
       <SyntaxTextarea
         value={chordText}
         onChange={applyTextChange}

@@ -65,6 +65,8 @@ export function SheetEditToolbar({
   const backspaceBuilder = useChordInput((s) => s.backspaceBuilder)
   const clearBuilder = useChordInput((s) => s.clearBuilder)
   const chordHistory = useChordInput((s) => s.chordHistory)
+  const activeInsert = useChordInput((s) => s.activeInsert)
+  const setActiveInsert = useChordInput((s) => s.setActiveInsert)
 
   const toolText = useChordInput((s) => s.toolText)
   const setToolText = useChordInput((s) => s.setToolText)
@@ -166,17 +168,28 @@ export function SheetEditToolbar({
         <div className="set-sub-row">
           {chordHistory.length > 0 && (
             <div className="set-sub-row-line set-chord-history-row" aria-label="Akkord-Verlauf">
-              {chordHistory.map((c) => (
-                <button
-                  key={c}
-                  type="button"
-                  className="set-chord-chip"
-                  onClick={() => onInsertChordFromHistory(c)}
-                  title={`${c} an Cursor-Position einfuegen`}
-                >
-                  {c.replaceAll('#', '♯').replaceAll('b', '♭')}
-                </button>
-              ))}
+              {chordHistory.map((c) => {
+                const isActive = activeInsert === `[${c}]`
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    className={`set-chord-chip${isActive ? ' set-chord-chip--active' : ''}`}
+                    onClick={() => {
+                      if (isActive) setActiveInsert(null)
+                      else onInsertChordFromHistory(c)
+                    }}
+                    aria-pressed={isActive}
+                    title={
+                      isActive
+                        ? 'Aktiv — nochmal klicken zum Deaktivieren'
+                        : `${c} aktivieren (Klick im Text setzt ihn)`
+                    }
+                  >
+                    {c.replaceAll('#', '♯').replaceAll('b', '♭')}
+                  </button>
+                )
+              })}
             </div>
           )}
           <div className="set-sub-row-line">
@@ -230,6 +243,19 @@ export function SheetEditToolbar({
 
       {(activeTool === 'comment' || isSection) && (
         <div className="set-sub-row">
+          {activeTool === 'comment' && activeInsert && activeInsert.startsWith('{c:') && (
+            <div className="set-sub-row-line set-chord-history-row" aria-label="Aktiver Kommentar">
+              <button
+                type="button"
+                className="set-chord-chip set-chord-chip--active"
+                onClick={() => setActiveInsert(null)}
+                aria-pressed={true}
+                title="Aktiv — nochmal klicken zum Deaktivieren"
+              >
+                {activeInsert}
+              </button>
+            </div>
+          )}
           <div className="set-sub-row-line">
             <input
               type="text"
