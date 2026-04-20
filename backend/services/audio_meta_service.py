@@ -8,7 +8,7 @@ from backend.models.label import Label
 from backend.models.section_preset import SectionPreset
 from backend.services.filename_parser import parse_audio_filename
 
-MEDIA_EXTENSIONS = ('.mp3', '.m4a', '.wav', '.ogg', '.flac', '.aac', '.opus', '.webm', '.mp4', '.pdf', '.txt', '.mov')
+MEDIA_EXTENSIONS = ('.mp3', '.m4a', '.wav', '.ogg', '.flac', '.aac', '.opus', '.webm', '.mp4', '.pdf', '.txt', '.cho', '.rtf', '.mov')
 
 
 def _load_shortcodes(session: Session, choir_id: str) -> tuple[list[str], list[str]]:
