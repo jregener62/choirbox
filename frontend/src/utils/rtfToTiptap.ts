@@ -21,6 +21,7 @@ function marksFromFormat(f: RtfFormat): TiptapMark[] {
   if (f.i) marks.push({ type: 'italic' })
   if (f.u) marks.push({ type: 'underline' })
   if (f.s) marks.push({ type: 'strike' })
+  if (f.bg) marks.push({ type: 'highlight', attrs: { color: f.bg } })
   return marks
 }
 

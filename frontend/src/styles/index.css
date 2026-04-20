@@ -1859,6 +1859,62 @@ body.body-scroll-fs .autoscroll-stepper {
   background: rgba(220, 38, 38, 0.06);
   border-bottom: 1px solid rgba(220, 38, 38, 0.2);
 }
+.rtf-editor-subbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fafbfc;
+  flex-shrink: 0;
+}
+.rtf-editor-subbar-icon { color: #4a5064; flex-shrink: 0; }
+.rtf-editor-subbar-label {
+  font-size: var(--text-xs);
+  color: #4a5064;
+  margin-right: var(--space-1);
+  flex-shrink: 0;
+}
+.rtf-editor-swatch {
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-xs);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  cursor: pointer;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #4a5064;
+  flex-shrink: 0;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.rtf-editor-swatch:hover { transform: scale(1.08); }
+.rtf-editor-swatch--active {
+  box-shadow: 0 0 0 2px #1a1f2e;
+  transform: scale(1.05);
+}
+.rtf-editor-swatch--yellow { background: #fef3c7; }
+.rtf-editor-swatch--red    { background: #fecaca; }
+.rtf-editor-swatch--green  { background: #bbf7d0; }
+.rtf-editor-swatch--blue   { background: #bfdbfe; }
+.rtf-editor-swatch--gray   { background: #e5e7eb; }
+.rtf-editor-swatch--none   { background: #ffffff; }
+.rtf-editor-swatch--none:disabled {
+  opacity: 0.4;
+  cursor: default;
+  transform: none;
+}
+
+/* Highlight im Editor-Content so rendern wie Tiptap es markiert —
+   tiptap setzt `<mark>` mit style="background-color: …" inline. Um
+   spaeter im Viewer identisch zu erscheinen, delegieren wir an den
+   inline-Style. */
+.rtf-editor-content .tiptap mark {
+  border-radius: var(--radius-xs);
+  padding: 0 2px;
+}
+
 .rtf-editor-content {
   flex: 1;
   min-height: 0;

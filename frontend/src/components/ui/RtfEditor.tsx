@@ -2,10 +2,11 @@ import { useEditor, EditorContent, type JSONContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
+import Highlight from '@tiptap/extension-highlight'
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Heading3, MessageSquareQuote, Pilcrow,
-  X, Check,
+  Highlighter, X, Check,
 } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '@/api/client.ts'
@@ -19,6 +20,16 @@ interface RtfEditorProps {
   onSaved: () => void
   onCancel: () => void
 }
+
+/** Highlight-Farbpalette — weiche Pastelltoene fuer gute Lesbarkeit auf
+ *  weissem Hintergrund. Reihenfolge = Reihenfolge in der Sub-Bar. */
+const HIGHLIGHT_COLORS: Array<{ key: string; label: string; value: string }> = [
+  { key: 'yellow', label: 'Gelb', value: '#fef3c7' },
+  { key: 'red',    label: 'Rot',  value: '#fecaca' },
+  { key: 'green',  label: 'Gruen', value: '#bbf7d0' },
+  { key: 'blue',   label: 'Blau',  value: '#bfdbfe' },
+  { key: 'gray',   label: 'Grau',  value: '#e5e7eb' },
+]
 
 export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorProps) {
   const [initialRtf, setInitialRtf] = useState<string | null>(null)
@@ -55,6 +66,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     extensions: [
       StarterKit,
       Underline,
+      Highlight.configure({ multicolor: true }),
       Placeholder.configure({ placeholder: 'Text eingeben…' }),
     ],
     content: initialDoc ?? '',
@@ -121,11 +133,23 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     editor.chain().focus().toggleHeading({ level: 3 }).run()
   }
 
+  const applyHighlight = (color: string) => {
+    editor.chain().focus().toggleHighlight({ color }).run()
+  }
+
+  const clearHighlight = () => {
+    editor.chain().focus().unsetHighlight().run()
+  }
+
   const bActive = editor.isActive('bold')
   const iActive = editor.isActive('italic')
   const uActive = editor.isActive('underline')
   const sActive = editor.isActive('strike')
   const hActive = editor.isActive('heading', { level: 3 })
+  const activeHighlight = (() => {
+    const attrs = editor.getAttributes('highlight')
+    return typeof attrs.color === 'string' ? attrs.color.toLowerCase() : null
+  })()
 
   return (
     <div className="rtf-editor">
@@ -208,6 +232,34 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             <Check size={16} />
           </button>
         </div>
+      </div>
+      <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
+        <Highlighter size={14} className="rtf-editor-subbar-icon" aria-hidden="true" />
+        <span className="rtf-editor-subbar-label">Markieren:</span>
+        {HIGHLIGHT_COLORS.map((c) => {
+          const isActive = activeHighlight === c.value.toLowerCase()
+          return (
+            <button
+              key={c.key}
+              type="button"
+              className={`rtf-editor-swatch rtf-editor-swatch--${c.key}${isActive ? ' rtf-editor-swatch--active' : ''}`}
+              onClick={() => applyHighlight(c.value)}
+              aria-pressed={isActive}
+              title={c.label}
+              aria-label={c.label}
+            />
+          )
+        })}
+        <button
+          type="button"
+          className="rtf-editor-swatch rtf-editor-swatch--none"
+          onClick={clearHighlight}
+          disabled={!activeHighlight}
+          title="Keine Farbe"
+          aria-label="Keine Farbe"
+        >
+          <X size={12} />
+        </button>
       </div>
       {saveError && <div className="rtf-editor-error">{saveError}</div>}
       <EditorContent editor={editor} className="rtf-editor-content" />
