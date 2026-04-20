@@ -698,19 +698,10 @@ Das Zeichen im Lyric-Text, **ueber** dem ein Akkord steht, wird lila unterstrich
 ### Akkorde ein/aus-Toggle im .cho-Viewer
 
 Oben rechts in jedem Chord-Sheet-Dokument sitzt der Button "Akkorde". Klick schaltet zwischen zwei Zustaenden um:
-- **Versteckt** (Default beim Oeffnen eines Liedtexts): Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text, viel mehr Zeilen pro Bildschirm. Transpose-Pill ebenfalls ausgeblendet (ohne Akkorde nicht sinnvoll). Metadata (Titel, Untertitel, Badges), Section-Labels und Kommentare bleiben sichtbar.
-- **Sichtbar**: voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill links neben dem Toggle. Toggle lila hervorgehoben (`aria-pressed="true"`).
+- **Versteckt** (Default beim Oeffnen): Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text. Transpose-Pill ebenfalls ausgeblendet. Metadata, Section-Labels und Kommentare bleiben sichtbar.
+- **Sichtbar**: voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Toggle lila hervorgehoben.
 
-Umgesetzt als Prop-Kette `DocumentPanel` (`chordsHidden` State) -> `ChordSheetTextViewer` -> `ChordSheetViewer` (`hideChords`). Pro Session; keine Persistierung pro Dokument.
-
-### Akkorde verschieben im Edit-Modus
-
-In `Akkorde bearbeiten` lassen sich bereits gesetzte Akkorde ohne Loeschen-und-neu-setzen verschieben:
-
-- **Tastatur**: wenn der aktive Cursor auf einem Akkord steht, verschieben `←` / `→` den Akkord eine Spalte. Kollisions-Check: wenn die Zielspalte bereits einen Akkord traegt, bleibt die Position stehen. Clamp auf `[0, Zeilenlaenge-1]`. Werden in Text-Inputs (Popover-Suche) die Pfeiltasten gedrueckt, greift die Akkord-Verschiebung nicht.
-- **Mobil - Lupe**: Long-Press (~450ms) auf einen Akkord-Chip aktiviert den Verschiebe-Modus (haptische Vibration, Chip wird lila hervorgehoben). Eine schwebende Lupe (`ChordLoupe`) zeigt den Akkord-Namen und einen 7-Zeichen-Ausschnitt der Lyric-Zeile mit dem aktuellen Ziel-Zeichen markiert. Finger horizontal bewegen -> Akkord folgt live, Loslassen committet die Position. Kurzer Tap auf den Chip oeffnet weiterhin das Keypad-Popover (Umbenennen / Loeschen).
-
-Neue Zustand-Action `moveChord(line, fromCol, toCol)` in `useChordInput` - atomar, kein Overwrite fremder Akkorde.
+Im `vocal`-Display-Modus des Chors ist der Toggle nicht verfuegbar (Akkorde bleiben zwangsweise versteckt). Pro Session; keine Persistierung pro Dokument.
 
 ### Nightly DB-Backup nach Dropbox (Cron)
 
@@ -862,60 +853,54 @@ Oberhalb des Text- bzw. Chord-Sheet-Viewers liegt eine feste Edit-Topbar mit zwe
 
 Sichtbar nur fuer pro-member+ und nicht im Vollbildmodus. Jeder Button wechselt in den entsprechenden Edit-Modus, der die Topbar durch eine zweireihige Edit-Toolbar (Status + Close + Vorschau + Speichern) ersetzt.
 
-### Sheet-Editor (Akkorde + Anweisungen in einem)
+### Sheet-Editor (ChordPro-Texteditor mit Tool-Bar)
 
-Ein vereinter Editor fuer **Akkorde, Taktanfang und Intervall** — statt zwei getrennter Edit-Seiten. Tool-Bar analog zur Annotations-Bar mit exklusiver Tool-Auswahl. Tool einmal waehlen, dann beliebig viele Positionen sequentiell antippen.
+Ein klassischer Texteditor fuer den ChordPro-Quelltext — **keine tap-to-place-Interaktion mehr**. Der User sieht und editiert den rohen ChordPro-Text direkt in einer syntax-hervorgehobenen Textarea. Tool-Buttons fuegen Standard-ChordPro-Tags an der Cursor-Position ein oder wrappen die Selektion.
 
-**Tools & Rendering:**
+**Kein ChoirBox-eigener Tag-Dialekt mehr:** Vocal-Marks (`{v:…}`), Farb-Formate (`# choirbox-format:`) und das alte tap-to-place-System sind aus dem Editor entfernt. `.cho` haelt sich strikt an den ChordPro-Standard und bleibt mit externen Tools kompatibel.
 
-| Tool | Rendering im Text | ChordPro-Token |
-|------|-------------------|----------------|
-| Akkord | Overlay-Row oberhalb der Zeile + Unterstrich am Ziel-Zeichen (gelb) | `[A]` `[Dm7]` `[G/B]` … |
-| Taktanfang (Zaehlzeit 1) | farbiger Unterstrich am Zeichen (gruen) | `{v:1}` |
-| Intervall (+/- 1..12 Halbtoene) | inline-Symbol `↑5` / `↓3` vor dem Zeichen (amber) | `{v:+1}` … `{v:+12}`, `{v:-1}` … `{v:-12}` |
-| Kommentar (Freitext) | Pill oberhalb der Zeile, beginnt am Ziel-Zeichen (slate) | `{v:n:<text>}` |
+**Tools in der Haupt-Tool-Bar:**
+
+| Tool | Aktion |
+|------|--------|
+| Akkord | Keypad baut Token (A–G, ♯♭, m/maj/sus/dim/aug, 2–9, /). Check-Button „Aktivieren" macht den Token zum aktiven Insert-Tag. |
+| Strophe / Refrain / Bridge / Intro / Interlude / Outro | Label eingeben, Textbereich markieren, „Wrappen"-Button → markierte Zeilen werden mit `{start_of_<typ>[: Label]}` davor und `{end_of_<typ>}` danach umschlossen (eigene Zeilen). Ohne Selektion: Template mit Cursor zwischen den Tags. |
+| Kommentar | Text eingeben, „Aktivieren"-Button macht `{c: TEXT}` zum aktiven Insert-Tag. |
+| Text | Deaktiviert aktives Tool und aktiven Insert-Tag — reiner Text-Edit-Modus. |
+
+**Click-to-Place-Modus (Akkord / Kommentar):**
+
+Nach „Aktivieren" ist der Tag als *aktiver Insert* markiert (gruener Chip in der Sub-Bar, Crosshair-Cursor im Textarea). Jeder Klick in die Textarea fuegt den Tag an der angeklickten Cursor-Position ein. Tag bleibt aktiv, bis er deaktiviert oder ein anderes Tool gewaehlt wird. Bei aktiver Text-Selektion wird kein Insert ausgeloest (damit die Selektion erhalten bleibt).
+
+**Akkord-History:**
+
+Jeder einmal gebaute oder aktivierte Akkord wandert in eine Chip-Leiste oberhalb des Keypads. Klick auf einen Chip aktiviert den entsprechenden Akkord ohne ihn neu zu bauen. Der Chip des aktiven Akkords ist gruen markiert — nochmaliges Klicken deaktiviert. Reihenfolge ist stabil (neueste ans Ende, Duplikate bleiben an ihrer Position). Max. 24 Eintraege, persistiert im `localStorage` (`choirbox-chord-input`).
+
+**Vorschau (Augen-Button):**
+
+Zeigt den aktuellen Editor-Text gerendert via `ChordSheetViewer` in einem Modal — so wie er spaeter beim Lesen aussieht, ohne speichern zu muessen. Die Preview-Box ueberschreibt die Theme-Farbvariablen auf Light-Werte fuer gute Lesbarkeit auf weissem Hintergrund.
+
+**Undo:** Text-Snapshot-basiert (max. 100 Stufen). Greift fuer alle Tag-Einfuegungen, Wrap-Operationen und direktes Tippen.
 
 **Einstiegspunkte (via Edit-Topbar):**
 
-- **In `.txt`** — „Chordsheet erstellen": erzeugt eine neue `.cho`-Datei im selben `Texte/`-Ordner
-- **In `.cho`** — „Bearbeiten": laedt das bestehende Sheet, parst `[Akkord]`- und `{v:xxx}`-Marker
-
-**Ablauf:**
-
-1. In der Tool-Bar eines der drei Tools waehlen (Akkord, Taktanfang, Intervall). Tool-Wechsel ist exklusiv — vorheriges Tool wird deaktiviert.
-2. **Akkord-Tool**: Token in der Sub-Row bauen (A–G, ♯♭, m/maj/sus/dim/aug, 2–9, /, Backspace/Clear). Live-Preview mit Validierung.
-3. **Intervall-Tool**: Richtung (↑/↓) und Zahl (1..12) in der Sub-Row einstellen.
-4. **Taktanfang**: nur Demo-Preview, keine Eingabe noetig.
-5. **Kommentar-Tool**: Freitext-Eingabe in der Sub-Row. Braces `{` `}` werden beim Eintippen stillschweigend entfernt (Format-Anforderung). Text bleibt zwischen Taps geladen fuer wiederholtes Setzen.
-5. Zeichen im Text antippen → Mark wird dort gesetzt. Builder bleibt geladen fuer schnelles wiederholtes Setzen.
-6. Erneuter Tap auf bestehenden Mark → Toggle / Loeschen.
-7. **Undo** (global ueber alle Tools hinweg): macht die zuletzt gesetzte/geloeschte Markierung rueckgaengig, egal welches Tool sie erzeugt hat.
-8. **Alle loeschen**: loescht nur die Marks des **aktiven Tools** (z.B. alle Taktanfaenge, aber nicht die Akkorde).
-9. Speichern per „Als .cho" (neu) oder „Speichern" (Ueberschreiben). Beim Save werden alle drei Mark-Arten zusammen ins `.cho` geschrieben.
-
-**Kompatibilitaet:** `[chord]`- und `{v:xxx}`-Direktiven sind beides ChordPro-konforme Syntax. Externe ChordPro-Reader zeigen Akkorde und ignorieren die Vocal-Direktiven still — `.cho`-Dateien bleiben lesbar.
-
-**Read-Modus (`.cho`-Viewer):** Alle drei Mark-Arten werden gerendert (Akkorde oben, Beat-Unterstrich, inline-Intervall). Ueber die Floating-Toolbar im Viewer lassen sich Akkorde und Anweisungen unabhaengig ein/ausblenden (geteilter Toggle-Button „Anweisungen | Akkorde").
-
-**Resume:** `.cho` einfach wieder oeffnen, „Bearbeiten" klicken. Marks werden aus der Datei rekonstruiert.
+- **In `.txt`** — „Chordsheet erstellen": erzeugt eine neue `.cho`-Datei im selben `Texte/`-Ordner.
+- **In `.cho`** — „Bearbeiten": laedt das bestehende Sheet zum Editieren.
 
 **Dateien:**
 
 | Datei | Rolle |
 |-------|-------|
 | `backend/services/chord_export_service.py` | Chord-Validator (`A`…`G` + modifiers, Regex) |
-| `backend/services/vocal_export_service.py` | Vocal-Token-Validator + `build_merged_chordpro(text, chords, vocals)` — merged beide Mark-Arten |
-| `backend/api/chord_input.py` | `POST /api/chord-input/export` — akzeptiert `text`, `chords`, optional `vocals` |
-| `backend/api/vocal_input.py` | `POST /api/vocal-input/export` — symmetrisch, akzeptiert optional `chords` |
+| `backend/api/chord_input.py` | `POST /api/chord-input/export` — akzeptiert `text`, `chords` |
 | `frontend/src/utils/chordValidation.ts` | Regex fuer Akkord-Token |
-| `frontend/src/utils/vocalValidation.ts` | Whitelist + Katalog (beat, interval) |
-| `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — strippt `[chord]` UND `{v:xxx}`, letztere als `preservedVocals` |
-| `frontend/src/utils/vocalPositions.ts` | `parseVocalPositions(body)` — strippt beide, Akkorde als `preservedChords` |
-| `frontend/src/hooks/useChordInput.ts` | Zustand-Store: chords, chordBuilder, Undo-Stack, `toggleAt` |
-| `frontend/src/hooks/useVocalInput.ts` | Zustand-Store: marks, activeTool, intervalDir/Num, Undo-Stack, `toggleAt` |
-| `frontend/src/components/ui/SheetEditToolbar.tsx` | Vereinte Tool-Bar mit drei Tools und tool-abhaengiger Sub-Row |
-| `frontend/src/components/ui/SheetEditor.tsx` | Viewer mit beiden Mark-Arten, globalem Undo-Stack, merged Save |
-| `frontend/src/components/ui/ChordSheetViewer.tsx` | Read-Modus: rendert Akkorde, Beat-Unterstrich, inline-Intervall |
+| `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — strippt `[chord]` aus Text fuer Viewer-Rendering |
+| `frontend/src/utils/chordProEdit.ts` | `insertAtOffset`, `wrapLinesAsSection` — pure Helpers fuer Cursor-/Selection-Manipulation |
+| `frontend/src/hooks/useChordInput.ts` | Zustand-Store: text (Source-of-Truth), chordBuilder, toolText, activeInsert, chordHistory, Undo-Stack (Text-Snapshots). `chordHistory` persistiert via `zustand/persist`. |
+| `frontend/src/components/ui/SheetEditToolbar.tsx` | Tool-Bar mit allen ChordPro-Tag-Tools, Keypad, History-Chips |
+| `frontend/src/components/ui/SheetEditor.tsx` | Texteditor-Komponente mit Tool-Handlern, Click-to-Place und Preview-Modal |
+| `frontend/src/components/ui/SyntaxTextarea.tsx` | Syntax-hervorgehobene Textarea mit onClick/cursorStyle-Props |
+| `frontend/src/components/ui/ChordSheetViewer.tsx` | Read-Modus: rendert Akkorde ueber Text, Section-Labels, Metadaten |
 | `frontend/src/components/ui/TextViewer.tsx` | „Chordsheet erstellen"-Button fuer `.txt` |
 | `frontend/src/components/ui/ChordSheetTextViewer.tsx` | „Bearbeiten"-Button fuer `.cho` |
 
@@ -947,6 +932,75 @@ Ein vereinter Editor fuer **Akkorde, Taktanfang und Intervall** — statt zwei g
 | `frontend/src/components/ui/UploadChoiceModal.tsx` | Auswahl-Modal hinter dem `+`-Button |
 | `frontend/src/components/ui/PasteTextModal.tsx` | Vereinheitlichtes Paste-Modal fuer `.txt` und `.cho` |
 | `frontend/src/hooks/useChordPreference.ts` | Hook mit Optimistic UI + Debounced Auto-Save |
+
+---
+
+## Rich-Text-Songtexte (.rtf)
+
+### Ueberblick
+
+`.rtf` ist das Rich-Text-Format fuer Chor-Songtexte mit Formatierung (fett, kursiv, Farben), Sektionen und Kommentaren — das Schwesterformat zu `.cho` (ChordPro). Ziel: in externen Editoren (TextEdit, Word, LibreOffice) bearbeitbar **und** direkt in der App lesbar/editierbar, ohne Konvertierungsschritt. Pro Song typischerweise mehrere `.rtf`-Dateien je Adressat (z.B. `A-Song.rtf` fuer Alt, `T-Song.rtf` fuer Tenor) — analog zum Prefix-Schema von Audio und PDFs.
+
+### RTF-Viewer
+
+- Eigener toleranter Minimal-Parser (`frontend/src/utils/rtfParser.ts`) — versteht `\b` / `\i` / `\ul` / `\strike`, `\fs` (Schriftgroesse), `\cf` / `\highlight` (Farben via Color-Table), `\u<N>` Unicode-Escapes, `\'xx` ANSI-Bytes (cp1252), `\par` / `\line` / `\tab`, `\cocoartf`-Soft-Line-Breaks (TextEdit-Konvention).
+- Unbekannte Control-Words + ignorable Destinations (`{\*\…}`, `\stylesheet`, `\info`, …) werden stillschweigend uebersprungen — robust gegen Word/TextEdit/LibreOffice-Eigenheiten.
+- Rendering als React-Baum mit Inline-Styles (proportionale Schrift, nicht Monospace).
+- Integration in `DocumentPanel` analog zu PDF/TXT/CHO — gleiche Fullscreen-/Zoom-/Autoscroll-Funktionen.
+
+### Marker-Syntax
+
+Drei Inline-Marker funktionieren in `.rtf` (ausschliesslich) sowie mit Abstrichen in `.cho`:
+
+| Marker | Syntax | Rendering |
+|--------|--------|-----------|
+| Kommentar | `[[ ruhig beginnen ]]` | Gelb-ital. Inline-Pill (oder eigener Block wenn ganze Zeile) |
+| Taktanfang | `\|` direkt vor dem Zeichen (oder mit Leerzeichen) | erster sichtbarer Buchstabe danach bekommt oranger Unterstrich |
+| Sektion | `### Strophe 1` am Zeilenanfang | H3-Heading mit Trennlinie |
+
+`\|\|` (doppelter Pipe) triggert den Takt-Marker **nicht** — dadurch bleiben Tabulatur-artige Passagen moeglich. In externen Editoren sind alle drei Marker als Plain-Text sichtbar und bearbeitbar.
+
+### RTF-Editor (WYSIWYG via Tiptap)
+
+- Editor-Komponente `RtfEditor.tsx` basierend auf **Tiptap** (ProseMirror) + Starter-Kit + Underline + Placeholder.
+- Toolbar: Fett / Kursiv / Unterstrichen / Durchgestrichen + Heading3 + Takt-Marker + Kommentar-Wrapper + Speichern / Abbrechen.
+- **Round-Trip**: `parseRtf` → `rtfToTiptap` → Editor → `serializeTiptapToRtf` → zurueck in Dropbox. Umlaute bleiben via Unicode-Escape erhalten.
+- **Dirty-Tracking**: Save-Button disabled ohne Aenderungen; Cancel bei ungespeicherten Aenderungen zeigt Confirm-Dialog.
+- **Placeholder** "Text eingeben…" in leerer Textarea.
+
+### Neue .rtf-Datei anlegen
+
+- "+" → "Neuer Rich-Text" (Option im UploadChoiceModal) → Dateiname eingeben → leere `.rtf` wird auf Dropbox angelegt + Navigation zu `/doc-viewer?…&edit=1` → `DocumentPanel` startet den Editor sofort (kein Extra-Klick).
+
+### Backend-Integration
+
+- `file_type='rtf'` im `Document`-Modell + `DOCUMENT_EXTENSIONS`.
+- `GET/PUT /documents/{id}/content` akzeptieren `.rtf` (wie `.txt` / `.cho`). `POST /documents/paste-text` nimmt leeren Body + wrapt minimalen RTF-Header.
+- `filename_parser`: `.rtf` in `AUDIO_EXT_RE` — Voice-Code-Prefixe (A/T/S/B/I) werden genauso erkannt wie bei Audio/PDF.
+- Browse-Liste und Import-Modal zeigen `.rtf` mit dem Text-Icon (nicht mehr Audio-Lautsprecher).
+
+### Dateien
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/utils/rtfParser.ts` | Minimal-Parser (Control-Words, Escapes, Destinations) |
+| `frontend/src/utils/rtfSerializer.ts` | Tiptap-JSON → RTF-String |
+| `frontend/src/utils/rtfToTiptap.ts` | ParsedRtf → Tiptap-JSON (Marks, Headings via `### `) |
+| `frontend/src/utils/markers.ts` | Gemeinsame Marker-Erkennung fuer `.rtf` und `.cho` |
+| `frontend/src/components/ui/RtfViewer.tsx` | Rendert Paragraphen mit Inline-Styles und Marker-Highlights |
+| `frontend/src/components/ui/RtfEditor.tsx` | Tiptap-WYSIWYG mit Toolbar + Save/Cancel |
+| `frontend/src/components/ui/NewRtfModal.tsx` | Dateiname-Dialog für neue leere `.rtf` |
+| `backend/services/document_service.py` | `.rtf` als DOCUMENT_EXTENSION + Text-Caching |
+| `backend/api/documents.py` | `.rtf` in GET/PUT /content und paste-text |
+
+### Berechtigungen
+
+| Aktion | Mindest-Rolle |
+|--------|---------------|
+| RTF ansehen | member |
+| RTF bearbeiten (Editor) | pro-member |
+| Neue `.rtf` anlegen | pro-member |
+| `.rtf` loeschen | pro-member |
 
 ---
 
