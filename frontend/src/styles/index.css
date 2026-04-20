@@ -1746,6 +1746,10 @@ body.body-scroll-fs .autoscroll-stepper {
   background: #ffffff;
   transition: font-size 0.15s ease;
 }
+.rtf-viewer-inner {
+  position: relative;
+  min-height: 100%;
+}
 .rtf-viewer-para {
   margin: 0 0 var(--space-2) 0;
   white-space: pre-wrap;

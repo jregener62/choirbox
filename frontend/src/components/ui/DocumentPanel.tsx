@@ -387,7 +387,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
         </div>
       )}
 
-      {(isPdf || isCho) && drawingMode && !editMode && (
+      {(isPdf || isCho || (isRtf && !rtfEditing)) && drawingMode && !editMode && (
         <AnnotationToolbar pageKey={`${activeDoc.id}::1`} />
       )}
 
@@ -466,7 +466,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
       {/* FABs — PDF/CHO: Draw + Fullscreen, TXT/CHO: Zoom + Fullscreen, CHO: Transpose.
           Annotations sind ein per-User-Feature (annotations.write = member+) —
           Gaeste sehen den Zeichenmodus-FAB nicht. */}
-      {!guest && (isPdf || isCho) && !editMode && (
+      {!guest && (isPdf || isCho || (isRtf && !rtfEditing)) && !editMode && (
         <button
           className={`pdf-fab pdf-fab--draw${drawingMode ? ' pdf-fab--draw-active' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onClick={() => setDrawingMode(!drawingMode)}
