@@ -372,7 +372,17 @@
   line-height: inherit;
   background: #ffffff;
   color: #1a1f2e;
+  /* Text-Farbvariablen fuer den eingebetteten ChordSheetViewer ueberschreiben —
+     sonst uebernimmt .chord-text etc. die Dark-Theme-Helltoene und wird auf
+     dem weissen Preview-Hintergrund unlesbar. */
+  --text-primary: #1a1f2e;
+  --text-secondary: #4a5064;
+  --text-muted: #6b7280;
 }
 .sheet-editor-preview-body--render .chord-sheet-viewer {
   padding: var(--space-4);
+}
+.sheet-editor-preview-body--render .chord-text,
+.sheet-editor-preview-body--render .chord-section-label {
+  color: #1a1f2e;
 }
