@@ -35,6 +35,15 @@
   background: rgba(255, 255, 255, 0.04);
   color: var(--text-primary);
 }
+/* Generischer Active-Fallback — greift fuer Tools ohne eigene Farbklasse
+   (Strophe, Refrain, Bridge, Intro, Interlude, Outro, Kommentar). Die
+   spezifischen `.set-tool--<typ>.set-tool--active`-Regeln uebersteuern das. */
+.set-tool.set-tool--active {
+  background: rgba(59, 130, 246, 0.18);
+  border-color: var(--confirm, #3b82f6);
+  color: var(--confirm, #3b82f6);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.16);
+}
 
 .set-tool--chord {
   background: rgba(251, 191, 36, 0.06);
