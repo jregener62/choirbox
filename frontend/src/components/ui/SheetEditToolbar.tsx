@@ -162,6 +162,18 @@ export function SheetEditToolbar({
         >
           <span className="set-tool-label">Kommentar</span>
         </button>
+        <button
+          type="button"
+          className={`set-tool${activeTool === null && !activeInsert ? ' set-tool--active' : ''}`}
+          onClick={() => {
+            onSelectTool(null)
+            setActiveInsert(null)
+          }}
+          title="Text editieren — deaktiviert den aktiven Tag"
+          aria-pressed={activeTool === null && !activeInsert}
+        >
+          <span className="set-tool-label">Text</span>
+        </button>
       </div>
 
       {activeTool === 'chord' && (
