@@ -61,6 +61,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   }, [initialRtf])
 
   const [dirty, setDirty] = useState(false)
+  const [highlightOpen, setHighlightOpen] = useState(false)
 
   const editor = useEditor({
     extensions: [
@@ -188,6 +189,15 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           >
             <Strikethrough size={16} />
           </button>
+          <button
+            type="button"
+            className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
+            onClick={() => setHighlightOpen((v) => !v)}
+            title="Markieren (Hintergrundfarbe)"
+            aria-pressed={highlightOpen}
+          >
+            <Highlighter size={16} />
+          </button>
           <div className="rtf-editor-sep" />
           <button
             type="button"
@@ -233,34 +243,35 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           </button>
         </div>
       </div>
-      <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
-        <Highlighter size={14} className="rtf-editor-subbar-icon" aria-hidden="true" />
-        <span className="rtf-editor-subbar-label">Markieren:</span>
-        {HIGHLIGHT_COLORS.map((c) => {
-          const isActive = activeHighlight === c.value.toLowerCase()
-          return (
-            <button
-              key={c.key}
-              type="button"
-              className={`rtf-editor-swatch rtf-editor-swatch--${c.key}${isActive ? ' rtf-editor-swatch--active' : ''}`}
-              onClick={() => applyHighlight(c.value)}
-              aria-pressed={isActive}
-              title={c.label}
-              aria-label={c.label}
-            />
-          )
-        })}
-        <button
-          type="button"
-          className="rtf-editor-swatch rtf-editor-swatch--none"
-          onClick={clearHighlight}
-          disabled={!activeHighlight}
-          title="Keine Farbe"
-          aria-label="Keine Farbe"
-        >
-          <X size={12} />
-        </button>
-      </div>
+      {highlightOpen && (
+        <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
+          <span className="rtf-editor-subbar-label">Markieren:</span>
+          {HIGHLIGHT_COLORS.map((c) => {
+            const isActive = activeHighlight === c.value.toLowerCase()
+            return (
+              <button
+                key={c.key}
+                type="button"
+                className={`rtf-editor-swatch rtf-editor-swatch--${c.key}${isActive ? ' rtf-editor-swatch--active' : ''}`}
+                onClick={() => applyHighlight(c.value)}
+                aria-pressed={isActive}
+                title={c.label}
+                aria-label={c.label}
+              />
+            )
+          })}
+          <button
+            type="button"
+            className="rtf-editor-swatch rtf-editor-swatch--none"
+            onClick={clearHighlight}
+            disabled={!activeHighlight}
+            title="Keine Farbe"
+            aria-label="Keine Farbe"
+          >
+            <X size={12} />
+          </button>
+        </div>
+      )}
       {saveError && <div className="rtf-editor-error">{saveError}</div>}
       <EditorContent editor={editor} className="rtf-editor-content" />
     </div>

@@ -1868,7 +1868,6 @@ body.body-scroll-fs .autoscroll-stepper {
   background: #fafbfc;
   flex-shrink: 0;
 }
-.rtf-editor-subbar-icon { color: #4a5064; flex-shrink: 0; }
 .rtf-editor-subbar-label {
   font-size: var(--text-xs);
   color: #4a5064;
