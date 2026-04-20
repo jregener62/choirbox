@@ -1,7 +1,6 @@
 /**
- * Pure Helper fuer ChordPro-Source-Manipulation. Werden vom useChordInput-
- * Store (insertCommentAt / insertSectionBefore) und isoliert in Unit-Tests
- * verwendet.
+ * Pure Helper fuer ChordPro-Source-Manipulation. Werden vom SheetEditor-
+ * Component fuer Cursor-/Selection-basierte Tag-Einfuegung verwendet.
  */
 
 export type SectionType =
@@ -12,71 +11,83 @@ export type SectionType =
   | 'interlude'
   | 'outro'
 
-function cellKey(line: number, col: number): string {
-  return `${line}:${col}`
-}
-
-/** Verschiebt alle Chord-Positionen auf `line` mit `col >= fromCol` um
- *  `delta` Spalten nach rechts. */
-export function shiftChordsInLine(
-  chords: Record<string, string>,
-  line: number,
-  fromCol: number,
-  delta: number,
-): Record<string, string> {
-  if (delta === 0) return chords
-  const next: Record<string, string> = {}
-  for (const [key, chord] of Object.entries(chords)) {
-    const [l, c] = key.split(':').map(Number)
-    if (l === line && c >= fromCol) next[cellKey(l, c + delta)] = chord
-    else next[key] = chord
+/** Fuegt `snippet` an `offset` in `text` ein. `caretOffsetFromEnd` positioniert
+ *  den Cursor nach dem Einfuegen `N` Stellen *vor* dem Ende des Snippets
+ *  (nuetzlich fuer Template wie `[[  ]]`, wo der Cursor in die Mitte soll). */
+export function insertAtOffset(
+  text: string,
+  offset: number,
+  snippet: string,
+  caretOffsetFromEnd = 0,
+): { text: string; caret: number } {
+  const clamped = Math.max(0, Math.min(offset, text.length))
+  return {
+    text: text.slice(0, clamped) + snippet + text.slice(clamped),
+    caret: clamped + snippet.length - caretOffsetFromEnd,
   }
-  return next
 }
 
-/** Verschiebt alle Chord-Positionen ab `fromLine` um `deltaLines` Zeilen nach
- *  unten (neue Zeilen wurden davor eingefuegt). */
-export function shiftChordsByLines(
-  chords: Record<string, string>,
-  fromLine: number,
-  deltaLines: number,
-): Record<string, string> {
-  if (deltaLines === 0) return chords
-  const next: Record<string, string> = {}
-  for (const [key, chord] of Object.entries(chords)) {
-    const [l, c] = key.split(':').map(Number)
-    if (l >= fromLine) next[cellKey(l + deltaLines, c)] = chord
-    else next[key] = chord
+/** Ermittelt den Zeilenindex (0-basiert), in dem `offset` liegt. */
+function lineIndexOfOffset(text: string, offset: number): number {
+  let line = 0
+  const max = Math.min(offset, text.length)
+  for (let i = 0; i < max; i++) {
+    if (text[i] === '\n') line++
   }
-  return next
+  return line
 }
 
-const SECTION_TYPES: readonly SectionType[] = [
-  'verse', 'chorus', 'bridge', 'intro', 'interlude', 'outro',
-]
+/** Wrapt die Zeilen, die die Selektion `[start, end)` enthalten, mit
+ *  `{start_of_<type>[: label]}` davor und `{end_of_<type>}` danach. Das
+ *  eingefuegte Tag-Paar steht immer auf eigenen Zeilen. Bei leerer Selektion
+ *  wird ein Template mit Cursor zwischen Start- und End-Tag eingefuegt.
+ *
+ *  Der zurueckgegebene `caret` steht nach dem Einfuegen am Ende der
+ *  `{end_of_<type>}`-Zeile (bzw. in der leeren Mittelzeile des Templates). */
+export function wrapLinesAsSection(
+  text: string,
+  selectionStart: number,
+  selectionEnd: number,
+  type: SectionType,
+  label: string,
+): { text: string; caret: number } {
+  const trimmedLabel = label.trim()
+  const startDir = trimmedLabel
+    ? `{start_of_${type}: ${trimmedLabel}}`
+    : `{start_of_${type}}`
+  const endDir = `{end_of_${type}}`
 
-const SECTION_ALTERNATION = SECTION_TYPES.join('|')
-const END_RE = new RegExp(`^\\{\\s*end_of_(${SECTION_ALTERNATION})\\s*\\}`, 'i')
-const START_RE = new RegExp(
-  `^\\{\\s*start_of_(${SECTION_ALTERNATION})(?:\\s*:[^}]*)?\\s*\\}`,
-  'i',
-)
-
-/** Sucht rueckwaerts ab `beforeLine` (exklusiv) nach einem offenen
- *  `{start_of_<type>}` (ohne zugehoeriges `{end_of_<type>}` davor).
- *  Gibt den offenen Typ zurueck oder null. */
-export function findOpenSectionAbove(
-  lines: string[],
-  beforeLine: number,
-): SectionType | null {
-  for (let i = beforeLine - 1; i >= 0; i--) {
-    const raw = lines[i].trim()
-    if (END_RE.test(raw)) return null
-    const startMatch = START_RE.exec(raw)
-    if (startMatch) {
-      const t = startMatch[1].toLowerCase() as SectionType
-      return SECTION_TYPES.includes(t) ? t : null
+  if (selectionStart === selectionEnd) {
+    const snippet = `${startDir}\n\n${endDir}`
+    const caret = Math.min(selectionStart, text.length) + startDir.length + 1
+    return {
+      text: text.slice(0, selectionStart) + snippet + text.slice(selectionStart),
+      caret,
     }
   }
-  return null
+
+  const lo = Math.min(selectionStart, selectionEnd)
+  const hi = Math.max(selectionStart, selectionEnd)
+  const lines = text.split('\n')
+  const startLine = lineIndexOfOffset(text, lo)
+  let endLine = lineIndexOfOffset(text, hi)
+  // Selektion endet genau an einem Zeilenanfang (nach Shift+Down): letzte
+  // eingeschlossene Zeile ist die davor.
+  if (endLine > startLine && hi > 0 && text[hi - 1] === '\n') endLine--
+
+  const newLines = [
+    ...lines.slice(0, startLine),
+    startDir,
+    ...lines.slice(startLine, endLine + 1),
+    endDir,
+    ...lines.slice(endLine + 1),
+  ]
+  const newText = newLines.join('\n')
+
+  // Caret am Ende der `{end_of_…}`-Zeile
+  const endDirLineIdx = startLine + 1 + (endLine - startLine + 1)
+  let caret = 0
+  for (let i = 0; i < endDirLineIdx; i++) caret += newLines[i].length + 1
+  caret += newLines[endDirLineIdx].length
+  return { text: newText, caret }
 }

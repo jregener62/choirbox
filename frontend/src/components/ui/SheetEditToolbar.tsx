@@ -1,4 +1,4 @@
-import { Delete, X } from 'lucide-react'
+import { Check, Delete, X } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
@@ -12,7 +12,6 @@ export type ActiveTool =
   | 'intro'
   | 'interlude'
   | 'outro'
-  | 'source'
   | null
 
 export type SectionTool = 'verse' | 'chorus' | 'bridge' | 'intro' | 'interlude' | 'outro'
@@ -20,6 +19,10 @@ export type SectionTool = 'verse' | 'chorus' | 'bridge' | 'intro' | 'interlude' 
 interface SheetEditToolbarProps {
   activeTool: ActiveTool
   onSelectTool: (tool: ActiveTool) => void
+  /** Aktion des aktiven Tools ausloesen — fuegt Akkord/Kommentar ein oder
+   *  wrapt die Selektion als Sektion. */
+  onToolApply: () => void
+  toolApplyDisabled: boolean
 }
 
 const NOTES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
@@ -36,10 +39,10 @@ const SECTION_PLACEHOLDER: Record<SectionTool, string> = {
   outro: 'Outro',
 }
 
-const SECTION_HINT = 'Label eingeben, dann Zeile antippen — Sektion startet davor'
+const SECTION_HINT = 'Text markieren und dann „Selektion wrappen" — ohne Selektion wird ein Template eingefuegt'
 
-const TOOL_HINT: Record<Exclude<ActiveTool, null | 'source' | 'chord'>, string> = {
-  comment: 'Text eingeben, dann Zeichen im Lyric antippen',
+const TOOL_HINT: Record<Exclude<ActiveTool, null | 'chord'>, string> = {
+  comment: 'Text eingeben, dann „Einfuegen" — Kommentar wird am Cursor platziert',
   verse: SECTION_HINT,
   chorus: SECTION_HINT,
   bridge: SECTION_HINT,
@@ -51,6 +54,8 @@ const TOOL_HINT: Record<Exclude<ActiveTool, null | 'source' | 'chord'>, string> 
 export function SheetEditToolbar({
   activeTool,
   onSelectTool,
+  onToolApply,
+  toolApplyDisabled,
 }: SheetEditToolbarProps) {
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const appendBuilder = useChordInput((s) => s.appendBuilder)
@@ -151,15 +156,6 @@ export function SheetEditToolbar({
         >
           <span className="set-tool-label">Kommentar</span>
         </button>
-        <button
-          type="button"
-          className={`set-tool set-tool--source${activeTool === 'source' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('source')}
-          title="Quelltext bearbeiten"
-          aria-pressed={activeTool === 'source'}
-        >
-          <span className="set-tool-label">Text</span>
-        </button>
       </div>
 
       {activeTool === 'chord' && (
@@ -199,6 +195,15 @@ export function SheetEditToolbar({
             <div className="set-keypad-group set-keypad-group--actions">
               <button type="button" className="set-key set-key--util" onClick={backspaceBuilder} disabled={chordBuilder.length === 0} title="Letztes Zeichen entfernen"><Delete size={16} /></button>
               <button type="button" className="set-key set-key--util" onClick={clearBuilder} disabled={chordBuilder.length === 0} title="Akkord leeren">×</button>
+              <button
+                type="button"
+                className="set-key set-key--apply"
+                onClick={onToolApply}
+                disabled={toolApplyDisabled}
+                title="Akkord an Cursor einfuegen"
+              >
+                <Check size={16} />
+              </button>
             </div>
           </div>
         </div>
@@ -227,6 +232,22 @@ export function SheetEditToolbar({
               title="Text leeren"
             >
               <X size={14} />
+            </button>
+            <button
+              type="button"
+              className="set-tool-apply-btn"
+              onClick={onToolApply}
+              disabled={toolApplyDisabled}
+              title={
+                activeTool === 'comment'
+                  ? 'Kommentar an Cursor einfuegen'
+                  : 'Selektion wrappen (oder Template am Cursor einfuegen)'
+              }
+            >
+              <Check size={16} />
+              <span>
+                {activeTool === 'comment' ? 'Einfuegen' : 'Wrappen'}
+              </span>
             </button>
           </div>
           <div className="set-sub-row-line set-format-hint-row">

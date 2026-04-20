@@ -1,8 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
+import { isValidChord } from '@/utils/chordValidation'
+import { insertAtOffset, wrapLinesAsSection, type SectionType } from '@/utils/chordProEdit'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
 import './SheetEditor.css'
@@ -19,181 +21,129 @@ interface SheetEditorProps {
   onCancel?: () => void
 }
 
+const SECTION_TOOLS: ActiveTool[] = ['verse', 'chorus', 'bridge', 'intro', 'interlude', 'outro']
+
+function isSection(tool: ActiveTool): tool is SectionType {
+  return SECTION_TOOLS.includes(tool)
+}
 
 export function SheetEditor({
-  text,
+  text: plainText,
   chordProBody,
   editDocId,
   onCreated,
   onUpdated,
   onCancel,
 }: SheetEditorProps) {
-  // Chord hook
+  // Text state (single source of truth)
   const chordText = useChordInput((s) => s.text)
-  const chords = useChordInput((s) => s.chords)
   const setChordMode = useChordInput((s) => s.setMode)
-  const setChordText = useChordInput((s) => s.setText)
-  const loadChordFrom = useChordInput((s) => s.loadFromChordPro)
-  const chordToggleAt = useChordInput((s) => s.toggleAt)
-  const chordUndo = useChordInput((s) => s.undo)
-  const chordClearAll = useChordInput((s) => s.clearAll)
+  const setText = useChordInput((s) => s.setText)
+  const applyTextChange = useChordInput((s) => s.applyTextChange)
   const chordReset = useChordInput((s) => s.reset)
+  const chordUndo = useChordInput((s) => s.undo)
+  const undoStackLen = useChordInput((s) => s.undoStack.length)
+
+  // Tool state
+  const activeToolInStore = useChordInput((s) => s.activeTool)
   const setChordTool = useChordInput((s) => s.setActiveTool)
-  const insertCommentAt = useChordInput((s) => s.insertCommentAt)
-  const insertSectionBefore = useChordInput((s) => s.insertSectionBefore)
+  const chordBuilder = useChordInput((s) => s.chordBuilder)
+  const clearBuilder = useChordInput((s) => s.clearBuilder)
+  const toolText = useChordInput((s) => s.toolText)
 
   const [activeTool, setActiveToolLocal] = useState<ActiveTool>(null)
   const [saving, setSaving] = useState(false)
   const [previewCho, setPreviewCho] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
-  /** Raw source for the source-editor (syntax-highlighted textarea). */
-  const [sourceText, setSourceText] = useState('')
-  /** Ref auf das Source-Textarea — wird von SyntaxTextarea gespiegelt, damit
-   *  die Marker-Buttons den Cursor lesen und Text an der richtigen Stelle
-   *  einfuegen koennen. */
-  const sourceTextareaRef = useRef<HTMLTextAreaElement | null>(null)
-  /** Action history — now only tracks chord actions. */
-  const actionStack = useRef<Array<'chord'>>([])
+  const textareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   const isEditMode = editDocId != null
 
   useEffect(() => {
-    const raw = chordProBody ?? text ?? ''
-    setSourceText(raw)
-    if (chordProBody != null) {
-      loadChordFrom(chordProBody)
-    } else {
-      setChordText(text ?? '')
-      chordReset()
-    }
+    const initial = chordProBody ?? plainText ?? ''
+    setText(initial)
     setChordMode(true)
-    actionStack.current = []
-    return () => {
-      setChordMode(false)
-    }
-  }, [
-    text, chordProBody,
-    setChordText,
-    loadChordFrom,
-    chordReset,
-    setChordMode,
-  ])
+    return () => { setChordMode(false) }
+  }, [plainText, chordProBody, setText, setChordMode])
 
-  const buildMergedCho = async () => {
-    const chordList = useChordInput.getState().list()
-    const textNow = useChordInput.getState().text
-    const result = await api<{ cho_content: string }>('/chord-input/export', {
-      method: 'POST',
-      body: { text: textNow, chords: chordList },
-    })
-    return result.cho_content
+  useEffect(() => {
+    if (activeToolInStore !== (activeTool === 'chord' ? 'chord' : null)) {
+      setChordTool(activeTool === 'chord' ? 'chord' : null)
+    }
+  }, [activeTool, activeToolInStore, setChordTool])
+
+  const selectTool = useCallback(
+    (tool: ActiveTool) => {
+      setActiveToolLocal(tool)
+    },
+    [],
+  )
+
+  /** Gibt [start, end] der aktuellen Textarea-Selektion zurueck.
+   *  Falls die Textarea nicht fokussiert ist, fallback auf Text-Ende. */
+  const getSelection = (): { start: number; end: number } => {
+    const ta = textareaRef.current
+    if (!ta) return { start: chordText.length, end: chordText.length }
+    return { start: ta.selectionStart, end: ta.selectionEnd }
   }
 
-  // Switch between 'chord' and 'source' modes.
-  const selectTool = useCallback(
-    async (tool: ActiveTool) => {
-      const prev = activeTool
+  const refocusCaret = (pos: number) => {
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current
+      if (!ta) return
+      ta.focus()
+      ta.setSelectionRange(pos, pos)
+    })
+  }
 
-      // Leaving source mode → re-parse sourceText into chord hook
-      if (prev === 'source' && tool !== 'source') {
-        loadChordFrom(sourceText)
-      }
+  const refocusRange = (start: number, end: number) => {
+    requestAnimationFrame(() => {
+      const ta = textareaRef.current
+      if (!ta) return
+      ta.focus()
+      ta.setSelectionRange(start, end)
+    })
+  }
 
-      // Entering source mode → build merged cho from chord hook
-      if (tool === 'source' && prev !== 'source') {
-        try {
-          const cho = await buildMergedCho()
-          setSourceText(cho)
-        } catch { /* keep current sourceText */ }
-      }
+  const insertChordAtCursor = () => {
+    const token = chordBuilder.trim()
+    if (!token || !isValidChord(token)) return
+    const { start } = getSelection()
+    const r = insertAtOffset(chordText, start, `[${token}]`)
+    applyTextChange(r.text)
+    clearBuilder()
+    refocusCaret(r.caret)
+  }
 
-      setActiveToolLocal(tool)
-      setChordTool(tool === 'chord' ? 'chord' : null)
-    },
-    [activeTool, sourceText, setChordTool, loadChordFrom],
-  )
+  const insertCommentAtCursor = () => {
+    const body = toolText.trim()
+    if (!body) return
+    const { start } = getSelection()
+    const r = insertAtOffset(chordText, start, `{c: ${body}}`)
+    applyTextChange(r.text)
+    refocusCaret(r.caret)
+  }
 
-  const lines = useMemo(() => chordText.split('\n'), [chordText])
+  const applySectionWrap = (type: SectionType) => {
+    const { start, end } = getSelection()
+    const r = wrapLinesAsSection(chordText, start, end, type, toolText)
+    applyTextChange(r.text)
+    refocusRange(r.caret, r.caret)
+  }
 
-  const chordsByLine = useMemo(() => {
-    const map = new Map<number, { col: number; chord: string }[]>()
-    for (const [key, chord] of Object.entries(chords)) {
-      const [line, col] = key.split(':').map(Number)
-      if (!map.has(line)) map.set(line, [])
-      map.get(line)!.push({ col, chord })
-    }
-    return map
-  }, [chords])
+  const buildMergedCho = () => chordText
 
-  const chordCount = Object.keys(chords).length
-  const totalCount = chordCount
-
-  const toolText = useChordInput((s) => s.toolText)
-
-  const handleCharClick = useCallback(
-    (line: number, col: number) => {
-      if (activeTool === 'chord') {
-        if (chordToggleAt(line, col)) actionStack.current.push('chord')
-        return
-      }
-      if (activeTool === 'comment') {
-        if (insertCommentAt(line, col, toolText)) {
-          actionStack.current.push('chord')
-        }
-        return
-      }
-      if (
-        activeTool === 'verse' ||
-        activeTool === 'chorus' ||
-        activeTool === 'bridge' ||
-        activeTool === 'intro' ||
-        activeTool === 'interlude' ||
-        activeTool === 'outro'
-      ) {
-        if (insertSectionBefore(line, activeTool, toolText)) {
-          actionStack.current.push('chord')
-        }
-        return
-      }
-    },
-    [activeTool, chordToggleAt, insertCommentAt, insertSectionBefore, toolText],
-  )
-
-  const handleUndo = useCallback(() => {
-    const last = actionStack.current[actionStack.current.length - 1]
-    if (!last) return
-    actionStack.current = actionStack.current.slice(0, -1)
-    chordUndo()
-  }, [chordUndo])
-
-  const handleClearActiveTool = useCallback(() => {
-    if (activeTool === 'chord') {
-      chordClearAll()
-      actionStack.current = actionStack.current.filter((x) => x !== 'chord')
-    }
-  }, [activeTool, chordClearAll])
-
-  const clearDisabled =
-    activeTool !== 'chord' || chordCount === 0
-
-  const handlePreview = async () => {
+  const handlePreview = () => {
     setError(null)
-    try {
-      const cho = await buildMergedCho()
-      setPreviewCho(cho)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Vorschau fehlgeschlagen')
-    }
+    setPreviewCho(buildMergedCho())
   }
 
   const doSave = async () => {
     setSaving(true)
     setError(null)
     try {
-      // In source mode, save the raw textarea content directly.
-      // In tool mode, build merged ChordPro from both hooks.
-      const cho = activeTool === 'source' ? sourceText : await buildMergedCho()
+      const cho = buildMergedCho()
       if (isEditMode && editDocId != null) {
         await api(`/documents/${editDocId}/content`, {
           method: 'PUT',
@@ -203,45 +153,63 @@ export function SheetEditor({
       } else if (onCreated) {
         await onCreated(cho)
       }
+      setConfirmOverwrite(false)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Speichern fehlgeschlagen')
     } finally {
       setSaving(false)
-      setConfirmOverwrite(false)
     }
   }
 
   const handleSaveClick = () => {
     if (isEditMode) setConfirmOverwrite(true)
-    else doSave()
+    else void doSave()
   }
+
+  const handleClose = () => {
+    chordReset()
+    onCancel?.()
+  }
+
+  const handleUndo = () => {
+    chordUndo()
+  }
+
+  /** Haupt-Aktion: entweder Insert (Akkord/Kommentar) oder Wrap (Sektion). */
+  const handleToolApply = () => {
+    if (activeTool === 'chord') return insertChordAtCursor()
+    if (activeTool === 'comment') return insertCommentAtCursor()
+    if (isSection(activeTool)) return applySectionWrap(activeTool)
+  }
+
+  const toolApplyDisabled =
+    (activeTool === 'chord' && (chordBuilder.trim() === '' || !isValidChord(chordBuilder.trim()))) ||
+    (activeTool === 'comment' && toolText.trim() === '') ||
+    activeTool === null
+
+  // ---- Editor commands (topbar Save / Close / Undo / Preview) ----------
+  const hasContent = chordText.trim().length > 0
+  const saveDisabled =
+    saving ||
+    !(onCreated || isEditMode) ||
+    (!isEditMode && !hasContent)
 
   const saveTitle = isEditMode
     ? 'Speichern (überschreibt bestehende .cho)'
     : 'Als neue .cho speichern'
 
-  const saveDisabled =
-    saving ||
-    !(onCreated || isEditMode) ||
-    (!isEditMode && totalCount === 0)
-
-  const clearTitle =
-    activeTool === 'chord' ? 'Alle Akkorde löschen' : 'Löschen (Tool wählen)'
-
-  // Latest-closure refs so we can hand stable callback wrappers to the store
-  // without retriggering subscribers on every render.
   const handlersRef = useRef({
     onSave: handleSaveClick,
-    onClose: onCancel ?? (() => { /* noop */ }),
+    onClose: handleClose,
     onUndo: handleUndo,
-    onClear: handleClearActiveTool,
+    onClear: () => undefined,
     onPreview: handlePreview,
   })
   handlersRef.current = {
     onSave: handleSaveClick,
-    onClose: onCancel ?? (() => { /* noop */ }),
+    onClose: handleClose,
     onUndo: handleUndo,
-    onClear: handleClearActiveTool,
+    onClear: () => undefined,
     onPreview: handlePreview,
   }
 
@@ -251,8 +219,6 @@ export function SheetEditor({
   const stableOnClear = useCallback(() => handlersRef.current.onClear(), [])
   const stableOnPreview = useCallback(() => handlersRef.current.onPreview(), [])
 
-
-  // Register editor commands so the page topbar / file-info bar can render actions.
   useEffect(() => {
     useEditorCommands.getState().activate({
       saving,
@@ -260,10 +226,10 @@ export function SheetEditor({
       saveTitle,
       onSave: stableOnSave,
       onClose: stableOnClose,
-      undoDisabled: true,
-      clearDisabled,
-      clearTitle,
-      previewDisabled: totalCount === 0,
+      undoDisabled: undoStackLen === 0,
+      clearDisabled: true,
+      clearTitle: '',
+      previewDisabled: !hasContent,
       onUndo: stableOnUndo,
       onClear: stableOnClear,
       onPreview: stableOnPreview,
@@ -271,99 +237,27 @@ export function SheetEditor({
     return () => {
       useEditorCommands.getState().deactivate()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  // Sync flags (primitives only, no callbacks → no render loop).
-  useEffect(() => {
-    useEditorCommands.getState().update({
-      saving,
-      saveDisabled,
-      saveTitle,
-      clearDisabled,
-      clearTitle,
-      previewDisabled: totalCount === 0,
-      sourceMode: activeTool === 'source',
-    })
-  }, [saving, saveDisabled, saveTitle, clearDisabled, clearTitle, totalCount, activeTool])
-
-  // Sync undo-disabled based on actionStack depth.
-  useEffect(() => {
-    useEditorCommands.getState().update({
-      undoDisabled: actionStack.current.length === 0,
-    })
-  }, [chords])
-
-  const textClass =
-    'sheet-editor-text' +
-    (activeTool === 'chord' ? ' sheet-editor-text--mode-chord' : '')
+  }, [
+    saving, saveDisabled, saveTitle, hasContent, undoStackLen,
+    stableOnSave, stableOnClose, stableOnUndo, stableOnClear, stableOnPreview,
+  ])
 
   return (
     <div className="sheet-editor">
       <SheetEditToolbar
         activeTool={activeTool}
         onSelectTool={selectTool}
+        onToolApply={handleToolApply}
+        toolApplyDisabled={toolApplyDisabled}
       />
 
       {error && <div className="sheet-editor-error">{error}</div>}
 
-      {activeTool === 'source' ? (
-        <SyntaxTextarea
-          value={sourceText}
-          onChange={setSourceText}
-          textareaRef={sourceTextareaRef}
-        />
-      ) : (
-      <div className={textClass}>
-        {lines.map((line, lineIndex) => {
-          const lineChords = chordsByLine.get(lineIndex) ?? []
-          return (
-            <div key={lineIndex} className="sheet-editor-line">
-              <div className="sheet-editor-line-body">
-              <div className="sheet-editor-chord-row">
-                {lineChords.map(({ col, chord }) => (
-                  <span
-                    key={col}
-                    className="sheet-editor-chord"
-                    style={{ left: `${col}ch` }}
-                    onClick={() => handleCharClick(lineIndex, col)}
-                    title={activeTool === 'chord' ? 'Tap entfernt diesen Akkord' : chord}
-                  >
-                    {chord}
-                  </span>
-                ))}
-              </div>
-              <div className="sheet-editor-text-row">
-                {line.length === 0 ? (
-                  <span className="sheet-editor-empty">&nbsp;</span>
-                ) : (
-                  [...line].map((ch, col) => {
-                    const hasChord = chords[`${lineIndex}:${col}`] != null
-                    return (
-                      <span
-                        key={col}
-                        className={
-                          'sheet-editor-char' +
-                          (activeTool ? ' sheet-editor-char--tappable' : '') +
-                          (hasChord ? ' sheet-editor-char--has-chord' : '')
-                        }
-                        data-line={lineIndex}
-                        data-col={col}
-                        onClick={() => handleCharClick(lineIndex, col)}
-                        onContextMenu={(e) => e.preventDefault()}
-                      >
-                        {ch === ' ' ? '\u00A0' : ch}
-                      </span>
-                    )
-                  })
-                )}
-              </div>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-      )}
+      <SyntaxTextarea
+        value={chordText}
+        onChange={applyTextChange}
+        textareaRef={textareaRef}
+      />
 
       {confirmOverwrite && (
         <div
@@ -380,8 +274,7 @@ export function SheetEditor({
             </div>
             <div className="sheet-editor-confirm-body">
               Der aktuelle Inhalt der .cho-Datei wird mit deinen Änderungen
-              ersetzt. Andere Direktiven, die nicht über diesen Editor gesetzt
-              wurden, können verloren­gehen.
+              ersetzt.
             </div>
             <div className="sheet-editor-confirm-actions">
               <button

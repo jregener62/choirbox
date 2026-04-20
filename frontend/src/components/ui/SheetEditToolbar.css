@@ -449,3 +449,28 @@
   font-style: italic;
 }
 
+
+.set-key--apply {
+  background: var(--confirm, #3b82f6);
+  color: #fff;
+}
+.set-key--apply:hover:not(:disabled) { filter: brightness(1.08); }
+.set-key--apply:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.set-tool-apply-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--confirm, #3b82f6);
+  background: var(--confirm, #3b82f6);
+  color: #fff;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+.set-tool-apply-btn:hover:not(:disabled) { filter: brightness(1.08); }
+.set-tool-apply-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
