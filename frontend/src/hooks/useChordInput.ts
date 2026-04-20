@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { persist, createJSONStorage } from 'zustand/middleware'
 import { api } from '@/api/client.ts'
 
 export type ChordTool = 'chord' | null
@@ -23,10 +24,9 @@ interface ChordInputState {
   /** Free-text input for comment / section tools. */
   toolText: string
 
-  /** Liste bereits eingefuegter Akkord-Tokens fuer die aktuelle Session —
-   *  in der Reihenfolge, in der sie das erste Mal gebaut wurden. Duplikate
-   *  aendern die Position nicht. Ueberlebt Editor-Open/Close, aber nicht
-   *  Page-Reload. */
+  /** Liste bereits eingefuegter Akkord-Tokens — in der Reihenfolge, in der
+   *  sie das erste Mal gebaut wurden. Duplikate aendern die Position nicht.
+   *  Wird im localStorage persistiert und ueberlebt Page-Reload + App-Start. */
   chordHistory: string[]
 
   /** Aktiver Insert-Tag, der beim Klick in die Textarea an die Cursor-Position
@@ -67,7 +67,9 @@ interface ChordInputState {
 const UNDO_LIMIT = 100
 const CHORD_HISTORY_LIMIT = 24
 
-export const useChordInput = create<ChordInputState>((set, get) => ({
+export const useChordInput = create<ChordInputState>()(
+  persist(
+    (set, get) => ({
   mode: false,
   text: '',
 
@@ -135,4 +137,14 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
       body: { content: text },
     })
   },
-}))
+    }),
+    {
+      name: 'choirbox-chord-input',
+      storage: createJSONStorage(() => localStorage),
+      // Nur die Akkord-History persistieren — alles andere (Text, aktives Tool,
+      // Undo-Stack) ist session-spezifisch.
+      partialize: (s) => ({ chordHistory: s.chordHistory }),
+      version: 1,
+    },
+  ),
+)
