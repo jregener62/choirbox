@@ -44,7 +44,7 @@ const SECTION_PLACEHOLDER: Record<SectionTool, string> = {
 const SECTION_HINT = 'Text markieren und dann „Selektion wrappen" — ohne Selektion wird ein Template eingefuegt'
 
 const TOOL_HINT: Record<Exclude<ActiveTool, null | 'chord'>, string> = {
-  comment: 'Text eingeben, dann „Einfuegen" — Kommentar wird am Cursor platziert',
+  comment: 'Text eingeben, „Aktivieren" — dann Klick im Text setzt den Kommentar',
   verse: SECTION_HINT,
   chorus: SECTION_HINT,
   bridge: SECTION_HINT,
@@ -219,7 +219,7 @@ export function SheetEditToolbar({
                 className="set-key set-key--apply"
                 onClick={onToolApply}
                 disabled={toolApplyDisabled}
-                title="Akkord an Cursor einfuegen"
+                title="Akkord aktivieren (dann Klick im Text zum Setzen)"
               >
                 <Check size={16} />
               </button>
@@ -259,13 +259,13 @@ export function SheetEditToolbar({
               disabled={toolApplyDisabled}
               title={
                 activeTool === 'comment'
-                  ? 'Kommentar an Cursor einfuegen'
+                  ? 'Kommentar aktivieren (dann Klick im Text zum Setzen)'
                   : 'Selektion wrappen (oder Template am Cursor einfuegen)'
               }
             >
               <Check size={16} />
               <span>
-                {activeTool === 'comment' ? 'Einfuegen' : 'Wrappen'}
+                {activeTool === 'comment' ? 'Aktivieren' : 'Wrappen'}
               </span>
             </button>
           </div>

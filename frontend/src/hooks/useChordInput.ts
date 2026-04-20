@@ -27,6 +27,11 @@ interface ChordInputState {
    *  neueste zuerst. Ueberlebt Editor-Open/Close, aber nicht Page-Reload. */
   chordHistory: string[]
 
+  /** Aktiver Insert-Tag, der beim Klick in die Textarea an die Cursor-Position
+   *  eingefuegt wird. `null` = kein aktiver Tag (normales Text-Editieren).
+   *  Beispiele: `"[Dm7/F#]"`, `"{c: piano}"`. */
+  activeInsert: string | null
+
   /** Text-Snapshots fuer Undo. */
   undoStack: string[]
 
@@ -47,6 +52,9 @@ interface ChordInputState {
    *  nach oben (neueste Position). History ist gedeckelt bei 24 Eintraegen. */
   addChordToHistory: (chord: string) => void
 
+  /** Setzt den aktiven Insert-Tag. `null` deaktiviert. */
+  setActiveInsert: (tag: string | null) => void
+
   undo: () => boolean
   reset: () => void
 
@@ -65,6 +73,8 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
   toolText: '',
 
   chordHistory: [],
+
+  activeInsert: null,
 
   undoStack: [],
 
@@ -96,6 +106,8 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
     })
   },
 
+  setActiveInsert: (tag) => set({ activeInsert: tag }),
+
   undo: () => {
     const s = get()
     if (s.undoStack.length === 0) return false
@@ -110,6 +122,7 @@ export const useChordInput = create<ChordInputState>((set, get) => ({
       activeTool: null,
       chordBuilder: '',
       toolText: '',
+      activeInsert: null,
     }),
 
   updateCho: async (docId) => {

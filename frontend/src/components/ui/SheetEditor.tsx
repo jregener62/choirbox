@@ -50,7 +50,10 @@ export function SheetEditor({
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const clearBuilder = useChordInput((s) => s.clearBuilder)
   const toolText = useChordInput((s) => s.toolText)
+  const clearToolText = useChordInput((s) => s.clearToolText)
   const addChordToHistory = useChordInput((s) => s.addChordToHistory)
+  const activeInsert = useChordInput((s) => s.activeInsert)
+  const setActiveInsert = useChordInput((s) => s.setActiveInsert)
 
   const [activeTool, setActiveToolLocal] = useState<ActiveTool>(null)
   const [saving, setSaving] = useState(false)
@@ -107,31 +110,44 @@ export function SheetEditor({
     })
   }
 
-  const insertChordAtCursor = () => {
+  /** Aktiviert den gebauten Akkord als "click-to-place"-Tag. Builder wird
+   *  geleert, History wird gepflegt. Danach fuegt jeder Click in die
+   *  Textarea `[Token]` an der Cursor-Position ein. */
+  const activateChord = () => {
     const token = chordBuilder.trim()
     if (!token || !isValidChord(token)) return
-    const { start } = getSelection()
-    const r = insertAtOffset(chordText, start, `[${token}]`)
-    applyTextChange(r.text)
     addChordToHistory(token)
+    setActiveInsert(`[${token}]`)
     clearBuilder()
-    refocusCaret(r.caret)
   }
 
-  const insertChordFromHistory = (token: string) => {
+  /** Aktiviert einen Akkord aus der History (Chip-Klick). Der Builder bleibt
+   *  unberuehrt — User kann parallel einen neuen Akkord weiterbauen. */
+  const activateChordFromHistory = (token: string) => {
     if (!token || !isValidChord(token)) return
-    const { start } = getSelection()
-    const r = insertAtOffset(chordText, start, `[${token}]`)
-    applyTextChange(r.text)
     addChordToHistory(token)
-    refocusCaret(r.caret)
+    setActiveInsert(`[${token}]`)
   }
 
-  const insertCommentAtCursor = () => {
+  /** Aktiviert einen Kommentar-Tag als "click-to-place". Input wird geleert. */
+  const activateComment = () => {
     const body = toolText.trim()
     if (!body) return
-    const { start } = getSelection()
-    const r = insertAtOffset(chordText, start, `{c: ${body}}`)
+    setActiveInsert(`{c: ${body}}`)
+    clearToolText()
+  }
+
+  /** Textarea-Click: wenn ein Tag aktiv ist und keine Selektion besteht,
+   *  wird der Tag an die geklickte Cursor-Position gesetzt. Der Tag bleibt
+   *  aktiv, damit mehrere Einfuegungen moeglich sind. */
+  const handleTextareaClick = () => {
+    if (!activeInsert) return
+    const ta = textareaRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    if (start !== end) return  // Selektion aktiv → nicht einfuegen
+    const r = insertAtOffset(chordText, start, activeInsert)
     applyTextChange(r.text)
     refocusCaret(r.caret)
   }
@@ -186,10 +202,11 @@ export function SheetEditor({
     chordUndo()
   }
 
-  /** Haupt-Aktion: entweder Insert (Akkord/Kommentar) oder Wrap (Sektion). */
+  /** Haupt-Aktion des aktiven Tools: Akkord/Kommentar aktivieren
+   *  (Click-to-Place), Sektion auf Selektion anwenden. */
   const handleToolApply = () => {
-    if (activeTool === 'chord') return insertChordAtCursor()
-    if (activeTool === 'comment') return insertCommentAtCursor()
+    if (activeTool === 'chord') return activateChord()
+    if (activeTool === 'comment') return activateComment()
     if (isSection(activeTool)) return applySectionWrap(activeTool)
   }
 
@@ -260,15 +277,38 @@ export function SheetEditor({
         onSelectTool={selectTool}
         onToolApply={handleToolApply}
         toolApplyDisabled={toolApplyDisabled}
-        onInsertChordFromHistory={insertChordFromHistory}
+        onInsertChordFromHistory={activateChordFromHistory}
       />
 
       {error && <div className="sheet-editor-error">{error}</div>}
+
+      {activeInsert && (
+        <div className="sheet-editor-active-insert" role="status">
+          <span className="sheet-editor-active-insert-label">Aktiv:</span>
+          <code className="sheet-editor-active-insert-tag">
+            {activeInsert.replaceAll('#', '♯').replaceAll('b', '♭')}
+          </code>
+          <span className="sheet-editor-active-insert-hint">
+            Klick im Text setzt ihn am Cursor
+          </span>
+          <button
+            type="button"
+            className="sheet-editor-active-insert-close"
+            onClick={() => setActiveInsert(null)}
+            title="Deaktivieren"
+            aria-label="Deaktivieren"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       <SyntaxTextarea
         value={chordText}
         onChange={applyTextChange}
         textareaRef={textareaRef}
+        onClick={handleTextareaClick}
+        cursorStyle={activeInsert ? 'crosshair' : undefined}
       />
 
       {confirmOverwrite && (

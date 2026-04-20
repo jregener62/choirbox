@@ -6,6 +6,10 @@ interface SyntaxTextareaProps {
   onChange: (value: string) => void
   /** Optional: externer Ref auf das Textarea (fuer Cursor-Operationen von aussen). */
   textareaRef?: RefObject<HTMLTextAreaElement | null>
+  /** Optional: Click-Handler — feuert NACH dem Browser-Default (Cursor gesetzt). */
+  onClick?: () => void
+  /** Optional: Cursor-Style override (z.B. fuer "click-to-place"-Modus). */
+  cursorStyle?: string
 }
 
 const TAG_RE = /(\[[^\]]+\])|(\{v:[^{}]+\})|(\{[^{}]+\})/g
@@ -23,7 +27,13 @@ function escHtml(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
 }
 
-export function SyntaxTextarea({ value, onChange, textareaRef: externalRef }: SyntaxTextareaProps) {
+export function SyntaxTextarea({
+  value,
+  onChange,
+  textareaRef: externalRef,
+  onClick,
+  cursorStyle,
+}: SyntaxTextareaProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const internalRef = useRef<HTMLTextAreaElement>(null)
 
@@ -63,9 +73,11 @@ export function SyntaxTextarea({ value, onChange, textareaRef: externalRef }: Sy
         value={value}
         onChange={handleChange}
         onScroll={syncScroll}
+        onClick={onClick}
         spellCheck={false}
         autoCapitalize="off"
         autoCorrect="off"
+        style={cursorStyle ? { cursor: cursorStyle } : undefined}
       />
     </div>
   )
