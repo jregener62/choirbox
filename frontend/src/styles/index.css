@@ -1763,8 +1763,9 @@ body.body-scroll-fs .autoscroll-stepper {
 /* Titel */
 .rtf-viewer-heading--l1 {
   font-size: 1.6em;
-  text-align: center;
   letter-spacing: 0.01em;
+  margin-top: calc(var(--space-4) - 4px);
+  margin-bottom: calc(var(--space-2) - 4px);
 }
 .rtf-viewer-heading--l2 { font-size: 1.4em; }
 /* Abschnitt — mit dezenter Trennlinie */
@@ -2007,8 +2008,9 @@ body.body-scroll-fs .autoscroll-stepper {
 /* Titel */
 .rtf-editor-content .tiptap h1 {
   font-size: 1.6em;
-  text-align: center;
   letter-spacing: 0.01em;
+  margin-top: calc(var(--space-4) - 4px);
+  margin-bottom: calc(var(--space-2) - 4px);
 }
 /* Abschnitt — mit dezenter Trennlinie */
 .rtf-editor-content .tiptap h3 {
