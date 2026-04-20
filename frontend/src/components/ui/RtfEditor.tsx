@@ -8,7 +8,7 @@ import {
   Heading, MessageSquareQuote, Pilcrow,
   Highlighter, X, Check,
 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useReducer, useState } from 'react'
 import { api } from '@/api/client.ts'
 import { parseRtf } from '@/utils/rtfParser'
 import { rtfToTiptap } from '@/utils/rtfToTiptap'
@@ -73,6 +73,9 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const [dirty, setDirty] = useState(false)
   const [highlightOpen, setHighlightOpen] = useState(false)
   const [headingOpen, setHeadingOpen] = useState(false)
+  /** Force-Rerender-Trigger — wird bei jeder Tiptap-Transaktion inkrementiert,
+   *  damit `editor.isActive(...)` korrekt reactive aufgerufen wird. */
+  const [, forceRerender] = useReducer((x: number) => x + 1, 0)
 
   const editor = useEditor({
     extensions: [
@@ -83,6 +86,8 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     ],
     content: initialDoc ?? '',
     onUpdate: () => setDirty(true),
+    onSelectionUpdate: () => forceRerender(),
+    onTransaction: () => forceRerender(),
   }, [initialDoc])
 
   if (loadError) {
@@ -157,12 +162,10 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const iActive = editor.isActive('italic')
   const uActive = editor.isActive('underline')
   const sActive = editor.isActive('strike')
-  const headingActive = editor.isActive('heading')
   const activeHighlight = (() => {
     const attrs = editor.getAttributes('highlight')
     return typeof attrs.color === 'string' ? attrs.color.toLowerCase() : null
   })()
-  const highlightMarkActive = editor.isActive('highlight')
 
   return (
     <div className="rtf-editor">
@@ -203,26 +206,26 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
           </button>
           <button
             type="button"
-            className={`rtf-editor-btn${highlightOpen || highlightMarkActive ? ' rtf-editor-btn--active' : ''}`}
+            className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
             onClick={() => {
               setHighlightOpen((v) => !v)
               if (!highlightOpen) setHeadingOpen(false)
             }}
             title="Markieren (Hintergrundfarbe)"
-            aria-pressed={highlightOpen || highlightMarkActive}
+            aria-pressed={highlightOpen}
           >
             <Highlighter size={16} />
           </button>
           <div className="rtf-editor-sep" />
           <button
             type="button"
-            className={`rtf-editor-btn${headingOpen || headingActive ? ' rtf-editor-btn--active' : ''}`}
+            className={`rtf-editor-btn${headingOpen ? ' rtf-editor-btn--active' : ''}`}
             onClick={() => {
               setHeadingOpen((v) => !v)
               if (!headingOpen) setHighlightOpen(false)
             }}
             title="Ueberschrift"
-            aria-pressed={headingOpen || headingActive}
+            aria-pressed={headingOpen}
           >
             <Heading size={16} />
           </button>
