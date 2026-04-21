@@ -799,6 +799,51 @@ body {
 }
 
 /* ============================================================ */
+/* 21b. UploadChoiceModal → Mono                                */
+/* Entfernt die Tint-Icon-Boxen (lila/indigo/peach).            */
+/* ============================================================ */
+
+.upload-choice {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  background: transparent !important;
+  padding: var(--space-3) var(--space-3-5) !important;
+}
+.upload-choice:active {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--text-primary) !important;
+}
+
+.upload-choice-icon,
+.upload-choice-icon--text,
+.upload-choice-icon--chord,
+.upload-choice-icon--file {
+  background: transparent !important;
+  border-radius: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary) !important;
+}
+.upload-choice-icon--file {
+  border-color: var(--accent);
+  color: var(--accent) !important;
+}
+
+.upload-choice-label {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.upload-choice-desc {
+  font-family: var(--font-sans);
+}
+
+.upload-choice-divider {
+  margin: var(--space-2) 0 !important;
+}
+
+/* ============================================================ */
 /* 22. Meta-Bricks (View-Bar + Song-Card-Header) → Mono         */
 /* Ersetzt Indigo/Cyan/Pink/Amber durch Schwarz/Weiss + Accent. */
 /* ============================================================ */
