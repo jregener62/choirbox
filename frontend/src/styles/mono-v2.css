@@ -719,7 +719,112 @@ body {
 }
 
 /* ============================================================ */
-/* 18. Accessibility / Misc                                     */
+/* 18. Settings-Overrides (Mono-Pattern ohne JSX-Umbau)         */
+/* Wirkt auf bestehende .settings-* Klassen.                    */
+/* ============================================================ */
+
+.settings-heading {
+  font-family: var(--font-mono);
+  font-size: 9px !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  font-weight: 700 !important;
+  padding: var(--space-2) 0 var(--space-3);
+  margin-bottom: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-rows {
+  gap: 0 !important;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+  min-height: 44px;
+}
+.settings-row:first-child {
+  border-top: none;
+}
+.settings-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.settings-nav-list {
+  gap: 0 !important;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-nav-item {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border-top: 1px solid var(--border) !important;
+  padding: var(--space-3) 0 !important;
+  font-size: 14px !important;
+}
+.settings-nav-list .settings-nav-item:first-child {
+  border-top: none !important;
+}
+.settings-nav-item:active {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Rechtliches-Footer in Mono-Stil */
+.settings-legal {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: var(--space-8);
+}
+
+/* Browse: file-meta als Mono-Zeile */
+.file-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.file-name {
+  letter-spacing: -0.2px;
+}
+
+/* Admin User-Avatar → outline-circle Mono */
+.user-avatar {
+  background: transparent !important;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+/* ============================================================ */
+/* 19. Topbar (Back-Pfeil + Titel)                              */
+/* ============================================================ */
+
+.topbar {
+  border-bottom: 1px solid var(--border);
+}
+.topbar-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+/* ============================================================ */
+/* 20. Accessibility / Misc                                     */
 /* ============================================================ */
 
 /* Mono-System: alle Buttons ohne abgerundete Ecken per default */
