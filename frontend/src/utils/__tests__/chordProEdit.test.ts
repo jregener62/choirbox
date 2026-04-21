@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { insertAtOffset, wrapLinesAsSection } from '@/utils/chordProEdit'
+import { findTagAt, insertAtOffset, wrapLinesAsSection } from '@/utils/chordProEdit'
 
 describe('insertAtOffset', () => {
   it('inserts a snippet at the given offset', () => {
@@ -96,5 +96,74 @@ describe('wrapLinesAsSection — with selection', () => {
     const r = wrapLinesAsSection(text, 4, 2, 'intro', '')
     // Same result as if start<end
     expect(r.text).toBe('A\n{start_of_intro}\nB\n{end_of_intro}\nC')
+  })
+})
+
+describe('findTagAt', () => {
+  it('findet einen Akkord-Tag bei Cursor mittendrin', () => {
+    const text = 'Hallo [F#7] Welt'
+    const start = text.indexOf('[')
+    const end = start + '[F#7]'.length
+    // Cursor in der Mitte des Tags
+    expect(findTagAt(text, start + 2)).toEqual({ start, end })
+  })
+
+  it('zaehlt die Position direkt vor [ als "im Tag"', () => {
+    const text = 'Hallo [F#7] Welt'
+    const start = text.indexOf('[')
+    const end = start + '[F#7]'.length
+    expect(findTagAt(text, start)).toEqual({ start, end })
+  })
+
+  it('zaehlt die Position direkt nach ] als "im Tag"', () => {
+    const text = 'Hallo [F#7] Welt'
+    const start = text.indexOf('[')
+    const end = start + '[F#7]'.length
+    expect(findTagAt(text, end)).toEqual({ start, end })
+  })
+
+  it('liefert null in Plain-Text', () => {
+    const text = 'Hallo [F#7] Welt'
+    const posInWelt = text.indexOf('Welt') + 2
+    expect(findTagAt(text, posInWelt)).toBeNull()
+  })
+
+  it('faellt bei angrenzenden Tags auf das frueher endende Tag zurueck', () => {
+    const text = '[C] [G]'
+    // Position 3 = direkt nach ] von [C] → gehoert zu [C]
+    expect(findTagAt(text, 3)).toEqual({ start: 0, end: 3 })
+    // Position 4 = direkt vor [ von [G] → gehoert zu [G]
+    expect(findTagAt(text, 4)).toEqual({ start: 4, end: 7 })
+  })
+
+  it('findet den richtigen Tag bei mehreren pro Zeile', () => {
+    const text = 'La [Am] la [F] la'
+    const amStart = text.indexOf('[Am]')
+    const fStart = text.indexOf('[F]')
+    expect(findTagAt(text, amStart + 1)).toEqual({ start: amStart, end: amStart + 4 })
+    expect(findTagAt(text, fStart + 1)).toEqual({ start: fStart, end: fStart + 3 })
+  })
+
+  it('findet Directives {c: ...}', () => {
+    const text = 'Hallo {c: Kommentar} Welt'
+    const start = text.indexOf('{')
+    const end = start + '{c: Kommentar}'.length
+    expect(findTagAt(text, start + 3)).toEqual({ start, end })
+  })
+
+  it('findet Vocal-Tags {v:Sopran}', () => {
+    const text = 'Zeile {v:Sopran} mehr'
+    const start = text.indexOf('{')
+    const end = start + '{v:Sopran}'.length
+    expect(findTagAt(text, start + 2)).toEqual({ start, end })
+  })
+
+  it('matcht nicht ueber Zeilenumbrueche', () => {
+    const text = 'unvollstaendig [\nabc]'
+    expect(findTagAt(text, 16)).toBeNull()
+  })
+
+  it('liefert null in leerem Text', () => {
+    expect(findTagAt('', 0)).toBeNull()
   })
 })

@@ -874,6 +874,10 @@ Ein klassischer Texteditor fuer den ChordPro-Quelltext — **keine tap-to-place-
 
 Nach „Aktivieren" ist der Tag als *aktiver Insert* markiert (gruener Chip in der Sub-Bar, Crosshair-Cursor im Textarea). Jeder Klick in die Textarea fuegt den Tag an der angeklickten Cursor-Position ein. Tag bleibt aktiv, bis er deaktiviert oder ein anderes Tool gewaehlt wird. Bei aktiver Text-Selektion wird kein Insert ausgeloest (damit die Selektion erhalten bleibt).
 
+**Tag-am-Stueck-Selektion (Klick auf Tag):**
+
+Wenn kein Insert-Tag aktiv ist und der User in die Mitte oder auf den Rand eines `[Akkord]`- oder `{…}`-Tags klickt, wird die komplette Tag-Klammer inkl. `[`/`]` bzw. `{`/`}` selektiert. Damit laesst sich der Tag am Stueck loeschen (Backspace/Entf), kopieren (Ctrl/Cmd+C), ausschneiden (Ctrl/Cmd+X) oder ueber Copy+Paste verschieben — auf Mobil deutlich komfortabler als ueber die OS-Selektionsgriffe. Ein zweiter Klick in denselben Tag (Tap-through) hebt die Selektion auf und setzt den Cursor an die Klick-Position, damit der Tag-Inhalt direkt editiert werden kann. Drag-Selektion und manuelle Eingaben heben die Tag-Memoization auf. Umgesetzt via `findTagAt()` in `frontend/src/utils/chordProEdit.ts`.
+
 **Akkord-History:**
 
 Jeder einmal gebaute oder aktivierte Akkord wandert in eine Chip-Leiste oberhalb des Keypads. Klick auf einen Chip aktiviert den entsprechenden Akkord ohne ihn neu zu bauen. Der Chip des aktiven Akkords ist gruen markiert — nochmaliges Klicken deaktiviert. Reihenfolge ist stabil (neueste ans Ende, Duplikate bleiben an ihrer Position). Max. 24 Eintraege, persistiert im `localStorage` (`choirbox-chord-input`).
@@ -897,7 +901,7 @@ Zeigt den aktuellen Editor-Text gerendert via `ChordSheetViewer` in einem Modal 
 | `backend/api/chord_input.py` | `POST /api/chord-input/export` — akzeptiert `text`, `chords` |
 | `frontend/src/utils/chordValidation.ts` | Regex fuer Akkord-Token |
 | `frontend/src/utils/chordPositions.ts` | `parseChordPositions(body)` — strippt `[chord]` aus Text fuer Viewer-Rendering |
-| `frontend/src/utils/chordProEdit.ts` | `insertAtOffset`, `wrapLinesAsSection` — pure Helpers fuer Cursor-/Selection-Manipulation |
+| `frontend/src/utils/chordProEdit.ts` | `insertAtOffset`, `wrapLinesAsSection`, `findTagAt` — pure Helpers fuer Cursor-/Selection-Manipulation |
 | `frontend/src/hooks/useChordInput.ts` | Zustand-Store: text (Source-of-Truth), chordBuilder, toolText, activeInsert, chordHistory, Undo-Stack (Text-Snapshots). `chordHistory` persistiert via `zustand/persist`. |
 | `frontend/src/components/ui/SheetEditToolbar.tsx` | Tool-Bar mit allen ChordPro-Tag-Tools, Keypad, History-Chips |
 | `frontend/src/components/ui/SheetEditor.tsx` | Texteditor-Komponente mit Tool-Handlern, Click-to-Place und Preview-Modal |

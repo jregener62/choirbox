@@ -4,7 +4,7 @@ import { api } from '@/api/client.ts'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { isValidChord } from '@/utils/chordValidation'
-import { insertAtOffset, wrapLinesAsSection, type SectionType } from '@/utils/chordProEdit'
+import { findTagAt, insertAtOffset, wrapLinesAsSection, type SectionType } from '@/utils/chordProEdit'
 import { parseChordPro, ensureChordPro, isChordPro } from '@/utils/chordPro'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
@@ -66,6 +66,10 @@ export function SheetEditor({
   const [error, setError] = useState<string | null>(null)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  // Tap-through: merkt sich das zuletzt per Click expandierte Tag. Ein zweiter
+  // Klick in denselben Bereich setzt dann den Cursor normal (statt erneut zu
+  // selektieren), damit User innerhalb des Tags editieren koennen.
+  const lastTagExpandRef = useRef<{ start: number; end: number } | null>(null)
 
   const isEditMode = editDocId != null
 
@@ -142,19 +146,58 @@ export function SheetEditor({
     clearToolText()
   }
 
-  /** Textarea-Click: wenn ein Tag aktiv ist und keine Selektion besteht,
-   *  wird der Tag an die geklickte Cursor-Position gesetzt. Der Tag bleibt
-   *  aktiv, damit mehrere Einfuegungen moeglich sind. */
+  /** Textarea-Click:
+   *  1. activeInsert (click-to-place): Tag an Cursor-Position einfuegen.
+   *  2. Sonst: Landet der Cursor in einem `[…]`/`{…}`-Tag, wird die Selektion
+   *     auf das ganze Tag expandiert — damit laesst sich der Tag am Stueck
+   *     loeschen, kopieren, ausschneiden oder verschieben. Zweiter Klick in
+   *     denselben Tag (Tap-through) setzt wieder den normalen Cursor, damit
+   *     der Inhalt editiert werden kann. */
   const handleTextareaClick = () => {
-    if (!activeInsert) return
     const ta = textareaRef.current
     if (!ta) return
-    const start = ta.selectionStart
-    const end = ta.selectionEnd
-    if (start !== end) return  // Selektion aktiv → nicht einfuegen
-    const r = insertAtOffset(chordText, start, activeInsert)
-    applyTextChange(r.text)
-    refocusCaret(r.caret)
+
+    if (activeInsert) {
+      const start = ta.selectionStart
+      const end = ta.selectionEnd
+      if (start !== end) return  // Selektion aktiv → nicht einfuegen
+      const r = insertAtOffset(chordText, start, activeInsert)
+      applyTextChange(r.text)
+      refocusCaret(r.caret)
+      return
+    }
+
+    const { selectionStart, selectionEnd } = ta
+
+    // Drag-Select: User hat bewusst eine Range gezogen → nicht anfassen.
+    if (selectionStart !== selectionEnd) {
+      lastTagExpandRef.current = null
+      return
+    }
+
+    const tag = findTagAt(chordText, selectionStart)
+    if (!tag) {
+      lastTagExpandRef.current = null
+      return
+    }
+
+    // Tap-through: zweiter Klick im selben Tag → Cursor stehen lassen.
+    const prev = lastTagExpandRef.current
+    if (prev && prev.start === tag.start && prev.end === tag.end) {
+      lastTagExpandRef.current = null
+      return
+    }
+
+    refocusRange(tag.start, tag.end)
+    lastTagExpandRef.current = { start: tag.start, end: tag.end }
+  }
+
+  /** onChange-Wrapper: jede Texteditierung hebt die Tap-through-Memoization
+   *  auf — sonst wuerden Tag-Grenzen unbrauchbar, sobald sich die Offsets
+   *  verschoben haben. */
+  const handleTextChange = (v: string) => {
+    lastTagExpandRef.current = null
+    applyTextChange(v)
   }
 
   const applySectionWrap = (type: SectionType) => {
@@ -308,7 +351,7 @@ export function SheetEditor({
 
       <SyntaxTextarea
         value={chordText}
-        onChange={applyTextChange}
+        onChange={handleTextChange}
         textareaRef={textareaRef}
         onClick={handleTextareaClick}
         cursorStyle={activeInsert ? 'crosshair' : undefined}

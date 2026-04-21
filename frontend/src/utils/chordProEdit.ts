@@ -91,3 +91,22 @@ export function wrapLinesAsSection(
   caret += newLines[endDirLineIdx].length
   return { text: newText, caret }
 }
+
+/** Findet das Tag (`[…]` oder `{…}`), das die Cursor-Position `pos`
+ *  umschliesst. Die Grenzen sind inklusive: `pos` direkt vor `[`/`{` oder
+ *  direkt nach `]`/`}` zaehlt noch als "im Tag". Liefert `null`, wenn
+ *  `pos` in Plain-Text liegt. */
+export function findTagAt(
+  text: string,
+  pos: number,
+): { start: number; end: number } | null {
+  const re = /\[[^\]\n]+\]|\{[^{}\n]+\}/g
+  let m: RegExpExecArray | null
+  while ((m = re.exec(text)) !== null) {
+    const start = m.index
+    const end = start + m[0].length
+    if (pos >= start && pos <= end) return { start, end }
+    if (start > pos) break
+  }
+  return null
+}
