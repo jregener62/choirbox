@@ -888,6 +888,10 @@ Sobald ein Tag selektiert ist, schwebt eine kleine Mini-Toolbar direkt ueber dem
 
 Alle Buttons fangen `mousedown` per `preventDefault` ab, damit die Textarea-Selektion erhalten bleibt. Positionierung via `getBoundingClientRect()` auf dem Tag-Span im SyntaxTextarea-Backdrop (per `data-tag-start`-Attribut). Wiederberechnung auf Scroll und Resize. Copy/Cut/Paste bleiben bewusst dem OS-Menue ueberlassen — niemand baut das besser nach. Umgesetzt in `frontend/src/components/ui/TagToolbar.tsx` mit Helpern `moveTagLeft`, `moveTagRight`, `deleteTagAt` in `chordProEdit.ts`.
 
+**Mobile: Tastatur bei Akkord-Selektion unterdruecken:**
+
+Waehrend ein Akkord-Tag selektiert ist, setzt der Editor `inputMode="none"` auf die Textarea und ruft `blur()` vor dem Re-Focus auf — damit bleibt die virtuelle Tastatur unten geschlossen, Platz fuer Toolbar und Tag-Kontext bleibt frei. Nur Akkorde loesen das aus; bei Kommentaren/Directives bleibt die Tastatur offen, weil dort oft Text editiert wird. Beim Tap-through (zweiter Tap auf denselben Akkord), bei Drag-Selektion oder Klick ausserhalb eines Tags wird `inputMode` synchron zurueckgesetzt und die Tastatur per `blur/focus` im User-Gesture-Kontext wieder geoeffnet.
+
 **Akkord-History:**
 
 Jeder einmal gebaute oder aktivierte Akkord wandert in eine Chip-Leiste oberhalb des Keypads. Klick auf einen Chip aktiviert den entsprechenden Akkord ohne ihn neu zu bauen. Der Chip des aktiven Akkords ist gruen markiert — nochmaliges Klicken deaktiviert. Reihenfolge ist stabil (neueste ans Ende, Duplikate bleiben an ihrer Position). Max. 24 Eintraege, persistiert im `localStorage` (`choirbox-chord-input`).
