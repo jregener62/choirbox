@@ -1,15 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { X } from 'lucide-react'
 import { api } from '@/api/client.ts'
 import { useChordInput } from '@/hooks/useChordInput'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { isValidChord } from '@/utils/chordValidation'
-import { findTagAt, insertAtOffset, wrapLinesAsSection, type SectionType } from '@/utils/chordProEdit'
+import {
+  deleteTagAt,
+  findTagAt,
+  insertAtOffset,
+  moveTagLeft,
+  moveTagRight,
+  wrapLinesAsSection,
+  type SectionType,
+} from '@/utils/chordProEdit'
 import { parseChordPro, ensureChordPro, isChordPro } from '@/utils/chordPro'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
 import { ChordSheetViewer } from './ChordSheetViewer'
+import { TagToolbar } from './TagToolbar'
 import './SheetEditor.css'
+
+const TAG_TOOLBAR_HEIGHT = 52 // ~44px Button + 2*4px Padding
+const TAG_TOOLBAR_GAP = 10
 
 interface SheetEditorProps {
   /** Plain source (.txt) — used when creating a new sheet from plain text. */
@@ -66,10 +78,16 @@ export function SheetEditor({
   const [error, setError] = useState<string | null>(null)
   const [confirmOverwrite, setConfirmOverwrite] = useState(false)
   const textareaRef = useRef<HTMLTextAreaElement | null>(null)
+  const editorContainerRef = useRef<HTMLDivElement | null>(null)
   // Tap-through: merkt sich das zuletzt per Click expandierte Tag. Ein zweiter
   // Klick in denselben Bereich setzt dann den Cursor normal (statt erneut zu
   // selektieren), damit User innerhalb des Tags editieren koennen.
   const lastTagExpandRef = useRef<{ start: number; end: number } | null>(null)
+  // Aktuell selektiertes Tag — steuert, ob die Floating-TagToolbar sichtbar ist.
+  const [selectedTag, setSelectedTag] = useState<{ start: number; end: number } | null>(null)
+  const [toolbarPos, setToolbarPos] = useState<
+    { top: number; left: number; flipped: boolean } | null
+  >(null)
 
   const isEditMode = editDocId != null
 
@@ -172,12 +190,14 @@ export function SheetEditor({
     // Drag-Select: User hat bewusst eine Range gezogen → nicht anfassen.
     if (selectionStart !== selectionEnd) {
       lastTagExpandRef.current = null
+      setSelectedTag(null)
       return
     }
 
     const tag = findTagAt(chordText, selectionStart)
     if (!tag) {
       lastTagExpandRef.current = null
+      setSelectedTag(null)
       return
     }
 
@@ -185,19 +205,108 @@ export function SheetEditor({
     const prev = lastTagExpandRef.current
     if (prev && prev.start === tag.start && prev.end === tag.end) {
       lastTagExpandRef.current = null
+      setSelectedTag(null)
       return
     }
 
     refocusRange(tag.start, tag.end)
     lastTagExpandRef.current = { start: tag.start, end: tag.end }
+    setSelectedTag({ start: tag.start, end: tag.end })
   }
 
   /** onChange-Wrapper: jede Texteditierung hebt die Tap-through-Memoization
    *  auf — sonst wuerden Tag-Grenzen unbrauchbar, sobald sich die Offsets
-   *  verschoben haben. */
+   *  verschoben haben. Ebenso verschwindet die Tag-Toolbar, weil der
+   *  Referenz-Range nicht mehr verlaesslich ist. */
   const handleTextChange = (v: string) => {
     lastTagExpandRef.current = null
+    setSelectedTag(null)
     applyTextChange(v)
+  }
+
+  /** Positioniert die Floating TagToolbar relativ zum SheetEditor-Container.
+   *  Die Tag-Spans im Backdrop der SyntaxTextarea tragen `data-tag-start`,
+   *  darueber lassen sich die exakten Pixel-Koordinaten per
+   *  getBoundingClientRect() ermitteln. Bei zu wenig Platz oben wird die
+   *  Toolbar unter das Tag geklappt. */
+  const recomputeToolbarPos = useCallback(() => {
+    if (!selectedTag) {
+      setToolbarPos(null)
+      return
+    }
+    const container = editorContainerRef.current
+    if (!container) return
+    const span = container.querySelector<HTMLElement>(
+      `[data-tag-start="${selectedTag.start}"]`,
+    )
+    if (!span) {
+      setToolbarPos(null)
+      return
+    }
+    const containerRect = container.getBoundingClientRect()
+    const spanRect = span.getBoundingClientRect()
+
+    const preferredTop =
+      spanRect.top - containerRect.top - TAG_TOOLBAR_HEIGHT - TAG_TOOLBAR_GAP
+    const flipped = preferredTop < 0
+    const top = flipped
+      ? spanRect.bottom - containerRect.top + TAG_TOOLBAR_GAP
+      : preferredTop
+    const centerX = spanRect.left - containerRect.left + spanRect.width / 2
+    // Horizontal im Container klemmen — die Toolbar ist ca. 150px breit.
+    const halfToolbar = 78
+    const left = Math.max(
+      halfToolbar + 4,
+      Math.min(containerRect.width - halfToolbar - 4, centerX),
+    )
+    setToolbarPos({ top, left, flipped })
+  }, [selectedTag])
+
+  useLayoutEffect(() => {
+    recomputeToolbarPos()
+  }, [recomputeToolbarPos, chordText])
+
+  useEffect(() => {
+    if (!selectedTag) return
+    const ta = textareaRef.current
+    const handler = () => recomputeToolbarPos()
+    window.addEventListener('resize', handler)
+    window.addEventListener('scroll', handler, true)
+    ta?.addEventListener('scroll', handler)
+    return () => {
+      window.removeEventListener('resize', handler)
+      window.removeEventListener('scroll', handler, true)
+      ta?.removeEventListener('scroll', handler)
+    }
+  }, [selectedTag, recomputeToolbarPos])
+
+  const moveSelectedTagLeft = () => {
+    if (!selectedTag) return
+    const r = moveTagLeft(chordText, selectedTag.start, selectedTag.end)
+    if (!r) return
+    applyTextChange(r.text)
+    setSelectedTag({ start: r.newStart, end: r.newEnd })
+    lastTagExpandRef.current = { start: r.newStart, end: r.newEnd }
+    refocusRange(r.newStart, r.newEnd)
+  }
+
+  const moveSelectedTagRight = () => {
+    if (!selectedTag) return
+    const r = moveTagRight(chordText, selectedTag.start, selectedTag.end)
+    if (!r) return
+    applyTextChange(r.text)
+    setSelectedTag({ start: r.newStart, end: r.newEnd })
+    lastTagExpandRef.current = { start: r.newStart, end: r.newEnd }
+    refocusRange(r.newStart, r.newEnd)
+  }
+
+  const deleteSelectedTag = () => {
+    if (!selectedTag) return
+    const r = deleteTagAt(chordText, selectedTag.start, selectedTag.end)
+    applyTextChange(r.text)
+    setSelectedTag(null)
+    lastTagExpandRef.current = null
+    refocusCaret(r.caret)
   }
 
   const applySectionWrap = (type: SectionType) => {
@@ -336,7 +445,7 @@ export function SheetEditor({
   ])
 
   return (
-    <div className="sheet-editor">
+    <div className="sheet-editor" ref={editorContainerRef}>
       <SheetEditToolbar
         activeTool={activeTool}
         onSelectTool={selectTool}
@@ -356,6 +465,17 @@ export function SheetEditor({
         onClick={handleTextareaClick}
         cursorStyle={activeInsert ? 'crosshair' : undefined}
       />
+
+      {selectedTag && toolbarPos && (
+        <TagToolbar
+          style={toolbarPos}
+          canMoveLeft={selectedTag.start > 0}
+          canMoveRight={selectedTag.end < chordText.length}
+          onMoveLeft={moveSelectedTagLeft}
+          onMoveRight={moveSelectedTagRight}
+          onDelete={deleteSelectedTag}
+        />
+      )}
 
       {confirmOverwrite && (
         <div

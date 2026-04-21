@@ -12,15 +12,30 @@ interface SyntaxTextareaProps {
   cursorStyle?: string
 }
 
-const TAG_RE = /(\[[^\]]+\])|(\{v:[^{}]+\})|(\{[^{}]+\})/g
+const TAG_RE = /(\[[^\]\n]+\])|(\{v:[^{}\n]+\})|(\{[^{}\n]+\})/g
 
 function highlight(source: string): string {
-  return source.replace(TAG_RE, (match, chord, vocal, directive) => {
-    if (chord) return `<span class="syn-chord">${escHtml(chord)}</span>`
-    if (vocal) return `<span class="syn-vocal">${escHtml(vocal)}</span>`
-    if (directive) return `<span class="syn-directive">${escHtml(directive)}</span>`
-    return escHtml(match)
-  })
+  let out = ''
+  let last = 0
+  const re = new RegExp(TAG_RE.source, 'g')
+  let m: RegExpExecArray | null
+  while ((m = re.exec(source)) !== null) {
+    out += escHtml(source.slice(last, m.index))
+    const [matched, chord, vocal, directive] = m
+    let cls = 'syn-directive'
+    if (chord) cls = 'syn-chord'
+    else if (vocal) cls = 'syn-vocal'
+    else if (!directive) {
+      // defensive: should not happen (one of the three groups always matches)
+      out += escHtml(matched)
+      last = m.index + matched.length
+      continue
+    }
+    out += `<span class="${cls}" data-tag-start="${m.index}">${escHtml(matched)}</span>`
+    last = m.index + matched.length
+  }
+  out += escHtml(source.slice(last))
+  return out
 }
 
 function escHtml(s: string): string {

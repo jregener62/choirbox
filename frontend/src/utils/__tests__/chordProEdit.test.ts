@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest'
-import { findTagAt, insertAtOffset, wrapLinesAsSection } from '@/utils/chordProEdit'
+import {
+  deleteTagAt,
+  findTagAt,
+  insertAtOffset,
+  moveTagLeft,
+  moveTagRight,
+  wrapLinesAsSection,
+} from '@/utils/chordProEdit'
 
 describe('insertAtOffset', () => {
   it('inserts a snippet at the given offset', () => {
@@ -165,5 +172,59 @@ describe('findTagAt', () => {
 
   it('liefert null in leerem Text', () => {
     expect(findTagAt('', 0)).toBeNull()
+  })
+})
+
+describe('moveTagLeft', () => {
+  it('tauscht Tag mit dem vorherigen Zeichen', () => {
+    // abc[C]def → ab[C]cdef : das 'c' vor dem Tag rutscht hinter das Tag
+    const r = moveTagLeft('abc[C]def', 3, 6)!
+    expect(r.text).toBe('ab[C]cdef')
+    expect(r.newStart).toBe(2)
+    expect(r.newEnd).toBe(5)
+  })
+
+  it('liefert null, wenn Tag am Textanfang steht', () => {
+    expect(moveTagLeft('[C]abc', 0, 3)).toBeNull()
+  })
+
+  it('kann ein Tag ueber einen Zeilenumbruch nach links ziehen', () => {
+    // 'a\n[C]' mit Tag bei 2..5 → 'a[C]\n'
+    const r = moveTagLeft('a\n[C]', 2, 5)!
+    expect(r.text).toBe('a[C]\n')
+    expect(r.newStart).toBe(1)
+    expect(r.newEnd).toBe(4)
+  })
+})
+
+describe('moveTagRight', () => {
+  it('tauscht Tag mit dem folgenden Zeichen', () => {
+    // abc[C]def → abcd[C]ef : das 'd' nach dem Tag rutscht vor das Tag
+    const r = moveTagRight('abc[C]def', 3, 6)!
+    expect(r.text).toBe('abcd[C]ef')
+    expect(r.newStart).toBe(4)
+    expect(r.newEnd).toBe(7)
+  })
+
+  it('liefert null, wenn Tag am Textende steht', () => {
+    expect(moveTagRight('abc[C]', 3, 6)).toBeNull()
+  })
+})
+
+describe('deleteTagAt', () => {
+  it('entfernt das Tag und setzt den Cursor an die Ausgangsposition', () => {
+    const text = 'Hallo [F#7] Welt'
+    const start = text.indexOf('[')
+    const end = start + '[F#7]'.length
+    const r = deleteTagAt(text, start, end)
+    expect(r.text).toBe('Hallo  Welt')
+    expect(r.caret).toBe(start)
+  })
+
+  it('bleibt stabil bei Tag am Zeilenanfang', () => {
+    const text = '[C]Hallo'
+    const r = deleteTagAt(text, 0, 3)
+    expect(r.text).toBe('Hallo')
+    expect(r.caret).toBe(0)
   })
 })
