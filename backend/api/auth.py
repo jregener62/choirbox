@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.config import REGISTRATION_CODE
@@ -66,13 +67,18 @@ def get_current_user(request: Request, session: Session = Depends(get_session)) 
     return resolve_token_to_user(token, session)
 
 
+class LoginBody(BaseModel):
+    username: str = ""
+    password: str = ""
+
+
 @router.post("/login")
-def login(data: dict, request: Request, session: Session = Depends(get_session)):
+def login(body: LoginBody, request: Request, session: Session = Depends(get_session)):
     ip = request.client.host if request.client else "unknown"
     _check_rate_limit(ip)
 
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
+    username = body.username.strip()
+    password = body.password
     if not username or not password:
         raise HTTPException(400, "Username and password required")
 
@@ -107,16 +113,21 @@ def get_me(
     return user_response(user, session)
 
 
+class UpdateMeBody(BaseModel):
+    display_name: str | None = None
+    voice_part: str | None = None
+
+
 @router.put("/me")
 def update_me(
-    data: dict,
+    body: UpdateMeBody,
     user: User = Depends(require_permission("profile.write")),
     session: Session = Depends(get_session),
 ):
-    if "display_name" in data:
-        user.display_name = data["display_name"]
-    if "voice_part" in data and data["voice_part"]:
-        user.voice_part = data["voice_part"]
+    if body.display_name is not None:
+        user.display_name = body.display_name
+    if body.voice_part:
+        user.voice_part = body.voice_part
 
     user.updated_at = datetime.utcnow()
     session.add(user)
@@ -125,22 +136,25 @@ def update_me(
     return ActionResponse.success(data=user_response(user, session))
 
 
+class ChangePasswordBody(BaseModel):
+    old_password: str = ""
+    new_password: str = ""
+
+
 @router.put("/me/password")
 def change_password(
-    data: dict,
+    body: ChangePasswordBody,
     user: User = Depends(require_permission("profile.password")),
     session: Session = Depends(get_session),
 ):
-    old_password = data.get("old_password", "")
-    new_password = data.get("new_password", "")
-    if not old_password or not new_password:
+    if not body.old_password or not body.new_password:
         raise HTTPException(400, "Old and new password required")
-    if not verify_password(old_password, user.password_hash):
+    if not verify_password(body.old_password, user.password_hash):
         raise HTTPException(401, "Current password is incorrect")
-    if len(new_password) < MIN_PASSWORD_LENGTH:
+    if len(body.new_password) < MIN_PASSWORD_LENGTH:
         raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
 
-    user.password_hash = hash_password(new_password)
+    user.password_hash = hash_password(body.new_password)
     user.must_change_password = False
     user.updated_at = datetime.utcnow()
     session.add(user)
@@ -167,19 +181,25 @@ def choir_info(invite_code: str, session: Session = Depends(get_session)):
     }
 
 
+class RegisterBody(BaseModel):
+    invite_code: str = ""
+    registration_code: str = ""  # Backward-compat alias fuer alten Clients
+    username: str = ""
+    display_name: str = ""
+    password: str = ""
+    voice_part: str = ""
+
+
 @router.post("/register")
-def register(data: dict, request: Request, session: Session = Depends(get_session)):
+def register(body: RegisterBody, request: Request, session: Session = Depends(get_session)):
     ip = request.client.host if request.client else "unknown"
     _check_rate_limit(ip)
 
-    invite_code = data.get("invite_code", "").strip()
-    # Backward compat: accept registration_code too
-    if not invite_code:
-        invite_code = data.get("registration_code", "").strip()
-    username = data.get("username", "").strip()
-    display_name = data.get("display_name", "").strip()
-    password = data.get("password", "")
-    voice_part = data.get("voice_part", "").strip()
+    invite_code = body.invite_code.strip() or body.registration_code.strip()
+    username = body.username.strip()
+    display_name = body.display_name.strip()
+    password = body.password
+    voice_part = body.voice_part.strip()
 
     if not invite_code:
         raise HTTPException(400, "Einladungscode erforderlich")
