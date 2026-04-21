@@ -798,6 +798,28 @@ body {
   letter-spacing: -0.2px;
 }
 
+/* Generic Input + Search-Bar + Footer-Buttons → Mono */
+.input,
+.search-bar,
+.browse-footer-btn {
+  border-radius: 0 !important;
+}
+
+.browse-footer-btn {
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 /* Voice-Part-Buttons → Mono */
 .voice-part-btn {
   border-radius: 0 !important;
