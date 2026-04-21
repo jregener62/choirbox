@@ -1,6 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Check, Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen, Undo2, Trash2, Eye, X } from 'lucide-react'
-import { useEditorCommands } from '@/hooks/useEditorCommands'
+import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useDisplayModeStore } from '@/stores/displayModeStore.ts'
 import { useSheetEditMode } from '@/hooks/useSheetEditMode'
@@ -19,6 +18,8 @@ import { ChordSheetTextViewer } from '@/components/ui/ChordSheetTextViewer.tsx'
 import { RtfViewer } from '@/components/ui/RtfViewer.tsx'
 import { RtfEditor } from '@/components/ui/RtfEditor.tsx'
 import { AutoScrollStepper } from '@/components/ui/AutoScrollStepper.tsx'
+import { EditorActionsInline } from '@/components/ui/EditorActionsInline.tsx'
+import { TransposeButtons } from '@/components/ui/TransposeButtons.tsx'
 import type { DocumentItem } from '@/types/index.ts'
 
 interface DocumentPanelProps {
@@ -37,32 +38,6 @@ function getDocIcon(type: string, size = 14) {
   if (type === 'cho') return <Music size={size} />
   if (type === 'rtf') return <FileText size={size} />
   return <File size={size} />
-}
-
-function TransposeButtons({ value, onChange }: { value: number; onChange: (v: number) => void }) {
-  return (
-    <>
-      <button
-        className="transpose-stepper-btn"
-        onClick={() => onChange(value - 1)}
-        disabled={value <= -12}
-        aria-label="Transponieren -1"
-      >
-        <Minus size={16} />
-      </button>
-      <span className="transpose-stepper-value">
-        {value > 0 ? `+${value}` : value}
-      </span>
-      <button
-        className="transpose-stepper-btn"
-        onClick={() => onChange(value + 1)}
-        disabled={value >= 12}
-        aria-label="Transponieren +1"
-      >
-        <Plus size={16} />
-      </button>
-    </>
-  )
 }
 
 function getDistance(t1: Touch, t2: Touch) {
@@ -571,80 +546,6 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
         </div>
       )}
 
-    </div>
-  )
-}
-
-/** Utility actions (Undo / Clear / Preview) for the file-info bar while
- *  the sheet editor is active. Reads all state from useEditorCommands. */
-function EditorActionsInline() {
-  const active = useEditorCommands((s) => s.active)
-  const sourceMode = useEditorCommands((s) => s.sourceMode)
-  const undoDisabled = useEditorCommands((s) => s.undoDisabled)
-  const clearDisabled = useEditorCommands((s) => s.clearDisabled)
-  const clearTitle = useEditorCommands((s) => s.clearTitle)
-  const previewDisabled = useEditorCommands((s) => s.previewDisabled)
-  const saving = useEditorCommands((s) => s.saving)
-  const saveDisabled = useEditorCommands((s) => s.saveDisabled)
-  const saveTitle = useEditorCommands((s) => s.saveTitle)
-  const onUndo = useEditorCommands((s) => s.onUndo)
-  const onClear = useEditorCommands((s) => s.onClear)
-  const onPreview = useEditorCommands((s) => s.onPreview)
-  const onSave = useEditorCommands((s) => s.onSave)
-  const onClose = useEditorCommands((s) => s.onClose)
-
-  if (!active) return null
-  return (
-    <div className="pdf-toolbar-actions">
-      {!sourceMode && (
-        <>
-          <button
-            type="button"
-            className="pdf-toolbar-btn"
-            onClick={onUndo}
-            disabled={undoDisabled}
-            title="Rückgängig"
-          >
-            <Undo2 size={16} />
-          </button>
-          <button
-            type="button"
-            className="pdf-toolbar-btn pdf-toolbar-btn--danger"
-            onClick={onClear}
-            disabled={clearDisabled}
-            title={clearTitle}
-          >
-            <Trash2 size={16} />
-          </button>
-        </>
-      )}
-      <button
-        type="button"
-        className="pdf-toolbar-btn"
-        onClick={onPreview}
-        disabled={previewDisabled}
-        title="ChordPro-Vorschau"
-      >
-        <Eye size={16} />
-      </button>
-      <button
-        type="button"
-        className="pdf-toolbar-btn"
-        onClick={onClose}
-        title="Bearbeitung abbrechen"
-      >
-        <X size={16} />
-      </button>
-      <button
-        type="button"
-        className="pdf-toolbar-btn pdf-toolbar-btn--save"
-        onClick={onSave}
-        disabled={saveDisabled}
-        title={saveTitle}
-        aria-busy={saving}
-      >
-        <Check size={16} />
-      </button>
     </div>
   )
 }
