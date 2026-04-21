@@ -113,7 +113,7 @@ export function DocViewerPage() {
               </div>
             )
           }
-          return <DocumentPanel folderPath={folder} autoEditRtf={autoEdit} />
+          return <DocumentPanel folderPath={folder} autoEdit={autoEdit} />
         })()}
       </div>
     </div>

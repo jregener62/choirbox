@@ -1,25 +1,23 @@
-import { ClipboardPaste, Music, FileUp, FileText, ChevronRight } from 'lucide-react'
+import { Music, FileUp, FileText, ChevronRight } from 'lucide-react'
 import { Modal } from './Modal'
 import './UploadChoiceModal.css'
 
 interface UploadChoiceModalProps {
   onClose: () => void
-  onPasteText: () => void
-  onPasteChord: () => void
+  onNewCho: () => void
   onNewRtf: () => void
   onPickFile: () => void
 }
 
 /**
- * Three-way choice for adding content to a song folder:
- * 1. Text einfuegen → opens PasteTextModal in "txt" mode
- * 2. Chordsheet einfuegen → opens PasteTextModal in "cho" mode
- * 3. Datei auswaehlen → triggers the existing file picker
+ * Auswahl fuer "Hinzufuegen":
+ * 1. Neues Chordsheet → legt leere .cho an und oeffnet den SheetEditor
+ * 2. Neuer Rich-Text  → legt leere .rtf an und oeffnet den RtfEditor
+ * 3. Datei auswaehlen → File-Picker (Audio, PDF, Textdatei)
  */
 export function UploadChoiceModal({
   onClose,
-  onPasteText,
-  onPasteChord,
+  onNewCho,
   onNewRtf,
   onPickFile,
 }: UploadChoiceModalProps) {
@@ -30,32 +28,15 @@ export function UploadChoiceModal({
           className="upload-choice"
           onClick={() => {
             onClose()
-            onPasteText()
-          }}
-        >
-          <div className="upload-choice-icon upload-choice-icon--text">
-            <ClipboardPaste size={20} />
-          </div>
-          <div className="upload-choice-info">
-            <div className="upload-choice-label">Text einfuegen</div>
-            <div className="upload-choice-desc">Songtext aus Zwischenablage einfuegen</div>
-          </div>
-          <ChevronRight size={18} className="upload-choice-arrow" />
-        </button>
-
-        <button
-          className="upload-choice"
-          onClick={() => {
-            onClose()
-            onPasteChord()
+            onNewCho()
           }}
         >
           <div className="upload-choice-icon upload-choice-icon--chord">
             <Music size={20} />
           </div>
           <div className="upload-choice-info">
-            <div className="upload-choice-label">Chordsheet einfuegen</div>
-            <div className="upload-choice-desc">Akkord-Text aus Zwischenablage einfuegen</div>
+            <div className="upload-choice-label">Neues Chordsheet</div>
+            <div className="upload-choice-desc">Leere .cho anlegen und direkt im Editor bearbeiten</div>
           </div>
           <ChevronRight size={18} className="upload-choice-arrow" />
         </button>

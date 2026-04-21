@@ -16,7 +16,7 @@ import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { UploadChoiceModal } from '@/components/ui/UploadChoiceModal'
-import { PasteTextModal } from '@/components/ui/PasteTextModal'
+import { NewChoModal } from '@/components/ui/NewChoModal'
 import { NewRtfModal } from '@/components/ui/NewRtfModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
@@ -98,7 +98,7 @@ export function BrowsePage() {
   const [importOpen, setImportOpen] = useState(false)
   const [importedFiles, setImportedFiles] = useState<File[]>([])
   const [uploadChoiceOpen, setUploadChoiceOpen] = useState(false)
-  const [pasteMode, setPasteMode] = useState<null | 'txt' | 'cho'>(null)
+  const [newChoOpen, setNewChoOpen] = useState(false)
   const [newRtfOpen, setNewRtfOpen] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sharedFiles = useShareTarget()
@@ -1382,14 +1382,13 @@ export function BrowsePage() {
       {uploadChoiceOpen && (
         <UploadChoiceModal
           onClose={() => setUploadChoiceOpen(false)}
-          onPasteText={() => setPasteMode('txt')}
-          onPasteChord={() => setPasteMode('cho')}
+          onNewCho={() => setNewChoOpen(true)}
           onNewRtf={() => setNewRtfOpen(true)}
           onPickFile={() => fileInputRef.current?.click()}
         />
       )}
 
-      {pasteMode && (() => {
+      {newChoOpen && (() => {
         const songFolder = deriveSongFolderPath(browsePath)
         const isRootMode = !songFolder
         const parentPath = songFolder ?? (browsePath || '/')
@@ -1397,19 +1396,23 @@ export function BrowsePage() {
           ? stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
           : ''
         return (
-          <PasteTextModal
-            mode={pasteMode}
+          <NewChoModal
             parentPath={parentPath}
             defaultTitle={defaultTitle}
             createSongFolder={isRootMode}
-            onClose={() => setPasteMode(null)}
-            onSaved={(folderPath) => {
-              setPasteMode(null)
-              useDocumentsStore.setState({ loadedFolder: null })
+            onClose={() => setNewChoOpen(false)}
+            onSaved={(folderPath, filename, docId) => {
+              setNewChoOpen(false)
+              useDocumentsStore.setState({
+                loadedFolder: null,
+                documents: [],
+                activeDocId: docId,
+              })
               useBrowseStore.getState().invalidate(folderPath)
-              // In root mode also invalidate parent so the new .song shows up
               if (isRootMode) useBrowseStore.getState().invalidate(parentPath)
-              loadFolder(folderPath, true)
+              navigate(
+                `/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(filename)}&id=${docId}&edit=1`,
+              )
             }}
           />
         )

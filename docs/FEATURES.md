@@ -204,7 +204,7 @@ Regressionstests).
 | Chord Sheets ansehen          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Transposition (auto-save)     |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     ✓     |
 | Annotationen (Stift)          |        ✓        |     ✓     |       ✓        |       ✓        |     ✓      |     —     |
-| Chordsheet einfuegen (Paste)  |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
+| Neues Chordsheet anlegen      |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | .cho-Datei hochladen          |        ✓        |     ✓     |       ✓        |       ✓        |     —      |     —     |
 | Chord Sheet loeschen          |        ✓        |     ✓     |       ✓        |       —        |     —      |     —     |
 | **SettingsPage**              |                 |           |                |                |            |           |
@@ -782,12 +782,11 @@ Chord Sheets sind transponierbare Akkord-Texte. Sie liegen als `.cho`-Dateien im
 
 ### Eingabe-Wege
 
-Vier Wege fuehren zu einer `.cho`-Datei:
+Drei Wege fuehren zu einer `.cho`-Datei:
 
-1. **"Chordsheet einfuegen"** (Upload-Auswahl-Modal) — Akkord-Text aus Zwischenablage einfuegen
-2. **"Datei auswaehlen"** + `.cho`-Datei — direkter Upload einer ChordPro-Datei
-3. **"Chordsheet erstellen"** im `.txt`-Viewer — erzeugt leeres `.cho` auf Basis des Liedtexts, oeffnet direkt den Akkord-Editor (siehe ["Akkord-Eingabe per Tap"](#akkord-eingabe-per-tap))
-4. **Format-Detection** beim Paste: erkennt automatisch, ob der Input bereits ChordPro ist oder im "Akkord-Zeile ueber Lyrics"-Stil (Ultimate Guitar)
+1. **"Neues Chordsheet"** (Upload-Auswahl-Modal) — legt leere `.cho` an und oeffnet den SheetEditor direkt (Edit-First-Workflow analog `.rtf`). Inhalt wird im Editor getippt oder aus der Zwischenablage eingefuegt; beim Speichern greift die Format-Auto-Detection (ChordPro vs. „Akkord-Zeile ueber Lyrics").
+2. **"Datei auswaehlen"** + `.cho`-Datei — direkter Upload einer ChordPro-Datei.
+3. **"Chordsheet erstellen"** im `.txt`-Viewer — erzeugt eine `.cho` auf Basis des Liedtexts (Legacy-Konvertierung fuer Altbestaende), oeffnet direkt den Akkord-Editor (siehe ["Akkord-Eingabe per Tap"](#akkord-eingabe-per-tap)).
 
 ### Format-Auto-Detection
 
@@ -830,9 +829,11 @@ So liegt die Datei immer im standardisierten ChordPro-Format auf der Disk und ka
 
 Ein zentrales Modal hinter dem `+`-Button im Song-Folder bietet drei Optionen:
 
-1. **Text einfuegen** — Songtext aus Zwischenablage → erstellt `.txt` in `/Texte`
-2. **Chordsheet einfuegen** — Akkord-Text aus Zwischenablage → erstellt `.cho` in `/Texte` (mit Format-Auto-Detection)
-3. **Datei auswaehlen** — Datei-Picker fuer Audio, PDF, TXT, CHO
+1. **Neues Chordsheet** — legt leere `.cho` in `/Texte` an → Navigation zu `/doc-viewer?…&edit=1` → SheetEditor startet sofort. Inhalt wird im Editor getippt oder eingefuegt (ChordPro-Format).
+2. **Neuer Rich-Text** — legt leere `.rtf` in `/Texte` an → RtfEditor startet sofort (gleicher Edit-First-Workflow).
+3. **Datei auswaehlen** — Datei-Picker fuer Audio, PDF, TXT, CHO, RTF.
+
+`.txt`-Creation ueber dieses Modal ist entfallen — fuer reine Songtexte wird `.rtf` genutzt (Formatierung optional). Bestehende `.txt`-Dateien aus Altbestaenden bleiben les- und editierbar; der „Chordsheet erstellen"-Button im TextViewer konvertiert sie weiterhin zu `.cho`.
 
 Das Modal nutzt das bestehende `<Modal>`-Component-System.
 
@@ -867,6 +868,7 @@ Ein klassischer Texteditor fuer den ChordPro-Quelltext — **keine tap-to-place-
 | Strophe / Refrain / Bridge / Intro / Interlude / Outro | Label eingeben, Textbereich markieren, „Wrappen"-Button → markierte Zeilen werden mit `{start_of_<typ>[: Label]}` davor und `{end_of_<typ>}` danach umschlossen (eigene Zeilen). Ohne Selektion: Template mit Cursor zwischen den Tags. |
 | Kommentar | Text eingeben, „Aktivieren"-Button macht `{c: TEXT}` zum aktiven Insert-Tag. |
 | Text | Deaktiviert aktives Tool und aktiven Insert-Tag — reiner Text-Edit-Modus. |
+| ChordPro | Konvertiert „Akkord-Zeile-ueber-Lyrics"-Plain-Text (z.B. Ultimate Guitar) in ChordPro: Inline-`[Chord]`-Brackets, `{start_of_verse}`/`{end_of_verse}`-Direktiven + `{title:}`-Header (aus Dateiname). Button ist deaktiviert, wenn der Text bereits ChordPro ist. Aenderung ist ueber Undo revertierbar. |
 
 **Click-to-Place-Modus (Akkord / Kommentar):**
 
@@ -929,8 +931,8 @@ Zeigt den aktuellen Editor-Text gerendert via `ChordSheetViewer` in einem Modal 
 | `frontend/src/components/ui/ChordSheetViewer.tsx` | Reine Renderkomponente fuer `ParsedChordContent` |
 | `frontend/src/components/ui/ChordSheetTextViewer.tsx` | Laedt `.cho`, parst, rendert via ChordSheetViewer + Annotation-Layer |
 | `frontend/src/components/ui/DocumentPanel.tsx` | Erweitert um `.cho`-Branch + Transpose-Stepper |
-| `frontend/src/components/ui/UploadChoiceModal.tsx` | Auswahl-Modal hinter dem `+`-Button |
-| `frontend/src/components/ui/PasteTextModal.tsx` | Vereinheitlichtes Paste-Modal fuer `.txt` und `.cho` |
+| `frontend/src/components/ui/UploadChoiceModal.tsx` | Auswahl-Modal hinter dem `+`-Button (Neues Chordsheet / Neuer Rich-Text / Datei auswaehlen) |
+| `frontend/src/components/ui/NewChoModal.tsx` | Dateiname-Dialog fuer neue leere `.cho` → SheetEditor |
 | `frontend/src/hooks/useChordPreference.ts` | Hook mit Optimistic UI + Debounced Auto-Save |
 
 ---

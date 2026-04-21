@@ -1,4 +1,4 @@
-import { Check, Delete, X } from 'lucide-react'
+import { Check, Delete, X, Wand2 } from 'lucide-react'
 import { useChordInput } from '@/hooks/useChordInput'
 import { isValidChord } from '@/utils/chordValidation'
 import './SheetEditToolbar.css'
@@ -25,6 +25,10 @@ interface SheetEditToolbarProps {
   toolApplyDisabled: boolean
   /** Direkter Insert eines History-Akkords (ohne ueber den Builder zu gehen). */
   onInsertChordFromHistory: (chord: string) => void
+  /** Plain-Text (UG-Stil) in ChordPro konvertieren. */
+  onConvertToChordPro: () => void
+  /** True wenn aktueller Text schon im ChordPro-Format ist (Button deaktivieren). */
+  convertDisabled: boolean
 }
 
 const NOTES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
@@ -59,6 +63,8 @@ export function SheetEditToolbar({
   onToolApply,
   toolApplyDisabled,
   onInsertChordFromHistory,
+  onConvertToChordPro,
+  convertDisabled,
 }: SheetEditToolbarProps) {
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const appendBuilder = useChordInput((s) => s.appendBuilder)
@@ -173,6 +179,20 @@ export function SheetEditToolbar({
           aria-pressed={activeTool === null && !activeInsert}
         >
           <span className="set-tool-label">Text</span>
+        </button>
+        <button
+          type="button"
+          className="set-tool set-tool--convert"
+          onClick={onConvertToChordPro}
+          disabled={convertDisabled}
+          title={
+            convertDisabled
+              ? 'Text ist bereits im ChordPro-Format'
+              : 'Plain-Text (Akkord-Zeile ueber Lyrics) in ChordPro-Format konvertieren'
+          }
+        >
+          <Wand2 size={14} />
+          <span className="set-tool-label">ChordPro</span>
         </button>
       </div>
 

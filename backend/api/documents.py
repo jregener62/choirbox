@@ -482,9 +482,9 @@ async def paste_text(
     if body.file_type not in ("txt", "cho", "rtf"):
         raise HTTPException(400, "file_type muss 'txt', 'cho' oder 'rtf' sein")
 
-    # RTF darf auch leer angelegt werden (neuer Editor-Workflow) — wir wrappen
-    # einen Default-RTF-Header, wenn der Body keinen enthaelt.
-    text = body.text if body.file_type == "rtf" else body.text.strip()
+    # RTF und CHO duerfen leer angelegt werden (Editor-First-Workflow) — fuer
+    # RTF wrappen wir einen Default-Header, fuer CHO bleibt der Body leer.
+    text = body.text if body.file_type in ("rtf", "cho") else body.text.strip()
     if not text:
         if body.file_type == "rtf":
             text = (
@@ -492,6 +492,8 @@ async def paste_text(
                 "{\\fonttbl{\\f0\\fnil Helvetica;}}\n"
                 "\\fs24\n}"
             )
+        elif body.file_type == "cho":
+            text = ""
         else:
             raise HTTPException(400, "Kein Text uebergeben")
 

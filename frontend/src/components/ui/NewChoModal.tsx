@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { FileText, Loader, AlertCircle } from 'lucide-react'
+import { Music, Loader, AlertCircle } from 'lucide-react'
 import { Modal } from './Modal'
 import { api } from '@/api/client'
 
-interface NewRtfModalProps {
+interface NewChoModalProps {
   /** Either an existing .song folder, or its parent (when createSongFolder is true). */
   parentPath: string
   /** Pre-filled value for the title input. Empty in root-upload mode. */
@@ -16,17 +16,17 @@ interface NewRtfModalProps {
 }
 
 /**
- * Legt eine neue (leere) .rtf-Datei im Texte-Ordner eines Songs an und oeffnet
- * sie direkt im RtfEditor. Es wird nur der Dateiname abgefragt; der Inhalt
- * wird anschliessend im Editor eingegeben.
+ * Legt eine neue (leere) .cho-Datei im Texte-Ordner eines Songs an und oeffnet
+ * sie direkt im SheetEditor. Analog zu NewRtfModal — fragt nur den Dateinamen
+ * ab; der Inhalt wird anschliessend im Editor eingegeben bzw. eingefuegt.
  */
-export function NewRtfModal({
+export function NewChoModal({
   parentPath,
   defaultTitle,
   createSongFolder = false,
   onClose,
   onSaved,
-}: NewRtfModalProps) {
+}: NewChoModalProps) {
   const [title, setTitle] = useState(defaultTitle)
   const [phase, setPhase] = useState<'input' | 'saving' | 'error'>('input')
   const [error, setError] = useState('')
@@ -48,7 +48,7 @@ export function NewRtfModal({
             folder_path: parentPath,
             title: trimmedTitle,
             text: '',
-            file_type: 'rtf',
+            file_type: 'cho',
             ...(createSongFolder ? { song_folder_name: trimmedTitle } : {}),
           },
         },
@@ -62,7 +62,7 @@ export function NewRtfModal({
 
   return (
     <Modal
-      title="Neuer Rich-Text"
+      title="Neues Chordsheet"
       onClose={onClose}
       closeOnOverlay={phase !== 'saving'}
       showClose={phase !== 'saving'}
@@ -71,7 +71,7 @@ export function NewRtfModal({
         <>
           <div style={{ marginBottom: 'var(--space-3)' }}>
             <label
-              htmlFor="new-rtf-title"
+              htmlFor="new-cho-title"
               style={{
                 display: 'block',
                 fontSize: 'var(--text-sm)',
@@ -82,7 +82,7 @@ export function NewRtfModal({
               {titleLabel}
             </label>
             <input
-              id="new-rtf-title"
+              id="new-cho-title"
               type="text"
               className="auth-input"
               value={title}
@@ -120,7 +120,7 @@ export function NewRtfModal({
             onClick={handleSave}
             disabled={!canSave}
           >
-            <FileText size={18} />
+            <Music size={18} />
             Anlegen &amp; bearbeiten
           </button>
         </>

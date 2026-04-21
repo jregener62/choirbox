@@ -35,10 +35,15 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
 
     const promise = (async () => {
       const isDifferentFolder = get().loadedFolder !== folderPath
+      // Beim Folder-Wechsel die Liste leeren, aber die ggf. vorab gesetzte
+      // activeDocId erhalten — die "Neues Chordsheet"-/"Neuer Rich-Text"-
+      // Flows setzen sie vor der Navigation, damit beim ersten Render direkt
+      // das richtige Dokument aktiv ist und nicht kurz docs[0] durchblitzt.
+      const preservedActiveId = get().activeDocId
       set({
         loading: true,
         ...(isDifferentFolder
-          ? { documents: [], loadedFolder: null, activeDocId: null }
+          ? { documents: [], loadedFolder: null }
           : {}),
       })
       try {
@@ -46,12 +51,11 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
           `/documents/list?folder=${encodeURIComponent(folderPath)}`
         )
         const docs = data.documents
-        const current = get().activeDocId
-        const activeStillValid = docs.some((d) => d.id === current)
+        const activeStillValid = docs.some((d) => d.id === preservedActiveId)
         set({
           documents: docs,
           loadedFolder: folderPath,
-          activeDocId: activeStillValid ? current : (docs[0]?.id ?? null),
+          activeDocId: activeStillValid ? preservedActiveId : (docs[0]?.id ?? null),
           loading: false,
         })
       } catch {

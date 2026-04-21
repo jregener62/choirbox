@@ -5,7 +5,7 @@ import { useChordInput } from '@/hooks/useChordInput'
 import { useEditorCommands } from '@/hooks/useEditorCommands'
 import { isValidChord } from '@/utils/chordValidation'
 import { insertAtOffset, wrapLinesAsSection, type SectionType } from '@/utils/chordProEdit'
-import { parseChordPro } from '@/utils/chordPro'
+import { parseChordPro, ensureChordPro, isChordPro } from '@/utils/chordPro'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
 import { ChordSheetViewer } from './ChordSheetViewer'
@@ -18,6 +18,8 @@ interface SheetEditorProps {
   chordProBody?: string
   /** When set, Save overwrites this document via PUT /content. */
   editDocId?: number
+  /** Original filename (incl. extension) — Titel-Fallback fuer ChordPro-Konvertierung. */
+  originalName?: string
   onCreated?: (cho: string) => void | Promise<void>
   onUpdated?: () => void
   onCancel?: () => void
@@ -33,6 +35,7 @@ export function SheetEditor({
   text: plainText,
   chordProBody,
   editDocId,
+  originalName,
   onCreated,
   onUpdated,
   onCancel,
@@ -204,6 +207,23 @@ export function SheetEditor({
     chordUndo()
   }
 
+  /** Titel fuer die ChordPro-Konvertierung — aus Dateiname ableiten. */
+  const convertTitle = useMemo(() => {
+    if (!originalName) return ''
+    return originalName.replace(/\.(cho|txt|rtf)$/i, '').trim()
+  }, [originalName])
+
+  /** Plain-Text (UG-Stil) in ChordPro-Format konvertieren — bestehender Text
+   *  wird ersetzt; Undo-Stack faengt die Aenderung auf. */
+  const handleConvertToChordPro = () => {
+    if (!chordText.trim()) return
+    const converted = ensureChordPro(chordText, convertTitle || 'Untitled')
+    if (converted === chordText) return
+    applyTextChange(converted)
+  }
+
+  const convertDisabled = !chordText.trim() || isChordPro(chordText)
+
   /** Haupt-Aktion des aktiven Tools: Akkord/Kommentar aktivieren
    *  (Click-to-Place), Sektion auf Selektion anwenden. */
   const handleToolApply = () => {
@@ -280,6 +300,8 @@ export function SheetEditor({
         onToolApply={handleToolApply}
         toolApplyDisabled={toolApplyDisabled}
         onInsertChordFromHistory={activateChordFromHistory}
+        onConvertToChordPro={handleConvertToChordPro}
+        convertDisabled={convertDisabled}
       />
 
       {error && <div className="sheet-editor-error">{error}</div>}

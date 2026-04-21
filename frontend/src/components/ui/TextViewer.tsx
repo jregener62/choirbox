@@ -86,6 +86,7 @@ export function TextViewer({
     return (
       <SheetEditor
         text={content}
+        originalName={originalName}
         onCreated={folderPath ? handleSaveCho : undefined}
         onCancel={() => setEditMode(null)}
       />

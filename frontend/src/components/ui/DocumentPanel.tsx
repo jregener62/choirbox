@@ -27,8 +27,8 @@ interface DocumentPanelProps {
   document?: DocumentItem | null
   /** Show hint when no document is selected (player mode) */
   emptyHint?: string
-  /** If true and the active document is an .rtf, open the editor immediately. */
-  autoEditRtf?: boolean
+  /** If true, open the editor (RTF or SheetEditor) immediately once the active document is loaded. */
+  autoEdit?: boolean
 }
 
 function getDocIcon(type: string, size = 14) {
@@ -72,7 +72,7 @@ function getDistance(t1: Touch, t2: Touch) {
 }
 
 
-export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, autoEditRtf }: DocumentPanelProps) {
+export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, autoEdit }: DocumentPanelProps) {
   const token = useAuthStore((s) => s.token)
   const userRole = useAuthStore((s) => s.user?.role)
   const guest = isGuest(userRole)
@@ -148,15 +148,19 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
     return () => { useAnnotationStore.getState().flushAll() }
   }, [])
 
-  // Auto-edit consumer: opens the RTF editor automatically once we've loaded
-  // the active document (used by the "Neuer Rich-Text" flow which navigates
-  // here with ?edit=1).
+  // Auto-edit consumer: opens the passenden Editor automatisch, sobald das
+  // aktive Dokument geladen ist. Wird von den "Neues Chordsheet"- und
+  // "Neuer Rich-Text"-Flows via ?edit=1 genutzt.
   useEffect(() => {
-    if (!autoEditRtf || autoEditConsumed) return
-    if (activeDoc?.file_type !== 'rtf') return
-    setRtfEditing(true)
-    setAutoEditConsumed(true)
-  }, [autoEditRtf, autoEditConsumed, activeDoc?.id, activeDoc?.file_type])
+    if (!autoEdit || autoEditConsumed) return
+    if (activeDoc?.file_type === 'rtf') {
+      setRtfEditing(true)
+      setAutoEditConsumed(true)
+    } else if (activeDoc?.file_type === 'cho') {
+      startEdit()
+      setAutoEditConsumed(true)
+    }
+  }, [autoEdit, autoEditConsumed, activeDoc?.id, activeDoc?.file_type, startEdit])
 
   // Set theme-color to white in fullscreen so iOS Safari safe-area/notch
   // regions match the viewer background during rotation

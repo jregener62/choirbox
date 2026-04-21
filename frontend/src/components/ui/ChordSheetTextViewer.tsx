@@ -224,25 +224,28 @@ export function ChordSheetTextViewer({
     )
   }
 
-  if (!parsed) {
-    return (
-      <div className="pdf-upload">
-        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Chord Sheet laden...</span>
-      </div>
-    )
-  }
-
+  // Editor darf auch bei leerem Inhalt (neu angelegte .cho) oeffnen — deshalb
+  // vor dem "noch nicht geladen"-Fallback pruefen.
   if (sheetEditActive && text != null) {
     return (
       <SheetEditor
         chordProBody={text}
         editDocId={docId}
+        originalName={originalName}
         onUpdated={() => {
           stopEdit()
           setReloadToken((n) => n + 1)
         }}
         onCancel={stopEdit}
       />
+    )
+  }
+
+  if (!parsed) {
+    return (
+      <div className="pdf-upload">
+        <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>Chord Sheet laden...</span>
+      </div>
     )
   }
 
