@@ -1,5 +1,6 @@
 """Documents API — upload, view and manage folder-level documents."""
 
+import logging
 from datetime import datetime
 
 import httpx
@@ -21,6 +22,8 @@ from backend.utils.dropbox_paths import (
     dropbox_folder_path,
     full_doc_path,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -135,7 +138,7 @@ async def upload_document(
                 if actual_name and actual_name != original_name:
                     original_name = actual_name
     except Exception:
-        pass
+        logger.exception("upload_document: Dropbox upload failed for %s", original_name)
 
     rel_path = document_service.build_dropbox_path(folder_path, original_name)
 
@@ -289,7 +292,7 @@ async def paste_text(
                 if actual_name and actual_name != filename:
                     filename = actual_name
     except Exception:
-        pass
+        logger.exception("paste_text: Dropbox upload failed for %s", filename)
 
     rel_path = document_service.build_dropbox_path(texte_path, filename)
     doc = document_service.register_document(
@@ -574,8 +577,11 @@ async def delete_document(
         dbx = get_dropbox_service(session)
         if dbx:
             await dbx.delete_file(dbx_path)
-    except Exception:
-        pass
+    except RuntimeError as e:
+        # DB-seitig ist das Doc bereits weg. Wenn Dropbox die Datei nicht
+        # findet, ist das fuer den Delete semantisch ok (idempotent).
+        if "path_lookup/not_found" not in str(e):
+            logger.warning("delete_document(%s): Dropbox delete failed: %s", doc_id, e)
 
     return ActionResponse.success()
 

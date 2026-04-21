@@ -1,5 +1,6 @@
 """Dropbox OAuth2 integration and file browsing endpoints."""
 
+import logging
 import secrets
 from datetime import datetime
 
@@ -19,6 +20,8 @@ from backend.utils.dropbox_paths import (
     to_dropbox_path,
     to_user_path,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 
@@ -41,7 +44,9 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
     # Fetch just this folder instead of returning [] (which hides sub-folders).
     try:
         return await dbx.list_folder(dbx_path)
-    except Exception:
+    except RuntimeError as e:
+        if "path/not_found" not in str(e):
+            logger.warning("_get_children(%s): Dropbox error: %s", dbx_path, e)
         return []
 
 _oauth_states: dict[str, str] = {}
@@ -322,7 +327,7 @@ async def dropbox_browse(
                     if doc_row:
                         doc_id = doc_row.id
                 except Exception:
-                    pass
+                    logger.exception("browse: single-doc lookup failed for %s", reserved_path)
                 filtered.append({
                     "name": single_name,
                     "display_name": single_name,
@@ -367,7 +372,7 @@ async def dropbox_browse(
                                 "selected": True,
                             })
                 except Exception:
-                    pass
+                    logger.exception("browse: selected-doc lookup failed for %s", path)
         else:
             filtered.append({
                 "name": reserved_name,
@@ -467,7 +472,7 @@ async def dropbox_browse(
             # Query-time auto-select removed — selection is now set
             # explicitly at upload time or by user action
         except Exception:
-            pass
+            logger.exception("browse: song selected-doc lookup failed for %s", song.get("path"))
         song["sub_folders"] = sub_folders
         song["selected_doc"] = selected_doc
 
@@ -613,7 +618,7 @@ async def dropbox_search(
                 if doc:
                     selected_doc = {"name": doc.original_name, "path": f"{texte_path}/{doc.original_name}", "doc_id": doc.id}
         except Exception:
-            pass
+            logger.exception("search: song selected-doc lookup failed for %s", song.get("path"))
         song["sub_folders"] = sub_folders
         song["selected_doc"] = selected_doc
 

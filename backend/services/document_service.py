@@ -4,6 +4,7 @@ PDFs are NOT stored on the server. They are fetched from Dropbox on demand,
 rendered in memory via PyMuPDF, and cached in RAM (bytes + rendered JPEGs).
 """
 
+import logging
 import time
 import threading
 from datetime import datetime, timedelta
@@ -13,6 +14,8 @@ from typing import Optional
 import fitz  # PyMuPDF
 import httpx
 from sqlmodel import Session, select
+
+logger = logging.getLogger(__name__)
 
 from backend.models.document import Document
 from backend.models.user import User
@@ -428,8 +431,9 @@ async def find_reserved_child(
         for e in entries:
             if e.get(".tag") == "folder" and get_reserved_type(e.get("name", "")) == reserved_type:
                 return parent_path.rstrip("/") + "/" + e.get("name", "")
-    except Exception:
-        pass
+    except RuntimeError as e:
+        if "path/not_found" not in str(e):
+            logger.warning("find_reserved_child(%s): Dropbox error: %s", dropbox_path, e)
     return None
 
 
@@ -490,8 +494,9 @@ async def sync_documents_from_dropbox(
         texte_entries = []
         try:
             texte_entries = await dbx.list_folder(tx_folder)
-        except Exception:
-            pass  # Folder may not exist yet
+        except RuntimeError as e:
+            if "path/not_found" not in str(e):
+                logger.warning("sync(%s): list_folder failed: %s", tx_folder, e)
 
         entries = [
             e for e in texte_entries
@@ -584,6 +589,7 @@ async def sync_documents_from_dropbox(
                             doc, dbx_hash, dbx_size, session, page_count=page_count,
                         )
                     except Exception:
+                        logger.exception("sync(%s): PDF-hash update failed for %s", folder_path, name)
                         session.rollback()
                 else:
                     update_document_hash(doc, dbx_hash, dbx_size, session)
@@ -615,6 +621,7 @@ async def sync_documents_from_dropbox(
                     if dbx_id:
                         matched_dbx_ids.add(dbx_id)
                 except Exception:
+                    logger.exception("sync(%s): PDF register failed for %s", folder_path, name)
                     session.rollback()
             else:
                 new_doc = register_document(
@@ -651,4 +658,5 @@ async def sync_documents_from_dropbox(
             delete_document(doc.id, session)
 
     except Exception:
+        logger.exception("sync_documents_from_dropbox(%s) failed", folder_path)
         session.rollback()  # Sync failure must never block listing
