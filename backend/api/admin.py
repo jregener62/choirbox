@@ -3,6 +3,7 @@
 import secrets
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -57,11 +58,20 @@ def list_users(user: User = Depends(require_permission("users.manage")), session
     ]
 
 
+class CreateUserBody(BaseModel):
+    username: str = ""
+    password: str = ""
+    voice_part: str = ""
+    role: str = "member"
+    display_name: str | None = None
+    view_mode: str | None = None
+
+
 @router.post("/users")
-def create_user(data: dict, user: User = Depends(require_permission("users.manage")), session: Session = Depends(get_session)):
-    username = data.get("username", "").strip()
-    password = data.get("password", "")
-    voice_part = data.get("voice_part", "").strip()
+def create_user(body: CreateUserBody, user: User = Depends(require_permission("users.manage")), session: Session = Depends(get_session)):
+    username = body.username.strip()
+    password = body.password
+    voice_part = body.voice_part.strip()
 
     if not username or not password:
         raise HTTPException(400, "Username and password required")
@@ -75,12 +85,11 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
     if existing:
         raise HTTPException(409, "Username already exists")
 
-    role = data.get("role", "member")
-    if role not in VALID_ROLES:
+    if body.role not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
 
     # view_mode: explizit aus dem Body, sonst Chor-Default uebernehmen.
-    view_mode = data.get("view_mode")
+    view_mode = body.view_mode
     if view_mode is not None and view_mode not in VALID_VIEW_MODES:
         raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
     if view_mode is None:
@@ -89,8 +98,8 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
 
     new_user = User(
         username=username,
-        display_name=data.get("display_name", username),
-        role=role,
+        display_name=body.display_name or username,
+        role=body.role,
         voice_part=voice_part,
         password_hash=hash_password(password),
         choir_id=user.choir_id,
@@ -102,10 +111,21 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
     return ActionResponse.success(data={"id": new_user.id})
 
 
+class UpdateUserBody(BaseModel):
+    # Alle Felder optional: nur explizit gesetzte Werte werden angewendet.
+    # None = "nicht geaendert" (auch fuer Boolean-Felder).
+    display_name: str | None = None
+    role: str | None = None
+    voice_part: str | None = None
+    view_mode: str | None = None
+    can_report_bugs: bool | None = None
+    password: str | None = None
+
+
 @router.put("/users/{user_id}")
 def update_user(
     user_id: str,
-    data: dict,
+    body: UpdateUserBody,
     user: User = Depends(require_permission("users.manage")),
     session: Session = Depends(get_session),
 ):
@@ -113,27 +133,30 @@ def update_user(
     if not target or target.choir_id != user.choir_id:
         raise HTTPException(404, "User not found")
 
-    if "role" in data and data["role"] not in VALID_ROLES:
+    if body.role is not None and body.role not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
 
-    if "view_mode" in data:
-        if data["view_mode"] not in VALID_VIEW_MODES:
+    if body.view_mode is not None:
+        if body.view_mode not in VALID_VIEW_MODES:
             raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
-        target.view_mode = data["view_mode"]
+        target.view_mode = body.view_mode
 
-    if "can_report_bugs" in data:
+    if body.can_report_bugs is not None:
         if ROLE_HIERARCHY.get(user.role, 0) < ROLE_HIERARCHY["developer"]:
             raise HTTPException(403, "Nur Developer koennen Bug-Reporting vergeben")
-        target.can_report_bugs = bool(data["can_report_bugs"])
+        target.can_report_bugs = body.can_report_bugs
 
-    for field in ["display_name", "role", "voice_part"]:
-        if field in data:
-            setattr(target, field, data[field])
+    if body.display_name is not None:
+        target.display_name = body.display_name
+    if body.role is not None:
+        target.role = body.role
+    if body.voice_part is not None:
+        target.voice_part = body.voice_part
 
-    if "password" in data and data["password"]:
-        if len(data["password"]) < MIN_PASSWORD_LENGTH:
+    if body.password:
+        if len(body.password) < MIN_PASSWORD_LENGTH:
             raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
-        target.password_hash = hash_password(data["password"])
+        target.password_hash = hash_password(body.password)
 
     target.updated_at = datetime.utcnow()
     session.add(target)
@@ -141,9 +164,16 @@ def update_user(
     return ActionResponse.success()
 
 
+class BulkViewModeBody(BaseModel):
+    view_mode: str | None = None
+    # user_ids darf entweder eine Liste von IDs oder der Literal-String
+    # "all-members" sein — Union-Typ fuer beide Varianten.
+    user_ids: list[str] | str | None = None
+
+
 @router.post("/users/bulk-view-mode")
 def bulk_view_mode(
-    data: dict,
+    body: BulkViewModeBody,
     user: User = Depends(require_permission("users.manage")),
     session: Session = Depends(get_session),
 ):
@@ -155,11 +185,11 @@ def bulk_view_mode(
 
     Chorleiter/Admin werden immer uebersprungen (sie brauchen vollen Zugriff).
     """
-    view_mode = data.get("view_mode")
+    view_mode = body.view_mode
     if view_mode not in VALID_VIEW_MODES:
         raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
 
-    user_ids = data.get("user_ids")
+    user_ids = body.user_ids
     if user_ids == "all-members":
         targets = session.exec(
             select(User).where(
@@ -269,31 +299,38 @@ def get_settings(user: User = Depends(require_permission("settings.manage")), se
     }
 
 
+class UpdateSettingsBody(BaseModel):
+    invite_code: str | None = None
+    dropbox_root_folder: str | None = None
+    default_view_mode: str | None = None
+    display_mode: str | None = None
+
+
 @router.put("/settings")
-def update_settings(data: dict, user: User = Depends(require_permission("settings.manage")), session: Session = Depends(get_session)):
+def update_settings(body: UpdateSettingsBody, user: User = Depends(require_permission("settings.manage")), session: Session = Depends(get_session)):
     if not user.choir_id:
         raise HTTPException(400, "Kein Chor zugeordnet")
     choir = session.get(Choir, user.choir_id)
     if not choir:
         raise HTTPException(404, "Chor nicht gefunden")
 
-    if "invite_code" in data:
-        new_code = data["invite_code"].strip()
+    if body.invite_code is not None:
+        new_code = body.invite_code.strip()
         if new_code and new_code != choir.invite_code:
             existing = session.exec(select(Choir).where(Choir.invite_code == new_code)).first()
             if existing:
                 raise HTTPException(409, "Einladungscode bereits vergeben")
             choir.invite_code = new_code
-    if "dropbox_root_folder" in data:
-        choir.dropbox_root_folder = data["dropbox_root_folder"].strip() or None
-    if "default_view_mode" in data:
-        if data["default_view_mode"] not in VALID_VIEW_MODES:
+    if body.dropbox_root_folder is not None:
+        choir.dropbox_root_folder = body.dropbox_root_folder.strip() or None
+    if body.default_view_mode is not None:
+        if body.default_view_mode not in VALID_VIEW_MODES:
             raise HTTPException(400, f"default_view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
-        choir.default_view_mode = data["default_view_mode"]
-    if "display_mode" in data:
-        if data["display_mode"] not in VALID_DISPLAY_MODES:
+        choir.default_view_mode = body.default_view_mode
+    if body.display_mode is not None:
+        if body.display_mode not in VALID_DISPLAY_MODES:
             raise HTTPException(400, f"display_mode must be one of: {', '.join(sorted(VALID_DISPLAY_MODES))}")
-        choir.display_mode = data["display_mode"]
+        choir.display_mode = body.display_mode
 
     session.add(choir)
     session.commit()
@@ -317,13 +354,21 @@ def list_choirs(user: User = Depends(require_permission("choirs.manage")), sessi
     ]
 
 
+class CreateChoirBody(BaseModel):
+    name: str = ""
+    invite_code: str = ""
+    dropbox_root_folder: str = ""
+    admin_username: str = ""
+    admin_password: str = ""
+
+
 @router.post("/choirs")
-def create_choir(data: dict, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
-    name = data.get("name", "").strip()
-    invite_code = data.get("invite_code", "").strip()
-    dropbox_root_folder = data.get("dropbox_root_folder", "").strip() or None
-    admin_username = data.get("admin_username", "").strip()
-    admin_password = data.get("admin_password", "").strip()
+def create_choir(body: CreateChoirBody, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
+    name = body.name.strip()
+    invite_code = body.invite_code.strip()
+    dropbox_root_folder = body.dropbox_root_folder.strip() or None
+    admin_username = body.admin_username.strip()
+    admin_password = body.admin_password.strip()
 
     if not name or not invite_code:
         raise HTTPException(400, "name und invite_code sind erforderlich")
@@ -365,18 +410,24 @@ def create_choir(data: dict, user: User = Depends(require_permission("choirs.man
     return ActionResponse.success(data={"id": choir.id, "name": choir.name, "admin_username": admin_username})
 
 
+class UpdateChoirBody(BaseModel):
+    name: str | None = None
+    dropbox_root_folder: str | None = None
+    invite_code: str | None = None
+
+
 @router.put("/choirs/{choir_id}")
-def update_choir(choir_id: str, data: dict, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
+def update_choir(choir_id: str, body: UpdateChoirBody, user: User = Depends(require_permission("choirs.manage")), session: Session = Depends(get_session)):
     choir = session.get(Choir, choir_id)
     if not choir:
         raise HTTPException(404, "Chor nicht gefunden")
 
-    if "name" in data:
-        choir.name = data["name"].strip()
-    if "dropbox_root_folder" in data:
-        choir.dropbox_root_folder = data["dropbox_root_folder"].strip() or None
-    if "invite_code" in data:
-        new_code = data["invite_code"].strip()
+    if body.name is not None:
+        choir.name = body.name.strip()
+    if body.dropbox_root_folder is not None:
+        choir.dropbox_root_folder = body.dropbox_root_folder.strip() or None
+    if body.invite_code is not None:
+        new_code = body.invite_code.strip()
         if new_code and new_code != choir.invite_code:
             existing = session.exec(select(Choir).where(Choir.invite_code == new_code)).first()
             if existing:
@@ -997,10 +1048,14 @@ def delete_orphan_song(
     return ActionResponse.success(data=counts)
 
 
+class ReactivateOrphanSongBody(BaseModel):
+    folder_path: str = ""
+
+
 @router.post("/datacare/song/{song_id}/reactivate")
 async def reactivate_orphan_song(
     song_id: int,
-    data: dict,
+    body: ReactivateOrphanSongBody,
     user: User = Depends(require_permission("datacare.manage")),
     session: Session = Depends(get_session),
 ):
@@ -1016,7 +1071,7 @@ async def reactivate_orphan_song(
     from backend.services import song_service
     from backend.utils.dropbox_paths import dropbox_folder_path
 
-    new_path = (data.get("folder_path") or "").strip().lstrip("/")
+    new_path = body.folder_path.strip().lstrip("/")
     if not new_path:
         raise HTTPException(400, "folder_path erforderlich")
 
