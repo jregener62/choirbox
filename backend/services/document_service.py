@@ -43,10 +43,23 @@ ALL_DOC_EXTENSIONS = tuple(
 # --- PDF Bytes Cache (TTL-based) ---
 # Caches raw PDF bytes fetched from Dropbox, keyed by document ID.
 # Avoids re-downloading the same PDF for every page request.
+# Dual limit: Anzahl (gegen viele kleine PDFs) + Gesamt-Groesse (gegen wenige
+# grosse PDFs, die sonst mehrere 100 MB RAM belegen wuerden).
 _pdf_cache: dict[int, tuple[bytes, float]] = {}
 _pdf_cache_lock = threading.Lock()
-_PDF_CACHE_TTL = 30 * 60  # 30 minutes
-_PDF_CACHE_MAX = 20        # max documents in cache
+_PDF_CACHE_TTL = 30 * 60                # 30 minutes
+_PDF_CACHE_MAX = 20                     # max number of documents
+_PDF_CACHE_MAX_BYTES = 150 * 1024 * 1024  # ~150 MB total (PDFs <= 10 MB je)
+
+
+def _pdf_cache_total_bytes() -> int:
+    return sum(len(data) for data, _ in _pdf_cache.values())
+
+
+def _evict_oldest() -> None:
+    """Drop the least-recently-inserted entry. Caller holds the lock."""
+    oldest_key = min(_pdf_cache, key=lambda k: _pdf_cache[k][1])
+    del _pdf_cache[oldest_key]
 
 
 def _get_cached_pdf(doc_id: int) -> bytes | None:
@@ -61,10 +74,13 @@ def _get_cached_pdf(doc_id: int) -> bytes | None:
 
 def _put_cached_pdf(doc_id: int, data: bytes) -> None:
     with _pdf_cache_lock:
-        # Evict oldest entries if at capacity
+        # Evict by count
         while len(_pdf_cache) >= _PDF_CACHE_MAX:
-            oldest_key = min(_pdf_cache, key=lambda k: _pdf_cache[k][1])
-            del _pdf_cache[oldest_key]
+            _evict_oldest()
+        # Evict by total bytes, bis die neue Eintragsgroesse reinpasst
+        size = len(data)
+        while _pdf_cache and _pdf_cache_total_bytes() + size > _PDF_CACHE_MAX_BYTES:
+            _evict_oldest()
         _pdf_cache[doc_id] = (data, time.time())
 
 
