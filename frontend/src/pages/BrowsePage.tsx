@@ -16,8 +16,7 @@ import { ImportModal } from '@/components/ui/ImportModal'
 import { RenameModal } from '@/components/ui/RenameModal'
 import { VideoModal } from '@/components/ui/VideoModal'
 import { UploadChoiceModal } from '@/components/ui/UploadChoiceModal'
-import { NewChoModal } from '@/components/ui/NewChoModal'
-import { NewRtfModal } from '@/components/ui/NewRtfModal'
+import { NewTextDocumentModal } from '@/components/ui/NewTextDocumentModal'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useSelectedDocumentStore } from '@/hooks/useSelectedDocument.ts'
 import { useShareTarget } from '@/hooks/useShareTarget'
@@ -1396,7 +1395,8 @@ export function BrowsePage() {
           ? stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
           : ''
         return (
-          <NewChoModal
+          <NewTextDocumentModal
+            kind="cho"
             parentPath={parentPath}
             defaultTitle={defaultTitle}
             createSongFolder={isRootMode}
@@ -1426,7 +1426,8 @@ export function BrowsePage() {
           ? stripFolderExtension(songFolder.split('/').filter(Boolean).pop() || '')
           : ''
         return (
-          <NewRtfModal
+          <NewTextDocumentModal
+            kind="rtf"
             parentPath={parentPath}
             defaultTitle={defaultTitle}
             createSongFolder={isRootMode}

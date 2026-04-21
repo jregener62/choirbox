@@ -1,9 +1,13 @@
 import { useState } from 'react'
-import { Music, Loader, AlertCircle } from 'lucide-react'
+import { Music, FileText, Loader, AlertCircle } from 'lucide-react'
 import { Modal } from './Modal'
 import { api } from '@/api/client'
 
-interface NewChoModalProps {
+type Kind = 'cho' | 'rtf'
+
+interface NewTextDocumentModalProps {
+  /** 'cho' = Chordsheet (.cho), 'rtf' = Rich-Text (.rtf) — steuert Titel, Icon und file_type. */
+  kind: Kind
   /** Either an existing .song folder, or its parent (when createSongFolder is true). */
   parentPath: string
   /** Pre-filled value for the title input. Empty in root-upload mode. */
@@ -15,18 +19,25 @@ interface NewChoModalProps {
   onSaved: (folderPath: string, filename: string, docId: number) => void
 }
 
+const KIND_CONFIG: Record<Kind, { modalTitle: string; Icon: typeof Music; inputId: string }> = {
+  cho: { modalTitle: 'Neues Chordsheet', Icon: Music, inputId: 'new-cho-title' },
+  rtf: { modalTitle: 'Neuer Rich-Text', Icon: FileText, inputId: 'new-rtf-title' },
+}
+
 /**
- * Legt eine neue (leere) .cho-Datei im Texte-Ordner eines Songs an und oeffnet
- * sie direkt im SheetEditor. Analog zu NewRtfModal — fragt nur den Dateinamen
- * ab; der Inhalt wird anschliessend im Editor eingegeben bzw. eingefuegt.
+ * Legt eine neue, leere .cho- oder .rtf-Datei im Texte-Ordner eines Songs an
+ * und gibt Pfad + Dateiname + doc_id an den Aufrufer zurueck (der typischerweise
+ * in den passenden Editor navigiert). Fragt nur den Dateinamen ab.
  */
-export function NewChoModal({
+export function NewTextDocumentModal({
+  kind,
   parentPath,
   defaultTitle,
   createSongFolder = false,
   onClose,
   onSaved,
-}: NewChoModalProps) {
+}: NewTextDocumentModalProps) {
+  const { modalTitle, Icon, inputId } = KIND_CONFIG[kind]
   const [title, setTitle] = useState(defaultTitle)
   const [phase, setPhase] = useState<'input' | 'saving' | 'error'>('input')
   const [error, setError] = useState('')
@@ -48,7 +59,7 @@ export function NewChoModal({
             folder_path: parentPath,
             title: trimmedTitle,
             text: '',
-            file_type: 'cho',
+            file_type: kind,
             ...(createSongFolder ? { song_folder_name: trimmedTitle } : {}),
           },
         },
@@ -62,7 +73,7 @@ export function NewChoModal({
 
   return (
     <Modal
-      title="Neues Chordsheet"
+      title={modalTitle}
       onClose={onClose}
       closeOnOverlay={phase !== 'saving'}
       showClose={phase !== 'saving'}
@@ -71,7 +82,7 @@ export function NewChoModal({
         <>
           <div style={{ marginBottom: 'var(--space-3)' }}>
             <label
-              htmlFor="new-cho-title"
+              htmlFor={inputId}
               style={{
                 display: 'block',
                 fontSize: 'var(--text-sm)',
@@ -82,7 +93,7 @@ export function NewChoModal({
               {titleLabel}
             </label>
             <input
-              id="new-cho-title"
+              id={inputId}
               type="text"
               className="auth-input"
               value={title}
@@ -120,7 +131,7 @@ export function NewChoModal({
             onClick={handleSave}
             disabled={!canSave}
           >
-            <Music size={18} />
+            <Icon size={18} />
             Anlegen &amp; bearbeiten
           </button>
         </>
