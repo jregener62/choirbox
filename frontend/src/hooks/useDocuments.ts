@@ -35,7 +35,12 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
 
     const promise = (async () => {
       const isDifferentFolder = get().loadedFolder !== folderPath
-      set({ loading: true, ...(isDifferentFolder ? { documents: [], loadedFolder: null } : {}) })
+      set({
+        loading: true,
+        ...(isDifferentFolder
+          ? { documents: [], loadedFolder: null, activeDocId: null }
+          : {}),
+      })
       try {
         const data = await api<DocumentListResponse>(
           `/documents/list?folder=${encodeURIComponent(folderPath)}`

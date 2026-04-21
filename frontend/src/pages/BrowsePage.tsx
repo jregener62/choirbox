@@ -1427,7 +1427,14 @@ export function BrowsePage() {
             onClose={() => setNewRtfOpen(false)}
             onSaved={(folderPath, filename) => {
               setNewRtfOpen(false)
-              useDocumentsStore.setState({ loadedFolder: null })
+              // Stale state komplett leeren, damit DocViewerPage nicht das
+              // vorherige Dokument (z.B. ein PDF aus einem anderen Song) als
+              // aktiv weiterreicht, waehrend die neue .rtf noch laedt.
+              useDocumentsStore.setState({
+                loadedFolder: null,
+                documents: [],
+                activeDocId: null,
+              })
               useBrowseStore.getState().invalidate(folderPath)
               if (isRootMode) useBrowseStore.getState().invalidate(parentPath)
               navigate(
