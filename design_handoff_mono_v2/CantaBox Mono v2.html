@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8"/>
+<title>CantaBox Mono v2 — Core Screens</title>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: -apple-system, system-ui, sans-serif; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script type="text/babel" src="mono/design-canvas.jsx"></script>
+<script type="text/babel" src="mono/screens.jsx"></script>
+
+<script type="text/babel">
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "accent": "#FF3B00",
+  "radius": 0,
+  "density": 1
+}/*EDITMODE-END*/;
+
+// ─── Simple phone frame (no iOS chrome — we want the Mono look to stand alone) ───
+function Phone({ children, dark }) {
+  return (
+    <div style={{
+      width: 320, height: 652, borderRadius: 36, overflow: 'hidden',
+      background: dark ? '#0A0A0A' : '#FAFAFA',
+      boxShadow: dark
+        ? '0 30px 60px rgba(0,0,0,0.4), 0 0 0 6px #1a1a1a, 0 0 0 7px #000'
+        : '0 30px 60px rgba(0,0,0,0.15), 0 0 0 6px #e5e5e5, 0 0 0 7px #d0d0d0',
+      position: 'relative',
+    }}>
+      <div style={{
+        position: 'absolute', top: 10, left: '50%', transform: 'translateX(-50%)',
+        width: 100, height: 28, borderRadius: 18, background: '#000', zIndex: 100,
+      }}/>
+      {children}
+    </div>
+  );
+}
+
+function pair(id, label, Screen, width = 320, height = 652) {
+  const tLight = makeTokens('light', TWEAKS.accent, TWEAKS.radius);
+  const tDark = makeTokens('dark', TWEAKS.accent, TWEAKS.radius);
+  return [
+    <DCArtboard key={id + '-l'} id={id + '-light'} label={label + ' · Hell'} width={width} height={height}>
+      <Phone dark={false}><Screen T={tLight} density={TWEAKS.density}/></Phone>
+    </DCArtboard>,
+    <DCArtboard key={id + '-d'} id={id + '-dark'} label={label + ' · Dunkel'} width={width} height={height}>
+      <Phone dark={true}><Screen T={tDark} density={TWEAKS.density}/></Phone>
+    </DCArtboard>,
+  ];
+}
+
+// ─── Tweaks panel ───
+function TweaksPanel() {
+  const [active, setActive] = React.useState(false);
+  const [vals, setVals] = React.useState(TWEAKS);
+  React.useEffect(() => {
+    const handler = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setActive(true);
+      if (e.data?.type === '__deactivate_edit_mode') setActive(false);
+    };
+    window.addEventListener('message', handler);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', handler);
+  }, []);
+  const update = (k, v) => {
+    const next = { ...vals, [k]: v };
+    setVals(next);
+    Object.assign(TWEAKS, next);
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+    window.dispatchEvent(new Event('tweak-change'));
+  };
+  if (!active) return null;
+  const Label = ({ children }) => <div style={{ fontSize: 10, letterSpacing: 1.5, textTransform: 'uppercase', color: '#888', marginBottom: 8, fontFamily: 'ui-monospace, monospace' }}>{children}</div>;
+  return (
+    <div style={{ position: 'fixed', bottom: 20, right: 20, width: 240, background: '#0A0A0A', color: '#fafafa', padding: 18, borderRadius: 2, fontFamily: '"Helvetica Neue", Helvetica, sans-serif', zIndex: 200, boxShadow: '0 20px 40px rgba(0,0,0,0.3)' }}>
+      <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: 3, textTransform: 'uppercase', marginBottom: 18 }}>Tweaks</div>
+      <div style={{ marginBottom: 16 }}>
+        <Label>Akzentfarbe</Label>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {['#FF3B00', '#0A0A0A', '#4F46E5', '#D4FF4A', '#16A34A'].map(c => (
+            <div key={c} onClick={() => update('accent', c)} style={{ width: 28, height: 28, background: c, cursor: 'pointer', border: vals.accent === c ? '2px solid #fafafa' : '2px solid transparent' }}/>
+          ))}
+        </div>
+      </div>
+      <div style={{ marginBottom: 16 }}>
+        <Label>Radius</Label>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[0, 4, 8].map(r => (
+            <div key={r} onClick={() => update('radius', r)} style={{ flex: 1, padding: '8px 0', textAlign: 'center', fontSize: 11, fontFamily: 'ui-monospace, monospace', border: vals.radius === r ? '1px solid #FF3B00' : '1px solid rgba(255,255,255,0.2)', color: vals.radius === r ? '#FF3B00' : '#fafafa', cursor: 'pointer' }}>{r}px</div>
+          ))}
+        </div>
+      </div>
+      <div>
+        <Label>Density</Label>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[{l:'Eng',v:0},{l:'Std',v:1},{l:'Luft',v:2}].map(d => (
+            <div key={d.v} onClick={() => update('density', d.v)} style={{ flex: 1, padding: '8px 0', textAlign: 'center', fontSize: 11, fontFamily: 'ui-monospace, monospace', border: vals.density === d.v ? '1px solid #FF3B00' : '1px solid rgba(255,255,255,0.2)', color: vals.density === d.v ? '#FF3B00' : '#fafafa', cursor: 'pointer' }}>{d.l}</div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  const [, force] = React.useReducer(x => x + 1, 0);
+  React.useEffect(() => {
+    const h = () => force();
+    window.addEventListener('tweak-change', h);
+    return () => window.removeEventListener('tweak-change', h);
+  }, []);
+  return (
+    <React.Fragment>
+      <DesignCanvas>
+        <DCSection id="auth" title="Auth" subtitle="Login & Onboarding — paarweise hell/dunkel">
+          {pair('login', 'Login', MonoLogin)}
+          {pair('onb', 'Onboarding', MonoOnboarding)}
+        </DCSection>
+        <DCSection id="browse" title="Browse" subtitle="Repertoire-Liste mit Fortschritt, Filter, Mini-Player">
+          {pair('browse', 'Repertoire', MonoBrowse)}
+        </DCSection>
+        <DCSection id="player" title="Player & Recorder" subtitle="Text-Viewer mit Loop-Markern · Aufnahme-Modus">
+          {pair('player', 'Player', MonoPlayer)}
+          {pair('rec', 'Recorder', MonoRecorder)}
+        </DCSection>
+        <DCSection id="settings" title="Settings & Admin" subtitle="Profil/Einstellungen · Chor-Admin mit Mitgliedern">
+          {pair('set', 'Settings', MonoSettings)}
+          {pair('adm', 'Admin', MonoAdmin)}
+        </DCSection>
+        <DCSection id="states" title="Leer- & Fehlerzustände" subtitle="Wie sich Mono anfühlt, wenn nichts da ist">
+          {pair('empty', 'Empty', MonoEmpty)}
+          {pair('err', 'Error', MonoError)}
+        </DCSection>
+      </DesignCanvas>
+      <TweaksPanel/>
+    </React.Fragment>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
