@@ -698,8 +698,8 @@ Das Zeichen im Lyric-Text, **ueber** dem ein Akkord steht, wird lila unterstrich
 ### Akkorde ein/aus-Toggle im .cho-Viewer
 
 Oben rechts in jedem Chord-Sheet-Dokument sitzt der Button "Akkorde". Klick schaltet zwischen zwei Zustaenden um:
-- **Versteckt** (Default beim Oeffnen): Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text. Transpose-Pill ebenfalls ausgeblendet. Metadata, Section-Labels und Kommentare bleiben sichtbar.
-- **Sichtbar**: voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Toggle lila hervorgehoben.
+- **Sichtbar** (Default beim Oeffnen): voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Toggle lila hervorgehoben.
+- **Versteckt**: Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text. Transpose-Pill ebenfalls ausgeblendet. Metadata, Section-Labels und Kommentare bleiben sichtbar.
 
 Im `vocal`-Display-Modus des Chors ist der Toggle nicht verfuegbar (Akkorde bleiben zwangsweise versteckt). Pro Session; keine Persistierung pro Dokument.
 

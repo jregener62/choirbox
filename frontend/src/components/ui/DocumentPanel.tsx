@@ -73,9 +73,9 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
-  // View toggle: Akkorde ein/aus (Default: aus). Vocal-Marks sind entfallen
+  // View toggle: Akkorde ein/aus (Default: an). Vocal-Marks sind entfallen
   // — .cho haelt sich jetzt strikt an den ChordPro-Standard.
-  const [showChords, setShowChords] = useState(false)
+  const [showChords, setShowChords] = useState(true)
   const [rtfEditing, setRtfEditing] = useState(false)
   const [rtfReloadToken, setRtfReloadToken] = useState(0)
   const [autoEditConsumed, setAutoEditConsumed] = useState(false)
