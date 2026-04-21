@@ -2,6 +2,7 @@
 
 import logging
 import secrets
+import time
 from datetime import datetime
 
 import httpx
@@ -176,10 +177,6 @@ async def dropbox_browse(
     session: Session = Depends(get_session),
 ):
     """List files/folders at a Dropbox path with folder-type awareness."""
-    import logging
-    import time as _time
-    _log = logging.getLogger(__name__)
-
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import (
         parse_folder_name, get_parent_folder_type, is_reserved_name,
@@ -189,7 +186,7 @@ async def dropbox_browse(
     from backend.services.document_service import ALL_DOC_EXTENSIONS
     from backend.services import draft_service
 
-    _t0 = _time.monotonic()
+    _t0 = time.monotonic()
 
     dbx = get_dropbox_service(session)
     if not dbx:
@@ -218,8 +215,8 @@ async def dropbox_browse(
         if "path/not_found" in str(e):
             return {"path": path, "entries": [], "root_name": root_folder or None, "error": "Folder not found"}
         raise HTTPException(500, str(e))
-    _t1 = _time.monotonic()
-    _log.info("browse %s: recursive listing %.1fms (cache=%s, entries=%d, tree=%s)",
+    _t1 = time.monotonic()
+    logger.info("browse %s: recursive listing %.1fms (cache=%s, entries=%d, tree=%s)",
               path or "/", (_t1 - _t0) * 1000, "hit" if tree is None else "miss",
               len(entries), f"{len(tree)} paths" if tree else "cached")
 
@@ -526,8 +523,8 @@ async def dropbox_browse(
                 user_sub_path = f"{song_user_path}/{reserved_name}"
                 song_sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
 
-    _t2 = _time.monotonic()
-    _log.info("browse %s: total %.1fms (listing=%.1fms, enrichment=%.1fms, songs=%d, entries=%d)",
+    _t2 = time.monotonic()
+    logger.info("browse %s: total %.1fms (listing=%.1fms, enrichment=%.1fms, songs=%d, entries=%d)",
               path or "/", (_t2 - _t0) * 1000, (_t1 - _t0) * 1000,
               (_t2 - _t1) * 1000, len(song_entries), len(filtered))
 
@@ -821,8 +818,7 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
                 os.path.dirname(os.path.dirname(__file__)), "soundfonts", "FluidR3_GM.sf2"
             )
             if not os.path.exists(soundfont):
-                import logging
-                logging.getLogger(__name__).error("SoundFont not found: %s", soundfont)
+                logger.error("SoundFont not found: %s", soundfont)
                 return None
 
             wav_path = src_path.rsplit(".", 1)[0] + ".wav"
@@ -835,8 +831,7 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
             _, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
 
             if proc.returncode != 0:
-                import logging
-                logging.getLogger(__name__).error("FluidSynth error: %s", stderr.decode())
+                logger.error("FluidSynth error: %s", stderr.decode())
                 return None
 
             # Now convert the WAV to MP3 via FFmpeg
@@ -854,19 +849,16 @@ async def _convert_to_mp3(audio_bytes: bytes, input_ext: str) -> bytes | None:
         _, stderr = await asyncio.wait_for(proc.communicate(), timeout=30)
 
         if proc.returncode != 0:
-            import logging
-            logging.getLogger(__name__).error("FFmpeg error: %s", stderr.decode())
+            logger.error("FFmpeg error: %s", stderr.decode())
             return None
 
         with open(dst_path, "rb") as f:
             return f.read()
     except FileNotFoundError as e:
-        import logging
-        logging.getLogger(__name__).error("External tool not found (%s) — cannot convert", e)
+        logger.error("External tool not found (%s) — cannot convert", e)
         return None
     except asyncio.TimeoutError:
-        import logging
-        logging.getLogger(__name__).error("Conversion timeout")
+        logger.error("Conversion timeout")
         return None
     finally:
         for p in (src_path, dst_path, wav_path):
