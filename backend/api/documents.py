@@ -383,8 +383,11 @@ async def upload_document(
             raise HTTPException(400, "Kein Texte-Ordner gefunden")
     folder_path = texte_path
 
-    # Upload to Dropbox (into the Texte folder, auto-create if needed)
+    # Upload to Dropbox (into the Texte folder, auto-create if needed).
+    # Dropbox kann bei Konflikt auto-renamen — path_display + id aus der
+    # Response uebernehmen, damit DB und Dropbox uebereinstimmen.
     dbx_hash = None
+    dbx_file_id: str | None = None
     try:
         dbx = get_dropbox_service(session)
         if dbx:
@@ -396,6 +399,12 @@ async def upload_document(
             dbx_path = _dropbox_doc_path(folder_path, original_name, user, session)
             result = await dbx.upload_file(content, dbx_path)
             dbx_hash = result.get("content_hash")
+            dbx_file_id = result.get("id")
+            actual_path = result.get("path_display")
+            if actual_path:
+                actual_name = actual_path.rsplit("/", 1)[-1]
+                if actual_name and actual_name != original_name:
+                    original_name = actual_name
     except Exception:
         pass
 
@@ -411,6 +420,7 @@ async def upload_document(
                 session=session,
                 content_hash=dbx_hash,
                 dropbox_path=rel_path,
+                dropbox_file_id=dbx_file_id,
             )
         except ValueError as e:
             raise HTTPException(400, str(e))
@@ -426,6 +436,7 @@ async def upload_document(
             session=session,
             content_hash=dbx_hash,
             dropbox_path=rel_path,
+            dropbox_file_id=dbx_file_id,
         )
 
     # Auto-select first document in folder
@@ -514,8 +525,14 @@ async def paste_text(
         else:
             raise HTTPException(400, "Kein Texte-Ordner gefunden")
 
-    # Upload to Dropbox (auto-create Texte/ if needed)
+    # Upload to Dropbox (auto-create Texte/ if needed). Dropbox kann den
+    # Filename bei Konflikt automatisch umbenennen (autorename=True), und das
+    # Upload-Response enthaelt den tatsaechlichen `path_display` sowie die
+    # stabile `id` — beide uebernehmen wir, damit register_document mit den
+    # korrekten Werten angelegt wird und der nachfolgende Sync die Row nicht
+    # faelschlich als verwaist loescht.
     dbx_hash = None
+    dbx_file_id: str | None = None
     try:
         dbx = get_dropbox_service(session)
         if dbx:
@@ -527,6 +544,14 @@ async def paste_text(
             dbx_path = _dropbox_doc_path(texte_path, filename, user, session)
             result = await dbx.upload_file(content_bytes, dbx_path)
             dbx_hash = result.get("content_hash")
+            dbx_file_id = result.get("id")
+            # Falls Dropbox auto-renamed hat, nutzen wir den tatsaechlichen
+            # Namen statt des angefragten.
+            actual_path = result.get("path_display")
+            if actual_path:
+                actual_name = actual_path.rsplit("/", 1)[-1]
+                if actual_name and actual_name != filename:
+                    filename = actual_name
     except Exception:
         pass
 
@@ -540,6 +565,7 @@ async def paste_text(
         session=session,
         content_hash=dbx_hash,
         dropbox_path=rel_path,
+        dropbox_file_id=dbx_file_id,
     )
 
     # Auto-select first document in folder
