@@ -27,6 +27,11 @@ interface BrowseStore {
   loadFolder: (path: string, forceRefresh?: boolean) => Promise<void>
   invalidate: (path: string) => void
   clearAll: () => void
+
+  // Optimistic UI mutations — sofortige lokale Aenderung, bei API-Fehler
+  // laesst der Caller ueber loadFolder(path, true) den Server-State neu holen.
+  removeEntryByPath: (entryPath: string) => void
+  setEntryDraft: (entryPath: string, isDraft: boolean) => void
 }
 
 export const useBrowseStore = create<BrowseStore>((set, get) => ({
@@ -130,4 +135,38 @@ export const useBrowseStore = create<BrowseStore>((set, get) => ({
   },
 
   clearAll: () => set({ cache: {} }),
+
+  removeEntryByPath: (entryPath: string) => {
+    const state = get()
+    const filteredCurrent = state.currentEntries.filter((e) => e.path !== entryPath)
+    // Cache des aktuellen Ordners ebenfalls angleichen, damit ein Fresh-Hit
+    // nicht direkt wieder den entfernten Eintrag anzeigt.
+    const newCache = { ...state.cache }
+    const cached = newCache[state.currentPath]
+    if (cached) {
+      newCache[state.currentPath] = {
+        ...cached,
+        entries: cached.entries.filter((e) => e.path !== entryPath),
+      }
+    }
+    set({ currentEntries: filteredCurrent, cache: newCache })
+  },
+
+  setEntryDraft: (entryPath: string, isDraft: boolean) => {
+    const state = get()
+    const updated = state.currentEntries.map((e) =>
+      e.path === entryPath ? { ...e, is_draft: isDraft } : e,
+    )
+    const newCache = { ...state.cache }
+    const cached = newCache[state.currentPath]
+    if (cached) {
+      newCache[state.currentPath] = {
+        ...cached,
+        entries: cached.entries.map((e) =>
+          e.path === entryPath ? { ...e, is_draft: isDraft } : e,
+        ),
+      }
+    }
+    set({ currentEntries: updated, cache: newCache })
+  },
 }))

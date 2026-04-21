@@ -270,9 +270,13 @@ export function BrowsePage() {
   }
 
   const toggleDraft = async (entry: DropboxEntry) => {
+    const wasDraft = !!entry.is_draft
+    // Optimistisch: Flag sofort flippen, damit das UI sofort reagiert
+    useBrowseStore.getState().setEntryDraft(entry.path, !wasDraft)
+    setRevealedPath(null)
     try {
       if (entry.type === 'document' && entry.doc_id) {
-        if (entry.is_draft) {
+        if (wasDraft) {
           await unsetDraft('document', String(entry.doc_id))
           await unsetDraft('path', entry.path)
         } else {
@@ -280,16 +284,16 @@ export function BrowsePage() {
           await setDraft('path', entry.path)
         }
       } else {
-        if (entry.is_draft) {
+        if (wasDraft) {
           await unsetDraft('path', entry.path)
         } else {
           await setDraft('path', entry.path)
         }
       }
-      setRevealedPath(null)
-      await loadFolder(browsePath, true)
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Fehler beim Markieren als Entwurf')
+      // Rollback: Server-State neu holen
+      await loadFolder(browsePath, true)
     }
   }
 
@@ -309,34 +313,38 @@ export function BrowsePage() {
 
   const handleDelete = async () => {
     if (!confirmEntry || deleting) return
+    const entry = confirmEntry
     setDeleting(true)
+    // Optimistisch: Eintrag sofort aus der Liste entfernen
+    useBrowseStore.getState().removeEntryByPath(entry.path)
+    setConfirmEntry(null)
+    setRevealedPath(null)
     try {
-      if (confirmEntry.type === 'document') {
-        if (confirmEntry.doc_id) {
-          await api(`/documents/${confirmEntry.doc_id}`, { method: 'DELETE' })
+      if (entry.type === 'document') {
+        if (entry.doc_id) {
+          await api(`/documents/${entry.doc_id}`, { method: 'DELETE' })
         } else {
           // Fallback: strip /Texte/<name> to get DB folder_path
-          const folderPath = confirmEntry.path.split('/').slice(0, -2).join('/') || ''
+          const folderPath = entry.path.split('/').slice(0, -2).join('/') || ''
           const listData = await api<{ documents: Array<{ id: number; original_name: string }> }>(
             `/documents/list?folder=${encodeURIComponent(folderPath)}`
           )
-          const match = listData.documents.find((d) => d.original_name === confirmEntry.name)
+          const match = listData.documents.find((d) => d.original_name === entry.name)
           if (match) {
             await api(`/documents/${match.id}`, { method: 'DELETE' })
           }
         }
       } else {
-        await api(`/dropbox/file?path=${encodeURIComponent(confirmEntry.path)}`, { method: 'DELETE' })
-        if (confirmEntry.path === currentPath) {
+        await api(`/dropbox/file?path=${encodeURIComponent(entry.path)}`, { method: 'DELETE' })
+        if (entry.path === currentPath) {
           usePlayerStore.setState({ currentPath: null, currentName: null, isPlaying: false })
         }
       }
-      setConfirmEntry(null)
-      setRevealedPath(null)
-      await loadFolder(browsePath, true)
     } catch (err) {
       setMutationError(err instanceof Error ? err.message : 'Fehler beim Löschen')
-      setConfirmEntry(null)
+      // Rollback: Server-State neu holen, damit der eben entfernte Eintrag
+      // zurueckkommt, falls der Delete fehlschlug.
+      await loadFolder(browsePath, true)
     } finally {
       setDeleting(false)
     }
