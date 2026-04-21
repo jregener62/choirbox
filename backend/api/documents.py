@@ -460,10 +460,16 @@ async def get_text_content(
         raise HTTPException(502, str(e))
 
 
+class UpdateTextContentBody(BaseModel):
+    # Optional + expliziter 400-Check, damit der Endpoint bei fehlendem Feld
+    # dieselbe Fehlermeldung liefert wie vorher (statt einem Pydantic-422).
+    content: str | None = None
+
+
 @router.put("/{doc_id}/content")
 async def update_text_content(
     doc_id: int,
-    data: dict,
+    body: UpdateTextContentBody,
     user: User = Depends(require_permission("chord_input.edit")),
     session: Session = Depends(get_session),
 ):
@@ -477,11 +483,10 @@ async def update_text_content(
     if not doc or doc.file_type not in ("cho", "txt", "rtf"):
         raise HTTPException(404, "Textdokument nicht gefunden")
 
-    content = data.get("content")
-    if not isinstance(content, str):
+    if body.content is None:
         raise HTTPException(400, "content muss ein String sein")
 
-    content_bytes = content.encode("utf-8")
+    content_bytes = body.content.encode("utf-8")
     if len(content_bytes) > document_service.MAX_TXT_SIZE:
         raise HTTPException(400, "Text zu gross (max. 2 MB)")
 
@@ -513,14 +518,18 @@ async def update_text_content(
 # Rename
 # ---------------------------------------------------------------------------
 
+class RenameDocumentBody(BaseModel):
+    new_name: str = ""
+
+
 @router.post("/{doc_id}/rename")
 async def rename_document(
     doc_id: int,
-    data: dict,
+    body: RenameDocumentBody,
     user: User = Depends(require_permission("documents.rename")),
     session: Session = Depends(get_session),
 ):
-    new_name = (data.get("new_name") or "").strip()
+    new_name = body.new_name.strip()
     if not new_name:
         raise HTTPException(400, "Name ist erforderlich")
 
@@ -616,14 +625,19 @@ def unhide_document(
 # Select / Deselect document for player
 # ---------------------------------------------------------------------------
 
+class SelectDocumentBody(BaseModel):
+    folder_path: str = ""
+    document_id: int | None = None
+
+
 @router.post("/select")
 def select_document(
-    body: dict,
+    body: SelectDocumentBody,
     user: User = Depends(require_permission("player.state")),
     session: Session = Depends(get_session),
 ):
-    folder_path = body.get("folder_path", "").strip()
-    document_id = body.get("document_id")
+    folder_path = body.folder_path.strip()
+    document_id = body.document_id
     if not folder_path or not document_id:
         raise HTTPException(400, "folder_path und document_id erforderlich")
 
