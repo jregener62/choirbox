@@ -10,6 +10,9 @@ interface SyntaxTextareaProps {
   onClick?: () => void
   /** Optional: Cursor-Style override (z.B. fuer "click-to-place"-Modus). */
   cursorStyle?: string
+  /** Optional: `inputMode="none"` unterdrueckt die virtuelle Tastatur auf
+   *  Mobilgeraeten, ohne den Fokus zu verlieren. */
+  inputMode?: 'none' | 'text' | 'decimal' | 'numeric' | 'tel' | 'search' | 'email' | 'url'
 }
 
 const TAG_RE = /(\[[^\]\n]+\])|(\{v:[^{}\n]+\})|(\{[^{}\n]+\})/g
@@ -48,6 +51,7 @@ export function SyntaxTextarea({
   textareaRef: externalRef,
   onClick,
   cursorStyle,
+  inputMode,
 }: SyntaxTextareaProps) {
   const backdropRef = useRef<HTMLDivElement>(null)
   const internalRef = useRef<HTMLTextAreaElement>(null)
@@ -92,6 +96,7 @@ export function SyntaxTextarea({
         spellCheck={false}
         autoCapitalize="off"
         autoCorrect="off"
+        inputMode={inputMode}
         style={cursorStyle ? { cursor: cursorStyle } : undefined}
       />
     </div>

@@ -164,13 +164,36 @@ export function SheetEditor({
     clearToolText()
   }
 
+  /** Nur Akkord-Tags `[…]` unterdruecken die virtuelle Tastatur — Kommentare
+   *  (`{c:…}`) und Directives (`{v:…}`, `{start_of_verse}`, …) enthalten
+   *  oft Text, den man tatsaechlich editieren will. */
+  const isChordTag = (t: { start: number } | null) =>
+    !!t && chordText[t.start] === '['
+
+  const suppressKeyboard = isChordTag(selectedTag)
+
+  /** Erzwingt, dass iOS/Android beim naechsten Focus den aktuellen inputMode
+   *  neu auswerten. Wird im User-Gesture-Kontext aufgerufen, damit die
+   *  Tastatur auch wirklich wieder hochkommt. Selektion wird erhalten. */
+  const reevalKeyboard = (ta: HTMLTextAreaElement) => {
+    const s = ta.selectionStart
+    const e = ta.selectionEnd
+    ta.inputMode = ''
+    ta.blur()
+    ta.focus({ preventScroll: true })
+    ta.setSelectionRange(s, e)
+  }
+
   /** Textarea-Click:
    *  1. activeInsert (click-to-place): Tag an Cursor-Position einfuegen.
    *  2. Sonst: Landet der Cursor in einem `[…]`/`{…}`-Tag, wird die Selektion
    *     auf das ganze Tag expandiert — damit laesst sich der Tag am Stueck
    *     loeschen, kopieren, ausschneiden oder verschieben. Zweiter Klick in
    *     denselben Tag (Tap-through) setzt wieder den normalen Cursor, damit
-   *     der Inhalt editiert werden kann. */
+   *     der Inhalt editiert werden kann.
+   *
+   *  Bei Akkord-Tags wird zusaetzlich die Bildschirm-Tastatur unterdrueckt
+   *  (`inputMode="none"`) und auf Tap-through wieder aktiviert. */
   const handleTextareaClick = () => {
     const ta = textareaRef.current
     if (!ta) return
@@ -186,11 +209,13 @@ export function SheetEditor({
     }
 
     const { selectionStart, selectionEnd } = ta
+    const wasSuppressed = suppressKeyboard
 
     // Drag-Select: User hat bewusst eine Range gezogen → nicht anfassen.
     if (selectionStart !== selectionEnd) {
       lastTagExpandRef.current = null
       setSelectedTag(null)
+      if (wasSuppressed) reevalKeyboard(ta)
       return
     }
 
@@ -198,6 +223,7 @@ export function SheetEditor({
     if (!tag) {
       lastTagExpandRef.current = null
       setSelectedTag(null)
+      if (wasSuppressed) reevalKeyboard(ta)
       return
     }
 
@@ -206,9 +232,13 @@ export function SheetEditor({
     if (prev && prev.start === tag.start && prev.end === tag.end) {
       lastTagExpandRef.current = null
       setSelectedTag(null)
+      if (wasSuppressed) reevalKeyboard(ta)
       return
     }
 
+    // Tag-Expand. Wenn Akkord: erst Tastatur zu, dann Selektion via rAF —
+    // die `inputMode="none"`-Prop greift auf dem naechsten Render.
+    if (chordText[tag.start] === '[') ta.blur()
     refocusRange(tag.start, tag.end)
     lastTagExpandRef.current = { start: tag.start, end: tag.end }
     setSelectedTag({ start: tag.start, end: tag.end })
@@ -464,6 +494,7 @@ export function SheetEditor({
         textareaRef={textareaRef}
         onClick={handleTextareaClick}
         cursorStyle={activeInsert ? 'crosshair' : undefined}
+        inputMode={suppressKeyboard ? 'none' : undefined}
       />
 
       {selectedTag && toolbarPos && (
