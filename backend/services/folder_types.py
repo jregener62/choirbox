@@ -5,7 +5,7 @@ Inside songs, reserved folder names (Texte, Audio, Videos, Multitrack)
 determine content type.  This module is the single source of truth.
 """
 
-from backend.api.auth import ROLE_HIERARCHY
+from backend.services.auth_service import ROLE_HIERARCHY
 
 # --- Song extension ---
 SONG_EXTENSION = "song"

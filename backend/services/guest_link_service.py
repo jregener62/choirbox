@@ -78,8 +78,7 @@ def get_or_create_guest_user(session: Session, choir: Choir) -> User:
     if existing:
         return existing
 
-    # Lazy import to avoid circular dependency with auth.py
-    from backend.api.auth import _hash_password
+    from backend.services.auth_service import hash_password
 
     guest = User(
         username=username,
@@ -87,7 +86,7 @@ def get_or_create_guest_user(session: Session, choir: Choir) -> User:
         role="guest",
         voice_part="",
         # Random never-to-be-used password. Login is blocked for role=guest.
-        password_hash=_hash_password(secrets.token_urlsafe(32)),
+        password_hash=hash_password(secrets.token_urlsafe(32)),
         choir_id=choir.id,
     )
     session.add(guest)

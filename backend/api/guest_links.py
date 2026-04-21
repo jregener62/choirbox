@@ -20,7 +20,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlmodel import Session
 
-from backend.api.auth import _create_token, _user_response
+from backend.services.auth_service import create_token, user_response
 from backend.database import get_session
 from backend.models.user import User
 from backend.policy import require_permission
@@ -210,12 +210,12 @@ def redeem_guest_link(
     # ueber die Link-TTL auch die Session-Dauer steuern kann.
     remaining = int((redeemed_link.expires_at - datetime.utcnow()).total_seconds())
     session_ttl = max(60, min(remaining, MAX_GUEST_SESSION_TTL_SECONDS))
-    session_token = _create_token(
+    session_token = create_token(
         guest_user.id, session, max_age_seconds=session_ttl
     )
     return {
         "token": session_token,
-        "user": _user_response(guest_user, session),
+        "user": user_response(guest_user, session),
         "expires_in": session_ttl,
         "view_mode": redeemed_link.view_mode,
     }

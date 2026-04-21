@@ -87,13 +87,13 @@ def require_permission_query(perm: str):
         request: Request,
         session: Session = Depends(get_session),
     ) -> User:
-        from backend.api.auth import _resolve_token_to_user
+        from backend.services.auth_service import resolve_token_to_user
         auth = request.headers.get("Authorization", "")
         if auth.startswith("Bearer "):
             token = auth[7:]
         else:
             token = request.query_params.get("token", "")
-        user = _resolve_token_to_user(token, session)
+        user = resolve_token_to_user(token, session)
         if not user:
             raise HTTPException(401, "Not authenticated")
         ok, reason = get_policy().can(user.role, perm)

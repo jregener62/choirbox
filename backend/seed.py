@@ -72,13 +72,13 @@ def _seed_admin(session: Session, choir_id: str):
             session.commit()
         return
 
-    from backend.api.auth import _hash_password
+    from backend.services.auth_service import hash_password
     admin = User(
         username=ADMIN_USERNAME,
         display_name=ADMIN_USERNAME,
         role="admin",
         voice_part="Bass",
-        password_hash=_hash_password(ADMIN_PASSWORD),
+        password_hash=hash_password(ADMIN_PASSWORD),
         choir_id=choir_id,
     )
     session.add(admin)

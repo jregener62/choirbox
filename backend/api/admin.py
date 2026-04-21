@@ -9,7 +9,14 @@ from backend.database import get_session
 from backend.models.choir import Choir
 from backend.models.user import User
 from backend.models.session_token import SessionToken
-from backend.api.auth import _hash_password, _valid_voice_parts, VALID_ROLES, MIN_PASSWORD_LENGTH
+from backend.services.auth_service import (
+    MIN_PASSWORD_LENGTH,
+    ROLE_HIERARCHY,
+    VALID_ROLES,
+    hash_password,
+    user_response,
+    valid_voice_parts,
+)
 from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
@@ -60,7 +67,7 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
         raise HTTPException(400, "Username and password required")
     if len(password) < MIN_PASSWORD_LENGTH:
         raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
-    valid_parts = _valid_voice_parts(session, user.choir_id)
+    valid_parts = valid_voice_parts(session, user.choir_id)
     if valid_parts and voice_part not in valid_parts:
         raise HTTPException(400, f"Stimmgruppe muss eine der folgenden sein: {', '.join(sorted(valid_parts))}")
 
@@ -85,7 +92,7 @@ def create_user(data: dict, user: User = Depends(require_permission("users.manag
         display_name=data.get("display_name", username),
         role=role,
         voice_part=voice_part,
-        password_hash=_hash_password(password),
+        password_hash=hash_password(password),
         choir_id=user.choir_id,
         view_mode=view_mode,
     )
@@ -115,7 +122,6 @@ def update_user(
         target.view_mode = data["view_mode"]
 
     if "can_report_bugs" in data:
-        from backend.api.auth import ROLE_HIERARCHY
         if ROLE_HIERARCHY.get(user.role, 0) < ROLE_HIERARCHY["developer"]:
             raise HTTPException(403, "Nur Developer koennen Bug-Reporting vergeben")
         target.can_report_bugs = bool(data["can_report_bugs"])
@@ -127,7 +133,7 @@ def update_user(
     if "password" in data and data["password"]:
         if len(data["password"]) < MIN_PASSWORD_LENGTH:
             raise HTTPException(400, f"Passwort muss mindestens {MIN_PASSWORD_LENGTH} Zeichen haben")
-        target.password_hash = _hash_password(data["password"])
+        target.password_hash = hash_password(data["password"])
 
     target.updated_at = datetime.utcnow()
     session.add(target)
@@ -203,7 +209,7 @@ def reset_user_password(
         raise HTTPException(404, "User not found")
 
     new_password = _generate_reset_password()
-    target.password_hash = _hash_password(new_password)
+    target.password_hash = hash_password(new_password)
     target.must_change_password = True
     target.updated_at = datetime.utcnow()
     session.add(target)
@@ -344,7 +350,7 @@ def create_choir(data: dict, user: User = Depends(require_permission("choirs.man
         display_name=admin_username,
         role="admin",
         voice_part="Bass",
-        password_hash=_hash_password(admin_password),
+        password_hash=hash_password(admin_password),
         choir_id=choir.id,
         must_change_password=True,
     )
@@ -446,8 +452,7 @@ def switch_choir(choir_id: str, user: User = Depends(require_permission("choirs.
     session.commit()
     session.refresh(user)
 
-    from backend.api.auth import _user_response
-    return ActionResponse.success(data=_user_response(user, session))
+    return ActionResponse.success(data=user_response(user, session))
 
 
 # ---------------------------------------------------------------------------
