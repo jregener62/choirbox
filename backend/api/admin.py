@@ -477,11 +477,11 @@ async def _count_document_sync_delta(
     Dokumente neu hinzugefuegt, aktualisiert oder entfernt wuerden. Schreibt
     nichts in die DB.
     """
-    from backend.api.documents import _dropbox_folder_path
     from backend.models.document import Document
     from backend.services import document_service
+    from backend.utils.dropbox_paths import dropbox_folder_path
 
-    tx_folder = _dropbox_folder_path(folder_path, user, session)
+    tx_folder = dropbox_folder_path(folder_path, user, session)
     try:
         texte_entries = await dbx.list_folder(tx_folder)
     except Exception:
@@ -574,11 +574,10 @@ async def resync_all(
     from backend.models.note import Note
     from backend.models.section import Section
     from backend.services import document_service
-    from backend.api.documents import (
-        _sync_documents_from_dropbox, _get_root_folder,
-    )
+    from backend.api.documents import _sync_documents_from_dropbox
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import get_reserved_type
+    from backend.utils.dropbox_paths import get_choir_root
 
     dbx = get_dropbox_service(session)
     if not dbx:
@@ -595,7 +594,7 @@ async def resync_all(
             backup_file = None
 
     # --- Step 1: Recursive listing of entire choir Dropbox ---
-    root = _get_root_folder(user, session)
+    root = get_choir_root(user, session)
     root_path = "/" + root if root else ""
     try:
         result = await dbx.api_call("files/list_folder", {
@@ -1009,9 +1008,9 @@ async def reactivate_orphan_song(
     den Status zurueck auf 'active'.
     """
     from backend.models.song import Song
-    from backend.api.documents import _dropbox_folder_path
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services import song_service
+    from backend.utils.dropbox_paths import dropbox_folder_path
 
     new_path = (data.get("folder_path") or "").strip().lstrip("/")
     if not new_path:
@@ -1025,7 +1024,7 @@ async def reactivate_orphan_song(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    full = _dropbox_folder_path(new_path, user, session)
+    full = dropbox_folder_path(new_path, user, session)
     meta = await dbx.get_metadata(full)
     if not meta or meta.get(".tag") != "folder":
         raise HTTPException(404, "Dropbox-Ordner nicht gefunden")

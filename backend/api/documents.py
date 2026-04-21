@@ -9,7 +9,6 @@ from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
-from backend.models.choir import Choir
 from backend.models.document import Document
 from backend.models.user import User
 from backend.models.user_chord_preference import UserChordPreference
@@ -17,43 +16,13 @@ from backend.policy import require_permission, require_permission_query
 from backend.schemas import ActionResponse
 from backend.services import document_service
 from backend.services.dropbox_service import get_dropbox_service
+from backend.utils.dropbox_paths import (
+    dropbox_doc_path,
+    dropbox_folder_path,
+    full_doc_path,
+)
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
-
-def _get_root_folder(user: User, session: Session) -> str:
-    """Get the choir's Dropbox subfolder (relative to Dropbox App folder root)."""
-    if user.choir_id:
-        choir = session.get(Choir, user.choir_id)
-        if choir:
-            return (choir.dropbox_root_folder or "").strip("/")
-    return ""
-
-
-def _dropbox_doc_path(folder_path: str, doc_name: str, user: User, session: Session) -> str:
-    """Build the full Dropbox path for a document.
-
-    folder_path is the Texte folder path (e.g. '/Song.song/Texte').
-    """
-    root = _get_root_folder(user, session)
-    parts = [p for p in [root, folder_path.strip("/"), doc_name] if p]
-    return "/" + "/".join(parts)
-
-
-def _full_dropbox_path(doc, user: User, session: Session) -> str:
-    """Build full Dropbox path from document's stored dropbox_path field."""
-    root = _get_root_folder(user, session)
-    if doc.dropbox_path:
-        parts = [p for p in [root, doc.dropbox_path.strip("/")] if p]
-        return "/" + "/".join(parts)
-    return _dropbox_doc_path(doc.folder_path, doc.original_name, user, session)
-
-
-def _dropbox_folder_path(folder_path: str, user: User, session: Session) -> str:
-    """Build the full Dropbox path for a folder."""
-    root = _get_root_folder(user, session)
-    parts = [p for p in [root, folder_path.strip("/")] if p]
-    return "/" + "/".join(parts)
 
 
 # ---------------------------------------------------------------------------
@@ -131,7 +100,7 @@ async def _find_reserved_child(
     if not dbx:
         return None
 
-    dropbox_path = _dropbox_folder_path(parent_path, user, session)
+    dropbox_path = dropbox_folder_path(parent_path, user, session)
     try:
         entries = await dbx.list_folder(dropbox_path)
         for e in entries:
@@ -164,14 +133,14 @@ async def _sync_documents_from_dropbox(
         song_path = get_song_folder_path(folder_path)
         song_id_for_docs: int | None = None
         if song_path:
-            song_dropbox_path = _dropbox_folder_path(song_path, user, session)
+            song_dropbox_path = dropbox_folder_path(song_path, user, session)
             song_meta = await dbx.get_metadata(song_dropbox_path)
             song_file_id = song_meta.get("id") if song_meta else None
             song = song_service.upsert_song(session, song_path, song_file_id)
             song_id_for_docs = song.id
 
         # Scan the .tx folder directly
-        tx_folder = _dropbox_folder_path(folder_path, user, session)
+        tx_folder = dropbox_folder_path(folder_path, user, session)
         texte_entries = []
         try:
             texte_entries = await dbx.list_folder(tx_folder)
@@ -378,7 +347,7 @@ async def upload_document(
         song_path = f"{folder_path.rstrip('/')}/{song_folder_name}.song"
         dbx = get_dropbox_service(session)
         if dbx:
-            song_dbx = _dropbox_folder_path(song_path, user, session)
+            song_dbx = dropbox_folder_path(song_path, user, session)
             try:
                 await dbx.create_folder(song_dbx)
             except RuntimeError:
@@ -406,12 +375,12 @@ async def upload_document(
     try:
         dbx = get_dropbox_service(session)
         if dbx:
-            texte_dbx = _dropbox_folder_path(folder_path, user, session)
+            texte_dbx = dropbox_folder_path(folder_path, user, session)
             try:
                 await dbx.create_folder(texte_dbx)
             except RuntimeError:
                 pass  # Already exists
-            dbx_path = _dropbox_doc_path(folder_path, original_name, user, session)
+            dbx_path = dropbox_doc_path(folder_path, original_name, user, session)
             result = await dbx.upload_file(content, dbx_path)
             dbx_hash = result.get("content_hash")
             dbx_file_id = result.get("id")
@@ -530,7 +499,7 @@ async def paste_text(
         song_path = f"{folder_path.rstrip('/')}/{safe_song}.song"
         dbx = get_dropbox_service(session)
         if dbx:
-            song_dbx = _dropbox_folder_path(song_path, user, session)
+            song_dbx = dropbox_folder_path(song_path, user, session)
             try:
                 await dbx.create_folder(song_dbx)
             except RuntimeError:
@@ -558,12 +527,12 @@ async def paste_text(
     try:
         dbx = get_dropbox_service(session)
         if dbx:
-            texte_dbx = _dropbox_folder_path(texte_path, user, session)
+            texte_dbx = dropbox_folder_path(texte_path, user, session)
             try:
                 await dbx.create_folder(texte_dbx)
             except RuntimeError:
                 pass  # Already exists
-            dbx_path = _dropbox_doc_path(texte_path, filename, user, session)
+            dbx_path = dropbox_doc_path(texte_path, filename, user, session)
             result = await dbx.upload_file(content_bytes, dbx_path)
             dbx_hash = result.get("content_hash")
             dbx_file_id = result.get("id")
@@ -635,7 +604,7 @@ async def document_page(
         dbx = get_dropbox_service(session)
         if not dbx:
             raise HTTPException(400, "Dropbox nicht verbunden")
-        dbx_path = _full_dropbox_path(doc, user, session)
+        dbx_path = full_doc_path(doc, user, session)
         try:
             link = await dbx.get_temporary_link(dbx_path)
             async with httpx.AsyncClient() as client:
@@ -680,7 +649,7 @@ async def download_document(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    dbx_path = _full_dropbox_path(doc, user, session)
+    dbx_path = full_doc_path(doc, user, session)
     try:
         link = await dbx.get_temporary_link(dbx_path)
         return RedirectResponse(url=link)
@@ -703,7 +672,7 @@ async def stream_document(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    dbx_path = _full_dropbox_path(doc, user, session)
+    dbx_path = full_doc_path(doc, user, session)
     try:
         link = await dbx.get_temporary_link(dbx_path)
         return {"link": link}
@@ -730,7 +699,7 @@ async def get_text_content(
     if not dbx:
         raise HTTPException(400, "Dropbox nicht verbunden")
 
-    dbx_path = _full_dropbox_path(doc, user, session)
+    dbx_path = full_doc_path(doc, user, session)
     try:
         link = await dbx.get_temporary_link(dbx_path)
         async with httpx.AsyncClient() as client:
@@ -771,7 +740,7 @@ async def update_text_content(
     dbx = get_dropbox_service(session)
     dbx_hash = None
     if dbx:
-        dbx_path = _full_dropbox_path(doc, user, session)
+        dbx_path = full_doc_path(doc, user, session)
         try:
             result = await dbx.upload_file(content_bytes, dbx_path, overwrite=True)
             dbx_hash = result.get("content_hash")
@@ -816,8 +785,8 @@ async def rename_document(
     # Rename in Dropbox
     dbx = get_dropbox_service(session)
     if dbx:
-        old_path = _dropbox_doc_path(doc.folder_path, old_name, user, session)
-        new_path = _dropbox_doc_path(doc.folder_path, new_name, user, session)
+        old_path = dropbox_doc_path(doc.folder_path, old_name, user, session)
+        new_path = dropbox_doc_path(doc.folder_path, new_name, user, session)
         try:
             await dbx.move_file(old_path, new_path)
         except RuntimeError as e:
@@ -853,7 +822,7 @@ async def delete_document(
     if not doc:
         raise HTTPException(404, "Dokument nicht gefunden")
 
-    dbx_path = _full_dropbox_path(doc, user, session)
+    dbx_path = full_doc_path(doc, user, session)
     document_service.delete_document(doc_id, session)
 
     try:

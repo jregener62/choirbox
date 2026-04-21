@@ -11,10 +11,14 @@ from sqlmodel import Session, select
 from backend.config import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REDIRECT_URI
 from backend.database import get_session
 from backend.models.app_settings import AppSettings
-from backend.models.choir import Choir
 from backend.models.user import User
 from backend.policy import require_permission
 from backend.schemas import ActionResponse
+from backend.utils.dropbox_paths import (
+    get_choir_root,
+    to_dropbox_path,
+    to_user_path,
+)
 
 router = APIRouter(prefix="/dropbox", tags=["dropbox"])
 
@@ -41,32 +45,6 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
         return []
 
 _oauth_states: dict[str, str] = {}
-
-
-def _get_root_folder(user: User, session: Session) -> str:
-    """Get the choir's Dropbox subfolder (relative to Dropbox App folder root)."""
-    if user.choir_id:
-        choir = session.get(Choir, user.choir_id)
-        if choir:
-            return (choir.dropbox_root_folder or "").strip("/")
-    return ""
-
-
-def _to_dropbox_path(user_path: str, root_folder: str) -> str:
-    """User-visible path -> actual Dropbox path. '' + 'Männerchor' -> '/Männerchor'"""
-    parts = [p for p in [root_folder, user_path.strip("/")] if p]
-    return "/" + "/".join(parts) if parts else ""
-
-
-def _to_user_path(dropbox_path: str, root_folder: str) -> str:
-    """Actual Dropbox path -> user-visible path. '/Männerchor/Stücke' -> '/Stücke'"""
-    if root_folder:
-        prefix = "/" + root_folder
-        if dropbox_path == prefix or dropbox_path == prefix + "/":
-            return ""
-        if dropbox_path.startswith(prefix + "/"):
-            return dropbox_path[len(prefix):]
-    return dropbox_path
 
 
 def _get_or_create_settings(session: Session) -> AppSettings:
@@ -212,8 +190,8 @@ async def dropbox_browse(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    dropbox_path = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    dropbox_path = to_dropbox_path(path, root_folder)
 
     drafts = draft_service.load_drafts(session, user.choir_id)
     can_see_drafts = draft_service.can_see_drafts(user.role)
@@ -224,7 +202,7 @@ async def dropbox_browse(
             return sum(1 for se in sub_entries if se.get(".tag") == "file")
         return draft_service.count_non_draft_files(
             sub_entries,
-            lambda p: _to_user_path(p, root_folder),
+            lambda p: to_user_path(p, root_folder),
             drafts,
         )
 
@@ -253,7 +231,7 @@ async def dropbox_browse(
     for e in entries:
         tag = e.get(".tag", "")
         name = e.get("name", "")
-        user_path = _to_user_path(e.get("path_display", ""), root_folder)
+        user_path = to_user_path(e.get("path_display", ""), root_folder)
 
         if tag == "folder":
             # Hide Trash folder from browse
@@ -313,7 +291,7 @@ async def dropbox_browse(
     # Create synthetic entries for reserved folders + count their contents
     for reserved_name, reserved_path in reserved_found.items():
         _, folder_type = parse_folder_name(reserved_name)
-        sub_dbx = _to_dropbox_path(reserved_path, root_folder)
+        sub_dbx = to_dropbox_path(reserved_path, root_folder)
         sub_entries = await _get_children(tree, dbx, sub_dbx)
         sub_files = [e for e in sub_entries if e.get(".tag") == "file"]
         # Member + darunter: Drafts zaehlen nicht mit. Fuer Pro+ bleibt es beim Rohcount.
@@ -332,7 +310,7 @@ async def dropbox_browse(
                 # Single document: show document directly instead of folder
                 single = sub_files[0]
                 single_name = single.get("name", "")
-                single_path = _to_user_path(single.get("path_display", ""), root_folder)
+                single_path = to_user_path(single.get("path_display", ""), root_folder)
                 doc_id = None
                 try:
                     doc_row = session.exec(
@@ -464,7 +442,7 @@ async def dropbox_browse(
     for song in song_entries:
         sub_folders = []
         selected_doc = None
-        song_dbx = _to_dropbox_path(song["path"], root_folder)
+        song_dbx = to_dropbox_path(song["path"], root_folder)
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
             sub_path = f"{song_dbx}/{reserved_name}"
@@ -499,7 +477,7 @@ async def dropbox_browse(
     song_ancestor_idx = next((i for i, s in enumerate(path_segments) if is_song_folder(s)), None)
     if song_ancestor_idx is not None and len(path_segments) > song_ancestor_idx + 1:
         song_user_path = '/' + '/'.join(path_segments[:song_ancestor_idx + 1])
-        song_dbx_path = _to_dropbox_path(song_user_path, root_folder)
+        song_dbx_path = to_dropbox_path(song_user_path, root_folder)
         song_sub_folders = []
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
@@ -554,7 +532,7 @@ async def dropbox_search(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
+    root_folder = get_choir_root(user, session)
     root_path = ("/" + root_folder) if root_folder else ""
 
     drafts = draft_service.load_drafts(session, user.choir_id)
@@ -565,7 +543,7 @@ async def dropbox_search(
             return sum(1 for se in sub_entries if se.get(".tag") == "file")
         return draft_service.count_non_draft_files(
             sub_entries,
-            lambda p: _to_user_path(p, root_folder),
+            lambda p: to_user_path(p, root_folder),
             drafts,
         )
 
@@ -593,7 +571,7 @@ async def dropbox_search(
             entries.append({
                 "name": name,
                 "display_name": display_name,
-                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "path": to_user_path(e.get("path_display", ""), root_folder),
                 "type": "folder",
                 "folder_type": folder_type,
             })
@@ -602,7 +580,7 @@ async def dropbox_search(
             entries.append({
                 "name": name,
                 "display_name": name,
-                "path": _to_user_path(e.get("path_display", ""), root_folder),
+                "path": to_user_path(e.get("path_display", ""), root_folder),
                 "type": entry_type,
                 "size": e.get("size", 0),
             })
@@ -613,7 +591,7 @@ async def dropbox_search(
     for song in [e for e in entries if e.get("folder_type") == "song"]:
         sub_folders = []
         selected_doc = None
-        song_dbx = _to_dropbox_path(song["path"], root_folder)
+        song_dbx = to_dropbox_path(song["path"], root_folder)
         for reserved_name, meta in RESERVED_FOLDERS.items():
             reserved_type = meta["type"]
             sub_path = f"{song_dbx}/{reserved_name}"
@@ -661,8 +639,8 @@ async def dropbox_stream(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    dropbox_path = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    dropbox_path = to_dropbox_path(path, root_folder)
 
     try:
         link = await dbx.get_temporary_link(dropbox_path)
@@ -720,7 +698,7 @@ async def dropbox_upload(
             content = mp3_content
             filename = filename.rsplit(".", 1)[0] + ".mp3"
 
-    root_folder = _get_root_folder(user, session)
+    root_folder = get_choir_root(user, session)
 
     if target_path and not target_path.startswith("/"):
         target_path = "/" + target_path
@@ -728,7 +706,7 @@ async def dropbox_upload(
     # Auto-create .song folder if requested (root-level upload)
     if song_folder_name:
         song_path = f"{target_path.rstrip('/')}/{song_folder_name}.song"
-        song_dbx = _to_dropbox_path(song_path, root_folder)
+        song_dbx = to_dropbox_path(song_path, root_folder)
         try:
             await dbx.create_folder(song_dbx)
         except RuntimeError:
@@ -745,13 +723,13 @@ async def dropbox_upload(
         else:
             target_path = target_path.rstrip("/") + "/Audio"
         # Ensure subfolder exists
-        sub_dbx = _to_dropbox_path(target_path, root_folder)
+        sub_dbx = to_dropbox_path(target_path, root_folder)
         try:
             await dbx.create_folder(sub_dbx)
         except RuntimeError:
             pass  # Already exists
 
-    full_target = _to_dropbox_path(target_path, root_folder)
+    full_target = to_dropbox_path(target_path, root_folder)
     dropbox_path = f"{full_target}/{filename}".replace("//", "/")
 
     try:
@@ -765,7 +743,7 @@ async def dropbox_upload(
 
     return ActionResponse.success(data={
         "name": result.get("name", filename),
-        "path": _to_user_path(result.get("path_display", dropbox_path), root_folder),
+        "path": to_user_path(result.get("path_display", dropbox_path), root_folder),
         "size": result.get("size", len(content)),
     })
 
@@ -863,8 +841,8 @@ async def dropbox_delete_file(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    dropbox_path = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    dropbox_path = to_dropbox_path(path, root_folder)
 
     try:
         result = await dbx.delete_file(dropbox_path)
@@ -884,7 +862,7 @@ async def dropbox_delete_file(
     metadata = result.get("metadata", {})
     return ActionResponse.success(data={
         "name": metadata.get("name", ""),
-        "path": _to_user_path(metadata.get("path_display", path), root_folder),
+        "path": to_user_path(metadata.get("path_display", path), root_folder),
     })
 
 
@@ -909,8 +887,8 @@ async def dropbox_create_folder(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    parent = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    parent = to_dropbox_path(path, root_folder)
     full_path = f"{parent}/{name}".replace("//", "/")
 
     try:
@@ -926,7 +904,7 @@ async def dropbox_create_folder(
 
     return ActionResponse.success(data={
         "name": result.get("name", name),
-        "path": _to_user_path(result.get("path_display", full_path), root_folder),
+        "path": to_user_path(result.get("path_display", full_path), root_folder),
     })
 
 
@@ -947,14 +925,14 @@ async def dropbox_delete_folder(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    dropbox_path = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    dropbox_path = to_dropbox_path(path, root_folder)
 
     folder_name = path.rstrip("/").rsplit("/", 1)[-1] if "/" in path.strip("/") else path.strip("/")
 
     if is_song_folder(folder_name):
         # .song folder: move to Trash instead of permanent delete
-        trash_path = _to_dropbox_path(TRASH_FOLDER_NAME, root_folder)
+        trash_path = to_dropbox_path(TRASH_FOLDER_NAME, root_folder)
         try:
             await dbx.move_to_trash(dropbox_path, trash_path)
         except RuntimeError as e:
@@ -1007,8 +985,8 @@ async def dropbox_rename(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    from_dropbox = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    from_dropbox = to_dropbox_path(path, root_folder)
 
     # Build new path: same parent + new name
     parent = from_dropbox.rsplit("/", 1)[0] if "/" in from_dropbox else ""
@@ -1029,7 +1007,7 @@ async def dropbox_rename(
     folder_cache.invalidate_subtree(to_dropbox)
 
     # Update audio meta for renamed file
-    new_user_path = _to_user_path(result.get("path_display", to_dropbox), root_folder)
+    new_user_path = to_user_path(result.get("path_display", to_dropbox), root_folder)
     from backend.models.audio_meta import AudioMeta
     old_meta = session.get(AudioMeta, path)
     if old_meta:
@@ -1161,8 +1139,8 @@ async def dropbox_duplicate(
     if not dbx:
         raise HTTPException(400, "Dropbox not connected")
 
-    root_folder = _get_root_folder(user, session)
-    from_dropbox = _to_dropbox_path(path, root_folder)
+    root_folder = get_choir_root(user, session)
+    from_dropbox = to_dropbox_path(path, root_folder)
 
     metadata = await dbx.get_metadata(from_dropbox)
     if metadata is None:
@@ -1202,7 +1180,7 @@ async def dropbox_duplicate(
 
     return ActionResponse.success(data={
         "name": result.get("name", new_name),
-        "path": _to_user_path(result.get("path_display", to_dropbox), root_folder),
+        "path": to_user_path(result.get("path_display", to_dropbox), root_folder),
     })
 
 
