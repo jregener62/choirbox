@@ -798,6 +798,109 @@ body {
   letter-spacing: -0.2px;
 }
 
+/* ============================================================ */
+/* 22. Meta-Bricks (View-Bar + Song-Card-Header) → Mono         */
+/* Ersetzt Indigo/Cyan/Pink/Amber durch Schwarz/Weiss + Accent. */
+/* ============================================================ */
+
+.meta-brick {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600 !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+  min-height: 36px !important;
+}
+
+.meta-brick:active {
+  transform: scale(0.97);
+}
+
+/* Leerer Brick: dashed muted border, unveraendert ausser Farben */
+.meta-brick--empty,
+.meta-brick--texte.meta-brick--empty,
+.meta-brick--doc.meta-brick--empty,
+.meta-brick--audio.meta-brick--empty,
+.meta-brick--videos.meta-brick--empty,
+.meta-brick--multitrack.meta-brick--empty {
+  border-color: var(--border) !important;
+  border-style: dashed !important;
+  color: var(--text-muted) !important;
+  background: transparent !important;
+  opacity: 0.4 !important;
+}
+
+/* Gefuellte Varianten (inaktiv): alle gleich — flat outline */
+.meta-brick--doc,
+.meta-brick--texte,
+.meta-brick--audio,
+.meta-brick--videos,
+.meta-brick--multitrack,
+.meta-brick--songs {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border) !important;
+}
+
+/* Active: solid black (light) bzw. white (dark) mit Invers-Text */
+.meta-brick--active,
+.meta-brick--songs.meta-brick--active,
+.meta-brick--texte.meta-brick--active,
+.meta-brick--doc.meta-brick--active,
+.meta-brick--audio.meta-brick--active,
+.meta-brick--videos.meta-brick--active,
+.meta-brick--multitrack.meta-brick--active {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+.meta-brick__label {
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ============================================================ */
+/* 23. File-Type-Badges → Mono                                  */
+/* Alte Tint-Farben (Blau/Cyan/Pink/Amber) → Text-Primary/Muted */
+/* ============================================================ */
+
+.file-type-badge--folder,
+.file-type-badge--texte,
+.file-type-badge--folder-audio,
+.file-type-badge--folder-videos,
+.file-type-badge--folder-multitrack,
+.file-type-badge--song,
+.file-type-badge--audio,
+.file-type-badge--videos,
+.file-type-badge--multitrack,
+.file-type-badge--text {
+  color: var(--text-primary) !important;
+}
+
+.file-type-badge--playing {
+  color: var(--accent) !important;
+}
+
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: 9px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  border-radius: 0 !important;
+  padding: 1px 6px !important;
+}
+
 /* Generic Input + Search-Bar + Footer-Buttons → Mono */
 .input,
 .search-bar,
