@@ -2097,29 +2097,7 @@ body.body-scroll-fs .autoscroll-stepper {
   top: calc(var(--space-3) + 45px);
 }
 
-/* Akkorde-Toggle: gleicher Pill-Stil wie Transpose, Text "Akkorde".
-   Hoehe = 32px (Button innen) + 2*--space-1 Padding = exakt wie
-   `.transpose-stepper` -> beide Pills sind visuell gleich gross. */
-.chord-toggle-btn {
-  height: calc(32px + 2 * var(--space-1));
-  padding: 0 var(--space-3);
-  border-radius: var(--radius-pill);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-  color: var(--text-secondary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  line-height: 1;
-  cursor: pointer;
-  user-select: none;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.chord-toggle-btn:active {
-  background: rgba(255, 255, 255, 0.05);
-}
-
-/* Geteilter Toggle: links Anweisungen, rechts Akkorde — ein Pill mit zwei Segmenten */
+/* Akkorde-Toggle Pill (gleiche Hoehe wie .transpose-stepper) */
 .chord-toggle-split {
   display: inline-flex;
   align-items: stretch;
@@ -2143,20 +2121,13 @@ body.body-scroll-fs .autoscroll-stepper {
   user-select: none;
   transition: background 0.15s, color 0.15s;
 }
-.chord-toggle-segment + .chord-toggle-segment {
-  border-left: 1px solid var(--border);
-}
 .chord-toggle-segment:active {
   background: rgba(255, 255, 255, 0.05);
-}
-
-.chord-toggle-segment--vocal.chord-toggle-segment--active {
-  color: var(--v-note-bg, #FCD34D);
-  background: rgba(252, 211, 77, 0.1);
 }
 .chord-toggle-segment--chord.chord-toggle-segment--active {
   color: var(--v-note-bg, #FCD34D);
 }
+
 .transpose-stepper-btn {
   width: 32px;
   height: 32px;

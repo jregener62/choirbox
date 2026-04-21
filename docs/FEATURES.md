@@ -697,11 +697,11 @@ Das Zeichen im Lyric-Text, **ueber** dem ein Akkord steht, wird lila unterstrich
 
 ### Akkorde ein/aus-Toggle im .cho-Viewer
 
-Oben rechts in jedem Chord-Sheet-Dokument sitzt der Button "Akkorde". Klick schaltet zwischen zwei Zustaenden um:
-- **Sichtbar** (Default beim Oeffnen): voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Toggle lila hervorgehoben.
+Oben rechts in jedem Chord-Sheet-Dokument sitzt der "C"-Button. Klick schaltet zwischen zwei Zustaenden um:
+- **Sichtbar** (Default beim Oeffnen): voller Render-Modus mit Akkord-Zeilen, Anker-Unterstreichung und Transpose-Pill. Toggle gelb hervorgehoben.
 - **Versteckt**: Akkord-Zeilen und Unterstreichungen komplett ausgeblendet -> reiner Text. Transpose-Pill ebenfalls ausgeblendet. Metadata, Section-Labels und Kommentare bleiben sichtbar.
 
-Im `vocal`-Display-Modus des Chors ist der Toggle nicht verfuegbar (Akkorde bleiben zwangsweise versteckt). Pro Session; keine Persistierung pro Dokument.
+Pro Session, keine Persistierung pro Dokument.
 
 ### Nightly DB-Backup nach Dropbox (Cron)
 
@@ -1317,25 +1317,6 @@ Bestehende Audio-Dateien vom Geraet hochladen (z.B. aus Sprachmemos, WhatsApp, D
 | `backend/models/user.py` | Feld `view_mode` ("songs" \| "texts", Default "songs") |
 | `backend/models/choir.py` | Feld `default_view_mode` ("songs" \| "texts", Default "songs") |
 
-### Anzeige-Modus fuer .cho-Dateien (`choir.display_mode`)
-
-Steuert, ob Akkorde in `.cho`-Dateien gerendert und editierbar sind — orthogonal zum `view_mode`. Das `.cho`-Austauschformat bleibt universell (Akkorde stehen immer im File), nur Anzeige und Toolbar richten sich nach dem Chor-Typ.
-
-- **`instrumental`** (Default): volle Anzeige inkl. Akkorde — bisheriges Verhalten. Anweisungen- und Akkorde-Toggle beide sichtbar.
-- **`vocal`**: nur Gesangstext und Anweisungen, keine Akkorde. "Akkorde"-Toggle verschwindet komplett aus der Viewer-Toolbar.
-- **`gemischt`**: User kann pro Song umschalten — UI identisch zu `instrumental` (Persistenz der User-Wahl pro Song ist optional/spaeter).
-- Einstellbar in `/#/settings/choir` unter "Anzeige-Modus fuer Texte/Noten" (Admin-Only).
-- Wirkt fuer alle Mitglieder nach dem naechsten Login (Feld kommt via `/auth/me` → `user.choir_display_mode`).
-
-| Datei | Rolle |
-|-------|-------|
-| `frontend/src/pages/settings/ChoirSettingsPage.tsx` | Admin-Toggle-Section (Gesang/Instrumental/Gemischt) |
-| `frontend/src/stores/displayModeStore.ts` | `applyUserDisplayMode(user)` synchronisiert Store mit `user.choir_display_mode` |
-| `frontend/src/components/ui/DocumentPanel.tsx` | Blendet "Akkorde"-Toggle bei `vocal` aus, erzwingt `activeView !== 'chord'` |
-| `backend/api/admin.py` | `display_mode` in `GET/PUT /admin/settings` + `VALID_DISPLAY_MODES` |
-| `backend/api/auth.py` | `_user_response` liefert `choir_display_mode` (wirkt fuer Login, Register, `/auth/me`, Guest-Redeem) |
-| `backend/models/choir.py` | Feld `display_mode` ("vocal" \| "instrumental" \| "gemischt", Default "instrumental") |
-
 ### Einladungslink
 
 - Jeder Chor hat einen eindeutigen Einladungscode (`invite_code`)
@@ -1443,7 +1424,6 @@ Die Settings sind in eine schlanke Hauptseite und thematische Sub-Seiten aufgete
 - Einladungslink mit Copy-Button und klickbarer URL
 - Chor-Ordner in der Dropbox
 - Default-Ansicht fuer neue Mitglieder (songs / texts)
-- Anzeige-Modus fuer Texte/Noten (vocal / instrumental / gemischt)
 
 **`/settings/data` — Daten &amp; Sync (Admin):**
 - Dropbox-Verbindung (nur Developer sichtbar): Connect/Disconnect, Account-Status, Backup-Status
@@ -1543,7 +1523,7 @@ Jede Seite hat einen eigenen Header mit Seitentitel. Alle Seiten ausser der Haup
 | `/browse` | Datei-Browser | Authentifiziert |
 | `/viewer` | Dokument-Viewer | Authentifiziert |
 | `/settings` | Einstellungen (persoenlich + Navigation) | Authentifiziert |
-| `/settings/choir` | Chor-Einstellungen (Einladungslink, Chor-Ordner, Default-Ansicht, Anzeige-Modus) | Admin |
+| `/settings/choir` | Chor-Einstellungen (Einladungslink, Chor-Ordner, Default-Ansicht) | Admin |
 | `/settings/data` | Daten &amp; Sync (Dropbox-Verbindung, Re-Sync, Backup-Status) | Admin |
 | `/sections` | Section-Editor | Pro-Mitglied+ |
 | `/admin/users` | Nutzerverwaltung | Admin |

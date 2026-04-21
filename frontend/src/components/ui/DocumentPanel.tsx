@@ -1,7 +1,6 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
-import { useDisplayModeStore } from '@/stores/displayModeStore.ts'
 import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole, isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
@@ -73,19 +72,11 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const [scale, setScale] = useState(1)
   const [fabFaded, setFabFaded] = useState(false)
   const [textSizeIndex, setTextSizeIndex] = useState(2)
-  // View toggle: Akkorde ein/aus (Default: an). Vocal-Marks sind entfallen
-  // — .cho haelt sich jetzt strikt an den ChordPro-Standard.
+  // View toggle: Akkorde ein/aus (Default: an). Pro Session, nicht persistiert.
   const [showChords, setShowChords] = useState(true)
   const [rtfEditing, setRtfEditing] = useState(false)
   const [rtfReloadToken, setRtfReloadToken] = useState(0)
   const [autoEditConsumed, setAutoEditConsumed] = useState(false)
-  const choirDisplayMode = useDisplayModeStore((s) => s.choirMode)
-  const chordsAllowed = choirDisplayMode !== 'vocal'
-  // Im vocal-Modus duerfen chords nie sichtbar sein.
-  useEffect(() => {
-    if (!chordsAllowed && showChords) setShowChords(false)
-  }, [chordsAllowed, showChords])
-  const chordsHidden = !chordsAllowed || !showChords
   const [showSwipeHint, setShowSwipeHint] = useState(false)
   const fadeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const pinchRef = useRef({ startDist: 0, startScale: 1 })
@@ -441,7 +432,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
           transposition={transposition}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
-          hideChords={chordsHidden}
+          hideChords={!showChords}
           scrollContainerRef={scrollContainerRef}
         />
       )}
@@ -484,7 +475,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
           className={`chord-toolbar chord-toolbar--floating${pdfFullscreen ? '' : ' chord-toolbar--below-chrome'}${pdfFullscreen && drawingMode ? ' chord-toolbar--below-annotation' : ''}${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
           onTouchStart={pdfFullscreen ? resetFadeTimer : undefined}
         >
-          {!chordsHidden && (
+          {showChords && (
             <div className="transpose-stepper">
               <TransposeButtons
                 value={transposition}
@@ -492,22 +483,20 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
               />
             </div>
           )}
-          {chordsAllowed && (
-            <div className="chord-toggle-split" role="group" aria-label="Anzeige-Umschalter">
-              <button
-                type="button"
-                className={`chord-toggle-segment chord-toggle-segment--chord${showChords ? ' chord-toggle-segment--active' : ''}`}
-                onClick={() => { setShowChords((v) => !v); resetFadeTimer() }}
-                aria-pressed={showChords}
-                aria-label="Akkorde"
-                title={showChords ? 'Akkorde ausblenden' : 'Akkorde anzeigen'}
-              >
-                <svg width="20" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                  <text x="6" y="18" fontFamily="Georgia, serif" fontSize="17" fontWeight="700">C</text>
-                </svg>
-              </button>
-            </div>
-          )}
+          <div className="chord-toggle-split" role="group" aria-label="Anzeige-Umschalter">
+            <button
+              type="button"
+              className={`chord-toggle-segment chord-toggle-segment--chord${showChords ? ' chord-toggle-segment--active' : ''}`}
+              onClick={() => { setShowChords((v) => !v); resetFadeTimer() }}
+              aria-pressed={showChords}
+              aria-label="Akkorde"
+              title={showChords ? 'Akkorde ausblenden' : 'Akkorde anzeigen'}
+            >
+              <svg width="20" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <text x="6" y="18" fontFamily="Georgia, serif" fontSize="17" fontWeight="700">C</text>
+              </svg>
+            </button>
+          </div>
         </div>
       )}
       {pdfFullscreen && (isPdf || isTxt || isCho || (isRtf && !rtfEditing)) && !editMode && (

@@ -2,7 +2,6 @@ import { create } from 'zustand'
 import type { User, LoginResponse } from '@/types/index'
 import { usePolicyStore } from '@/stores/policyStore'
 import { useViewModeStore } from '@/stores/viewModeStore'
-import { useDisplayModeStore } from '@/stores/displayModeStore'
 
 const STORAGE_PREFIX = 'choirbox_'
 const EXPIRES_KEY = `${STORAGE_PREFIX}session_expires_at`
@@ -99,7 +98,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(EXPIRES_KEY)
     set({ token: data.token, user: data.user, sessionExpiresAt: null })
     useViewModeStore.getState().applyUserViewMode(data.user)
-    useDisplayModeStore.getState().applyUserDisplayMode(data.user)
     void usePolicyStore.getState().loadPolicy()
   },
 
@@ -121,7 +119,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     localStorage.removeItem(EXPIRES_KEY)
     set({ token: result.token, user: result.user, sessionExpiresAt: null })
     useViewModeStore.getState().applyUserViewMode(result.user)
-    useDisplayModeStore.getState().applyUserDisplayMode(result.user)
     void usePolicyStore.getState().loadPolicy()
   },
 
@@ -159,7 +156,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     // Ansichts-Modus aus dem Link uebernehmen und sperren.
     const vm = data.view_mode === 'texts' ? 'texts' : 'songs'
     useViewModeStore.getState().lockMode(vm)
-    useDisplayModeStore.getState().applyUserDisplayMode(data.user)
   },
 
   logout: () => {
@@ -179,7 +175,6 @@ export const useAuthStore = create<AuthState>((set) => ({
     set({ token: null, user: null, sessionExpiresAt: null })
     usePolicyStore.getState().clear()
     useViewModeStore.getState().reset()
-    useDisplayModeStore.getState().reset()
   },
 
   expireGuestSession: () => {
@@ -204,7 +199,6 @@ export const useAuthStore = create<AuthState>((set) => ({
       sessionExpiresAt: s.sessionExpiresAt,
     })
     useViewModeStore.getState().applyUserViewMode(s.user)
-    useDisplayModeStore.getState().applyUserDisplayMode(s.user)
   },
 }))
 
@@ -213,7 +207,6 @@ export const useAuthStore = create<AuthState>((set) => ({
 // initialisiert).
 if (stored.user) {
   useViewModeStore.getState().applyUserViewMode(stored.user)
-  useDisplayModeStore.getState().applyUserDisplayMode(stored.user)
 }
 
 /** True if the AuthGuard should redirect to the guest goodbye page

@@ -196,12 +196,10 @@ def valid_voice_parts(session: Session, choir_id: str) -> set[str]:
 def user_response(user: User, session: Session) -> dict:
     """Build the user response dict (incl. choir info) used by auth endpoints."""
     choir_name = None
-    choir_display_mode = "instrumental"
     if user.choir_id:
         choir = session.get(Choir, user.choir_id)
         if choir:
             choir_name = choir.name
-            choir_display_mode = choir.display_mode
     return {
         "id": user.id,
         "username": user.username,
@@ -210,7 +208,6 @@ def user_response(user: User, session: Session) -> dict:
         "voice_part": user.voice_part,
         "choir_id": user.choir_id,
         "choir_name": choir_name,
-        "choir_display_mode": choir_display_mode,
         "must_change_password": user.must_change_password,
         "can_report_bugs": user.can_report_bugs,
         "view_mode": user.view_mode,
