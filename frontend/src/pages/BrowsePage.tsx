@@ -370,7 +370,10 @@ export function BrowsePage() {
     } else if (entry.type === 'document') {
       // entry.path is like /Song.song/Texte/mytext.txt — parent is the Texte folder
       const folderPath = entry.path.split('/').slice(0, -1).join('/') || ''
-      navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}`)
+      // Wenn das Backend bereits eine doc_id fuer diesen Eintrag zurueckgegeben
+      // hat, uebergeben wir sie direkt — eindeutig, unabhaengig von Namen.
+      const idParam = entry.doc_id ? `&id=${entry.doc_id}` : ''
+      navigate(`/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(entry.name)}${idParam}`)
     } else if (entry.type === 'file' && entry.name.toLowerCase().endsWith('.mp4')) {
       setVideoEntry(entry)
     } else {

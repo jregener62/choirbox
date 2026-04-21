@@ -16,6 +16,7 @@ export function DocViewerPage() {
   const [params] = useSearchParams()
   const folder = params.get('folder') || ''
   const docName = params.get('name') || ''
+  const docIdParam = Number(params.get('id') || '')
   const autoEdit = params.get('edit') === '1'
   const userRole = useAuthStore((s) => s.user?.role ?? 'guest')
   const canUpload = hasMinRole(userRole, 'pro-member')
@@ -33,13 +34,21 @@ export function DocViewerPage() {
     }
   }, [folder, loadedFolder, load])
 
-  // Auto-select document by name from URL
+  // Auto-select document — priorisiere id (eindeutig), sonst name.
   useEffect(() => {
-    if (docName && documents.length > 0) {
+    if (documents.length === 0) return
+    if (docIdParam) {
+      const match = documents.find((d) => d.id === docIdParam)
+      if (match) {
+        setActive(match.id)
+        return
+      }
+    }
+    if (docName) {
       const match = documents.find((d) => d.original_name === docName)
       if (match) setActive(match.id)
     }
-  }, [docName, documents, setActive])
+  }, [docIdParam, docName, documents, setActive])
 
   // Reset fullscreen on unmount
   useEffect(() => {
