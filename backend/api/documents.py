@@ -184,9 +184,15 @@ async def _sync_documents_from_dropbox(
             if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", ""))
         ]
 
-        # Build lookups: primaer per file_id, sekundaer per Name (im selben Folder)
+        # Build lookups: primaer per file_id, sekundaer per Name (im selben Folder).
+        # Pfad-Variante mit/ohne leading slash beide akzeptieren — historische
+        # Inkonsistenzen kommen vor; der Browse-Endpoint nutzt dasselbe Muster.
+        folder_path_stripped = folder_path.lstrip("/")
         all_in_folder = session.exec(
-            select(Document).where(Document.folder_path == folder_path)
+            select(Document).where(
+                (Document.folder_path == folder_path)
+                | (Document.folder_path == folder_path_stripped)
+            )
         ).all()
         by_id: dict[str, Document] = {
             d.dropbox_file_id: d for d in all_in_folder if d.dropbox_file_id

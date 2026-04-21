@@ -281,10 +281,18 @@ def get_document(doc_id: int, session: Session) -> Optional[Document]:
 def list_documents(
     folder_path: str, user_id: str, session: Session
 ) -> list[dict]:
-    """List all documents in a folder with hidden status per user."""
+    """List all documents in a folder with hidden status per user.
+
+    Matches both path variants (with/without leading slash) to be robust
+    against historic inconsistencies in how folder_path was stored — the
+    Browse-endpoint uses the same OR-query pattern.
+    """
+    stripped = folder_path.lstrip("/")
     docs = session.exec(
         select(Document)
-        .where(Document.folder_path == folder_path)
+        .where(
+            (Document.folder_path == folder_path) | (Document.folder_path == stripped)
+        )
         .order_by(Document.sort_order, Document.original_name)
     ).all()
 
