@@ -153,27 +153,30 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
           <button className="recording-mic-btn" onClick={startRecording}>
             <Mic size={32} />
           </button>
-          <div className="recording-hint">Antippen zum Aufnehmen</div>
+          <div className="recording-hint">ANTIPPEN ZUM AUFNEHMEN</div>
         </>
       )}
 
       {state === 'recording' && (
         <>
           <div className="recording-indicator">
-            <div className="recording-pulse" />
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <div className="recording-pulse" />
+              <span className="recording-indicator-label">AUFNAHME LÄUFT</span>
+            </div>
             <span className="recording-time">{formatTime(duration)}</span>
           </div>
-          <button className="recording-stop-btn" onClick={stopRecording}>
+          <button className="recording-stop-btn" onClick={stopRecording} aria-label="Stop">
             <Square size={24} fill="currentColor" />
           </button>
-          <div className="recording-hint">Antippen zum Stoppen</div>
+          <div className="recording-hint">ANTIPPEN ZUM STOPPEN</div>
         </>
       )}
 
       {state === 'stopped' && !uploadDone && (
         <>
           <div className="recording-preview-info">
-            Aufnahme: {formatTime(duration)}
+            DAUER · {formatTime(duration)}
           </div>
 
           {/* Voice selection */}

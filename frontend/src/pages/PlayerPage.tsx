@@ -114,7 +114,7 @@ export function PlayerPage() {
         <button className="topbar-back" onClick={() => navigate(-1)}>
           <ChevronLeft size={22} />
         </button>
-        <span className="topbar-title">Player</span>
+        <span className="mono-kicker" style={{ color: 'var(--text-primary)' }}>PLAYER</span>
         <div className="topbar-track">
           <span className="topbar-track-name">{middleTruncate(formatDisplayName(currentName!))}</span>
           {parsed && (
