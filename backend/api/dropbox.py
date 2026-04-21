@@ -293,7 +293,9 @@ async def dropbox_browse(
                     "modified": e.get("server_modified", ""),
                 })
 
-    # Create synthetic entries for reserved folders + count their contents
+    # Resolve sub-folder contents up front so we can batch DB queries below.
+    # reserved_meta: reserved_name -> (folder_type, reserved_path, sub_files, count)
+    reserved_meta: dict[str, tuple[str | None, str, list[dict], int]] = {}
     for reserved_name, reserved_path in reserved_found.items():
         _, folder_type = parse_folder_name(reserved_name)
         sub_dbx = to_dropbox_path(reserved_path, root_folder)
@@ -301,40 +303,62 @@ async def dropbox_browse(
         sub_files = [e for e in sub_entries if e.get(".tag") == "file"]
         # Member + darunter: Drafts zaehlen nicht mit. Fuer Pro+ bleibt es beim Rohcount.
         count = len(sub_files) if can_see_drafts or drafts.is_empty() else _sub_count(sub_entries)
-
         if count == 0:
-            # Empty folder: don't show
             continue
+        reserved_meta[reserved_name] = (folder_type, reserved_path, sub_files, count)
 
+    # Batch-Load fuer die Texte-Reserved-Eintraege: statt pro Iteration eine
+    # DocModel-Query abzusetzen (N+1), laden wir alle in Frage kommenden
+    # Documents einmal und die User-Selection fuer den Browse-Path einmal.
+    from sqlmodel import select as sqlmodel_select
+    from backend.models.document import Document as DocModel
+    from backend.models.user_selected_document import UserSelectedDocument
+
+    reserved_texte_paths = [
+        rp for _ft, rp, _sf, _c in reserved_meta.values() if _ft == "texte"
+    ]
+    reserved_docs_by_key: dict[tuple[str, str], DocModel] = {}
+    browse_path_selection: UserSelectedDocument | None = None
+    browse_selected_doc: DocModel | None = None
+    if reserved_texte_paths:
+        try:
+            rows = session.exec(
+                sqlmodel_select(DocModel).where(
+                    DocModel.folder_path.in_(reserved_texte_paths)  # type: ignore[attr-defined]
+                )
+            ).all()
+            reserved_docs_by_key = {
+                (d.folder_path, d.original_name): d for d in rows
+            }
+            browse_path_selection = session.exec(
+                sqlmodel_select(UserSelectedDocument).where(
+                    UserSelectedDocument.user_id == user.id,
+                    UserSelectedDocument.folder_path == path,
+                )
+            ).first()
+            if browse_path_selection:
+                browse_selected_doc = session.get(
+                    DocModel, browse_path_selection.document_id
+                )
+        except Exception:
+            logger.exception("browse: reserved batch lookup failed for %s", path)
+
+    # Create synthetic entries for reserved folders
+    for reserved_name, (folder_type, reserved_path, sub_files, count) in reserved_meta.items():
         if folder_type == "texte":
-            from sqlmodel import select as sqlmodel_select
-            from backend.models.document import Document as DocModel
-            from backend.models.user_selected_document import UserSelectedDocument
-
             if count == 1:
                 # Single document: show document directly instead of folder
                 single = sub_files[0]
                 single_name = single.get("name", "")
                 single_path = to_user_path(single.get("path_display", ""), root_folder)
-                doc_id = None
-                try:
-                    doc_row = session.exec(
-                        sqlmodel_select(DocModel).where(
-                            DocModel.folder_path == reserved_path,
-                            DocModel.original_name == single_name,
-                        )
-                    ).first()
-                    if doc_row:
-                        doc_id = doc_row.id
-                except Exception:
-                    logger.exception("browse: single-doc lookup failed for %s", reserved_path)
+                doc_row = reserved_docs_by_key.get((reserved_path, single_name))
                 filtered.append({
                     "name": single_name,
                     "display_name": single_name,
                     "path": single_path,
                     "type": "document",
                     "folder_type": "texte",
-                    "doc_id": doc_id,
+                    "doc_id": doc_row.id if doc_row else None,
                     "size": single.get("size", 0),
                     "selected": True,
                 })
@@ -350,29 +374,19 @@ async def dropbox_browse(
                     "reserved": True,
                 })
                 # Also show selected document directly (if user has one)
-                try:
-                    sel = session.exec(
-                        sqlmodel_select(UserSelectedDocument).where(
-                            UserSelectedDocument.user_id == user.id,
-                            UserSelectedDocument.folder_path == path,
-                        )
-                    ).first()
-                    if sel:
-                        doc = session.get(DocModel, sel.document_id)
-                        if doc:
-                            sel_path = reserved_path.rstrip("/") + "/" + doc.original_name
-                            filtered.append({
-                                "name": doc.original_name,
-                                "display_name": doc.original_name,
-                                "path": sel_path,
-                                "type": "document",
-                                "folder_type": "texte",
-                                "doc_id": doc.id,
-                                "size": doc.file_size,
-                                "selected": True,
-                            })
-                except Exception:
-                    logger.exception("browse: selected-doc lookup failed for %s", path)
+                if browse_selected_doc:
+                    doc = browse_selected_doc
+                    sel_path = reserved_path.rstrip("/") + "/" + doc.original_name
+                    filtered.append({
+                        "name": doc.original_name,
+                        "display_name": doc.original_name,
+                        "path": sel_path,
+                        "type": "document",
+                        "folder_type": "texte",
+                        "doc_id": doc.id,
+                        "size": doc.file_size,
+                        "selected": True,
+                    })
         else:
             filtered.append({
                 "name": reserved_name,
@@ -441,9 +455,32 @@ async def dropbox_browse(
 
     # Attach sub_folders + selected_doc to .song folder entries
     from sqlmodel import select as sql_select
-    from backend.models.user_selected_document import UserSelectedDocument
-    from backend.models.document import Document as DocModel
     song_entries = [e for e in filtered if e.get("folder_type") == "song" and e["type"] == "folder"]
+
+    # Batch-Load fuer den Song-Loop: statt pro Song eine UserSelectedDocument-
+    # und eine Document-Query abzusetzen (N+1), laden wir beide jeweils einmal
+    # per IN-Clause und arbeiten dann im Loop nur noch mit Dict-Lookups.
+    song_sels_by_path: dict[str, UserSelectedDocument] = {}
+    song_docs_by_id: dict[int, DocModel] = {}
+    if song_entries:
+        song_paths = [s["path"] for s in song_entries]
+        try:
+            sels = session.exec(
+                sql_select(UserSelectedDocument).where(
+                    UserSelectedDocument.user_id == user.id,
+                    UserSelectedDocument.folder_path.in_(song_paths),  # type: ignore[attr-defined]
+                )
+            ).all()
+            song_sels_by_path = {s.folder_path: s for s in sels}
+            sel_doc_ids = [s.document_id for s in sels if s.document_id]
+            if sel_doc_ids:
+                docs = session.exec(
+                    sql_select(DocModel).where(DocModel.id.in_(sel_doc_ids))  # type: ignore[attr-defined]
+                ).all()
+                song_docs_by_id = {d.id: d for d in docs}
+        except Exception:
+            logger.exception("browse: song batch lookup failed")
+
     for song in song_entries:
         sub_folders = []
         selected_doc = None
@@ -456,23 +493,16 @@ async def dropbox_browse(
             if count > 0:
                 user_sub_path = f"{song['path']}/{reserved_name}"
                 sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
-        # Selected document
-        try:
-            texte_path = f"{song['path']}/Texte"
-            sel = session.exec(
-                sql_select(UserSelectedDocument).where(
-                    UserSelectedDocument.user_id == user.id,
-                    UserSelectedDocument.folder_path == song["path"],
-                )
-            ).first()
-            if sel:
-                doc = session.get(DocModel, sel.document_id)
-                if doc:
-                    selected_doc = {"name": doc.original_name, "path": f"{texte_path}/{doc.original_name}", "doc_id": doc.id}
-            # Query-time auto-select removed — selection is now set
-            # explicitly at upload time or by user action
-        except Exception:
-            logger.exception("browse: song selected-doc lookup failed for %s", song.get("path"))
+        sel = song_sels_by_path.get(song["path"])
+        if sel:
+            doc = song_docs_by_id.get(sel.document_id)
+            if doc:
+                texte_path = f"{song['path']}/Texte"
+                selected_doc = {
+                    "name": doc.original_name,
+                    "path": f"{texte_path}/{doc.original_name}",
+                    "doc_id": doc.id,
+                }
         song["sub_folders"] = sub_folders
         song["selected_doc"] = selected_doc
 
@@ -593,7 +623,29 @@ async def dropbox_search(
     # Enrich .song folder entries with sub_folders + selected_doc so the
     # frontend can auto-navigate into Audio/Texte/Videos and show the
     # song-card header (matching regular browse behavior).
-    for song in [e for e in entries if e.get("folder_type") == "song"]:
+    song_entries = [e for e in entries if e.get("folder_type") == "song"]
+    search_sels_by_path: dict[str, UserSelectedDocument] = {}
+    search_docs_by_id: dict[int, DocModel] = {}
+    if song_entries:
+        song_paths = [s["path"] for s in song_entries]
+        try:
+            sels = session.exec(
+                sql_select(UserSelectedDocument).where(
+                    UserSelectedDocument.user_id == user.id,
+                    UserSelectedDocument.folder_path.in_(song_paths),  # type: ignore[attr-defined]
+                )
+            ).all()
+            search_sels_by_path = {s.folder_path: s for s in sels}
+            sel_doc_ids = [s.document_id for s in sels if s.document_id]
+            if sel_doc_ids:
+                docs = session.exec(
+                    sql_select(DocModel).where(DocModel.id.in_(sel_doc_ids))  # type: ignore[attr-defined]
+                ).all()
+                search_docs_by_id = {d.id: d for d in docs}
+        except Exception:
+            logger.exception("search: song batch lookup failed")
+
+    for song in song_entries:
         sub_folders = []
         selected_doc = None
         song_dbx = to_dropbox_path(song["path"], root_folder)
@@ -605,20 +657,16 @@ async def dropbox_search(
             if count > 0:
                 user_sub_path = f"{song['path']}/{reserved_name}"
                 sub_folders.append({"type": reserved_type, "name": reserved_name, "path": user_sub_path, "count": count})
-        try:
-            texte_path = f"{song['path']}/Texte"
-            sel = session.exec(
-                sql_select(UserSelectedDocument).where(
-                    UserSelectedDocument.user_id == user.id,
-                    UserSelectedDocument.folder_path == song["path"],
-                )
-            ).first()
-            if sel:
-                doc = session.get(DocModel, sel.document_id)
-                if doc:
-                    selected_doc = {"name": doc.original_name, "path": f"{texte_path}/{doc.original_name}", "doc_id": doc.id}
-        except Exception:
-            logger.exception("search: song selected-doc lookup failed for %s", song.get("path"))
+        sel = search_sels_by_path.get(song["path"])
+        if sel:
+            doc = search_docs_by_id.get(sel.document_id)
+            if doc:
+                texte_path = f"{song['path']}/Texte"
+                selected_doc = {
+                    "name": doc.original_name,
+                    "path": f"{texte_path}/{doc.original_name}",
+                    "doc_id": doc.id,
+                }
         song["sub_folders"] = sub_folders
         song["selected_doc"] = selected_doc
 
