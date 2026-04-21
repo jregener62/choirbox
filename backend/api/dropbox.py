@@ -381,8 +381,8 @@ async def dropbox_browse(
 
     # Sync documents from Dropbox to DB, then enrich with doc_id
     if parent_type == "texte":
-        from backend.api.documents import _sync_documents_from_dropbox
-        await _sync_documents_from_dropbox(path, user, session)
+        from backend.services import document_service
+        await document_service.sync_documents_from_dropbox(path, user, session)
 
         from sqlmodel import select as sql_select
         from backend.models.document import Document

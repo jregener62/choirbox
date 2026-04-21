@@ -37,9 +37,9 @@ async def list_documents(
 ):
     from backend.services import draft_service
 
-    texte_path = await _resolve_texte_folder(folder, user, session)
+    texte_path = await document_service.resolve_texte_folder(folder, user, session)
     if texte_path:
-        await _sync_documents_from_dropbox(texte_path, user, session)
+        await document_service.sync_documents_from_dropbox(texte_path, user, session)
         docs = document_service.list_documents(texte_path, user.id, session)
     else:
         docs = []
@@ -65,261 +65,6 @@ async def list_documents(
 
     return {"documents": docs}
 
-
-async def _resolve_texte_folder(
-    folder_path: str, user: User, session: Session
-) -> str | None:
-    """Resolve the Texte folder path from any related path.
-
-    - folder_path IS the Texte folder → return as-is
-    - folder_path is Audio/Videos/Multitrack → go up to parent, find Texte sibling
-    - folder_path is .song or plain → look for Texte child
-    """
-    from backend.services.folder_types import get_parent_folder_type
-
-    folder_type = get_parent_folder_type(folder_path)
-
-    if folder_type == "texte":
-        return folder_path
-
-    if folder_type in ("audio", "multitrack", "videos"):
-        parent = folder_path.rsplit("/", 1)[0] if "/" in folder_path else ""
-        return await _find_reserved_child(parent, "texte", user, session)
-
-    # .song or plain container → look for Texte child
-    return await _find_reserved_child(folder_path, "texte", user, session)
-
-
-async def _find_reserved_child(
-    parent_path: str, reserved_type: str, user: User, session: Session
-) -> str | None:
-    """Find a reserved subfolder by type inside the given Dropbox path."""
-    from backend.services.folder_types import get_reserved_type
-
-    dbx = get_dropbox_service(session)
-    if not dbx:
-        return None
-
-    dropbox_path = dropbox_folder_path(parent_path, user, session)
-    try:
-        entries = await dbx.list_folder(dropbox_path)
-        for e in entries:
-            if e.get(".tag") == "folder" and get_reserved_type(e.get("name", "")) == reserved_type:
-                return parent_path.rstrip("/") + "/" + e.get("name", "")
-    except Exception:
-        pass
-    return None
-
-
-async def _sync_documents_from_dropbox(
-    folder_path: str, user: User, session: Session
-) -> None:
-    """Sync Dropbox .tx folder with documents DB.
-
-    folder_path is the .tx folder path (e.g. '/Song.song/texte.tx').
-
-    Matching erfolgt primaer ueber dropbox_file_id (stabil ueber Rename/Move),
-    sekundaer ueber Name (Backfill-Pfad fuer Documents, die noch keine ID haben).
-    """
-    from backend.services import song_service
-    from backend.services.folder_types import get_song_folder_path
-
-    try:
-        dbx = get_dropbox_service(session)
-        if not dbx:
-            return
-
-        # --- songs-Tabelle pflegen: passender .song-Eltern-Ordner ---
-        song_path = get_song_folder_path(folder_path)
-        song_id_for_docs: int | None = None
-        if song_path:
-            song_dropbox_path = dropbox_folder_path(song_path, user, session)
-            song_meta = await dbx.get_metadata(song_dropbox_path)
-            song_file_id = song_meta.get("id") if song_meta else None
-            song = song_service.upsert_song(session, song_path, song_file_id)
-            song_id_for_docs = song.id
-
-        # Scan the .tx folder directly
-        tx_folder = dropbox_folder_path(folder_path, user, session)
-        texte_entries = []
-        try:
-            texte_entries = await dbx.list_folder(tx_folder)
-        except Exception:
-            pass  # Folder may not exist yet
-
-        # Collect all document files from Texte folder
-        entries = [
-            e for e in texte_entries
-            if e.get(".tag") == "file" and document_service.detect_file_type(e.get("name", ""))
-        ]
-
-        # Build lookups: primaer per file_id, sekundaer per Name (im selben Folder).
-        # Pfad-Variante mit/ohne leading slash beide akzeptieren — historische
-        # Inkonsistenzen kommen vor; der Browse-Endpoint nutzt dasselbe Muster.
-        folder_path_stripped = folder_path.lstrip("/")
-        all_in_folder = session.exec(
-            select(Document).where(
-                (Document.folder_path == folder_path)
-                | (Document.folder_path == folder_path_stripped)
-            )
-        ).all()
-        by_id: dict[str, Document] = {
-            d.dropbox_file_id: d for d in all_in_folder if d.dropbox_file_id
-        }
-        by_name: dict[str, Document] = {d.original_name: d for d in all_in_folder}
-
-        matched_doc_ids: set[int] = set()
-        matched_dbx_ids: set[str] = set()
-
-        for entry in entries:
-            name = entry.get("name", "")
-            file_type = document_service.detect_file_type(name)
-            if not file_type:
-                continue
-
-            dbx_hash = entry.get("content_hash")
-            dbx_size = entry.get("size", 0)
-            dbx_id = entry.get("id")
-            rel_path = document_service.build_dropbox_path(folder_path, name)
-
-            # 1. Match per file_id (gleicher Folder + ID bekannt)
-            doc = by_id.get(dbx_id) if dbx_id else None
-
-            # 2. Fallback: Suche im gesamten Choir nach derselben file_id (Datei
-            # wurde aus einem anderen Texte-Ordner per Move hierher verschoben)
-            if not doc and dbx_id:
-                doc = session.exec(
-                    select(Document).where(Document.dropbox_file_id == dbx_id)
-                ).first()
-
-            # 3. Letzter Fallback: Name-Match im selben Folder (Backfill: Document
-            # existiert noch ohne file_id, weil Sync vor Phase 2 lief)
-            if not doc:
-                doc = by_name.get(name)
-                if doc and doc.dropbox_file_id and doc.dropbox_file_id != dbx_id:
-                    # Name-Kollision aber andere file_id → kein Match, behandle wie neu
-                    doc = None
-
-            if doc:
-                matched_doc_ids.add(doc.id)
-                if dbx_id:
-                    matched_dbx_ids.add(dbx_id)
-
-                changed = False
-                # Backfill / Rename absorbieren
-                if not doc.dropbox_file_id and dbx_id:
-                    doc.dropbox_file_id = dbx_id
-                    changed = True
-                if doc.original_name != name:
-                    doc.original_name = name
-                    changed = True
-                if doc.folder_path != folder_path:
-                    doc.folder_path = folder_path
-                    changed = True
-                if doc.dropbox_path != rel_path:
-                    doc.dropbox_path = rel_path
-                    changed = True
-                if song_id_for_docs and doc.song_id != song_id_for_docs:
-                    doc.song_id = song_id_for_docs
-                    changed = True
-                if changed:
-                    session.add(doc)
-                    session.commit()
-
-                if doc.content_hash == dbx_hash:
-                    continue
-
-                # --- File changed → update ---
-                if file_type == "pdf":
-                    try:
-                        link = await dbx.get_temporary_link(tx_folder.rstrip("/") + "/" + name)
-                        async with httpx.AsyncClient() as client:
-                            resp = await client.get(link)
-                            resp.raise_for_status()
-                        import fitz
-                        pdf = fitz.open(stream=resp.content, filetype="pdf")
-                        page_count = len(pdf)
-                        pdf.close()
-                        document_service.update_document_hash(
-                            doc, dbx_hash, dbx_size, session, page_count=page_count,
-                        )
-                    except Exception:
-                        session.rollback()
-                else:
-                    document_service.update_document_hash(doc, dbx_hash, dbx_size, session)
-                continue
-
-            # --- New file → register ---
-            # Parallele Sync-Laeufe fuer denselben Folder koennen hier kollidieren
-            # (UNIQUE constraint auf dropbox_file_id). Nach IntegrityError muss die
-            # Session per rollback() wieder nutzbar gemacht werden, sonst kippt die
-            # nachgelagerte list_documents-Query mit PendingRollbackError um.
-            if file_type == "pdf":
-                try:
-                    link = await dbx.get_temporary_link(tx_folder.rstrip("/") + "/" + name)
-                    async with httpx.AsyncClient() as client:
-                        resp = await client.get(link)
-                        resp.raise_for_status()
-                    new_doc = document_service.register_pdf(
-                        content=resp.content,
-                        folder_path=folder_path,
-                        original_name=name,
-                        user_id=user.id,
-                        session=session,
-                        content_hash=dbx_hash,
-                        dropbox_path=rel_path,
-                        dropbox_file_id=dbx_id,
-                        song_id=song_id_for_docs,
-                    )
-                    matched_doc_ids.add(new_doc.id)
-                    if dbx_id:
-                        matched_dbx_ids.add(dbx_id)
-                except Exception:
-                    session.rollback()
-            else:
-                new_doc = document_service.register_document(
-                    folder_path=folder_path,
-                    file_type=file_type,
-                    original_name=name,
-                    file_size=dbx_size,
-                    user_id=user.id,
-                    session=session,
-                    content_hash=dbx_hash,
-                    dropbox_path=rel_path,
-                    dropbox_file_id=dbx_id,
-                    song_id=song_id_for_docs,
-                )
-                matched_doc_ids.add(new_doc.id)
-                if dbx_id:
-                    matched_dbx_ids.add(dbx_id)
-
-        # --- Files removed from Dropbox → delete from DB ---
-        # Wichtig: Nur Documents loeschen, die wirklich nicht mehr in diesem
-        # Folder existieren UND deren file_id (falls gesetzt) auch im Choir
-        # nirgends mehr auftaucht. Documents mit file_id, die zwar nicht hier
-        # sind, koennten in einen anderen Ordner verschoben sein und werden
-        # vom resync_all-Folder-Sweep behandelt.
-        #
-        # Grace-Period: Frisch angelegte Documents (z.B. ueber paste-text/Upload)
-        # haben ein Zeitfenster, in dem Dropbox' `list_folder` die neue Datei
-        # noch nicht zurueckgibt (Eventual Consistency). Ohne Schutz wuerde der
-        # gleich folgende Sync das Doc faelschlich loeschen.
-        from datetime import datetime, timedelta
-        grace_cutoff = datetime.utcnow() - timedelta(seconds=60)
-        for doc in all_in_folder:
-            if doc.id in matched_doc_ids:
-                continue
-            if doc.dropbox_file_id:
-                # Wenn die file_id noch irgendwo (auch in einem anderen Folder)
-                # gematcht wurde, ist es ein Move — nicht loeschen.
-                if doc.dropbox_file_id in matched_dbx_ids:
-                    continue
-            if doc.created_at > grace_cutoff:
-                continue  # Zu frisch — Dropbox ist noch nicht konsistent.
-            document_service.delete_document(doc.id, session)
-
-    except Exception:
-        session.rollback()  # Sync failure must never block listing
 
 
 # ---------------------------------------------------------------------------
@@ -358,7 +103,7 @@ async def upload_document(
 
     # --- Document upload (Texte/ folder) ---
     from backend.services.folder_types import get_parent_folder_type
-    texte_path = await _resolve_texte_folder(folder_path, user, session)
+    texte_path = await document_service.resolve_texte_folder(folder_path, user, session)
     if not texte_path:
         parent_type = get_parent_folder_type(folder_path)
         if parent_type == "song":
@@ -507,7 +252,7 @@ async def paste_text(
         folder_path = song_path
 
     # Resolve / create the Texte folder
-    texte_path = await _resolve_texte_folder(folder_path, user, session)
+    texte_path = await document_service.resolve_texte_folder(folder_path, user, session)
     if not texte_path:
         from backend.services.folder_types import get_parent_folder_type
         parent_type = get_parent_folder_type(folder_path)

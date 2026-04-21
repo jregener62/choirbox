@@ -471,7 +471,7 @@ def _strip_root(display_path: str, root: str) -> str:
 async def _count_document_sync_delta(
     folder_path: str, user: User, session: Session, dbx,
 ) -> tuple[int, int, int]:
-    """Dry-Run-Variante von _sync_documents_from_dropbox.
+    """Dry-Run-Variante von document_service.sync_documents_from_dropbox.
 
     Vergleicht einen .tx-Ordner zwischen Dropbox und DB und zaehlt, wie viele
     Dokumente neu hinzugefuegt, aktualisiert oder entfernt wuerden. Schreibt
@@ -574,7 +574,6 @@ async def resync_all(
     from backend.models.note import Note
     from backend.models.section import Section
     from backend.services import document_service
-    from backend.api.documents import _sync_documents_from_dropbox
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import get_reserved_type
     from backend.utils.dropbox_paths import get_choir_root
@@ -669,7 +668,7 @@ async def resync_all(
                 ).all()
             }
 
-            await _sync_documents_from_dropbox(fp, user, session)
+            await document_service.sync_documents_from_dropbox(fp, user, session)
 
             after = {
                 d.original_name: d.content_hash
