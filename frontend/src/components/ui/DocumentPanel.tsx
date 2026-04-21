@@ -208,6 +208,10 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
     fadeTimerRef.current = setTimeout(() => setFabFaded(true), 3000)
   }, [])
 
+  const handleChordSheetCreated = useCallback(() => {
+    useDocumentsStore.getState().load(folderPath)
+  }, [folderPath])
+
   useEffect(() => {
     if (!pdfFullscreen) {
       setFabFaded(false)
@@ -431,7 +435,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           showName={!pdfFullscreen}
           scrollContainerRef={scrollContainerRef}
-          onChordSheetCreated={() => useDocumentsStore.getState().load(folderPath)}
+          onChordSheetCreated={handleChordSheetCreated}
         />
       )}
 

@@ -30,7 +30,6 @@ export function TextViewer({
   const [content, setContent] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [editMode, setEditMode] = useState<EditMode>(null)
-  const [reloadToken] = useState(0)
   const userRole = useAuthStore((s) => s.user?.role)
   const canEdit = hasMinRole(userRole ?? 'guest', 'pro-member')
 
@@ -46,7 +45,7 @@ export function TextViewer({
     }
     fetchContent()
     return () => { cancelled = true }
-  }, [docId, reloadToken])
+  }, [docId])
 
   const handleSaveCho = async (cho: string) => {
     if (!folderPath) throw new Error('Ordnerpfad unbekannt')
