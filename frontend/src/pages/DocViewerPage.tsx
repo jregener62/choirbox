@@ -28,6 +28,15 @@ export function DocViewerPage() {
   const editorActive = useEditorCommands((s) => s.active)
   const editorOnClose = useEditorCommands((s) => s.onClose)
 
+  // Vor dem Load die erwartete activeDocId pre-setzen. Der Store-Fallback
+  // (docs[0]) koennte sonst kurz ein anderes Dokument als aktiv zeigen,
+  // bevor der name-/id-basierte Auto-Select-useEffect greift.
+  useEffect(() => {
+    if (docIdParam) {
+      useDocumentsStore.setState({ activeDocId: docIdParam })
+    }
+  }, [docIdParam])
+
   useEffect(() => {
     if (folder && folder !== loadedFolder) {
       load(folder)

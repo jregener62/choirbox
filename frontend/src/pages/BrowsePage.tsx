@@ -1428,20 +1428,20 @@ export function BrowsePage() {
             defaultTitle={defaultTitle}
             createSongFolder={isRootMode}
             onClose={() => setNewRtfOpen(false)}
-            onSaved={(folderPath, filename) => {
+            onSaved={(folderPath, filename, docId) => {
               setNewRtfOpen(false)
-              // Stale state komplett leeren, damit DocViewerPage nicht das
-              // vorherige Dokument (z.B. ein PDF aus einem anderen Song) als
-              // aktiv weiterreicht, waehrend die neue .rtf noch laedt.
+              // Store mit der neuen doc_id pre-setzen — so greift der Store-
+              // activeStillValid-Check beim ersten Load und der Fallback
+              // docs[0] kann die RTF nicht mehr verdecken.
               useDocumentsStore.setState({
                 loadedFolder: null,
                 documents: [],
-                activeDocId: null,
+                activeDocId: docId,
               })
               useBrowseStore.getState().invalidate(folderPath)
               if (isRootMode) useBrowseStore.getState().invalidate(parentPath)
               navigate(
-                `/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(filename)}&edit=1`,
+                `/doc-viewer?folder=${encodeURIComponent(folderPath)}&name=${encodeURIComponent(filename)}&id=${docId}&edit=1`,
               )
             }}
           />

@@ -11,8 +11,8 @@ interface NewRtfModalProps {
   /** If true, also create a new <title>.song folder under parentPath. */
   createSongFolder?: boolean
   onClose: () => void
-  /** Called with the final Texte-Folder path and the new document's filename. */
-  onSaved: (folderPath: string, filename: string) => void
+  /** Called with the final Texte-Folder path, filename and doc_id. */
+  onSaved: (folderPath: string, filename: string, docId: number) => void
 }
 
 /**
@@ -41,7 +41,7 @@ export function NewRtfModal({
     setError('')
     try {
       const trimmedTitle = title.trim()
-      const result = await api<{ folder_path: string; original_name: string }>(
+      const result = await api<{ id: number; folder_path: string; original_name: string }>(
         '/documents/paste-text',
         {
           method: 'POST',
@@ -54,7 +54,7 @@ export function NewRtfModal({
           },
         },
       )
-      onSaved(result.folder_path, result.original_name)
+      onSaved(result.folder_path, result.original_name, result.id)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Anlegen fehlgeschlagen')
       setPhase('error')
