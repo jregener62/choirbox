@@ -784,7 +784,7 @@ Chord Sheets sind transponierbare Akkord-Texte. Sie liegen als `.cho`-Dateien im
 
 Drei Wege fuehren zu einer `.cho`-Datei:
 
-1. **"Neues Chordsheet"** (Upload-Auswahl-Modal) — legt leere `.cho` an und oeffnet den SheetEditor direkt (Edit-First-Workflow analog `.rtf`). Inhalt wird im Editor getippt oder aus der Zwischenablage eingefuegt; beim Speichern greift die Format-Auto-Detection (ChordPro vs. „Akkord-Zeile ueber Lyrics").
+1. **"Neues Chordsheet"** (Upload-Auswahl-Modal) — legt `.cho` mit minimalem Titel-Header (`{title: <Name>}` + `# Angelegt <Datum>`-Kommentar) an und oeffnet den SheetEditor direkt (Edit-First-Workflow analog `.rtf`). Inhalt wird im Editor getippt oder aus der Zwischenablage eingefuegt; fuer Plain-Text steht der „ChordPro"-Konvertier-Button im Toolbar bereit. Der Titel-Header vermeidet 0-Byte-Files (die der Dropbox-Sync vorher gelegentlich als verwaist behandelt hat) und dient externen ChordPro-Tools als Metadata.
 2. **"Datei auswaehlen"** + `.cho`-Datei — direkter Upload einer ChordPro-Datei.
 3. **"Chordsheet erstellen"** im `.txt`-Viewer — erzeugt eine `.cho` auf Basis des Liedtexts (Legacy-Konvertierung fuer Altbestaende), oeffnet direkt den Akkord-Editor (siehe ["Akkord-Eingabe per Tap"](#akkord-eingabe-per-tap)).
 
@@ -1905,6 +1905,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### Neu angelegte .cho verschwand sofort wieder aus der Liste
+
+Beim „Neues Chordsheet"-Flow wurde das neu angelegte Document zuerst korrekt in der DB registriert und nach Dropbox hochgeladen, verschwand aber bei der unmittelbar folgenden `GET /documents/list` wieder. Ursache: `_sync_documents_from_dropbox` vergleicht DB-Dokumente mit dem Ergebnis von `list_folder` und loescht verwaiste DB-Eintraege. Dropbox' `list_folder` ist jedoch *eventually consistent* — ein Upload ist nicht sofort im naechsten Listing sichtbar. Wurde der Sync in dieses Fenster hinein getriggert, fand er die neue `.cho` nicht und markierte das DB-Document als verwaist. Fix: (a) Im Sync eine Grace-Period von 60 Sekunden basierend auf `Document.created_at` — frisch angelegte Docs sind vor Deletion geschuetzt, bis Dropbox sie listet. (b) Leere `.cho` werden nicht mehr mit 0 Bytes angelegt: das paste-text-Endpoint schreibt einen minimalen ChordPro-Header (`{title: <Name>}` + `# Angelegt <Datum>`).
 
 ### ChordPro: Akkorde driften gegenueber dem Text auf iPhone im Landscape
 

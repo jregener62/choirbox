@@ -330,6 +330,13 @@ async def _sync_documents_from_dropbox(
         # nirgends mehr auftaucht. Documents mit file_id, die zwar nicht hier
         # sind, koennten in einen anderen Ordner verschoben sein und werden
         # vom resync_all-Folder-Sweep behandelt.
+        #
+        # Grace-Period: Frisch angelegte Documents (z.B. ueber paste-text/Upload)
+        # haben ein Zeitfenster, in dem Dropbox' `list_folder` die neue Datei
+        # noch nicht zurueckgibt (Eventual Consistency). Ohne Schutz wuerde der
+        # gleich folgende Sync das Doc faelschlich loeschen.
+        from datetime import datetime, timedelta
+        grace_cutoff = datetime.utcnow() - timedelta(seconds=60)
         for doc in all_in_folder:
             if doc.id in matched_doc_ids:
                 continue
@@ -338,6 +345,8 @@ async def _sync_documents_from_dropbox(
                 # gematcht wurde, ist es ein Move — nicht loeschen.
                 if doc.dropbox_file_id in matched_dbx_ids:
                     continue
+            if doc.created_at > grace_cutoff:
+                continue  # Zu frisch — Dropbox ist noch nicht konsistent.
             document_service.delete_document(doc.id, session)
 
     except Exception:
@@ -483,7 +492,10 @@ async def paste_text(
         raise HTTPException(400, "file_type muss 'txt', 'cho' oder 'rtf' sein")
 
     # RTF und CHO duerfen leer angelegt werden (Editor-First-Workflow) — fuer
-    # RTF wrappen wir einen Default-Header, fuer CHO bleibt der Body leer.
+    # RTF wrappen wir einen Default-Header, fuer CHO schreiben wir einen
+    # minimalen `{title:}`-ChordPro-Header mit Anlage-Datum. Das verhindert
+    # 0-Byte-Files (die beim Dropbox-Sync evtl. als verwaist erkannt werden)
+    # und gibt dem Editor sofort sinnvollen Start-Inhalt.
     text = body.text if body.file_type in ("rtf", "cho") else body.text.strip()
     if not text:
         if body.file_type == "rtf":
@@ -493,7 +505,9 @@ async def paste_text(
                 "\\fs24\n}"
             )
         elif body.file_type == "cho":
-            text = ""
+            from datetime import date
+            safe_title = body.title.strip() or "Untitled"
+            text = f"{{title: {safe_title}}}\n# Angelegt {date.today().isoformat()}\n"
         else:
             raise HTTPException(400, "Kein Text uebergeben")
 
