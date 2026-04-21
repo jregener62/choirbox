@@ -2179,6 +2179,10 @@ Textdateien mit U+2028 (Line Separator) wurden im Viewer ohne Zeilenumbrueche da
 
 Der Topheader (`.topbar`) der Settings-Seite war `position: static` und scrollte beim Scrollen der Seite mit nach oben aus dem Viewport. Gleiches galt fuer alle Admin-Unterseiten (Nutzer, Labels, Sektionsvorlagen, Choere), die das gleiche Layout-Pattern (plain `<div>` Wrapper im `.main-content`-Scroll-Container) nutzen. Fix: `.topbar` ist jetzt global `position: sticky; top: 0; z-index: 10` — bleibt am oberen Rand kleben, waehrend der Inhalt darunter scrollt. `.topbar--hidden` ueberschreibt das weiterhin mit `position: absolute` fuer den Fullscreen-Modus im PDF-Viewer.
 
+### Label-Picker ohne Inhalt wirkte kaputt
+
+Wenn in einem Chor ausser Stimme-Labels keine weiteren Labels definiert waren, oeffnete der Label-Picker per Swipe ein leeres Modal — nur Titel und "Fertig"-Button, ohne Hinweis was zu tun ist. Fix: Wenn die gefilterte Label-Liste leer ist, zeigt der Picker jetzt "Noch keine Labels vorhanden" im Standard-`.empty-state`-Stil.
+
 ## Sicherheit
 
 ### Security Headers Middleware

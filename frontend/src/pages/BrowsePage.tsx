@@ -1203,26 +1203,34 @@ export function BrowsePage() {
           cancelLabel={null}
           variant="secondary"
         >
-          <div className="label-picker" style={{ margin: 0 }}>
-            {labels.filter((l) => l.category !== 'Stimme').map((l) => {
-              const assigned = isAssigned(swipeLabelPath, l.id)
-              return (
-                <button
-                  key={l.id}
-                  className={`label-picker-item ${assigned ? 'assigned' : ''}`}
-                  style={{
-                    borderColor: assigned ? l.color : 'var(--border)',
-                    background: assigned ? l.color + '25' : 'none',
-                    color: assigned ? l.color : 'var(--text-secondary)',
-                  }}
-                  onClick={() => toggleLabel(swipeLabelPath, l.id)}
-                >
-                  <span className="label-picker-dot" style={{ background: l.color }} />
-                  {l.name}
-                </button>
-              )
-            })}
-          </div>
+          {(() => {
+            const pickerLabels = labels.filter((l) => l.category !== 'Stimme')
+            if (pickerLabels.length === 0) {
+              return <div className="empty-state">Noch keine Labels vorhanden</div>
+            }
+            return (
+              <div className="label-picker" style={{ margin: 0 }}>
+                {pickerLabels.map((l) => {
+                  const assigned = isAssigned(swipeLabelPath, l.id)
+                  return (
+                    <button
+                      key={l.id}
+                      className={`label-picker-item ${assigned ? 'assigned' : ''}`}
+                      style={{
+                        borderColor: assigned ? l.color : 'var(--border)',
+                        background: assigned ? l.color + '25' : 'none',
+                        color: assigned ? l.color : 'var(--text-secondary)',
+                      }}
+                      onClick={() => toggleLabel(swipeLabelPath, l.id)}
+                    >
+                      <span className="label-picker-dot" style={{ background: l.color }} />
+                      {l.name}
+                    </button>
+                  )
+                })}
+              </div>
+            )
+          })()}
         </ConfirmDialog>
       )}
 
