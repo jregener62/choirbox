@@ -1,6 +1,7 @@
 """Feedback API — create and list GitHub issues from within the app."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session
 
 from backend.database import get_session
@@ -10,6 +11,12 @@ from backend.schemas import ActionResponse
 from backend.services import github_service
 
 router = APIRouter(prefix="/feedback", tags=["feedback"])
+
+
+class CreateIssueBody(BaseModel):
+    title: str = ""
+    description: str = ""
+    type: str = "bug"  # "bug" or "feature"
 
 
 def _require_bug_reporter(
@@ -34,7 +41,7 @@ async def list_issues(user: User = Depends(_require_bug_reporter)):
 
 @router.post("")
 async def create_issue(
-    data: dict,
+    body: CreateIssueBody,
     user: User = Depends(_require_bug_reporter),
     session: Session = Depends(get_session),
 ):
@@ -42,9 +49,9 @@ async def create_issue(
     if not github_service.is_configured():
         raise HTTPException(503, "GitHub nicht konfiguriert")
 
-    title = (data.get("title") or "").strip()
-    description = (data.get("description") or "").strip()
-    issue_type = data.get("type", "bug")  # "bug" or "feature"
+    title = body.title.strip()
+    description = body.description.strip()
+    issue_type = body.type
 
     if not title:
         raise HTTPException(400, "Titel ist erforderlich")

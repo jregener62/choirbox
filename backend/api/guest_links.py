@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel
 from sqlmodel import Session
 
 from backend.services.auth_service import create_token, user_response
@@ -123,21 +124,32 @@ def list_guest_links(
     return [_link_to_dict(l) for l in links]
 
 
+class CreateGuestLinkBody(BaseModel):
+    label: str | None = None
+    # ttl_minutes + max_uses akzeptieren sowohl Zahlen als auch Strings, weil
+    # die Admin-UI das Feld aus einem HTML-Input uebernimmt. Leerer String
+    # oder None bedeutet "nicht gesetzt".
+    ttl_minutes: int | str | None = None
+    max_uses: int | str | None = None
+    view_mode: str = "songs"
+
+
 @router.post("")
 def create_guest_link(
-    data: dict,
+    body: CreateGuestLinkBody,
     user: User = Depends(require_permission("guest_links.manage")),
     session: Session = Depends(get_session),
 ):
-    label = (data.get("label") or "").strip() or None
-    ttl_minutes: Optional[int] = data.get("ttl_minutes")
-    if ttl_minutes is not None:
+    label = (body.label or "").strip() or None
+    ttl_raw = body.ttl_minutes
+    ttl_minutes: Optional[int] = None
+    if ttl_raw not in (None, ""):
         try:
-            ttl_minutes = int(ttl_minutes)
+            ttl_minutes = int(ttl_raw)
         except (TypeError, ValueError):
             raise HTTPException(400, "ttl_minutes muss eine Zahl sein")
 
-    max_uses_raw = data.get("max_uses")
+    max_uses_raw = body.max_uses
     max_uses: Optional[int]
     if max_uses_raw in (None, "", 0):
         # Leeres Feld / 0 = unbegrenzt (Multi-Use).
@@ -150,7 +162,7 @@ def create_guest_link(
         if max_uses < 1:
             raise HTTPException(400, "max_uses muss mindestens 1 sein")
 
-    view_mode = (data.get("view_mode") or "songs").strip()
+    view_mode = body.view_mode.strip() or "songs"
 
     try:
         link, plaintext_token = create_link(
@@ -185,16 +197,20 @@ def revoke_guest_link(
 # Public: Redeem
 # ---------------------------------------------------------------------------
 
+class RedeemGuestLinkBody(BaseModel):
+    token: str = ""
+
+
 @router.post("/redeem")
 def redeem_guest_link(
-    data: dict,
+    body: RedeemGuestLinkBody,
     request: Request,
     session: Session = Depends(get_session),
 ):
     ip = _client_ip(request)
     _check_redeem_rate_limit(ip)
 
-    token = (data.get("token") or "").strip()
+    token = body.token.strip()
     if not token:
         _record_redeem_attempt(ip)
         raise HTTPException(400, "token fehlt")

@@ -1,6 +1,7 @@
 """Section Presets API — pro-members manage reusable section name/color presets."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -12,6 +13,22 @@ from backend.schemas import ActionResponse
 router = APIRouter(prefix="/section-presets", tags=["section-presets"])
 
 
+class CreatePresetBody(BaseModel):
+    name: str = ""
+    color: str = "#8b5cf6"
+    sort_order: int = 0
+    shortcode: str | None = None
+    max_num: int = 0
+
+
+class UpdatePresetBody(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    sort_order: int | None = None
+    shortcode: str | None = None
+    max_num: int | None = None
+
+
 @router.get("")
 def list_presets(user: User = Depends(require_permission("sections.presets.read")), session: Session = Depends(get_session)):
     presets = session.exec(select(SectionPreset).where(SectionPreset.choir_id == user.choir_id).order_by(SectionPreset.sort_order)).all()
@@ -19,17 +36,17 @@ def list_presets(user: User = Depends(require_permission("sections.presets.read"
 
 
 @router.post("")
-def create_preset(data: dict, user: User = Depends(require_permission("sections.presets.manage")), session: Session = Depends(get_session)):
-    name = data.get("name", "").strip()
+def create_preset(body: CreatePresetBody, user: User = Depends(require_permission("sections.presets.manage")), session: Session = Depends(get_session)):
+    name = body.name.strip()
     if not name:
         raise HTTPException(400, "name is required")
 
     preset = SectionPreset(
         name=name,
-        color=data.get("color", "#8b5cf6"),
-        sort_order=data.get("sort_order", 0),
-        shortcode=data.get("shortcode", name),
-        max_num=data.get("max_num", 0),
+        color=body.color,
+        sort_order=body.sort_order,
+        shortcode=body.shortcode or name,
+        max_num=body.max_num,
         choir_id=user.choir_id,
     )
     session.add(preset)
@@ -41,7 +58,7 @@ def create_preset(data: dict, user: User = Depends(require_permission("sections.
 @router.put("/{preset_id}")
 def update_preset(
     preset_id: int,
-    data: dict,
+    body: UpdatePresetBody,
     user: User = Depends(require_permission("sections.presets.manage")),
     session: Session = Depends(get_session),
 ):
@@ -50,8 +67,9 @@ def update_preset(
         raise HTTPException(404, "Preset not found")
 
     for field in ["name", "color", "sort_order", "shortcode", "max_num"]:
-        if field in data:
-            setattr(preset, field, data[field])
+        value = getattr(body, field)
+        if value is not None:
+            setattr(preset, field, value)
 
     session.add(preset)
     session.commit()

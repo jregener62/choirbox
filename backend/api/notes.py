@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -51,19 +52,25 @@ def list_notes(
     ]
 
 
+class SaveNoteBody(BaseModel):
+    dropbox_path: str = ""
+    text: str = ""
+    section_id: int | None = None  # None = track-level
+
+
 @router.put("")
 async def save_note(
-    data: dict,
+    body: SaveNoteBody,
     user: User = Depends(require_permission("notes.write")),
     session: Session = Depends(get_session),
 ):
     """Upsert a note. section_id=null for track-level note."""
-    dropbox_path = data.get("dropbox_path", "").strip()
+    dropbox_path = body.dropbox_path.strip()
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
 
-    text = data.get("text", "").strip()
-    section_id = data.get("section_id")  # None = track-level
+    text = body.text.strip()
+    section_id = body.section_id
 
     # Find existing note
     query = select(Note).where(
@@ -114,20 +121,23 @@ async def save_note(
     })
 
 
+class SaveNotesBulkBody(BaseModel):
+    dropbox_path: str = ""
+    notes: list[dict] = []
+
+
 @router.put("/bulk")
 async def save_notes_bulk(
-    data: dict,
+    body: SaveNotesBulkBody,
     user: User = Depends(require_permission("notes.write")),
     session: Session = Depends(get_session),
 ):
     """Bulk save notes for a track (track note + section notes at once)."""
-    dropbox_path = data.get("dropbox_path", "").strip()
+    dropbox_path = body.dropbox_path.strip()
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
 
-    notes_data = data.get("notes", [])
-    if not isinstance(notes_data, list):
-        raise HTTPException(400, "notes must be a list")
+    notes_data = body.notes
 
     now = datetime.utcnow()
     target_file_id = await _resolve_target_file_id(dropbox_path, user, session)

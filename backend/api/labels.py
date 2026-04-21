@@ -1,6 +1,7 @@
 """Labels API — admin manages labels, users assign them to tracks."""
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -13,6 +14,29 @@ from backend.services import path_resolver
 from backend.services.dropbox_service import get_dropbox_service
 
 router = APIRouter(prefix="/labels", tags=["labels"])
+
+
+class CreateLabelBody(BaseModel):
+    name: str = ""
+    color: str = "#6366f1"
+    category: str | None = None
+    sort_order: int = 0
+    shortcode: str | None = None
+    aliases: str | None = None
+
+
+class UpdateLabelBody(BaseModel):
+    name: str | None = None
+    color: str | None = None
+    category: str | None = None
+    sort_order: int | None = None
+    shortcode: str | None = None
+    aliases: str | None = None
+
+
+class AssignLabelBody(BaseModel):
+    dropbox_path: str = ""
+    label_id: int | None = None
 
 
 async def _resolve_target_file_id(rel_path: str, user: User, session: Session) -> str | None:
@@ -42,18 +66,18 @@ def list_labels(user: User = Depends(require_permission("labels.read")), session
 
 
 @router.post("")
-def create_label(data: dict, user: User = Depends(require_permission("labels.manage")), session: Session = Depends(get_session)):
-    name = data.get("name", "").strip()
+def create_label(body: CreateLabelBody, user: User = Depends(require_permission("labels.manage")), session: Session = Depends(get_session)):
+    name = body.name.strip()
     if not name:
         raise HTTPException(400, "name is required")
 
     label = Label(
         name=name,
-        color=data.get("color", "#6366f1"),
-        category=data.get("category"),
-        sort_order=data.get("sort_order", 0),
-        shortcode=data.get("shortcode"),
-        aliases=data.get("aliases"),
+        color=body.color,
+        category=body.category,
+        sort_order=body.sort_order,
+        shortcode=body.shortcode,
+        aliases=body.aliases,
         choir_id=user.choir_id,
     )
     session.add(label)
@@ -65,7 +89,7 @@ def create_label(data: dict, user: User = Depends(require_permission("labels.man
 @router.put("/{label_id}")
 def update_label(
     label_id: int,
-    data: dict,
+    body: UpdateLabelBody,
     user: User = Depends(require_permission("labels.manage")),
     session: Session = Depends(get_session),
 ):
@@ -75,8 +99,9 @@ def update_label(
 
     was_stimme = label.category == "Stimme"
     for field in ["name", "color", "category", "sort_order", "shortcode", "aliases"]:
-        if field in data:
-            setattr(label, field, data[field])
+        value = getattr(body, field)
+        if value is not None:
+            setattr(label, field, value)
 
     session.add(label)
     session.commit()
@@ -129,9 +154,9 @@ def get_my_labels(
 
 
 @router.post("/my")
-async def assign_label(data: dict, user: User = Depends(require_permission("labels.my.write")), session: Session = Depends(get_session)):
-    dropbox_path = data.get("dropbox_path", "").strip()
-    label_id = data.get("label_id")
+async def assign_label(body: AssignLabelBody, user: User = Depends(require_permission("labels.my.write")), session: Session = Depends(get_session)):
+    dropbox_path = body.dropbox_path.strip()
+    label_id = body.label_id
     if not dropbox_path or not label_id:
         raise HTTPException(400, "dropbox_path and label_id are required")
 
@@ -165,10 +190,10 @@ async def assign_label(data: dict, user: User = Depends(require_permission("labe
 
 
 @router.post("/my/toggle")
-async def toggle_label(data: dict, user: User = Depends(require_permission("labels.my.write")), session: Session = Depends(get_session)):
+async def toggle_label(body: AssignLabelBody, user: User = Depends(require_permission("labels.my.write")), session: Session = Depends(get_session)):
     """Toggle label assignment: add if not exists, remove if exists."""
-    dropbox_path = data.get("dropbox_path", "").strip()
-    label_id = data.get("label_id")
+    dropbox_path = body.dropbox_path.strip()
+    label_id = body.label_id
     if not dropbox_path or not label_id:
         raise HTTPException(400, "dropbox_path and label_id are required")
 

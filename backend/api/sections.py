@@ -2,6 +2,7 @@
 
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -12,6 +13,33 @@ from backend.policy import require_permission
 from backend.schemas import ActionResponse
 
 router = APIRouter(prefix="/sections", tags=["sections"])
+
+
+class SectionsBulkBody(BaseModel):
+    folder_path: str = ""
+    sections: list[dict] = []
+
+
+class CreateSectionBody(BaseModel):
+    folder_path: str = ""
+    label: str = ""
+    color: str = "#8b5cf6"
+    start_time: float | None = None
+    end_time: float | None = None
+    sort_order: int = 0
+
+
+class SaveLyricsBulkBody(BaseModel):
+    sections: list[dict] = []
+
+
+class UpdateSectionBody(BaseModel):
+    label: str | None = None
+    color: str | None = None
+    start_time: float | None = None
+    end_time: float | None = None
+    sort_order: int | None = None
+    lyrics: str | None = None
 
 
 @router.get("")
@@ -44,16 +72,16 @@ def list_sections(
 
 @router.post("/bulk")
 def create_sections_bulk(
-    data: dict,
+    body: SectionsBulkBody,
     user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
-    folder_path = data.get("folder_path", "").strip()
-    entries = data.get("sections", [])
+    folder_path = body.folder_path.strip()
+    entries = body.sections
 
     if not folder_path:
         raise HTTPException(400, "folder_path is required")
-    if not isinstance(entries, list) or len(entries) < 1:
+    if not entries:
         raise HTTPException(400, "sections must be a non-empty list")
 
     ids = []
@@ -90,16 +118,16 @@ def create_sections_bulk(
 
 @router.post("")
 def create_section(
-    data: dict,
+    body: CreateSectionBody,
     user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
-    folder_path = data.get("folder_path", "").strip()
-    label = data.get("label", "").strip()
-    color = data.get("color", "#8b5cf6").strip()
-    start_time = data.get("start_time")
-    end_time = data.get("end_time")
-    sort_order = data.get("sort_order", 0)
+    folder_path = body.folder_path.strip()
+    label = body.label.strip()
+    color = body.color.strip()
+    start_time = body.start_time
+    end_time = body.end_time
+    sort_order = body.sort_order
 
     if not folder_path:
         raise HTTPException(400, "folder_path is required")
@@ -127,14 +155,12 @@ def create_section(
 
 @router.put("/lyrics")
 def save_lyrics_bulk(
-    data: dict,
+    body: SaveLyricsBulkBody,
     user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
     """Bulk save lyrics for multiple sections at once."""
-    entries = data.get("sections", [])
-    if not isinstance(entries, list):
-        raise HTTPException(400, "sections must be a list")
+    entries = body.sections
 
     now = datetime.utcnow()
     for entry in entries:
@@ -155,7 +181,7 @@ def save_lyrics_bulk(
 @router.put("/{section_id}")
 def update_section(
     section_id: int,
-    data: dict,
+    body: UpdateSectionBody,
     user: User = Depends(require_permission("sections.manage")),
     session: Session = Depends(get_session),
 ):
@@ -163,18 +189,18 @@ def update_section(
     if not section:
         raise HTTPException(404, "Section not found")
 
-    if "label" in data:
-        section.label = data["label"].strip()
-    if "color" in data:
-        section.color = data["color"].strip()
-    if "start_time" in data:
-        section.start_time = float(data["start_time"])
-    if "end_time" in data:
-        section.end_time = float(data["end_time"])
-    if "sort_order" in data:
-        section.sort_order = int(data["sort_order"])
-    if "lyrics" in data:
-        section.lyrics = (data["lyrics"] or "").strip() or None
+    if body.label is not None:
+        section.label = body.label.strip()
+    if body.color is not None:
+        section.color = body.color.strip()
+    if body.start_time is not None:
+        section.start_time = float(body.start_time)
+    if body.end_time is not None:
+        section.end_time = float(body.end_time)
+    if body.sort_order is not None:
+        section.sort_order = int(body.sort_order)
+    if body.lyrics is not None:
+        section.lyrics = body.lyrics.strip() or None
 
     if section.end_time <= section.start_time:
         raise HTTPException(400, "end_time must be greater than start_time")

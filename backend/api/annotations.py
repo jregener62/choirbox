@@ -3,6 +3,7 @@
 import json
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -33,15 +34,21 @@ def get_annotations(
     return {"strokes": json.loads(annotation.strokes_json)}
 
 
+class UpsertAnnotationsBody(BaseModel):
+    doc_id: int | None = None
+    page: int | None = None
+    strokes: list | None = None
+
+
 @router.put("")
 def upsert_annotations(
-    data: dict,
+    body: UpsertAnnotationsBody,
     user: User = Depends(require_permission("annotations.write")),
     session: Session = Depends(get_session),
 ):
-    doc_id = data.get("doc_id")
-    page = data.get("page")
-    strokes = data.get("strokes")
+    doc_id = body.doc_id
+    page = body.page
+    strokes = body.strokes
     if not doc_id or page is None or strokes is None:
         raise HTTPException(400, "doc_id, page and strokes are required")
 

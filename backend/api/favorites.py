@@ -2,6 +2,7 @@
 
 import os
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
@@ -13,6 +14,11 @@ from backend.services import path_resolver
 from backend.services.dropbox_service import get_dropbox_service
 
 router = APIRouter(prefix="/favorites", tags=["favorites"])
+
+
+class FavoriteBody(BaseModel):
+    dropbox_path: str = ""
+    entry_type: str = "file"
 
 
 def _set_favorite_anchors(fav: Favorite, target: path_resolver.ResolvedTarget) -> None:
@@ -59,8 +65,8 @@ def list_favorites(user: User = Depends(require_permission("favorites.read")), s
 
 
 @router.post("")
-async def add_favorite(data: dict, user: User = Depends(require_permission("favorites.write")), session: Session = Depends(get_session)):
-    dropbox_path = data.get("dropbox_path", "").strip()
+async def add_favorite(body: FavoriteBody, user: User = Depends(require_permission("favorites.write")), session: Session = Depends(get_session)):
+    dropbox_path = body.dropbox_path.strip()
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
 
@@ -74,7 +80,7 @@ async def add_favorite(data: dict, user: User = Depends(require_permission("favo
     if existing:
         return ActionResponse.success(data={"id": existing.id, "already_exists": True})
 
-    entry_type_hint = data.get("entry_type", "file")
+    entry_type_hint = body.entry_type
     file_name = os.path.basename(dropbox_path)
     target = await _resolve_or_legacy(dropbox_path, entry_type_hint, user, session)
 
@@ -106,9 +112,9 @@ def remove_favorite(
 
 
 @router.post("/toggle")
-async def toggle_favorite(data: dict, user: User = Depends(require_permission("favorites.write")), session: Session = Depends(get_session)):
+async def toggle_favorite(body: FavoriteBody, user: User = Depends(require_permission("favorites.write")), session: Session = Depends(get_session)):
     """Toggle favorite: add if not exists, remove if exists. Returns new state."""
-    dropbox_path = data.get("dropbox_path", "").strip()
+    dropbox_path = body.dropbox_path.strip()
     if not dropbox_path:
         raise HTTPException(400, "dropbox_path is required")
 
@@ -124,7 +130,7 @@ async def toggle_favorite(data: dict, user: User = Depends(require_permission("f
         session.commit()
         return ActionResponse.success(data={"is_favorite": False})
     else:
-        entry_type_hint = data.get("entry_type", "file")
+        entry_type_hint = body.entry_type
         file_name = os.path.basename(dropbox_path)
         target = await _resolve_or_legacy(dropbox_path, entry_type_hint, user, session)
 

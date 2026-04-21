@@ -10,12 +10,33 @@ from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, Uplo
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session, select
 
+from pydantic import BaseModel
+
 from backend.config import DROPBOX_APP_KEY, DROPBOX_APP_SECRET, DROPBOX_REDIRECT_URI
 from backend.database import get_session
 from backend.models.app_settings import AppSettings
 from backend.models.user import User
 from backend.policy import require_permission
 from backend.schemas import ActionResponse
+
+
+class CreateFolderBody(BaseModel):
+    name: str = ""
+    path: str = ""
+
+
+class RenamePathBody(BaseModel):
+    path: str = ""
+    new_name: str = ""
+
+
+class DuplicatePathBody(BaseModel):
+    path: str = ""
+
+
+class ReportDurationBody(BaseModel):
+    path: str = ""
+    duration: float | int | None = None
 from backend.utils.dropbox_paths import (
     get_choir_root,
     to_dropbox_path,
@@ -913,7 +934,7 @@ async def dropbox_delete_file(
 
 @router.post("/folder")
 async def dropbox_create_folder(
-    data: dict,
+    body: CreateFolderBody,
     user: User = Depends(require_permission("folders.create")),
     session: Session = Depends(get_session),
 ):
@@ -921,8 +942,8 @@ async def dropbox_create_folder(
     from backend.services.dropbox_service import get_dropbox_service
     from backend.services.folder_types import is_reserved_name
 
-    name = (data.get("name") or "").strip()
-    path = data.get("path", "")
+    name = body.name.strip()
+    path = body.path
     if not name:
         raise HTTPException(400, "Ordnername ist erforderlich")
     if is_reserved_name(name):
@@ -1014,15 +1035,15 @@ async def dropbox_delete_folder(
 
 @router.post("/rename")
 async def dropbox_rename(
-    data: dict,
+    body: RenamePathBody,
     user: User = Depends(require_permission("documents.rename")),
     session: Session = Depends(get_session),
 ):
     """Rename a file or folder in Dropbox. Requires Pro-Member role."""
     from backend.services.dropbox_service import get_dropbox_service
 
-    path = (data.get("path") or "").strip()
-    new_name = (data.get("new_name") or "").strip()
+    path = body.path.strip()
+    new_name = body.new_name.strip()
     if not path or not new_name:
         raise HTTPException(400, "path und new_name sind erforderlich")
 
@@ -1166,7 +1187,7 @@ def _find_kopie_name(stem: str, ext: str, existing_names_lower: set[str]) -> str
 
 @router.post("/duplicate")
 async def dropbox_duplicate(
-    data: dict,
+    body: DuplicatePathBody,
     user: User = Depends(require_permission("documents.duplicate")),
     session: Session = Depends(get_session),
 ):
@@ -1176,7 +1197,7 @@ async def dropbox_duplicate(
     regenerieren sich beim naechsten Browse."""
     from backend.services.dropbox_service import get_dropbox_service
 
-    path = (data.get("path") or "").strip()
+    path = body.path.strip()
     if not path:
         raise HTTPException(400, "path ist erforderlich")
 
@@ -1231,16 +1252,16 @@ async def dropbox_duplicate(
 
 @router.post("/duration")
 def report_duration(
-    data: dict,
+    body: ReportDurationBody,
     user: User = Depends(require_permission("audio.metadata.cache")),
     session: Session = Depends(get_session),
 ):
     """Cache a track's audio duration (reported by the frontend)."""
     from backend.services.audio_duration_service import save_duration
 
-    path = (data.get("path") or "").strip()
-    duration = data.get("duration")
-    if not path or not isinstance(duration, (int, float)) or duration <= 0:
+    path = body.path.strip()
+    duration = body.duration
+    if not path or duration is None or duration <= 0:
         raise HTTPException(400, "path and positive duration required")
 
     save_duration(session, path, float(duration))

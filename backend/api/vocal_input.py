@@ -8,6 +8,7 @@ the displayed text, but needs to put them back on save).
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from backend.models.user import User
 from backend.policy import require_permission
@@ -24,9 +25,15 @@ from backend.services.vocal_export_service import (
 router = APIRouter(prefix="/vocal-input", tags=["vocal-input"])
 
 
+class ExportVocalBody(BaseModel):
+    text: str = ""
+    marks: list = []
+    chords: list = []
+
+
 @router.post("/export")
 def export_vocal_chordpro(
-    data: dict,
+    body: ExportVocalBody,
     user: User = Depends(require_permission("chord_input.edit")),
 ):
     """Build ChordPro body with `{v:token}` (and optionally `[chord]`) markers.
@@ -39,13 +46,8 @@ def export_vocal_chordpro(
     }
     Response: { "cho_content": "..." }
     """
-    text = data.get("text", "")
-    if not isinstance(text, str):
-        raise HTTPException(400, "text must be a string")
-
-    raw_marks = data.get("marks", [])
-    if not isinstance(raw_marks, list):
-        raise HTTPException(400, "marks must be a list")
+    text = body.text
+    raw_marks = body.marks
 
     marks: list[VocalMark] = []
     for idx, m in enumerate(raw_marks):
@@ -64,9 +66,7 @@ def export_vocal_chordpro(
             )
         marks.append(VocalMark(line, col, token.strip()))
 
-    raw_chords = data.get("chords", [])
-    if not isinstance(raw_chords, list):
-        raise HTTPException(400, "chords must be a list")
+    raw_chords = body.chords
 
     chords: list[ChordPosition] = []
     for idx, c in enumerate(raw_chords):

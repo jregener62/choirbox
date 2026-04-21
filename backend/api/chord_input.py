@@ -7,6 +7,7 @@ vocal-instruction markers (`{v:xxx}`) across a round-trip.
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 
 from backend.models.user import User
 from backend.policy import require_permission
@@ -23,9 +24,15 @@ from backend.services.vocal_export_service import (
 router = APIRouter(prefix="/chord-input", tags=["chord-input"])
 
 
+class ExportChordProBody(BaseModel):
+    text: str = ""
+    chords: list = []
+    vocals: list = []
+
+
 @router.post("/export")
 def export_chordpro(
-    data: dict,
+    body: ExportChordProBody,
     user: User = Depends(require_permission("chord_input.edit")),
 ):
     """Build ChordPro body with `[chord]` (and optionally `{v:token}`) markers.
@@ -38,13 +45,8 @@ def export_chordpro(
     }
     Response: { "cho_content": "..." }
     """
-    text = data.get("text", "")
-    if not isinstance(text, str):
-        raise HTTPException(400, "text must be a string")
-
-    raw_chords = data.get("chords", [])
-    if not isinstance(raw_chords, list):
-        raise HTTPException(400, "chords must be a list")
+    text = body.text
+    raw_chords = body.chords
 
     positions: list[ChordPosition] = []
     for idx, c in enumerate(raw_chords):
@@ -63,9 +65,7 @@ def export_chordpro(
             )
         positions.append(ChordPosition(line, col, chord.strip()))
 
-    raw_vocals = data.get("vocals", [])
-    if not isinstance(raw_vocals, list):
-        raise HTTPException(400, "vocals must be a list")
+    raw_vocals = body.vocals
 
     vocals: list[VocalMark] = []
     for idx, v in enumerate(raw_vocals):
