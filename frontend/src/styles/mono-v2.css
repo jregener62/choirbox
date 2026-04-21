@@ -798,6 +798,53 @@ body {
   letter-spacing: -0.2px;
 }
 
+/* Voice-Part-Buttons → Mono */
+.voice-part-btn {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+}
+.voice-part-btn.selected {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--text-primary) !important;
+}
+
+/* Filter-Chips → Mono (Outline statt Pill) */
+.filter-chip {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 6px 10px !important;
+}
+.filter-chip.active {
+  background: transparent !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* Modal → Mono: zero-radius, 1px border, schlichter Header */
+.modal-container {
+  border-radius: 0 !important;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary) !important;
+}
+.modal-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
 /* Empty-State → Mono */
 .empty-state {
   font-family: var(--font-mono);
