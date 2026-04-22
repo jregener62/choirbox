@@ -154,13 +154,45 @@ describe('RTF round-trip (Tiptap → RTF → parseRtf → Tiptap)', () => {
       }],
     }
     const rtf = serializeTiptapToRtf(input)
-    // Sollte eine Colortable + ein \highlight1 enthalten
+    // Sollte Colortable + Cocoa-kompatible \cb/\chcbpat Trio enthalten
     expect(rtf).toContain('\\colortbl;')
     expect(rtf).toContain('\\red254\\green243\\blue199')
+    expect(rtf).toContain('\\cb1')
+    expect(rtf).toContain('\\chcbpat1')
     expect(rtf).toContain('\\highlight1')
     expect(rtf).toContain('\\highlight0')
 
     const parsed = parseRtf(rtf)
+    const doc = rtfToTiptap(parsed)
+    const inline = doc.content?.[0].content ?? []
+    const marked = inline.find((n) => n.text === 'marked')
+    expect(marked?.marks?.find((m) => m.type === 'highlight')?.attrs?.color).toBe('#fef3c7')
+  })
+
+  it('recovers highlight color after TextEdit drops \\highlight (only \\cb survives)', () => {
+    // Simuliert das echte TextEdit-Roundtrip-Verhalten: unser Serializer
+    // schreibt \cb\chcbpat\highlight, TextEdit laesst beim Speichern nur
+    // \cb\chcbpat uebrig. Der Parser muss das weiterhin als Hintergrundfarbe
+    // lesen — sonst geht die Farbe bei jedem Edit in TextEdit verloren.
+    const input = {
+      type: 'doc' as const,
+      content: [{
+        type: 'paragraph',
+        content: [
+          { type: 'text', text: 'before ' },
+          {
+            type: 'text',
+            text: 'marked',
+            marks: [{ type: 'highlight', attrs: { color: '#fef3c7' } }],
+          },
+          { type: 'text', text: ' after' },
+        ],
+      }],
+    }
+    const rtf = serializeTiptapToRtf(input)
+    // Simulate TextEdit-Save: entfernt \highlight<n>, laesst \cb<n>\chcbpat<n>
+    const afterTextEdit = rtf.replace(/\\highlight\d+\s?/g, '')
+    const parsed = parseRtf(afterTextEdit)
     const doc = rtfToTiptap(parsed)
     const inline = doc.content?.[0].content ?? []
     const marked = inline.find((n) => n.text === 'marked')

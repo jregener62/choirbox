@@ -4,7 +4,9 @@
  * Wir schreiben nur Kontrollwoerter, die unser eigener Parser liest:
  *   Struktur:    \par (Absatz), \line (Soft-Break)
  *   Character:   \b \i \ul \strike   (jeweils mit `\X0`/`\ulnone`)
- *                \highlight<n>       (Text-Hintergrundfarbe, colortbl-Index)
+ *                \cb<n>\chcbpat<n>\highlight<n>   (Text-Hintergrundfarbe —
+ *                Dreier-Kombi, damit TextEdit/cocoartf beim Roundtrip den
+ *                `\cb<n>`-Teil erhaelt; `\highlight` allein wird verworfen)
  *   Escape:      \\ \{ \}
  *   Non-ASCII:   \uNNNN? (signed-16-bit, ? als ASCII-Fallback)
  *
@@ -126,8 +128,13 @@ function wrapWithMarks(
           : null
         const idx = hex ? colorIndex.get(hex) : undefined
         if (idx !== undefined) {
-          open.push(`\\highlight${idx} `)
-          close.unshift('\\highlight0 ')
+          // \cb + \chcbpat sind die Cocoa/TextEdit-Konventionen fuer
+          // character-background; \highlight ist die klassische Word-Form.
+          // Alle drei schreiben, damit der Roundtrip durch TextEdit die
+          // Hintergrundfarbe nicht verliert (TextEdit emittiert nur \cb
+          // beim Speichern zurueck).
+          open.push(`\\cb${idx}\\chcbpat${idx}\\highlight${idx} `)
+          close.unshift('\\cb0\\chcbpat0\\highlight0 ')
         }
         break
       }

@@ -964,7 +964,7 @@ Zeigt den aktuellen Editor-Text gerendert via `ChordSheetViewer` in einem Modal 
 
 ### RTF-Viewer
 
-- Eigener toleranter Minimal-Parser (`frontend/src/utils/rtfParser.ts`) — versteht `\b` / `\i` / `\ul` / `\strike`, `\fs` (Schriftgroesse), `\cf` / `\highlight` (Farben via Color-Table), `\u<N>` Unicode-Escapes, `\'xx` ANSI-Bytes (cp1252), `\par` / `\line` / `\tab`, `\cocoartf`-Soft-Line-Breaks (TextEdit-Konvention).
+- Eigener toleranter Minimal-Parser (`frontend/src/utils/rtfParser.ts`) — versteht `\b` / `\i` / `\ul` / `\strike`, `\fs` (Schriftgroesse), `\cf` / `\highlight` / `\cb` / `\chcbpat` (Farben via Color-Table), `\u<N>` Unicode-Escapes mit `\uc<N>`-Fallback-Zaehler, `\'xx` ANSI-Bytes (cp1252), `\par` / `\line` / `\tab`, `\cocoartf`-Soft-Line-Breaks (TextEdit-Konvention), U+2028 / U+2029 als Zeilenumbruch.
 - Unbekannte Control-Words + ignorable Destinations (`{\*\…}`, `\stylesheet`, `\info`, …) werden stillschweigend uebersprungen — robust gegen Word/TextEdit/LibreOffice-Eigenheiten.
 - Rendering als React-Baum mit Inline-Styles (proportionale Schrift, nicht Monospace).
 - Integration in `DocumentPanel` analog zu PDF/TXT/CHO — gleiche Fullscreen-/Zoom-/Autoscroll-Funktionen.
@@ -1904,6 +1904,14 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 ---
 
 ## Behobene Bugs
+
+### RTF: TextEdit-Roundtrip frisst Zeichen und verliert Highlight-Farben
+
+Nach Edit in TextEdit fehlten in der App am Anfang jeder Zeile ein Zeichen (`Hide` → `ide`, `I've` → `'ve`) und Hintergrund-Highlights verschwanden ganz. Zwei unabhaengige Ursachen:
+
+**(a) Parser — `\uc`-Fallback-Zaehler ignoriert.** Der RTF-Parser nahm fuer `\u<N>`-Unicode-Escapes immer genau 1 Fallback-Zeichen an (`\uc1`-Default). TextEdit setzt aber `\uc0` (kein Fallback) und schreibt Soft-Line-Breaks als `舲` (U+2028 LINE SEPARATOR). Folge: nach jedem `舲 ` wurde das naechste echte Textzeichen als vermeintlicher Fallback geschluckt. Fix: `\uc<N>`-Control-Word im Scope tracken (Push/Pop bei `{`/`}`), Fallback-Skip-Loop laeuft `currentUc`-mal; U+2028 / U+2029 werden beim Ausgeben zu `\n`, damit `splitParagraphIntoLines` im Viewer korrekt teilt.
+
+**(b) Serializer — TextEdit verwirft `\highlight`.** Die App schrieb Hintergrundfarben nur als `\highlight<n>`. TextEdit liest das zwar beim Oeffnen korrekt, emittiert beim Speichern aber ausschliesslich die Cocoa-eigenen `\cb<n>\chcbpat<n>` — der Colortable-Eintrag fiel damit raus und Highlights waren nach dem ersten Save in TextEdit verloren. Fix: Serializer schreibt jetzt das komplette Trio `\cb<n>\chcbpat<n>\highlight<n>`, der Parser akzeptiert alle drei als synonym. Durch das `\cb<n>` ueberlebt die Farbe auch nach TextEdit-Save.
 
 ### Neu angelegte .cho verschwand sofort wieder aus der Liste
 

@@ -159,6 +159,52 @@ describe('parseRtf: destinations & tolerance', () => {
   })
 })
 
+
+describe('parseRtf: \\uc fallback count (TextEdit \\uc0)', () => {
+  it('skips NO fallback chars when \\uc0 is active (TextEdit)', () => {
+    const r = parseRtf('{\\rtf1\\ansi A\\uc0\\u8232 Hide\\par}')
+    const text = r.paragraphs.flatMap((p) => p.runs).map((x) => x.text).join('')
+    expect(text).toBe('A\nHide')
+  })
+
+  it('skips exactly N fallback chars when \\uc<N> is active', () => {
+    const r = parseRtf('{\\rtf1\\ansi A\\uc2\\u246 XYtail\\par}')
+    expect(r.paragraphs[0].runs[0].text).toBe('Aötail')
+  })
+
+  it('defaults to \\uc1 when no \\uc directive is present', () => {
+    const r = parseRtf('{\\rtf1\\ansi sch\\u246?n\\par}')
+    expect(r.paragraphs[0].runs[0].text).toBe('schön')
+  })
+
+  it('restores \\uc on group exit', () => {
+    const r = parseRtf('{\\rtf1\\ansi {\\uc0\\u246 X}\\u246?n\\par}')
+    const text = r.paragraphs[0].runs.map((x) => x.text).join('')
+    expect(text).toBe('öXön')
+  })
+
+  it('treats \\u8232 (U+2028 LINE SEPARATOR) as newline', () => {
+    const r = parseRtf('{\\rtf1\\ansi dark\\uc0\\u8232 Hide away\\par}')
+    const text = r.paragraphs.flatMap((p) => p.runs).map((x) => x.text).join('')
+    expect(text).toBe('dark\nHide away')
+  })
+
+  it('handles the TextEdit bug-report pattern (no chars eaten at line start)', () => {
+    const rtf = [
+      '{\\rtf1\\ansi\\ansicpg1252\\cocoartf2869',
+      "\\fs24 I'm not a stranger to the dark\\uc0\\u8232 Hide away, they say\\u8232 'Cause we don't want your broken parts\\u8232 I've learned to be ashamed\\par",
+      '}',
+    ].join('\n')
+    const r = parseRtf(rtf)
+    const text = r.paragraphs.flatMap((p) => p.runs).map((x) => x.text).join('')
+    // Zeilen duerfen ihr erstes Zeichen nicht verlieren — pruefen ueber das
+    // Zeichen direkt NACH dem Newline.
+    const lines = text.split('\n')
+    expect(lines[1]).toMatch(/^Hide away/)
+    expect(lines[2]).toMatch(/^'Cause/)
+    expect(lines[3]).toMatch(/^I've/)
+  })
+})
 describe('parseRtf: real sample files', () => {
   it('parses A-Der Mond ist aufgegangen.rtf (minimal style)', () => {
     const rtf = readSample('A-Der Mond ist aufgegangen.rtf')

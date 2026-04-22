@@ -12,6 +12,8 @@
  *             \fs<n>  \cf<n>  \highlight<n>  \f<n>
  *  Structure: \par \line \tab
  *  Escapes:   \\ \{ \} \'xx  \u<N>  \~  \-  \_
+ *  Unicode:   \uc<N> steuert die Anzahl der Fallback-Zeichen nach \u<N>
+ *             (Default 1; TextEdit/cocoartf schreibt oft \uc0).
  *  Typo:      \endash \emdash \lquote \rquote \ldblquote \rdblquote \bullet
  *  Destinations (parsed): fonttbl, colortbl
  *  Destinations (skipped): info, stylesheet, header, footer, pict, and any
@@ -52,6 +54,7 @@ interface ScopeState {
   destination: Destination
   fontEntry: number | null
   colorEntry: { r: number; g: number; b: number } | null
+  uc: number
 }
 
 type Destination =
@@ -105,6 +108,7 @@ export function parseRtf(source: string): ParsedRtf {
   let currentText = ''
   let currentFormat: RtfFormat = {}
   let destination: Destination = 'normal'
+  let currentUc = 1
 
   const colorTable: (string | null)[] = [null]
   const fontTable: Record<number, string> = {}
@@ -235,6 +239,9 @@ export function parseRtf(source: string): ParsedRtf {
       case 'tab':
         appendText('\t')
         return
+      case 'uc':
+        if (param !== null) currentUc = Math.max(0, param)
+        return
     }
 
     if (name in SIMPLE_SYMBOLS) {
@@ -242,14 +249,21 @@ export function parseRtf(source: string): ParsedRtf {
       return
     }
 
-    // Unicode codepoint: \u<signed-16-bit> — skip the following fallback char.
+    // Unicode codepoint: \u<signed-16-bit> — skip `currentUc` fallback items.
     if (name === 'u' && param !== null) {
       const cp = param < 0 ? param + 65536 : param
-      appendText(String.fromCodePoint(cp))
-      // Skip exactly one fallback character. That fallback may itself be a
-      // \'xx hex-escape (4 source chars) or a control word, but in the vast
-      // majority of real-world RTF it's a single ASCII char (often '?').
-      if (pos < len) {
+      // U+2028 (LINE SEPARATOR) und U+2029 (PARAGRAPH SEPARATOR) werden von
+      // TextEdit/cocoartf fuer Soft-Line-Breaks im laufenden Text genutzt —
+      // als echtes `\n` behandeln, damit `splitParagraphIntoLines` im Viewer
+      // die Zeilen korrekt trennt.
+      if (cp === 0x2028 || cp === 0x2029) {
+        appendText('\n')
+      } else {
+        appendText(String.fromCodePoint(cp))
+      }
+      // Skip `currentUc` fallback items. Each item may be a single char, a
+      // \'xx hex-escape (4 source chars), or a control word.
+      for (let i = 0; i < currentUc && pos < len; i++) {
         if (source[pos] === '\\') {
           if (source[pos + 1] === "'") {
             pos += 4  // past \'xx
@@ -284,6 +298,7 @@ export function parseRtf(source: string): ParsedRtf {
         destination,
         fontEntry: pendingFontIdx,
         colorEntry: colorEntryStarted ? { ...pendingColor } : null,
+        uc: currentUc,
       })
       pos++
       continue
@@ -298,6 +313,7 @@ export function parseRtf(source: string): ParsedRtf {
         currentFormat = prev.format
         destination = prev.destination
         pendingFontIdx = prev.fontEntry
+        currentUc = prev.uc
       }
       pos++
       continue
