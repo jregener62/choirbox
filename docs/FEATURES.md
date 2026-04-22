@@ -1905,6 +1905,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### RTF-Editor: "Abschnitt"-Button formatierte ganzen Textblock statt einer Zeile
+
+Im RTF-Editor wurde beim Klick auf „Abschnitt" (oder Titel/Info/Fusszeile) nicht nur die aktuelle Zeile, sondern der gesamte Textblock davor und danach ebenfalls zur Ueberschrift. Ursache: `rtfToTiptap` baute aus jedem RTF-Paragraph genau einen Tiptap-Paragraph mit `hardBreak`-Nodes fuer `\line`-getrennte Zeilen. Tiptaps `toggleHeading`-Befehl operiert aber immer auf dem umschliessenden Block-Node — die gesamte Konstruktion, inklusive aller hardBreaks, wurde konvertiert. Fix: `rtfToTiptap` splittet jede Soft-Line-Break-Zeile jetzt in einen eigenen Tiptap-Paragraph (bzw. Heading, wenn die Zeile `### Titel` matcht). Toggle-Befehle wirken nun zeilengenau. Visuell bleibt alles identisch — der Viewer rendert ohnehin jede Zeile als eigenes `<p>` (rtf-viewer-para), Editor und Viewer sind jetzt konsistent.
+
 ### RTF: TextEdit-Roundtrip frisst Zeichen und verliert Highlight-Farben
 
 Nach Edit in TextEdit fehlten in der App am Anfang jeder Zeile ein Zeichen (`Hide` → `ide`, `I've` → `'ve`) und Hintergrund-Highlights verschwanden ganz. Zwei unabhaengige Ursachen:

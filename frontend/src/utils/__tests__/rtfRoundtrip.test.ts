@@ -86,15 +86,35 @@ describe('rtfToTiptap', () => {
     })
   })
 
-  it('translates \\n in run text into hardBreak nodes', () => {
-    // \line inside run → '\n' in text → should become hardBreak
+  it('splits \\line-separated lines into independent paragraphs', () => {
+    // Jede Zeile wird zum eigenen Paragraph, damit Tiptap-Block-Befehle
+    // (toggleHeading etc.) nur die markierte Zeile betreffen.
     const parsed = parseRtf('{\\rtf1 A\\line B\\par}')
     const doc = rtfToTiptap(parsed)
-    const inline = doc.content![0].content ?? []
-    expect(inline).toHaveLength(3)
-    expect(inline[0]).toMatchObject({ type: 'text', text: 'A' })
-    expect(inline[1]).toMatchObject({ type: 'hardBreak' })
-    expect(inline[2]).toMatchObject({ type: 'text', text: 'B' })
+    expect(doc.content).toHaveLength(2)
+    expect(doc.content?.[0]).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'A' }],
+    })
+    expect(doc.content?.[1]).toMatchObject({
+      type: 'paragraph',
+      content: [{ type: 'text', text: 'B' }],
+    })
+  })
+
+  it('promotes only the matching line to heading, not the whole paragraph', () => {
+    // Mehrzeiliger Paragraph mit "### Title" irgendwo in der Mitte —
+    // nur diese Zeile wird zum heading, die anderen bleiben paragraphs.
+    const parsed = parseRtf('{\\rtf1 intro\\line ### Chorus\\line lyric line\\par}')
+    const doc = rtfToTiptap(parsed)
+    expect(doc.content).toHaveLength(3)
+    expect(doc.content?.[0]).toMatchObject({ type: 'paragraph' })
+    expect(doc.content?.[1]).toMatchObject({
+      type: 'heading',
+      attrs: { level: 3 },
+      content: [{ type: 'text', text: 'Chorus' }],
+    })
+    expect(doc.content?.[2]).toMatchObject({ type: 'paragraph' })
   })
 
   it('ensures doc has at least one paragraph for empty input', () => {

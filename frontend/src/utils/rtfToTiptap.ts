@@ -2,13 +2,16 @@
  * Konvertiert `ParsedRtf` (Output von parseRtf) in ein Tiptap-JSON-Dokument.
  *
  * Mapping:
- *   - leerer Paragraph → leerer paragraph node
- *   - Paragraph, dessen Text einem `### Titel` entspricht → heading-Node
- *   - alle anderen Paragraphen → paragraph mit inline text-/hardBreak-Nodes
- *   - Run-Format b/i/u/s → Tiptap marks (bold, italic, underline, strike)
- *   - `\n` innerhalb eines Runs → hardBreak
+ *   - Jede Soft-Line-Break-getrennte Zeile (\n aus \line / U+2028) wird
+ *     zu einem eigenen Tiptap-Paragraph. Grund: Tiptap-Block-Befehle wie
+ *     `toggleHeading` operieren immer auf dem umschliessenden Node — wenn
+ *     mehrere Zeilen ueber `hardBreak` im selben Paragraph liegen, wuerde
+ *     das gesamte Konstrukt zur Ueberschrift gemacht.
+ *   - Zeile, die `### Titel` matcht → heading-Node (level 1-6)
+ *   - andere Zeilen → paragraph mit inline text-Nodes
+ *   - Run-Format b/i/u/s/bg → Tiptap marks
  *
- * Farben, Background, Fontsizes etc. gehen im MVP verloren (Phase-3-Warnung).
+ * Foreground-Farben, Fontsizes etc. gehen im MVP verloren.
  */
 
 import type { ParsedRtf, RtfFormat, RtfRun } from './rtfParser'
@@ -31,15 +34,49 @@ function textNode(text: string, marks: TiptapMark[]): TiptapNode {
   return node
 }
 
-function runToInline(run: RtfRun): TiptapNode[] {
-  const marks = marksFromFormat(run.format)
-  const out: TiptapNode[] = []
-  const parts = run.text.split('\n')
-  parts.forEach((part, i) => {
-    if (i > 0) out.push({ type: 'hardBreak' })
-    if (part.length > 0) out.push(textNode(part, marks))
-  })
-  return out
+/** Splittet Runs an `\n` in unabhaengige Zeilen — jede Zeile behaelt die
+ *  Format-Infos der Runs, die sie ueberlappt. Leere Zeilen werden bewusst
+ *  erhalten, damit Leerzeilen im Import nicht verschluckt werden. */
+function splitRunsIntoLines(runs: RtfRun[]): RtfRun[][] {
+  const lines: RtfRun[][] = [[]]
+  for (const run of runs) {
+    if (!run.text.includes('\n')) {
+      if (run.text.length > 0) lines[lines.length - 1].push(run)
+      continue
+    }
+    const parts = run.text.split('\n')
+    if (parts[0].length > 0) {
+      lines[lines.length - 1].push({ text: parts[0], format: run.format })
+    }
+    for (let i = 1; i < parts.length; i++) {
+      lines.push([])
+      if (parts[i].length > 0) {
+        lines[lines.length - 1].push({ text: parts[i], format: run.format })
+      }
+    }
+  }
+  return lines
+}
+
+function lineToTiptapNode(lineRuns: RtfRun[]): TiptapNode {
+  const lineText = lineRuns.map((r) => r.text).join('')
+  const heading = detectSectionHeading(lineText)
+  if (heading) {
+    const level = Math.min(Math.max(heading.level, 1), 6)
+    return {
+      type: 'heading',
+      attrs: { level },
+      content: [{ type: 'text', text: heading.title }],
+    }
+  }
+  const inline: TiptapNode[] = []
+  for (const run of lineRuns) {
+    const marks = marksFromFormat(run.format)
+    if (run.text.length > 0) inline.push(textNode(run.text, marks))
+  }
+  const node: TiptapNode = { type: 'paragraph' }
+  if (inline.length > 0) node.content = inline
+  return node
 }
 
 export function rtfToTiptap(parsed: ParsedRtf): TiptapDoc {
@@ -49,24 +86,9 @@ export function rtfToTiptap(parsed: ParsedRtf): TiptapDoc {
       content.push({ type: 'paragraph' })
       continue
     }
-
-    const fullText = para.runs.map((r) => r.text).join('')
-    const heading = detectSectionHeading(fullText)
-    if (heading) {
-      const level = Math.min(Math.max(heading.level, 1), 6)
-      content.push({
-        type: 'heading',
-        attrs: { level },
-        content: [{ type: 'text', text: heading.title }],
-      })
-      continue
+    for (const lineRuns of splitRunsIntoLines(para.runs)) {
+      content.push(lineToTiptapNode(lineRuns))
     }
-
-    const inline: TiptapNode[] = []
-    for (const run of para.runs) inline.push(...runToInline(run))
-    const node: TiptapNode = { type: 'paragraph' }
-    if (inline.length > 0) node.content = inline
-    content.push(node)
   }
   // Ein komplett leeres Dokument waere fuer Tiptap ungueltig — mindestens
   // ein leerer paragraph muss drin sein.
