@@ -169,152 +169,154 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
 
   return (
     <div className="rtf-editor">
-      <div className="rtf-editor-bar">
-        <span className="rtf-editor-name">{originalName}</span>
-        <div className="rtf-editor-actions">
-          <button
-            type="button"
-            className={`rtf-editor-btn${bActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => editor.chain().focus().toggleBold().run()}
-            title="Fett"
-          >
-            <Bold size={16} />
-          </button>
-          <button
-            type="button"
-            className={`rtf-editor-btn${iActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => editor.chain().focus().toggleItalic().run()}
-            title="Kursiv"
-          >
-            <Italic size={16} />
-          </button>
-          <button
-            type="button"
-            className={`rtf-editor-btn${uActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => editor.chain().focus().toggleUnderline().run()}
-            title="Unterstrichen"
-          >
-            <UnderlineIcon size={16} />
-          </button>
-          <button
-            type="button"
-            className={`rtf-editor-btn${sActive ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => editor.chain().focus().toggleStrike().run()}
-            title="Durchgestrichen"
-          >
-            <Strikethrough size={16} />
-          </button>
-          <button
-            type="button"
-            className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => {
-              setHighlightOpen((v) => !v)
-              if (!highlightOpen) setHeadingOpen(false)
-            }}
-            title="Markieren (Hintergrundfarbe)"
-            aria-pressed={highlightOpen}
-          >
-            <Highlighter size={16} />
-          </button>
-          <div className="rtf-editor-sep" />
-          <button
-            type="button"
-            className={`rtf-editor-btn${headingOpen ? ' rtf-editor-btn--active' : ''}`}
-            onClick={() => {
-              setHeadingOpen((v) => !v)
-              if (!headingOpen) setHighlightOpen(false)
-            }}
-            title="Ueberschrift"
-            aria-pressed={headingOpen}
-          >
-            <Heading size={16} />
-          </button>
-          <button
-            type="button"
-            className="rtf-editor-btn"
-            onClick={insertBarMarker}
-            title="Taktanfang (|) — fuegt an Cursor-Position ein"
-          >
-            <Pilcrow size={16} />
-          </button>
-          <button
-            type="button"
-            className="rtf-editor-btn"
-            onClick={insertComment}
-            title="Kommentar [[ ]]"
-          >
-            <MessageSquareQuote size={16} />
-          </button>
-          <div className="rtf-editor-sep" />
-          <button
-            type="button"
-            className="rtf-editor-btn"
-            onClick={handleCancel}
-            title="Abbrechen"
-          >
-            <X size={16} />
-          </button>
-          <button
-            type="button"
-            className="rtf-editor-btn rtf-editor-btn--save"
-            onClick={handleSave}
-            disabled={saving || !dirty}
-            title={dirty ? 'Speichern' : 'Keine Änderungen'}
-          >
-            <Check size={16} />
-          </button>
+      <div className="rtf-editor-toolbars">
+        <div className="rtf-editor-bar">
+          <span className="rtf-editor-name">{originalName}</span>
+          <div className="rtf-editor-actions">
+            <button
+              type="button"
+              className={`rtf-editor-btn${bActive ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => editor.chain().focus().toggleBold().run()}
+              title="Fett"
+            >
+              <Bold size={16} />
+            </button>
+            <button
+              type="button"
+              className={`rtf-editor-btn${iActive ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => editor.chain().focus().toggleItalic().run()}
+              title="Kursiv"
+            >
+              <Italic size={16} />
+            </button>
+            <button
+              type="button"
+              className={`rtf-editor-btn${uActive ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => editor.chain().focus().toggleUnderline().run()}
+              title="Unterstrichen"
+            >
+              <UnderlineIcon size={16} />
+            </button>
+            <button
+              type="button"
+              className={`rtf-editor-btn${sActive ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => editor.chain().focus().toggleStrike().run()}
+              title="Durchgestrichen"
+            >
+              <Strikethrough size={16} />
+            </button>
+            <button
+              type="button"
+              className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => {
+                setHighlightOpen((v) => !v)
+                if (!highlightOpen) setHeadingOpen(false)
+              }}
+              title="Markieren (Hintergrundfarbe)"
+              aria-pressed={highlightOpen}
+            >
+              <Highlighter size={16} />
+            </button>
+            <div className="rtf-editor-sep" />
+            <button
+              type="button"
+              className={`rtf-editor-btn${headingOpen ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => {
+                setHeadingOpen((v) => !v)
+                if (!headingOpen) setHighlightOpen(false)
+              }}
+              title="Ueberschrift"
+              aria-pressed={headingOpen}
+            >
+              <Heading size={16} />
+            </button>
+            <button
+              type="button"
+              className="rtf-editor-btn"
+              onClick={insertBarMarker}
+              title="Taktanfang (|) — fuegt an Cursor-Position ein"
+            >
+              <Pilcrow size={16} />
+            </button>
+            <button
+              type="button"
+              className="rtf-editor-btn"
+              onClick={insertComment}
+              title="Kommentar [[ ]]"
+            >
+              <MessageSquareQuote size={16} />
+            </button>
+            <div className="rtf-editor-sep" />
+            <button
+              type="button"
+              className="rtf-editor-btn"
+              onClick={handleCancel}
+              title="Abbrechen"
+            >
+              <X size={16} />
+            </button>
+            <button
+              type="button"
+              className="rtf-editor-btn rtf-editor-btn--save"
+              onClick={handleSave}
+              disabled={saving || !dirty}
+              title={dirty ? 'Speichern' : 'Keine Änderungen'}
+            >
+              <Check size={16} />
+            </button>
+          </div>
         </div>
+        {headingOpen && (
+          <div className="rtf-editor-subbar" role="toolbar" aria-label="Ueberschriften-Stil">
+            <span className="rtf-editor-subbar-label">Ueberschrift:</span>
+            {HEADING_STYLES.map((h) => {
+              const isActive = editor.isActive('heading', { level: h.level })
+              return (
+                <button
+                  key={h.key}
+                  type="button"
+                  className={`rtf-editor-heading-btn rtf-editor-heading-btn--${h.key}${isActive ? ' rtf-editor-heading-btn--active' : ''}`}
+                  onClick={() => applyHeading(h.level)}
+                  aria-pressed={isActive}
+                  title={h.label}
+                >
+                  {h.label}
+                </button>
+              )
+            })}
+          </div>
+        )}
+        {highlightOpen && (
+          <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
+            <span className="rtf-editor-subbar-label">Markieren:</span>
+            {HIGHLIGHT_COLORS.map((c) => {
+              const isActive = activeHighlight === c.value.toLowerCase()
+              return (
+                <button
+                  key={c.key}
+                  type="button"
+                  className={`rtf-editor-swatch rtf-editor-swatch--${c.key}${isActive ? ' rtf-editor-swatch--active' : ''}`}
+                  onClick={() => applyHighlight(c.value)}
+                  aria-pressed={isActive}
+                  title={c.label}
+                  aria-label={c.label}
+                />
+              )
+            })}
+            <button
+              type="button"
+              className="rtf-editor-swatch rtf-editor-swatch--none"
+              onClick={clearHighlight}
+              disabled={!activeHighlight}
+              title="Keine Farbe"
+              aria-label="Keine Farbe"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
+        {saveError && <div className="rtf-editor-error">{saveError}</div>}
       </div>
-      {headingOpen && (
-        <div className="rtf-editor-subbar" role="toolbar" aria-label="Ueberschriften-Stil">
-          <span className="rtf-editor-subbar-label">Ueberschrift:</span>
-          {HEADING_STYLES.map((h) => {
-            const isActive = editor.isActive('heading', { level: h.level })
-            return (
-              <button
-                key={h.key}
-                type="button"
-                className={`rtf-editor-heading-btn rtf-editor-heading-btn--${h.key}${isActive ? ' rtf-editor-heading-btn--active' : ''}`}
-                onClick={() => applyHeading(h.level)}
-                aria-pressed={isActive}
-                title={h.label}
-              >
-                {h.label}
-              </button>
-            )
-          })}
-        </div>
-      )}
-      {highlightOpen && (
-        <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
-          <span className="rtf-editor-subbar-label">Markieren:</span>
-          {HIGHLIGHT_COLORS.map((c) => {
-            const isActive = activeHighlight === c.value.toLowerCase()
-            return (
-              <button
-                key={c.key}
-                type="button"
-                className={`rtf-editor-swatch rtf-editor-swatch--${c.key}${isActive ? ' rtf-editor-swatch--active' : ''}`}
-                onClick={() => applyHighlight(c.value)}
-                aria-pressed={isActive}
-                title={c.label}
-                aria-label={c.label}
-              />
-            )
-          })}
-          <button
-            type="button"
-            className="rtf-editor-swatch rtf-editor-swatch--none"
-            onClick={clearHighlight}
-            disabled={!activeHighlight}
-            title="Keine Farbe"
-            aria-label="Keine Farbe"
-          >
-            <X size={12} />
-          </button>
-        </div>
-      )}
-      {saveError && <div className="rtf-editor-error">{saveError}</div>}
       <EditorContent editor={editor} className="rtf-editor-content" />
     </div>
   )

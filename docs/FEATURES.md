@@ -1905,6 +1905,10 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### RTF-Editor: Formatierungs-Toolbar verschwand beim Oeffnen der Tastatur
+
+Wurde im `.rtf`-Bearbeitungsmodus der Text bis ans Ende gescrollt und der Cursor unten ins Textfeld gesetzt, verschwand beim Aufploppen der Bildschirm-Tastatur (iPadOS/iOS Safari) die Formatierungs-Toolbar nach oben aus dem Sichtbereich. Ursache: `.rtf-editor-content` war der interne Scroll-Container — mit Cursor am unteren Ende hatte der Container keinen Puffer mehr, und Safari scrollte den naechsten Ausseren-Container (`.main-content`) hoch, um den Cursor ueber der Tastatur zu zeigen. Dabei wanderte die Toolbar (ein Geschwister des Content-Scrollers) mit aus dem Viewport. Fix: Scroll-Container ist jetzt `.rtf-editor` selbst; Toolbar + optionale Sub-Bars liegen in einem neuen `.rtf-editor-toolbars`-Wrapper mit `position: sticky; top: 0`, damit sie im Scroll-Container fixiert bleiben. Zusaetzlich `padding-bottom: 50vh` auf `.rtf-editor-content`, damit Safari das Caret immer innerhalb von `.rtf-editor` in den sichtbaren Bereich scrollen kann und nicht mehr ausweichen muss auf `.main-content`.
+
 ### RTF-Editor: "Abschnitt"-Button formatierte ganzen Textblock statt einer Zeile
 
 Im RTF-Editor wurde beim Klick auf „Abschnitt" (oder Titel/Info/Fusszeile) nicht nur die aktuelle Zeile, sondern der gesamte Textblock davor und danach ebenfalls zur Ueberschrift. Ursache: `rtfToTiptap` baute aus jedem RTF-Paragraph genau einen Tiptap-Paragraph mit `hardBreak`-Nodes fuer `\line`-getrennte Zeilen. Tiptaps `toggleHeading`-Befehl operiert aber immer auf dem umschliessenden Block-Node — die gesamte Konstruktion, inklusive aller hardBreaks, wurde konvertiert. Fix: `rtfToTiptap` splittet jede Soft-Line-Break-Zeile jetzt in einen eigenen Tiptap-Paragraph (bzw. Heading, wenn die Zeile `### Titel` matcht). Toggle-Befehle wirken nun zeilengenau. Visuell bleibt alles identisch — der Viewer rendert ohnehin jede Zeile als eigenes `<p>` (rtf-viewer-para), Editor und Viewer sind jetzt konsistent.

@@ -1826,8 +1826,17 @@ body.body-scroll-fs .autoscroll-stepper {
   flex-direction: column;
   flex: 1;
   min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: #ffffff;
   color: #1a1f2e;
+}
+.rtf-editor-toolbars {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  background: #ffffff;
+  flex-shrink: 0;
 }
 .rtf-editor-bar {
   display: flex;
@@ -1977,9 +1986,8 @@ body.body-scroll-fs .autoscroll-stepper {
 
 .rtf-editor-content {
   flex: 1;
-  min-height: 0;
-  overflow: auto;
   padding: var(--space-3);
+  padding-bottom: 50vh;
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   line-height: 1.55;
 }
