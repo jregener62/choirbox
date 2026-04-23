@@ -409,9 +409,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
         <RtfViewer
           key={rtfReloadToken}
           docId={activeDoc.id}
-          originalName={activeDoc.original_name}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
-          showName={!pdfFullscreen}
           scrollContainerRef={scrollContainerRef}
         />
       )}

@@ -16,9 +16,7 @@ const VIEWBOX_WIDTH = 1000
 
 interface RtfViewerProps {
   docId: number
-  originalName: string
   fontSize?: number
-  showName?: boolean
   scrollContainerRef?: React.RefObject<HTMLElement | null>
 }
 
@@ -139,9 +137,7 @@ function renderParagraph(p: RtfParagraph, idx: number): React.ReactNode[] {
 
 export function RtfViewer({
   docId,
-  originalName,
   fontSize = 16,
-  showName = true,
   scrollContainerRef,
 }: RtfViewerProps) {
   const [content, setContent] = useState<string | null>(null)
@@ -341,7 +337,6 @@ export function RtfViewer({
 
   return (
     <div className="text-viewer">
-      {showName && <div className="text-viewer-name">{originalName}</div>}
       <div
         className="rtf-viewer-content"
         style={{ fontSize }}
