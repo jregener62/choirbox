@@ -1088,8 +1088,8 @@ textarea::placeholder {
 }
 
 .player-toolbar-marker--deletable {
-  border-color: #fff;
-  background: rgba(255,255,255,0.12);
+  border-color: var(--danger);
+  background: rgba(248,113,113,0.12);
   color: #fff;
 }
 
