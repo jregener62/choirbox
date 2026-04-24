@@ -14,6 +14,7 @@ export function ViewerPage() {
   const { selectedDoc, loadedFolder, loadSelected } = useSelectedDocumentStore()
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
   const currentPath = usePlayerStore((s) => s.currentPath)
+  const currentName = usePlayerStore((s) => s.currentName)
   const user = useAuthStore((s) => s.user)
   const isProMember = hasMinRole(user?.role ?? 'guest', 'pro-member')
 
@@ -39,7 +40,7 @@ export function ViewerPage() {
         <button className="topbar-back" onClick={() => navigate(-1)}>
           <ChevronLeft size={22} />
         </button>
-        <span className="topbar-title">Viewer</span>
+        <span className="topbar-title">{currentName ?? 'Viewer'}</span>
         {isProMember && songFolderPath && (
           <button
             className="topbar-action"

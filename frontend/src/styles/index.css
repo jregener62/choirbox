@@ -157,6 +157,11 @@ textarea::placeholder {
 .topbar-title {
   font-size: var(--text-xl);
   font-weight: 600;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .topbar-actions {

@@ -611,6 +611,7 @@ Jeder User kann pro Song **einen** Text fuer den Viewer auswaehlen (persistent i
 - Route: `/#/viewer` — zeigt das ausgewaehlte Dokument des aktuellen Songs
 - Erreichbar ueber den Viewer-Button (FileText-Icon) im Global Player
 - Leitet Song-Ordner automatisch aus dem aktuellen Track-Pfad ab (geht ueber reservierte Ordner wie Audio/ hinauf)
+- Topbar-Titel zeigt den Dateinamen der aktuell geladenen Audio-Datei (Fallback „Viewer" wenn kein Track geladen); lange Namen werden per Ellipsis abgekuerzt
 - Funktionalitaet: Annotationen, Fullscreen inkl. Topbar-Hide
 - Fullscreen-Reset beim Verlassen der Seite
 - Aufnahme-Button in der Topbar (ab Pro-Mitglied) — oeffnet Floating Recorder fuer den aktuellen Song
