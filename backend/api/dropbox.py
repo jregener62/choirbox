@@ -53,8 +53,8 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
 
     On fresh fetch (tree available): direct dict lookup.
     On cache hit (tree=None): sub-folders were cached by the same recursive listing.
-    On cache miss while tree=None: a mutation invalidated this sub-path but not
-    the root — fall back to a single list_folder call for just this path.
+    On cache miss while tree=None: check parent cache to avoid 409s for
+    non-existent paths, otherwise fall back to a single list_folder call.
     """
     if tree is not None:
         return tree.get(dbx_path.lower().rstrip("/"), [])
@@ -62,6 +62,20 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
     cached = folder_cache.get(dbx_path)
     if cached is not None:
         return cached[0]
+    # Cache miss: before hitting the API, check whether the parent knows this
+    # sub-path exists. Reserved sub-folders (Audio, Texte, Videos, Multitrack)
+    # often don't exist for every song — querying them returns 409 path/not_found.
+    if "/" in dbx_path.lstrip("/"):
+        parent_path, _, child_name = dbx_path.rpartition("/")
+        parent_cached = folder_cache.get(parent_path or "/")
+        if parent_cached is not None:
+            child_lower = child_name.lower()
+            exists_as_folder = any(
+                e.get(".tag") == "folder" and e.get("name", "").lower() == child_lower
+                for e in parent_cached[0]
+            )
+            if not exists_as_folder:
+                return []
     # Cache inconsistency: root was cached but this sub-path was invalidated.
     # Fetch just this folder instead of returning [] (which hides sub-folders).
     try:
