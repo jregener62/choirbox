@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './styles/index.css'
+import './styles/mono-v2.css'
 import { App } from './App.tsx'
 
 // Apply saved theme on load
