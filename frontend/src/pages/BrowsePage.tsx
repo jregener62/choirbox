@@ -75,7 +75,8 @@ export function BrowsePage() {
   const highlightPath = useAppStore((s) => s.highlightPath)
   const currentPath = usePlayerStore((s) => s.currentPath)
   const isPlaying = usePlayerStore((s) => s.isPlaying)
-  const { loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
+  const { favorites, loaded: favsLoaded, load: loadFavs, isFavorite, toggle: toggleFav } = useFavoritesStore()
+  const hasFavorites = favorites.length > 0
   const { labels, loaded: labelsLoaded, load: loadLabels, getLabelsForPath, isAssigned, toggleLabel, assignments } = useLabelsStore()
   const user = useAuthStore((s) => s.user)
   const canDelete = hasMinRole(user?.role ?? 'guest', 'chorleiter')
@@ -662,7 +663,7 @@ export function BrowsePage() {
                         setShowFavorites(false)
                       }
                     }}>
-                      <Heart size={18} fill={showFavorites ? 'currentColor' : 'none'} />
+                      <Heart size={18} fill={showFavorites || hasFavorites ? 'currentColor' : 'none'} />
                     </button>
                   )}
                   <button className="player-header-btn" onClick={openSearch}>
