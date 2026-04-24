@@ -6,6 +6,7 @@ import {
   detectSectionHeading,
   splitInlineMarkers,
   isCommentOnlyLine,
+  splitMelodyChars,
 } from '@/utils/markers'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { toNormalized, getSvgPathFromStroke, getViewBoxHeight } from '@/utils/strokeUtils.ts'
@@ -34,27 +35,52 @@ function runStyle(f: RtfFormat): CSSProperties {
   return s
 }
 
+/** Rendert einen Text-String mit Melodie-Glyphen: Noten-Zeichen (`/`,`\\`,`_`,
+ *  `~` und Unicode-Pfeile) bekommen die rote `rtf-viewer-melody-glyph`-Klasse,
+ *  der Rest faellt in den umgebenden Run-Style. */
+function renderTextWithMelody(text: string, keyPrefix: string): React.ReactNode[] {
+  return splitMelodyChars(text).map((seg, i) => {
+    const key = `${keyPrefix}-m${i}`
+    if (seg.kind === 'melody') {
+      return <span key={key} className="rtf-viewer-melody-glyph">{seg.text}</span>
+    }
+    return <span key={key}>{seg.text}</span>
+  })
+}
+
 /** Rendert einen Run und wendet inline Marker-Erkennung an: `[[ ... ]]` als
  *  Kommentar-Span, `|<ws>X` als bar-initial (erstes sichtbares Zeichen des
  *  Taktes mit Unterstrich). Lauftext behaelt die Run-Formatierung. */
 function renderRun(run: RtfRun, keyPrefix: string) {
   const spans = splitInlineMarkers(run.text)
   if (spans.length === 1 && spans[0].kind === 'text') {
-    return <span key={keyPrefix} style={runStyle(run.format)}>{run.text}</span>
+    return (
+      <span key={keyPrefix} style={runStyle(run.format)}>
+        {renderTextWithMelody(run.text, keyPrefix)}
+      </span>
+    )
   }
   return spans.map((span, i) => {
     const key = `${keyPrefix}-${i}`
     if (span.kind === 'comment') {
-      return <span key={key} className="rtf-viewer-comment">{span.text}</span>
+      return (
+        <span key={key} className="rtf-viewer-comment">
+          {renderTextWithMelody(span.text, key)}
+        </span>
+      )
     }
     if (span.kind === 'bar-initial') {
       return (
         <span key={key} className="rtf-viewer-bar-initial" style={runStyle(run.format)}>
-          {span.text}
+          {renderTextWithMelody(span.text, key)}
         </span>
       )
     }
-    return <span key={key} style={runStyle(run.format)}>{span.text}</span>
+    return (
+      <span key={key} style={runStyle(run.format)}>
+        {renderTextWithMelody(span.text, key)}
+      </span>
+    )
   })
 }
 
@@ -117,7 +143,11 @@ function renderVirtualLine(runs: RtfRun[], key: string): React.ReactNode {
 
   if (isCommentOnlyLine(text)) {
     const inner = text.trim().replace(/^\[\[\s*|\s*\]\]$/g, '')
-    return <p key={key} className="rtf-viewer-para rtf-viewer-comment-block">{inner}</p>
+    return (
+      <p key={key} className="rtf-viewer-para rtf-viewer-comment-block">
+        {renderTextWithMelody(inner, `${key}-block`)}
+      </p>
+    )
   }
 
   return (

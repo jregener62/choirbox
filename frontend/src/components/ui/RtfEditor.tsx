@@ -6,7 +6,7 @@ import Highlight from '@tiptap/extension-highlight'
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Heading, MessageSquareQuote, Pilcrow,
-  Highlighter, X, Check,
+  Highlighter, Music, X, Check,
 } from 'lucide-react'
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { api } from '@/api/client.ts'
@@ -41,6 +41,19 @@ const HEADING_STYLES: Array<{ key: string; label: string; level: 1 | 2 | 3 | 4 |
   { key: 'footer',  label: 'Fusszeile', level: 6 },
 ]
 
+/** Melodiefuehrungs-Pfeile. Einfuege-Wert ist ASCII-Fallback wenn vorhanden,
+ *  sonst Unicode. ASCII-Fallback (/, \, _) wird vom Viewer via
+ *  `applyArrowGlyphs` wieder zu Unicode gerendert — Source bleibt damit
+ *  in externen Editoren (TextEdit/Word) als Klartext lesbar. */
+const MELODY_ARROWS: Array<{ glyph: string; insert: string; label: string }> = [
+  { glyph: '↑', insert: '↑', label: 'hoch' },
+  { glyph: '↗', insert: '/', label: 'hoch-rechts' },
+  { glyph: '→', insert: '_', label: 'rechts' },
+  { glyph: '↓', insert: '↓', label: 'runter' },
+  { glyph: '↘', insert: '\\', label: 'runter-rechts' },
+  { glyph: '~', insert: '~', label: 'Tremolo/Vibrato' },
+]
+
 export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorProps) {
   const [initialRtf, setInitialRtf] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -73,6 +86,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const [dirty, setDirty] = useState(false)
   const [highlightOpen, setHighlightOpen] = useState(false)
   const [headingOpen, setHeadingOpen] = useState(false)
+  const [arrowOpen, setArrowOpen] = useState(false)
   /** Force-Rerender-Trigger — wird bei jeder Tiptap-Transaktion inkrementiert,
    *  damit `editor.isActive(...)` korrekt reactive aufgerufen wird. */
   const [, forceRerender] = useReducer((x: number) => x + 1, 0)
@@ -146,6 +160,10 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     editor.chain().focus().insertContent('| ').run()
   }
 
+  const insertArrow = (insert: string) => {
+    editor.chain().focus().insertContent(insert).run()
+  }
+
   const applyHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => {
     editor.chain().focus().toggleHeading({ level }).run()
   }
@@ -210,7 +228,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
               onClick={() => {
                 setHighlightOpen((v) => !v)
-                if (!highlightOpen) setHeadingOpen(false)
+                if (!highlightOpen) { setHeadingOpen(false); setArrowOpen(false) }
               }}
               title="Markieren (Hintergrundfarbe)"
               aria-pressed={highlightOpen}
@@ -223,7 +241,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               className={`rtf-editor-btn${headingOpen ? ' rtf-editor-btn--active' : ''}`}
               onClick={() => {
                 setHeadingOpen((v) => !v)
-                if (!headingOpen) setHighlightOpen(false)
+                if (!headingOpen) { setHighlightOpen(false); setArrowOpen(false) }
               }}
               title="Ueberschrift"
               aria-pressed={headingOpen}
@@ -245,6 +263,18 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               title="Kommentar [[ ]]"
             >
               <MessageSquareQuote size={16} />
+            </button>
+            <button
+              type="button"
+              className={`rtf-editor-btn${arrowOpen ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => {
+                setArrowOpen((v) => !v)
+                if (!arrowOpen) { setHighlightOpen(false); setHeadingOpen(false) }
+              }}
+              title="Melodiefuehrung"
+              aria-pressed={arrowOpen}
+            >
+              <Music size={16} />
             </button>
             <div className="rtf-editor-sep" />
             <button
@@ -313,6 +343,23 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             >
               <X size={12} />
             </button>
+          </div>
+        )}
+        {arrowOpen && (
+          <div className="rtf-editor-subbar" role="toolbar" aria-label="Melodiefuehrungs-Pfeile">
+            <span className="rtf-editor-subbar-label">Pfeil:</span>
+            {MELODY_ARROWS.map((a) => (
+              <button
+                key={a.glyph}
+                type="button"
+                className="rtf-editor-arrow-btn"
+                onClick={() => insertArrow(a.insert)}
+                title={a.label}
+                aria-label={a.label}
+              >
+                {a.glyph}
+              </button>
+            ))}
           </div>
         )}
         {saveError && <div className="rtf-editor-error">{saveError}</div>}

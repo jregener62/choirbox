@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File, Plus, Minus, Music, SquarePen } from 'lucide-react'
+import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File as FileIcon, Plus, Minus, Music, SquarePen, Share2, Printer } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole, isGuest } from '@/utils/roles.ts'
@@ -19,6 +19,7 @@ import { RtfEditor } from '@/components/ui/RtfEditor.tsx'
 import { AutoScrollStepper } from '@/components/ui/AutoScrollStepper.tsx'
 import { EditorActionsInline } from '@/components/ui/EditorActionsInline.tsx'
 import { TransposeButtons } from '@/components/ui/TransposeButtons.tsx'
+import { api } from '@/api/client.ts'
 import type { DocumentItem } from '@/types/index.ts'
 
 interface DocumentPanelProps {
@@ -36,7 +37,7 @@ function getDocIcon(type: string, size = 14) {
   if (type === 'video') return <Video size={size} />
   if (type === 'cho') return <Music size={size} />
   if (type === 'rtf') return <FileText size={size} />
-  return <File size={size} />
+  return <FileIcon size={size} />
 }
 
 function getDistance(t1: Touch, t2: Touch) {
@@ -177,6 +178,48 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const handleChordSheetCreated = useCallback(() => {
     useDocumentsStore.getState().load(folderPath)
   }, [folderPath])
+
+  const handlePrint = useCallback(() => {
+    if (!activeDoc) {
+      window.print()
+      return
+    }
+    const original = document.title
+    const baseName = activeDoc.original_name.replace(/\.[^.]+$/, '')
+    document.title = baseName
+    const restore = () => {
+      document.title = original
+      window.removeEventListener('afterprint', restore)
+    }
+    window.addEventListener('afterprint', restore)
+    window.print()
+    setTimeout(restore, 1000)
+  }, [activeDoc])
+
+  const handleShareFile = useCallback(async () => {
+    if (!activeDoc) return
+    try {
+      const data = await api<{ content: string }>(`/documents/${activeDoc.id}/content`)
+      const blob = new Blob([data.content], { type: 'application/rtf' })
+      const file = new File([blob], activeDoc.original_name, { type: 'application/rtf' })
+      const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
+      if (nav.share && nav.canShare?.({ files: [file] })) {
+        await nav.share({ files: [file], title: activeDoc.original_name })
+        return
+      }
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = activeDoc.original_name
+      document.body.appendChild(a)
+      a.click()
+      a.remove()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') return
+      console.error('Teilen fehlgeschlagen', err)
+    }
+  }, [activeDoc])
 
   useEffect(() => {
     if (!pdfFullscreen) {
@@ -345,16 +388,36 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
               </button>
             </div>
           )}
-          {!rtfEditing && canEditSheet && isRtf && (
+          {!rtfEditing && isRtf && !guest && (
             <div className="pdf-toolbar-actions">
               <button
                 type="button"
                 className="pdf-toolbar-btn"
-                onClick={() => setRtfEditing(true)}
-                title="Text bearbeiten"
+                onClick={handlePrint}
+                title="Drucken"
+                aria-label="Drucken"
               >
-                <SquarePen size={16} />
+                <Printer size={16} />
               </button>
+              <button
+                type="button"
+                className="pdf-toolbar-btn"
+                onClick={handleShareFile}
+                title="Teilen"
+                aria-label="Teilen"
+              >
+                <Share2 size={16} />
+              </button>
+              {canEditSheet && (
+                <button
+                  type="button"
+                  className="pdf-toolbar-btn"
+                  onClick={() => setRtfEditing(true)}
+                  title="Text bearbeiten"
+                >
+                  <SquarePen size={16} />
+                </button>
+              )}
             </div>
           )}
           {editMode && <EditorActionsInline />}

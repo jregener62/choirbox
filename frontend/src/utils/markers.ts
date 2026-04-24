@@ -130,3 +130,33 @@ export function splitInlineMarkers(s: string): InlineSpan[] {
   }
   return out
 }
+
+/** Zeichen, die im Viewer als Melodiefuehrungs-Glyph (rot) gerendert werden.
+ *  ASCII-Mapping: `/`→↗, `\\`→↘, `_`→→ (Source bleibt ASCII fuer Cross-Editor-
+ *  Kompatibilitaet). Unicode-Pfeile und `~` bleiben unveraendert, bekommen
+ *  aber die gleiche Glyph-Kennzeichnung. */
+const GLYPH_MAP: Record<string, string> = {
+  '/': '↗',
+  '\\': '↘',
+  '_': '→',
+}
+const MELODY_GLYPH_RE = /[/\\_~↖↑↗←→↙↓↘]/g
+
+export interface MelodySpan {
+  kind: 'text' | 'melody'
+  text: string
+}
+
+export function splitMelodyChars(s: string): MelodySpan[] {
+  const out: MelodySpan[] = []
+  let pos = 0
+  MELODY_GLYPH_RE.lastIndex = 0
+  let m: RegExpExecArray | null
+  while ((m = MELODY_GLYPH_RE.exec(s)) !== null) {
+    if (m.index > pos) out.push({ kind: 'text', text: s.slice(pos, m.index) })
+    out.push({ kind: 'melody', text: GLYPH_MAP[m[0]] ?? m[0] })
+    pos = m.index + m[0].length
+  }
+  if (pos < s.length) out.push({ kind: 'text', text: s.slice(pos) })
+  return out
+}

@@ -1015,11 +1015,17 @@ Drei Inline-Marker funktionieren in `.rtf` (ausschliesslich) sowie mit Abstriche
 | `backend/services/document_service.py` | `.rtf` als DOCUMENT_EXTENSION + Text-Caching |
 | `backend/api/documents.py` | `.rtf` in GET/PUT /content und paste-text |
 
+### Teilen und Drucken
+
+- **Teilen-Button** in der RTF-Toolbar laedt den RTF-Inhalt via `/content` und uebergibt ihn an `navigator.share({ files: [...] })` — auf iOS/Android und macOS Safari 16.4+ oeffnet sich das native Teilen-Menue (AirDrop, Mail, Nachrichten, Notizen, Kopieren). Browser ohne Web-Share-File-Support (macOS Chrome/Edge) fallen auf einen Download zurueck.
+- **Drucken-Button** in der RTF-Toolbar ruft `window.print()`. Ein `@media print`-Stylesheet blendet Chrome (Topbar, PDF-Toolbar, Bottom-Nav, Mini-Player, Global-Player, FABs, Floating-Recorder, Footer-Slot, Annotations) aus und laesst den RTF-Inhalt im Dokumentfluss paginieren. PDF-Dateiname (beim "Save as PDF"-Weg) wird temporaer auf den RTF-Basisnamen gesetzt.
+
 ### Berechtigungen
 
 | Aktion | Mindest-Rolle |
 |--------|---------------|
 | RTF ansehen | member |
+| RTF teilen / drucken | member |
 | RTF bearbeiten (Editor) | pro-member |
 | Neue `.rtf` anlegen | pro-member |
 | `.rtf` loeschen | pro-member |

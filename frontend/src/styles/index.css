@@ -1805,19 +1805,21 @@ body.body-scroll-fs .autoscroll-stepper {
 }
 .rtf-viewer-bar-initial {
   text-decoration: underline;
-  text-decoration-color: #c55a11;
+  text-decoration-color: #2563eb;
   text-decoration-thickness: 2px;
   text-underline-offset: 3px;
 }
+.rtf-viewer-melody-glyph {
+  color: #dc2626;
+  font-weight: 600;
+}
 .rtf-viewer-comment {
-  font-style: italic;
   color: #8a6d20;
   background: rgba(255, 235, 59, 0.35);
   padding: 0 var(--space-1);
   border-radius: var(--radius-xs);
 }
 .rtf-viewer-comment-block {
-  font-style: italic;
   color: #8a6d20;
   background: rgba(255, 235, 59, 0.35);
   padding: var(--space-1) var(--space-2);
@@ -1979,6 +1981,25 @@ body.body-scroll-fs .autoscroll-stepper {
 .rtf-editor-heading-btn--section  { font-weight: 600; }
 .rtf-editor-heading-btn--info     { font-style: italic; color: #6b7280; }
 .rtf-editor-heading-btn--footer   { font-style: italic; color: #6b7280; font-size: var(--text-2xs); }
+
+.rtf-editor-arrow-btn {
+  min-width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: var(--radius-xs);
+  background: #ffffff;
+  color: #4a5064;
+  font-size: var(--text-base);
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.08s, border-color 0.08s;
+}
+.rtf-editor-arrow-btn:hover {
+  background: rgba(0, 0, 0, 0.04);
+  border-color: #4a5064;
+}
 
 /* Highlight im Editor-Content so rendern wie Tiptap es markiert —
    tiptap setzt `<mark>` mit style="background-color: …" inline. Um
@@ -5704,4 +5725,66 @@ body.body-scroll-fs .autoscroll-stepper {
   font-weight: 500;
   text-align: center;
   box-shadow: var(--shadow-md);
+}
+
+@media print {
+  .topbar,
+  .bottom-nav,
+  .mini-player,
+  .global-player,
+  .global-player-markers,
+  .pdf-toolbar,
+  .pdf-fab,
+  .chord-toolbar,
+  .auto-scroll-stepper,
+  .swipe-hint,
+  .annotation-toolbar,
+  .annotation-svg,
+  .floating-recorder,
+  .edge-bug-tab,
+  .pwa-guide-overlay,
+  .footer-slot {
+    display: none !important;
+  }
+
+  html, body {
+    background: #fff !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  #root,
+  .app-shell,
+  .main-content,
+  .player-page,
+  .player-scroll-content,
+  .pdf-panel,
+  .rtf-viewer-content,
+  .rtf-viewer-inner {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+  }
+
+  .rtf-viewer-content {
+    color: #000 !important;
+    font-size: 11pt !important;
+  }
+  .rtf-viewer-heading {
+    color: #000 !important;
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+  .rtf-viewer-para {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  @page { margin: 15mm; }
 }
