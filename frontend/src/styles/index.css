@@ -1130,8 +1130,8 @@ textarea::placeholder {
 }
 
 .marker-delete-toggle--active {
-  border-color: var(--danger);
-  background: var(--danger);
+  border-color: var(--text-muted);
+  background: var(--text-muted);
   color: #fff;
 }
 

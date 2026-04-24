@@ -102,7 +102,7 @@ export function MarkerRow({ markers, variant }: MarkerRowProps) {
         onClick={() => setDeleteMode(!deleteMode)}
         aria-label={deleteMode ? 'Lösch-Modus beenden' : 'Lösch-Modus'}
       >
-        <Trash2 size={16} />
+        {deleteMode ? <X size={18} /> : <Trash2 size={16} />}
       </button>
     </div>
   )
