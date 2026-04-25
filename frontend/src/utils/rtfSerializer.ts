@@ -149,6 +149,8 @@ function serializeNode(node: TiptapNode, colorIndex: Map<string, number>): strin
       return wrapWithMarks(node.text ?? '', node.marks, colorIndex)
     case 'hardBreak':
       return '\\line '
+    case 'pageBreak':
+      return '\\page\n'
     case 'paragraph':
       return serializeChildren(node.content, colorIndex) + '\\par\n'
     case 'heading': {

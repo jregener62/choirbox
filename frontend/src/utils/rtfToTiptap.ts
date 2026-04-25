@@ -82,6 +82,10 @@ function lineToTiptapNode(lineRuns: RtfRun[]): TiptapNode {
 export function rtfToTiptap(parsed: ParsedRtf): TiptapDoc {
   const content: TiptapNode[] = []
   for (const para of parsed.paragraphs) {
+    if (para.pageBreak) {
+      content.push({ type: 'pageBreak' })
+      continue
+    }
     if (para.runs.length === 0) {
       content.push({ type: 'paragraph' })
       continue

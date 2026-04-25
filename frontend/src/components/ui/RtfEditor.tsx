@@ -6,13 +6,14 @@ import Highlight from '@tiptap/extension-highlight'
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Heading, MessageSquareQuote, Pilcrow,
-  Highlighter, Music, X, Check,
+  Highlighter, Music, SeparatorHorizontal, X, Check,
 } from 'lucide-react'
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { api } from '@/api/client.ts'
 import { parseRtf } from '@/utils/rtfParser'
 import { rtfToTiptap } from '@/utils/rtfToTiptap'
 import { serializeTiptapToRtf, type TiptapDoc } from '@/utils/rtfSerializer'
+import { PageBreak } from '@/utils/tiptapPageBreak'
 
 interface RtfEditorProps {
   docId: number
@@ -97,6 +98,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
       Underline,
       Highlight.configure({ multicolor: true }),
       Placeholder.configure({ placeholder: 'Text eingeben…' }),
+      PageBreak,
     ],
     content: initialDoc ?? '',
     onUpdate: () => setDirty(true),
@@ -162,6 +164,10 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
 
   const insertArrow = (insert: string) => {
     editor.chain().focus().insertContent(insert).run()
+  }
+
+  const insertPageBreak = () => {
+    editor.chain().focus().insertContent({ type: 'pageBreak' }).run()
   }
 
   const applyHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => {
@@ -275,6 +281,15 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               aria-pressed={arrowOpen}
             >
               <Music size={16} />
+            </button>
+            <button
+              type="button"
+              className="rtf-editor-btn"
+              onClick={insertPageBreak}
+              title="Seitenumbruch einfuegen"
+              aria-label="Seitenumbruch"
+            >
+              <SeparatorHorizontal size={16} />
             </button>
             <div className="rtf-editor-sep" />
             <button

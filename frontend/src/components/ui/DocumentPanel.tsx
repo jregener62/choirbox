@@ -1,5 +1,5 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File as FileIcon, Plus, Minus, Music, SquarePen, Share2, Printer } from 'lucide-react'
+import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File as FileIcon, Plus, Minus, Music, SquarePen, Share2, Printer, BookOpen, AlignLeft } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole, isGuest } from '@/utils/roles.ts'
@@ -15,6 +15,7 @@ import { VideoViewer } from '@/components/ui/VideoViewer.tsx'
 import { TextViewer } from '@/components/ui/TextViewer.tsx'
 import { ChordSheetTextViewer } from '@/components/ui/ChordSheetTextViewer.tsx'
 import { RtfViewer } from '@/components/ui/RtfViewer.tsx'
+import { RtfPagedViewer } from '@/components/ui/RtfPagedViewer.tsx'
 import { RtfEditor } from '@/components/ui/RtfEditor.tsx'
 import { AutoScrollStepper } from '@/components/ui/AutoScrollStepper.tsx'
 import { EditorActionsInline } from '@/components/ui/EditorActionsInline.tsx'
@@ -76,6 +77,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   // View toggle: Akkorde ein/aus (Default: an). Pro Session, nicht persistiert.
   const [showChords, setShowChords] = useState(true)
   const [rtfEditing, setRtfEditing] = useState(false)
+  const [rtfPaged, setRtfPaged] = useState(false)
   const [rtfReloadToken, setRtfReloadToken] = useState(0)
   const [autoEditConsumed, setAutoEditConsumed] = useState(false)
   const [showSwipeHint, setShowSwipeHint] = useState(false)
@@ -392,6 +394,16 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
             <div className="pdf-toolbar-actions">
               <button
                 type="button"
+                className={`pdf-toolbar-btn${rtfPaged ? ' pdf-toolbar-btn--active' : ''}`}
+                onClick={() => setRtfPaged((v) => !v)}
+                title={rtfPaged ? 'Endlos-Ansicht' : 'Seitenansicht'}
+                aria-label={rtfPaged ? 'Endlos-Ansicht' : 'Seitenansicht'}
+                aria-pressed={rtfPaged}
+              >
+                {rtfPaged ? <AlignLeft size={16} /> : <BookOpen size={16} />}
+              </button>
+              <button
+                type="button"
                 className="pdf-toolbar-btn"
                 onClick={handlePrint}
                 title="Drucken"
@@ -468,9 +480,18 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
         />
       )}
 
-      {activeDoc.file_type === 'rtf' && !rtfEditing && (
+      {activeDoc.file_type === 'rtf' && !rtfEditing && !rtfPaged && (
         <RtfViewer
           key={rtfReloadToken}
+          docId={activeDoc.id}
+          fontSize={TEXT_FONT_SIZES[textSizeIndex]}
+          scrollContainerRef={scrollContainerRef}
+        />
+      )}
+
+      {activeDoc.file_type === 'rtf' && !rtfEditing && rtfPaged && (
+        <RtfPagedViewer
+          key={`paged-${rtfReloadToken}`}
           docId={activeDoc.id}
           fontSize={TEXT_FONT_SIZES[textSizeIndex]}
           scrollContainerRef={scrollContainerRef}

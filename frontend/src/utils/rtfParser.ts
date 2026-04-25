@@ -40,6 +40,10 @@ export interface RtfRun {
 
 export interface RtfParagraph {
   runs: RtfRun[]
+  /** Wenn true, ist dies ein Marker fuer einen manuellen Seitenumbruch
+   *  (RTF-Quelle: `\page`). Hat keine Runs, wird vom Paged-Viewer und
+   *  vom Editor als eigenstaendiger Seiten-Trenner behandelt. */
+  pageBreak?: boolean
 }
 
 export interface ParsedRtf {
@@ -232,6 +236,10 @@ export function parseRtf(source: string): ParsedRtf {
         return
       case 'par':
         endParagraph()
+        return
+      case 'page':
+        endParagraph()
+        if (destination === 'normal') paragraphs.push({ runs: [], pageBreak: true })
         return
       case 'line':
         appendText('\n')
