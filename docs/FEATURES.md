@@ -1020,12 +1020,13 @@ Drei Inline-Marker funktionieren in `.rtf` (ausschliesslich) sowie mit Abstriche
 - **Teilen-Button** in der RTF-Toolbar laedt den RTF-Inhalt via `/content` und uebergibt ihn an `navigator.share({ files: [...] })` — auf iOS/Android und macOS Safari 16.4+ oeffnet sich das native Teilen-Menue (AirDrop, Mail, Nachrichten, Notizen, Kopieren). Browser ohne Web-Share-File-Support (macOS Chrome/Edge) fallen auf einen Download zurueck.
 - **Drucken-Button** in der RTF-Toolbar ruft `window.print()`. Ein `@media print`-Stylesheet blendet Chrome (Topbar, PDF-Toolbar, Bottom-Nav, Mini-Player, Global-Player, FABs, Floating-Recorder, Footer-Slot, Annotations) aus und laesst den RTF-Inhalt im Dokumentfluss paginieren. PDF-Dateiname (beim "Save as PDF"-Weg) wird temporaer auf den RTF-Basisnamen gesetzt.
 
-### Seitenansicht (RtfPagedViewer)
+### Seitenansicht im Editor (RtfPagedView)
 
-- Toggle-Button (`BookOpen` / `AlignLeft`) in der RTF-Toolbar wechselt zwischen Endlos-Ansicht und A4-Seitenansicht.
+- Toggle-Button (`BookOpen` / `SquarePen`) im RTF-Editor schaltet zwischen Bearbeitungs- und Vorschau-Modus. Im Vorschau-Modus klappt die Formatierungs-Toolbar ein, sichtbar bleiben nur Zurueck/Speichern/Abbrechen.
+- Zweck: Seitenumbrueche an der richtigen Stelle setzen — Workflow ist Edit → Vorschau → Bruch identifizieren → Edit → Cursor positionieren → Seitenumbruch-Button → Vorschau.
+- Bei jedem Wechsel in den Vorschau-Modus wird der aktuelle Tiptap-State serialisiert + neu geparst, sodass die Pagination 1:1 dem entspricht, was nach Speichern in der RTF-Datei landet.
 - Eine Seite = 210 × 297 mm mit 18 mm Padding. Pagination misst Inhalt off-screen in voller A4-Breite und verteilt virtuelle Zeilen ueber `useLayoutEffect`. Auf schmalen Viewports skaliert jede Seite proportional via CSS-Transform — Pagination bleibt viewportunabhaengig stabil.
 - **Fusszeile pro Seite**: alle Zeilen mit Heading-Level-6 (`### …` mit 6 Hashes, im Editor `Fusszeile`-Style) werden aus dem Hauptfluss entfernt und unten auf jeder Seite wiederholt — darunter `Seite X von Y` als laufende Seitenzahl.
-- Drucken aus der Seitenansicht: jede A4-Seite wird zu einer eigenen Druckseite (`page-break-after: always`).
 
 ### Manueller Seitenumbruch
 
@@ -1041,8 +1042,8 @@ Drei Inline-Marker funktionieren in `.rtf` (ausschliesslich) sowie mit Abstriche
 |--------|---------------|
 | RTF ansehen | member |
 | RTF teilen / drucken | member |
-| RTF Seitenansicht umschalten | member |
 | RTF bearbeiten (Editor) | pro-member |
+| Seitenansicht-Vorschau im Editor | pro-member |
 | Manueller Seitenumbruch im Editor | pro-member |
 | Neue `.rtf` anlegen | pro-member |
 | `.rtf` loeschen | pro-member |

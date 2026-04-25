@@ -5838,12 +5838,26 @@ body.body-scroll-fs .autoscroll-stepper {
   .auto-scroll-stepper,
   .swipe-hint,
   .annotation-toolbar,
-  .annotation-svg,
   .floating-recorder,
   .edge-bug-tab,
   .pwa-guide-overlay,
   .footer-slot {
     display: none !important;
+  }
+
+  /* Annotationen mitdrucken — RtfViewer ersetzt vor dem Druck das eine grosse
+     Overlay-SVG durch viele kleine Per-Stroke-SVGs (.annotation-print-slice),
+     damit Chrome korrekt ueber Druckseiten paginiert. Das Original-SVG wird
+     vom Hook auf display:none gesetzt. */
+  .annotation-svg {
+    pointer-events: none !important;
+  }
+  .annotation-print-slice {
+    display: block !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    break-inside: auto !important;
+    page-break-inside: auto !important;
   }
 
   html, body {

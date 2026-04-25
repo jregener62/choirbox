@@ -63,6 +63,85 @@ export function RtfViewer({
     loadPage(docId, ANNOTATION_PAGE)
   }, [docId, loadPage])
 
+  // Print-Hook: Chrome paginiert ein einzelnes grosses position:absolute SVG
+  // nicht — Annotations auf Seite > 1 werden geclippt. Vor dem Druck zerlegen
+  // wir das Overlay in viele kleine, einzeln positionierte SVGs (eines pro
+  // Stroke), die als kleine Boxen sauber durch die Druckseiten paginieren.
+  useEffect(() => {
+    const handleBeforePrint = () => {
+      const inner = contentRef.current
+      const svg = svgRef.current
+      if (!inner || !svg || strokes.length === 0) return
+      const vb = svg.viewBox.baseVal
+      if (vb.width === 0 || vb.height === 0) return
+
+      svg.dataset.printHidden = '1'
+      svg.style.display = 'none'
+
+      for (const stroke of strokes) {
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+        for (const p of stroke.points) {
+          if (p[0] < minX) minX = p[0]
+          if (p[0] > maxX) maxX = p[0]
+          if (p[1] < minY) minY = p[1]
+          if (p[1] > maxY) maxY = p[1]
+        }
+        const pad = stroke.width * 2
+        minX = Math.max(0, minX - pad)
+        minY = Math.max(0, minY - pad)
+        maxX = Math.min(vb.width, maxX + pad)
+        maxY = Math.min(vb.height, maxY + pad)
+        const vbW = maxX - minX
+        const vbH = maxY - minY
+        if (vbW <= 0 || vbH <= 0) continue
+
+        const d = getSvgPathFromStroke(stroke.points, stroke.width, stroke.tool)
+        if (!d) continue
+
+        const sliceSvg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        sliceSvg.setAttribute('viewBox', `${minX} ${minY} ${vbW} ${vbH}`)
+        sliceSvg.setAttribute('preserveAspectRatio', 'none')
+        sliceSvg.classList.add('annotation-print-slice')
+        // Prozent-Positionen, damit beim Reflow im Druck (andere Breite) jede
+        // Slice an derselben proportionalen Stelle wie im Original-Overlay liegt.
+        sliceSvg.style.cssText =
+          `position: absolute;` +
+          `top: ${(minY / vb.height) * 100}%;` +
+          `left: ${(minX / vb.width) * 100}%;` +
+          `width: ${(vbW / vb.width) * 100}%;` +
+          `height: ${(vbH / vb.height) * 100}%;` +
+          `pointer-events: none; overflow: visible;`
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+        path.setAttribute('d', d)
+        path.setAttribute('fill', stroke.color)
+        sliceSvg.appendChild(path)
+
+        inner.appendChild(sliceSvg)
+      }
+    }
+
+    const handleAfterPrint = () => {
+      const inner = contentRef.current
+      if (inner) {
+        inner.querySelectorAll('.annotation-print-slice').forEach((el) => el.remove())
+      }
+      const svg = svgRef.current
+      if (svg && svg.dataset.printHidden) {
+        svg.style.display = ''
+        delete svg.dataset.printHidden
+      }
+    }
+
+    window.addEventListener('beforeprint', handleBeforePrint)
+    window.addEventListener('afterprint', handleAfterPrint)
+    return () => {
+      window.removeEventListener('beforeprint', handleBeforePrint)
+      window.removeEventListener('afterprint', handleAfterPrint)
+      handleAfterPrint()
+    }
+  }, [strokes])
+
   const parsed = useMemo(() => {
     if (content === null) return null
     try {

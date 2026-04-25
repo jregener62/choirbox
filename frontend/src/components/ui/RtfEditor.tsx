@@ -6,7 +6,7 @@ import Highlight from '@tiptap/extension-highlight'
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Heading, MessageSquareQuote, Pilcrow,
-  Highlighter, Music, SeparatorHorizontal, X, Check,
+  Highlighter, Music, SeparatorHorizontal, BookOpen, SquarePen, X, Check,
 } from 'lucide-react'
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { api } from '@/api/client.ts'
@@ -14,6 +14,7 @@ import { parseRtf } from '@/utils/rtfParser'
 import { rtfToTiptap } from '@/utils/rtfToTiptap'
 import { serializeTiptapToRtf, type TiptapDoc } from '@/utils/rtfSerializer'
 import { PageBreak } from '@/utils/tiptapPageBreak'
+import { RtfPagedView } from '@/components/ui/RtfPagedView.tsx'
 
 interface RtfEditorProps {
   docId: number
@@ -88,6 +89,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const [highlightOpen, setHighlightOpen] = useState(false)
   const [headingOpen, setHeadingOpen] = useState(false)
   const [arrowOpen, setArrowOpen] = useState(false)
+  const [preview, setPreview] = useState(false)
   /** Force-Rerender-Trigger — wird bei jeder Tiptap-Transaktion inkrementiert,
    *  damit `editor.isActive(...)` korrekt reactive aufgerufen wird. */
   const [, forceRerender] = useReducer((x: number) => x + 1, 0)
@@ -105,6 +107,22 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     onSelectionUpdate: () => forceRerender(),
     onTransaction: () => forceRerender(),
   }, [initialDoc])
+
+  // Vorschau-Paragraphen: bei jedem Wechsel in den Preview-Modus aus dem
+  // aktuellen Tiptap-State serialisiert + neu geparst, damit die Pagination
+  // exakt der spaeter gespeicherten RTF-Datei entspricht. Hook bewusst vor
+  // den Early-Returns, damit die Hook-Reihenfolge stabil bleibt.
+  const previewParagraphs = useMemo(() => {
+    if (!preview || !editor) return null
+    try {
+      const doc = editor.getJSON() as unknown as TiptapDoc
+      const rtf = serializeTiptapToRtf(doc)
+      return parseRtf(rtf).paragraphs
+    } catch {
+      return []
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preview])
 
   if (loadError) {
     return (
@@ -170,6 +188,14 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
     editor.chain().focus().insertContent({ type: 'pageBreak' }).run()
   }
 
+  const togglePreview = () => {
+    setPreview((p) => {
+      const next = !p
+      if (next) { setHeadingOpen(false); setHighlightOpen(false); setArrowOpen(false) }
+      return next
+    })
+  }
+
   const applyHeading = (level: 1 | 2 | 3 | 4 | 5 | 6) => {
     editor.chain().focus().toggleHeading({ level }).run()
   }
@@ -197,6 +223,8 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
         <div className="rtf-editor-bar">
           <span className="rtf-editor-name">{originalName}</span>
           <div className="rtf-editor-actions">
+            {!preview && (
+            <>
             <button
               type="button"
               className={`rtf-editor-btn${bActive ? ' rtf-editor-btn--active' : ''}`}
@@ -291,6 +319,18 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             >
               <SeparatorHorizontal size={16} />
             </button>
+            </>
+            )}
+            <button
+              type="button"
+              className={`rtf-editor-btn${preview ? ' rtf-editor-btn--active' : ''}`}
+              onClick={togglePreview}
+              title={preview ? 'Zurueck zur Bearbeitung' : 'Seitenansicht-Vorschau'}
+              aria-label={preview ? 'Bearbeiten' : 'Seitenansicht'}
+              aria-pressed={preview}
+            >
+              {preview ? <SquarePen size={16} /> : <BookOpen size={16} />}
+            </button>
             <div className="rtf-editor-sep" />
             <button
               type="button"
@@ -311,7 +351,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             </button>
           </div>
         </div>
-        {headingOpen && (
+        {!preview && headingOpen && (
           <div className="rtf-editor-subbar" role="toolbar" aria-label="Ueberschriften-Stil">
             <span className="rtf-editor-subbar-label">Ueberschrift:</span>
             {HEADING_STYLES.map((h) => {
@@ -331,7 +371,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             })}
           </div>
         )}
-        {highlightOpen && (
+        {!preview && highlightOpen && (
           <div className="rtf-editor-subbar" role="toolbar" aria-label="Textfarbe">
             <span className="rtf-editor-subbar-label">Markieren:</span>
             {HIGHLIGHT_COLORS.map((c) => {
@@ -360,7 +400,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             </button>
           </div>
         )}
-        {arrowOpen && (
+        {!preview && arrowOpen && (
           <div className="rtf-editor-subbar" role="toolbar" aria-label="Melodiefuehrungs-Pfeile">
             <span className="rtf-editor-subbar-label">Pfeil:</span>
             {MELODY_ARROWS.map((a) => (
@@ -379,7 +419,12 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
         )}
         {saveError && <div className="rtf-editor-error">{saveError}</div>}
       </div>
-      <EditorContent editor={editor} className="rtf-editor-content" />
+      <div style={{ display: preview ? 'none' : 'contents' }}>
+        <EditorContent editor={editor} className="rtf-editor-content" />
+      </div>
+      {preview && previewParagraphs && (
+        <RtfPagedView paragraphs={previewParagraphs} fontSize={16} />
+      )}
     </div>
   )
 }
