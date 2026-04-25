@@ -2001,6 +2001,49 @@ body.body-scroll-fs .autoscroll-stepper {
   border-color: #4a5064;
 }
 
+.rtf-editor-erase-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  height: 26px;
+  padding: 0 var(--space-2);
+  border: 1px solid rgba(0, 0, 0, 0.22);
+  border-radius: var(--radius-xs);
+  background: #ffffff;
+  color: #4a5064;
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.08s, border-color 0.08s, color 0.08s;
+}
+.rtf-editor-erase-btn:hover {
+  background: rgba(220, 38, 38, 0.08);
+  border-color: var(--danger, #dc2626);
+  color: var(--danger, #dc2626);
+}
+.rtf-editor-erase-count {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 var(--space-1);
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.08);
+  color: #4a5064;
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-align: center;
+  line-height: 16px;
+}
+.rtf-editor-erase-btn:hover .rtf-editor-erase-count {
+  background: rgba(220, 38, 38, 0.16);
+  color: var(--danger, #dc2626);
+}
+.rtf-editor-erase-empty {
+  font-size: var(--text-xs);
+  color: var(--text-muted, #6b7280);
+  font-style: italic;
+}
+
 /* Highlight im Editor-Content so rendern wie Tiptap es markiert —
    tiptap setzt `<mark>` mit style="background-color: …" inline. Um
    spaeter im Viewer identisch zu erscheinen, delegieren wir an den

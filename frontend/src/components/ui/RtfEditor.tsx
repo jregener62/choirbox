@@ -6,7 +6,7 @@ import Highlight from '@tiptap/extension-highlight'
 import {
   Bold, Italic, Strikethrough, Underline as UnderlineIcon,
   Heading, MessageSquareQuote, Pilcrow,
-  Highlighter, Music, SeparatorHorizontal, BookOpen, SquarePen, X, Check,
+  Highlighter, Music, SeparatorHorizontal, BookOpen, SquarePen, Eraser, X, Check,
 } from 'lucide-react'
 import { useEffect, useMemo, useReducer, useState } from 'react'
 import { api } from '@/api/client.ts'
@@ -15,6 +15,7 @@ import { rtfToTiptap } from '@/utils/rtfToTiptap'
 import { serializeTiptapToRtf, type TiptapDoc } from '@/utils/rtfSerializer'
 import { PageBreak } from '@/utils/tiptapPageBreak'
 import { RtfPagedView } from '@/components/ui/RtfPagedView.tsx'
+import { countFormattings, clearFormatting, type FormattingKind } from '@/utils/rtfClearFormatting'
 
 interface RtfEditorProps {
   docId: number
@@ -89,6 +90,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const [highlightOpen, setHighlightOpen] = useState(false)
   const [headingOpen, setHeadingOpen] = useState(false)
   const [arrowOpen, setArrowOpen] = useState(false)
+  const [eraseOpen, setEraseOpen] = useState(false)
   const [preview, setPreview] = useState(false)
   /** Force-Rerender-Trigger — wird bei jeder Tiptap-Transaktion inkrementiert,
    *  damit `editor.isActive(...)` korrekt reactive aufgerufen wird. */
@@ -191,7 +193,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
   const togglePreview = () => {
     setPreview((p) => {
       const next = !p
-      if (next) { setHeadingOpen(false); setHighlightOpen(false); setArrowOpen(false) }
+      if (next) { setHeadingOpen(false); setHighlightOpen(false); setArrowOpen(false); setEraseOpen(false) }
       return next
     })
   }
@@ -262,7 +264,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               className={`rtf-editor-btn${highlightOpen ? ' rtf-editor-btn--active' : ''}`}
               onClick={() => {
                 setHighlightOpen((v) => !v)
-                if (!highlightOpen) { setHeadingOpen(false); setArrowOpen(false) }
+                if (!highlightOpen) { setHeadingOpen(false); setArrowOpen(false); setEraseOpen(false) }
               }}
               title="Markieren (Hintergrundfarbe)"
               aria-pressed={highlightOpen}
@@ -275,7 +277,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               className={`rtf-editor-btn${headingOpen ? ' rtf-editor-btn--active' : ''}`}
               onClick={() => {
                 setHeadingOpen((v) => !v)
-                if (!headingOpen) { setHighlightOpen(false); setArrowOpen(false) }
+                if (!headingOpen) { setHighlightOpen(false); setArrowOpen(false); setEraseOpen(false) }
               }}
               title="Ueberschrift"
               aria-pressed={headingOpen}
@@ -303,7 +305,7 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               className={`rtf-editor-btn${arrowOpen ? ' rtf-editor-btn--active' : ''}`}
               onClick={() => {
                 setArrowOpen((v) => !v)
-                if (!arrowOpen) { setHighlightOpen(false); setHeadingOpen(false) }
+                if (!arrowOpen) { setHighlightOpen(false); setHeadingOpen(false); setEraseOpen(false) }
               }}
               title="Melodiefuehrung"
               aria-pressed={arrowOpen}
@@ -318,6 +320,19 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
               aria-label="Seitenumbruch"
             >
               <SeparatorHorizontal size={16} />
+            </button>
+            <button
+              type="button"
+              className={`rtf-editor-btn${eraseOpen ? ' rtf-editor-btn--active' : ''}`}
+              onClick={() => {
+                setEraseOpen((v) => !v)
+                if (!eraseOpen) { setHighlightOpen(false); setHeadingOpen(false); setArrowOpen(false) }
+              }}
+              title="Formatierung dokumentweit entfernen"
+              aria-pressed={eraseOpen}
+              aria-label="Formatierung entfernen"
+            >
+              <Eraser size={16} />
             </button>
             </>
             )}
@@ -417,6 +432,29 @@ export function RtfEditor({ docId, originalName, onSaved, onCancel }: RtfEditorP
             ))}
           </div>
         )}
+        {!preview && eraseOpen && (() => {
+          const entries = countFormattings(editor).filter((e) => e.count > 0)
+          return (
+            <div className="rtf-editor-subbar" role="toolbar" aria-label="Formatierung entfernen">
+              <span className="rtf-editor-subbar-label">Loeschen:</span>
+              {entries.length === 0 ? (
+                <span className="rtf-editor-erase-empty">Keine Formatierungen vorhanden</span>
+              ) : entries.map((e) => (
+                <button
+                  key={e.kind}
+                  type="button"
+                  className={`rtf-editor-erase-btn rtf-editor-erase-btn--${e.kind}`}
+                  onClick={() => {
+                    clearFormatting(editor, e.kind as FormattingKind)
+                  }}
+                  title={`Alle „${e.label}“ entfernen (${e.count})`}
+                >
+                  {e.label} <span className="rtf-editor-erase-count">{e.count}</span>
+                </button>
+              ))}
+            </div>
+          )
+        })()}
         {saveError && <div className="rtf-editor-error">{saveError}</div>}
       </div>
       <div style={{ display: preview ? 'none' : 'contents' }}>
