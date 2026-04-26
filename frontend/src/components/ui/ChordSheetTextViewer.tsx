@@ -154,6 +154,10 @@ export function ChordSheetTextViewer({
         if (id) eraseStroke(key, id)
         return
       }
+      if (tool === 'move') {
+        // Move-Tool ist nur fuer den PDF-Viewer (AnnotatedPage) implementiert.
+        return
+      }
 
       const newStroke: Stroke = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),

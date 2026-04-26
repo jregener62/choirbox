@@ -2,9 +2,11 @@ import { create } from 'zustand'
 import { api } from '@/api/client.ts'
 import type { Stroke, StrokeAnchor } from '@/types/index.ts'
 
+export type AnnotationTool = 'pen' | 'highlighter' | 'eraser' | 'move'
+
 interface AnnotationState {
   drawingMode: boolean
-  tool: 'pen' | 'highlighter' | 'eraser'
+  tool: AnnotationTool
   color: string
   strokeWidth: number
   /** strokes per page, keyed by "docId::page" */
@@ -15,7 +17,7 @@ interface AnnotationState {
   dirty: Set<string>
 
   setDrawingMode: (on: boolean) => void
-  setTool: (tool: 'pen' | 'highlighter' | 'eraser') => void
+  setTool: (tool: AnnotationTool) => void
   setColor: (color: string) => void
   setStrokeWidth: (width: number) => void
   setActiveStroke: (stroke: Stroke | null) => void
@@ -23,6 +25,9 @@ interface AnnotationState {
    *  der den Stroke an eine Doc-Zeile bindet (siehe StrokeAnchor). */
   commitStroke: (key: string, anchor?: StrokeAnchor) => void
   eraseStroke: (key: string, strokeId: string) => void
+  /** Verschiebt einen bestehenden Stroke um (dx, dy) in viewBox-Koordinaten.
+   *  Wird vom Move-Tool nach Pointer-Up aufgerufen, triggert debounced save. */
+  moveStroke: (key: string, strokeId: string, dx: number, dy: number) => void
   undo: (key: string) => void
   clearPage: (key: string) => void
   loadPage: (docId: number, page: number) => Promise<void>
@@ -98,6 +103,24 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: existing.filter((s) => s.id !== strokeId) },
       dirty,
     })
+    const { docId, page } = parseKey(key)
+    debouncedSave(docId, page)
+  },
+
+  moveStroke: (key, strokeId, dx, dy) => {
+    const { pages } = get()
+    const existing = pages[key]
+    if (!existing) return
+    const updated = existing.map((s) => {
+      if (s.id !== strokeId) return s
+      return {
+        ...s,
+        points: s.points.map((p) => [p[0] + dx, p[1] + dy, p[2] ?? 0.5]),
+      }
+    })
+    const dirty = new Set(get().dirty)
+    dirty.add(key)
+    set({ pages: { ...pages, [key]: updated }, dirty })
     const { docId, page } = parseKey(key)
     debouncedSave(docId, page)
   },

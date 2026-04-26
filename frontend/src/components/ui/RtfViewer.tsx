@@ -220,6 +220,11 @@ export function RtfViewer({
         if (id) eraseStroke(key, id)
         return
       }
+      if (tool === 'move') {
+        // Move-Tool wird auf dem Companion-PDF (AnnotatedPage) genutzt —
+        // im Endlos-Fallback hier ignorieren wir den Mode.
+        return
+      }
       // Zeile unter dem Cursor finden und merken — wird im PointerUp zum
       // semantischen Anker des Strokes. elementsFromPoint (Plural) liefert
       // alle Elemente am Punkt in z-Order; das oberste ist das Annotations-

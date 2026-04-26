@@ -33,6 +33,25 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
   const setActiveStroke = useAnnotationStore((s) => s.setActiveStroke)
   const commitStroke = useAnnotationStore((s) => s.commitStroke)
   const eraseStroke = useAnnotationStore((s) => s.eraseStroke)
+  const moveStrokeAction = useAnnotationStore((s) => s.moveStroke)
+
+  // Move-Mode-State: ausgewaehlter Stroke + Drag-Delta in viewBox-Koordinaten
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const dragRef = useRef<{
+    strokeId: string
+    startVbX: number
+    startVbY: number
+  } | null>(null)
+  const [dragDelta, setDragDelta] = useState<{ x: number; y: number } | null>(null)
+
+  // Beim Tool-Wechsel weg vom Move-Tool die Auswahl loesen
+  useEffect(() => {
+    if (tool !== 'move') {
+      setSelectedId(null)
+      dragRef.current = null
+      setDragDelta(null)
+    }
+  }, [tool])
 
   // Load annotations when component mounts
   useEffect(() => {
@@ -96,7 +115,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
         // Release pointer capture on previously captured pointers
         for (const id of activePointersRef.current) {
           if (id !== e.pointerId) {
-            try { (e.currentTarget as Element).releasePointerCapture(id) } catch {}
+            try { (e.currentTarget as Element).releasePointerCapture(id) } catch { /* no-op */ }
           }
         }
         return
@@ -112,6 +131,20 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       if (tool === 'eraser') {
         const id = findStrokeAtPoint(point)
         if (id) eraseStroke(key, id)
+        return
+      }
+
+      if (tool === 'move') {
+        const id = findStrokeAtPoint(point)
+        if (id) {
+          setSelectedId(id)
+          dragRef.current = { strokeId: id, startVbX: point[0], startVbY: point[1] }
+          setDragDelta({ x: 0, y: 0 })
+        } else {
+          setSelectedId(null)
+          dragRef.current = null
+          setDragDelta(null)
+        }
         return
       }
 
@@ -140,6 +173,15 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
         return
       }
 
+      if (tool === 'move') {
+        if (!dragRef.current) return
+        setDragDelta({
+          x: point[0] - dragRef.current.startVbX,
+          y: point[1] - dragRef.current.startVbY,
+        })
+        return
+      }
+
       if (!activeStroke) return
       setActiveStroke({
         ...activeStroke,
@@ -154,25 +196,64 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
     if (activePointersRef.current.size === 0) {
       wasPinchRef.current = false
     }
-    if (!drawingMode || !activeStroke) return
+    if (!drawingMode) return
+
+    if (tool === 'move') {
+      if (dragRef.current && dragDelta && (Math.abs(dragDelta.x) > 0.5 || Math.abs(dragDelta.y) > 0.5)) {
+        moveStrokeAction(key, dragRef.current.strokeId, dragDelta.x, dragDelta.y)
+      }
+      dragRef.current = null
+      setDragDelta(null)
+      return
+    }
+
+    if (!activeStroke) return
     commitStroke(key)
-  }, [drawingMode, activeStroke, key, commitStroke])
+  }, [drawingMode, tool, activeStroke, key, commitStroke, dragDelta, moveStrokeAction])
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)
     if (activePointersRef.current.size === 0) {
       wasPinchRef.current = false
     }
-  }, [])
+    if (tool === 'move') {
+      dragRef.current = null
+      setDragDelta(null)
+    }
+  }, [tool])
+
+  // Bounding-Box des selektierten Strokes fuer Selection-Halo
+  const selectedBbox = useMemo(() => {
+    if (!selectedId) return null
+    const s = strokes.find((x) => x.id === selectedId)
+    if (!s || s.points.length === 0) return null
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    for (const [x, y] of s.points) {
+      if (x < minX) minX = x
+      if (x > maxX) maxX = x
+      if (y < minY) minY = y
+      if (y > maxY) maxY = y
+    }
+    const pad = (s.width || 4) * 1.5 + 6
+    return {
+      x: minX - pad,
+      y: minY - pad,
+      w: (maxX - minX) + 2 * pad,
+      h: (maxY - minY) + 2 * pad,
+    }
+  }, [selectedId, strokes])
 
   const renderStroke = (stroke: Stroke) => {
     const d = getSvgPathFromStroke(stroke.points, stroke.width, stroke.tool)
     if (!d) return null
+    const isDragging = dragRef.current?.strokeId === stroke.id && dragDelta
+    const transform = isDragging ? `translate(${dragDelta!.x} ${dragDelta!.y})` : undefined
     return (
       <path
         key={stroke.id}
         d={d}
         fill={stroke.color}
+        transform={transform}
       />
     )
   }
@@ -195,7 +276,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       {imgLoaded && (
         <svg
           ref={svgRef}
-          className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}`}
+          className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}${tool === 'move' ? ' annotation-svg--move' : ''}`}
           viewBox={`0 0 1000 ${viewBoxHeight}`}
           preserveAspectRatio="none"
           onPointerDown={handlePointerDown}
@@ -205,6 +286,21 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
         >
           {strokes.map(renderStroke)}
           {activeD && <path d={activeD} fill={activeStroke!.color} />}
+          {selectedBbox && (
+            <rect
+              x={selectedBbox.x}
+              y={selectedBbox.y}
+              width={selectedBbox.w}
+              height={selectedBbox.h}
+              fill="none"
+              stroke="#3b82f6"
+              strokeWidth={2}
+              strokeDasharray="6 4"
+              vectorEffect="non-scaling-stroke"
+              transform={dragRef.current && dragDelta ? `translate(${dragDelta.x} ${dragDelta.y})` : undefined}
+              pointerEvents="none"
+            />
+          )}
         </svg>
       )}
     </div>

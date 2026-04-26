@@ -1431,6 +1431,12 @@ body.body-scroll-fs .autoscroll-stepper {
   touch-action: none;
   cursor: crosshair;
 }
+.annotation-svg--move {
+  cursor: grab;
+}
+.annotation-svg--move:active {
+  cursor: grabbing;
+}
 
 /* Annotation Toolbar */
 .annotation-toolbar {
@@ -1779,7 +1785,7 @@ body.body-scroll-fs .autoscroll-stepper {
 .rtf-viewer-heading--l2 { font-size: 1.4em; }
 /* Abschnitt — mit dezenter Trennlinie */
 .rtf-viewer-heading--l3 {
-  font-size: 1.25em;
+  font-size: 1.05em;
   color: #4a5064;
   border-bottom: 1px solid rgba(0, 0, 0, 0.12);
   padding-bottom: var(--space-1);
@@ -5865,7 +5871,7 @@ body.body-scroll-fs .autoscroll-stepper {
   position: absolute;
   top: 0;
   left: 0;
-  padding: 18mm;
+  padding: 10mm 18mm 18mm 18mm;
   box-sizing: border-box;
   background: #ffffff;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);

@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pen, Highlighter, Eraser, Undo2, Trash2 } from 'lucide-react'
+import { Pen, Highlighter, Eraser, Hand, Undo2, Trash2 } from 'lucide-react'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 
 const COLORS = [
@@ -56,6 +56,13 @@ export function AnnotationToolbar({ pageKey }: AnnotationToolbarProps) {
           title="Radierer"
         >
           <Eraser size={18} />
+        </button>
+        <button
+          className={`annotation-tool-btn${tool === 'move' ? ' annotation-tool-btn--active' : ''}`}
+          onClick={() => setTool('move')}
+          title="Markierung verschieben"
+        >
+          <Hand size={18} />
         </button>
       </div>
 
