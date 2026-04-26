@@ -316,6 +316,9 @@ def list_documents(
         .where(
             (Document.folder_path == folder_path) | (Document.folder_path == stripped)
         )
+        # Companion-PDFs (source_doc_id IS NOT NULL) gehoeren nicht in die
+        # User-Liste — sie sind reines Print-Artefakt.
+        .where(Document.source_doc_id.is_(None))
         .order_by(Document.sort_order, Document.original_name)
     ).all()
 
@@ -382,6 +385,20 @@ def delete_document(doc_id: int, session: Session) -> bool:
         select(Annotation).where(Annotation.document_id == doc_id)
     ).all():
         session.delete(a)
+
+    # Companion-PDFs (RTF -> Auto-PDF) mit cascade entfernen — beide Seiten:
+    # wenn das Quell-RTF geloescht wird, gehen die Companion-PDF-Row + ihre
+    # Annotations mit. Recursive Aufruf — companion ist selbst ein Document.
+    companions = session.exec(
+        select(Document).where(Document.source_doc_id == doc_id)
+    ).all()
+    for c in companions:
+        for a in session.exec(
+            select(Annotation).where(Annotation.document_id == c.id)
+        ).all():
+            session.delete(a)
+        _clear_cached_pdf(c.id)
+        session.delete(c)
 
     session.delete(document)
     session.commit()

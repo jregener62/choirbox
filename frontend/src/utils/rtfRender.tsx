@@ -93,10 +93,13 @@ function renderLineRuns(runs: RtfRun[], keyPrefix: string): ReactNode[] {
 }
 
 function renderVirtualLineNode(runs: RtfRun[], key: string): { isFooter: boolean; node: ReactNode } {
+  // data-line-key auf der aeussersten DOM-Node — wird vom Annotations-System
+  // benutzt, um Strokes semantisch an die Zeile zu binden (siehe useAnnotations
+  // / RtfPagedView). Der Wert ist immer derselbe wie der React-key.
   if (runs.length === 0) {
     return {
       isFooter: false,
-      node: <p key={key} className="rtf-viewer-para rtf-viewer-para--empty">&nbsp;</p>,
+      node: <p key={key} data-line-key={key} className="rtf-viewer-para rtf-viewer-para--empty">&nbsp;</p>,
     }
   }
   const text = runsText(runs)
@@ -107,12 +110,12 @@ function renderVirtualLineNode(runs: RtfRun[], key: string): { isFooter: boolean
     const isFooter = level === 6
     let node: ReactNode
     switch (level) {
-      case 1: node = <h1 key={key} className={className}>{heading.title}</h1>; break
-      case 2: node = <h2 key={key} className={className}>{heading.title}</h2>; break
-      case 3: node = <h3 key={key} className={className}>{heading.title}</h3>; break
-      case 4: node = <h4 key={key} className={className}>{heading.title}</h4>; break
-      case 5: node = <h5 key={key} className={className}>{heading.title}</h5>; break
-      default: node = <h6 key={key} className={className}>{heading.title}</h6>
+      case 1: node = <h1 key={key} data-line-key={key} className={className}>{heading.title}</h1>; break
+      case 2: node = <h2 key={key} data-line-key={key} className={className}>{heading.title}</h2>; break
+      case 3: node = <h3 key={key} data-line-key={key} className={className}>{heading.title}</h3>; break
+      case 4: node = <h4 key={key} data-line-key={key} className={className}>{heading.title}</h4>; break
+      case 5: node = <h5 key={key} data-line-key={key} className={className}>{heading.title}</h5>; break
+      default: node = <h6 key={key} data-line-key={key} className={className}>{heading.title}</h6>
     }
     return { isFooter, node }
   }
@@ -121,7 +124,7 @@ function renderVirtualLineNode(runs: RtfRun[], key: string): { isFooter: boolean
     return {
       isFooter: false,
       node: (
-        <p key={key} className="rtf-viewer-para rtf-viewer-comment-block">
+        <p key={key} data-line-key={key} className="rtf-viewer-para rtf-viewer-comment-block">
           {renderTextWithMelody(inner, `${key}-block`)}
         </p>
       ),
@@ -130,7 +133,7 @@ function renderVirtualLineNode(runs: RtfRun[], key: string): { isFooter: boolean
   return {
     isFooter: false,
     node: (
-      <p key={key} className="rtf-viewer-para">
+      <p key={key} data-line-key={key} className="rtf-viewer-para">
         {renderLineRuns(runs, key)}
       </p>
     ),

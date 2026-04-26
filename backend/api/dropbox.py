@@ -275,6 +275,11 @@ async def dropbox_browse(
             if name.lower() == TRASH_FOLDER_NAME.lower():
                 continue
 
+            # Hidden Companion-PDF-Folder (.rendered/) — werden vom RTF-
+            # Save-Hintergrund-Task befuellt und sind nicht user-facing.
+            if name.startswith("."):
+                continue
+
             display_name, folder_type = parse_folder_name(name)
 
             # Reserved folders: hide and collect for synthetic entries

@@ -1,22 +1,29 @@
 """Documents API — upload, view and manage folder-level documents."""
 
+import json
 import logging
 from datetime import datetime
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import RedirectResponse, Response
 from pydantic import BaseModel
 from sqlmodel import Session, select
 
 from backend.database import get_session
+from backend.models.annotation import Annotation
 from backend.models.document import Document
 from backend.models.user import User
 from backend.models.user_chord_preference import UserChordPreference
 from backend.policy import require_permission, require_permission_query
 from backend.schemas import ActionResponse
-from backend.services import document_service
+from backend.services import document_service, pdf_service
 from backend.services.dropbox_service import get_dropbox_service
+from backend.services.print_token_service import (
+    PRINT_TOKEN_TTL_SECONDS,
+    issue_print_token,
+    verify_print_token,
+)
 from backend.utils.dropbox_paths import (
     dropbox_doc_path,
     dropbox_folder_path,
@@ -193,6 +200,7 @@ class PasteTextBody(BaseModel):
 @router.post("/paste-text")
 async def paste_text(
     body: PasteTextBody,
+    background_tasks: BackgroundTasks,
     user: User = Depends(require_permission("documents.upload")),
     session: Session = Depends(get_session),
 ):
@@ -310,12 +318,20 @@ async def paste_text(
     # Auto-select first document in folder
     document_service.auto_select_if_first_doc(doc, texte_path, user.id, session)
 
+    # Companion-PDF: gleicher Trigger-Pfad wie bei RTF-Re-Save.
+    if doc.file_type == "rtf" and pdf_service.is_available():
+        doc.pdf_status = "pending"
+        session.add(doc)
+        session.commit()
+        background_tasks.add_task(pdf_service.regenerate_companion_pdf, doc.id)
+
     return ActionResponse.success(data={
         "id": doc.id,
         "original_name": doc.original_name,
         "file_type": doc.file_type,
         "file_size": doc.file_size,
         "folder_path": texte_path,
+        "pdf_status": doc.pdf_status,
     })
 
 
@@ -470,6 +486,7 @@ class UpdateTextContentBody(BaseModel):
 async def update_text_content(
     doc_id: int,
     body: UpdateTextContentBody,
+    background_tasks: BackgroundTasks,
     user: User = Depends(require_permission("chord_input.edit")),
     session: Session = Depends(get_session),
 ):
@@ -503,14 +520,22 @@ async def update_text_content(
     if dbx_hash:
         doc.content_hash = dbx_hash
     doc.file_size = len(content_bytes)
+    # Companion-PDF anstossen: bei RTF synchron pdf_status='pending' setzen,
+    # Hintergrund-Task generiert + uploaded + setzt 'ready' / 'failed'.
+    if doc.file_type == "rtf" and pdf_service.is_available():
+        doc.pdf_status = "pending"
     session.add(doc)
     session.commit()
 
     document_service._clear_cached_text(doc_id)
 
+    if doc.file_type == "rtf" and pdf_service.is_available():
+        background_tasks.add_task(pdf_service.regenerate_companion_pdf, doc.id)
+
     return ActionResponse.success(data={
         "id": doc.id,
         "file_size": doc.file_size,
+        "pdf_status": doc.pdf_status,
     })
 
 
@@ -785,3 +810,245 @@ def set_chord_preference(
     session.add(pref)
     session.commit()
     return {"transposition": pref.transposition_semitones}
+
+
+# ---------------------------------------------------------------------------
+# Server-side PDF rendering (RTF only)
+# ---------------------------------------------------------------------------
+
+async def _load_rtf_text(doc: Document, user: User, session: Session) -> str:
+    """Wie ``GET /content`` aber als interner Helfer — gibt den RTF-Text zurueck."""
+    cached = document_service._get_cached_text(doc.id, doc.content_hash)
+    if cached is not None:
+        return cached
+    dbx = get_dropbox_service(session)
+    if not dbx:
+        raise HTTPException(502, "Dropbox nicht verbunden")
+    dbx_path = full_doc_path(doc, user, session)
+    link = await dbx.get_temporary_link(dbx_path)
+    async with httpx.AsyncClient() as client:
+        resp = await client.get(link)
+        resp.raise_for_status()
+        content = (
+            resp.text
+            .replace("\r\n", "\n")
+            .replace("\r", "\n")
+            .replace(" ", "\n")
+            .replace(" ", "\n\n")
+        )
+        document_service._put_cached_text(doc.id, content, doc.content_hash)
+        return content
+
+
+@router.post("/{doc_id}/regenerate-pdf")
+async def regenerate_pdf(
+    doc_id: int,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(require_permission("chord_input.edit")),
+    session: Session = Depends(get_session),
+):
+    """Manuelles Re-Triggern der Companion-PDF-Generierung — z.B. nach
+    transientem Fehler. Setzt pdf_status auf 'pending' und schedult den
+    Hintergrund-Task."""
+    doc = session.get(Document, doc_id)
+    if not doc or doc.file_type != "rtf":
+        raise HTTPException(404, "RTF nicht gefunden")
+    if not pdf_service.is_available():
+        raise HTTPException(503, "PDF-Generator nicht verfuegbar")
+    doc.pdf_status = "pending"
+    session.add(doc)
+    session.commit()
+    background_tasks.add_task(pdf_service.regenerate_companion_pdf, doc.id)
+    return ActionResponse.success(data={"pdf_status": "pending"})
+
+
+@router.get("/{doc_id}/pdf-status")
+async def get_pdf_status(
+    doc_id: int,
+    background_tasks: BackgroundTasks,
+    user: User = Depends(require_permission("documents.read")),
+    session: Session = Depends(get_session),
+):
+    """Liefert den Stand der Companion-PDF-Generierung fuer ein RTF.
+
+    Wird vom Frontend gepollt waehrend `status == "pending"`. Enthaelt die
+    Companion-Document-id, sobald sie existiert — damit kann das Frontend
+    die PDF-Anzeige (PdfPages) auf die Companion-id wechseln.
+
+    **Lazy-Trigger**: Wenn der RTF noch nie generiert wurde (Altbestand,
+    `pdf_status` ist NULL und kein Companion existiert) ODER die letzte
+    Generierung fehlschlug (`failed`), kicken wir die Generierung hier
+    automatisch an. So muss der User nicht erst speichern, damit das
+    initiale PDF entsteht.
+    """
+    doc = session.get(Document, doc_id)
+    if not doc:
+        raise HTTPException(404, "Dokument nicht gefunden")
+    companion = session.exec(
+        select(Document).where(
+            Document.source_doc_id == doc_id,
+            Document.file_type == "pdf",
+        )
+    ).first()
+
+    if (
+        doc.file_type == "rtf"
+        and pdf_service.is_available()
+        and (doc.pdf_status in (None, "failed"))
+        and companion is None
+    ):
+        doc.pdf_status = "pending"
+        session.add(doc)
+        session.commit()
+        background_tasks.add_task(pdf_service.regenerate_companion_pdf, doc.id)
+
+    return {
+        "status": doc.pdf_status,
+        "companion_doc_id": companion.id if companion else None,
+        "companion_page_count": companion.page_count if companion else 0,
+        "annotations_stale": companion.annotations_stale if companion else False,
+    }
+
+
+@router.post("/{doc_id}/clear-stale-annotations")
+async def clear_stale_annotations(
+    doc_id: int,
+    user: User = Depends(require_permission("annotations.write")),
+    session: Session = Depends(get_session),
+):
+    """Entfernt das stale-Flag am Companion-PDF, nachdem der User die
+    Markierungen ueberprueft (oder geloescht) hat."""
+    companion = session.exec(
+        select(Document).where(
+            Document.source_doc_id == doc_id,
+            Document.file_type == "pdf",
+        )
+    ).first()
+    if not companion:
+        raise HTTPException(404, "Companion nicht gefunden")
+    companion.annotations_stale = False
+    session.add(companion)
+    session.commit()
+    return ActionResponse.success()
+
+
+@router.get("/print/{doc_id}/bundle")
+async def get_print_bundle(
+    doc_id: int,
+    token: str = Query(...),
+    session: Session = Depends(get_session),
+):
+    """Liefert RTF-Inhalt + Annotations fuer die headless Print-Seite.
+
+    Auth ueber kurzlebigen Print-Token (HMAC-signiert, 60 s TTL), gebunden
+    an doc_id + user_id. Der Token wird vom PDF-Endpoint frisch ausgestellt
+    und nur dem Playwright-Browser uebergeben — der User-Session-Token
+    verlaesst nie das normale Frontend.
+    """
+    claims = verify_print_token(token)
+    if not claims or claims.doc_id != doc_id:
+        raise HTTPException(401, "Invalid or expired print token")
+
+    user = session.exec(select(User).where(User.id == claims.user_id)).first()
+    if not user:
+        raise HTTPException(401, "Print-Token-User nicht gefunden")
+
+    doc = document_service.get_document(doc_id, session)
+    if not doc or doc.file_type != "rtf":
+        raise HTTPException(404, "RTF-Dokument nicht gefunden")
+
+    content = await _load_rtf_text(doc, user, session)
+
+    ann = session.exec(
+        select(Annotation).where(
+            Annotation.user_id == user.id,
+            Annotation.document_id == doc_id,
+            Annotation.page_number == 1,
+        )
+    ).first()
+    strokes = json.loads(ann.strokes_json) if ann else []
+
+    return {
+        "content": content,
+        "strokes": strokes,
+        "doc_name": doc.original_name,
+    }
+
+
+@router.get("/{doc_id}/pdf")
+async def render_document_pdf(
+    doc_id: int,
+    request: Request,
+    user: User = Depends(require_permission("documents.read")),
+    session: Session = Depends(get_session),
+):
+    """Liefert das Companion-PDF eines RTF-Dokuments als Bytes.
+
+    Wenn ein Companion-PDF existiert (auto-generiert vom RTF-Save-Hintergrund-
+    Task), streamen wir dessen Bytes server-seitig durch — ohne Redirect zu
+    Dropbox, sodass der Frontend-`fetch()` nicht in CORS laeuft.
+
+    Falls (noch) keine Companion existiert, fallen wir auf eine Live-
+    Generierung via Playwright zurueck (langsamer, aber als Notnagel).
+    """
+    doc = document_service.get_document(doc_id, session)
+    if not doc or doc.file_type != "rtf":
+        raise HTTPException(404, "RTF-Dokument nicht gefunden")
+
+    safe_stem = (doc.original_name.rsplit(".", 1)[0] or "dokument").replace('"', "")
+
+    # Companion-PDF aus Dropbox holen und durchstreamen.
+    companion = session.exec(
+        select(Document).where(
+            Document.source_doc_id == doc_id,
+            Document.file_type == "pdf",
+        )
+    ).first()
+    if companion:
+        dbx = get_dropbox_service(session)
+        if not dbx:
+            raise HTTPException(502, "Dropbox nicht verbunden")
+        dbx_path = full_doc_path(companion, user, session)
+        try:
+            link = await dbx.get_temporary_link(dbx_path)
+            async with httpx.AsyncClient() as client:
+                resp = await client.get(link)
+                resp.raise_for_status()
+                pdf_bytes = resp.content
+        except Exception as e:
+            logger.exception("Companion-PDF-Download fuer doc %s fehlgeschlagen", doc_id)
+            raise HTTPException(502, f"Download fehlgeschlagen: {e}")
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'inline; filename="{safe_stem}.pdf"',
+                "Cache-Control": "no-store",
+            },
+        )
+
+    # Kein Companion vorhanden — Live-Generierung via Playwright.
+    if not pdf_service.is_available():
+        raise HTTPException(
+            503,
+            "PDF-Generator nicht verfuegbar — playwright + chromium sind nicht installiert.",
+        )
+
+    token = issue_print_token(doc_id, user.id, ttl_seconds=PRINT_TOKEN_TTL_SECONDS)
+    base = str(request.base_url).rstrip("/")
+    print_url = f"{base}/#/print/rtf/{doc_id}?token={token}"
+
+    try:
+        pdf_bytes = await pdf_service.render_rtf_pdf(print_url)
+    except Exception as e:
+        logger.exception("PDF-Generierung fehlgeschlagen fuer doc %s", doc_id)
+        raise HTTPException(502, f"PDF-Generierung fehlgeschlagen: {e}")
+
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="{safe_stem}.pdf"',
+            "Cache-Control": "no-store",
+        },
+    )

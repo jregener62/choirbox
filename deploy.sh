@@ -72,6 +72,11 @@ deploy_server() {
   ssh "$SERVER" "cd ${REMOTE_DIR} && source venv/bin/activate && pip install -q -r requirements.txt" 2>/dev/null
   echo -e "  ${GREEN}ok${NC} Dependencies aktuell"
 
+  # 2b. Playwright Chromium — idempotent, lädt nur, falls noch nicht da.
+  echo -e "  ${CYAN}>${NC} Playwright Chromium pruefen..."
+  ssh "$SERVER" "cd ${REMOTE_DIR} && source venv/bin/activate && python -m playwright install chromium" >/dev/null 2>&1 || true
+  echo -e "  ${GREEN}ok${NC} Chromium bereit"
+
   # 3. Frontend bauen
   echo -e "  ${CYAN}>${NC} Frontend bauen..."
   ssh "$SERVER" "cd ${REMOTE_DIR}/frontend && npm install --silent && npm run build" 2>/dev/null

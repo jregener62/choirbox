@@ -136,12 +136,31 @@ export interface DocumentListResponse {
   documents: DocumentItem[]
 }
 
+export interface StrokeAnchor {
+  /** Schluessel der RtfRender-VirtualLine, an der der Stroke haengt
+   *  (Format: `"<paraIdx>-<lineIdx>"`, z.B. "5-0"). */
+  lineKey: string
+  /** Bounding-Box des Strokes RELATIV zur Zeile, in CSS-Pixeln zum
+   *  Zeichen-Zeitpunkt — unabhaengig vom viewBox-Massstab. */
+  bboxLeftPx: number
+  bboxTopPx: number
+  bboxWidthPx: number
+  bboxHeightPx: number
+  /** Pixel-Breite der Zeile beim Zeichnen — wird beim Re-Rendering in einem
+   *  anderen Layout benutzt, um den Stroke proportional zu skalieren. */
+  lineWidthPx: number
+}
+
 export interface Stroke {
   id: string
-  points: number[][]  // [x, y, pressure]
+  points: number[][]  // [x, y, pressure] in viewBox-Koordinaten
   color: string
   width: number
   tool: 'pen' | 'highlighter'
+  /** Optionaler semantischer Anker — wenn gesetzt, positionieren Renderer
+   *  den Stroke relativ zur referenzierten Zeile. Strokes ohne Anchor
+   *  (Altbestand) werden weiterhin absolut im viewBox positioniert. */
+  anchor?: StrokeAnchor
 }
 
 export interface ActionResponse<T = unknown> {

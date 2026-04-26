@@ -23,6 +23,7 @@ import { SectionPresetsPage } from '@/pages/admin/SectionPresetsPage.tsx'
 import { ChoirsPage } from '@/pages/admin/ChoirsPage.tsx'
 import { DataCarePage } from '@/pages/admin/DataCarePage.tsx'
 import { GuestLinksPage } from '@/pages/admin/GuestLinksPage.tsx'
+import { RtfPrintPage } from '@/pages/RtfPrintPage.tsx'
 
 function AuthGuard({ children }: { children: React.ReactNode }) {
   const token = useAuthStore((s) => s.token)
@@ -87,6 +88,7 @@ export function App() {
         <Route path="/join/:inviteCode" element={<RegisterPage />} />
         <Route path="/guest/:token" element={<GuestRedeemPage />} />
         <Route path="/guest-goodbye" element={<GuestGoodbyePage />} />
+        <Route path="/print/rtf/:docId" element={<RtfPrintPage />} />
         <Route
           path="/*"
           element={

@@ -96,6 +96,13 @@ def _migrate(eng):
         ("guest_links", "view_mode", "VARCHAR(10) DEFAULT 'songs'"),
         ("users", "view_mode", "VARCHAR(10) DEFAULT 'songs'"),
         ("choirs", "default_view_mode", "VARCHAR(10) DEFAULT 'songs'"),
+        # Companion-PDF-System: source_doc_id zeigt vom generierten PDF auf das
+        # Quell-RTF; pdf_status reflektiert den Generierungs-Stand am Quell-RTF;
+        # annotations_stale wird auf True gesetzt, wenn das Companion-PDF nach
+        # Annotations neu gerendert wurde (User wird mit kleiner Pille gewarnt).
+        ("documents", "source_doc_id", "INTEGER"),
+        ("documents", "pdf_status", "VARCHAR(10)"),
+        ("documents", "annotations_stale", "BOOLEAN DEFAULT 0"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:

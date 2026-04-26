@@ -4,7 +4,7 @@ import { parseRtf } from '@/utils/rtfParser'
 import { renderParagraph } from '@/utils/rtfRender'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
 import { toNormalized, getSvgPathFromStroke, getViewBoxHeight } from '@/utils/strokeUtils.ts'
-import type { Stroke } from '@/types/index.ts'
+import type { Stroke, StrokeAnchor } from '@/types/index.ts'
 
 const ANNOTATION_PAGE = 1
 const VIEWBOX_WIDTH = 1000
@@ -29,6 +29,9 @@ export function RtfViewer({
   const activePointersRef = useRef<Set<number>>(new Set())
   const wasPinchRef = useRef(false)
   const [viewBoxHeight, setViewBoxHeight] = useState(1414)
+  /** Beim PointerDown gemerkte Doc-Zeile + ihre BoundingClientRect — wird im
+   *  PointerUp benutzt, um den fertigen Stroke an die Zeile zu ankern. */
+  const drawAnchorRef = useRef<{ lineKey: string; lineRect: DOMRect } | null>(null)
 
   const drawingMode = useAnnotationStore((s) => s.drawingMode)
   const tool = useAnnotationStore((s) => s.tool)
@@ -217,6 +220,22 @@ export function RtfViewer({
         if (id) eraseStroke(key, id)
         return
       }
+      // Zeile unter dem Cursor finden und merken — wird im PointerUp zum
+      // semantischen Anker des Strokes. elementsFromPoint (Plural) liefert
+      // alle Elemente am Punkt in z-Order; das oberste ist das Annotations-
+      // SVG (pointer-events: auto im Zeichenmodus), die Paragraph-Linie
+      // liegt darunter.
+      const elsAtPoint = document.elementsFromPoint(e.clientX, e.clientY)
+      let lineEl: HTMLElement | null = null
+      for (const el of elsAtPoint) {
+        if (!(el instanceof HTMLElement)) continue
+        const found = el.closest('[data-line-key]') as HTMLElement | null
+        if (found) { lineEl = found; break }
+      }
+      const lineKey = lineEl?.dataset.lineKey
+      drawAnchorRef.current = lineEl && lineKey
+        ? { lineKey, lineRect: lineEl.getBoundingClientRect() }
+        : null
       const newStroke: Stroke = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         points: [point],
@@ -250,8 +269,38 @@ export function RtfViewer({
     activePointersRef.current.clear()
     if (activePointersRef.current.size === 0) wasPinchRef.current = false
     if (!drawingMode || !activeStroke) return
-    commitStroke(key)
-  }, [drawingMode, activeStroke, key, commitStroke])
+
+    // Anker berechnen: Stroke-Bounding-Box in viewBox -> px im aktuellen
+    // SVG -> px relativ zur beim PointerDown gemerkten Zeile.
+    let anchor: StrokeAnchor | undefined
+    const draw = drawAnchorRef.current
+    const svg = svgRef.current
+    if (draw && svg && activeStroke.points.length >= 2) {
+      const svgRect = svg.getBoundingClientRect()
+      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+      for (const p of activeStroke.points) {
+        if (p[0] < minX) minX = p[0]
+        if (p[0] > maxX) maxX = p[0]
+        if (p[1] < minY) minY = p[1]
+        if (p[1] > maxY) maxY = p[1]
+      }
+      const pxPerVbX = svgRect.width / VIEWBOX_WIDTH
+      const pxPerVbY = svgRect.height / viewBoxHeight
+      // bbox in Doc-Koordinaten (relativ zum Viewport)
+      const docLeft = svgRect.left + minX * pxPerVbX
+      const docTop = svgRect.top + minY * pxPerVbY
+      anchor = {
+        lineKey: draw.lineKey,
+        bboxLeftPx: docLeft - draw.lineRect.left,
+        bboxTopPx: docTop - draw.lineRect.top,
+        bboxWidthPx: (maxX - minX) * pxPerVbX,
+        bboxHeightPx: (maxY - minY) * pxPerVbY,
+        lineWidthPx: draw.lineRect.width,
+      }
+    }
+    drawAnchorRef.current = null
+    commitStroke(key, anchor)
+  }, [drawingMode, activeStroke, key, commitStroke, viewBoxHeight])
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)

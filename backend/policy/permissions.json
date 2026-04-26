@@ -192,7 +192,8 @@
     "GET /api/auth/choir-info",
     "GET /api/dropbox/callback",
     "GET /api/guest-links/ttl-config",
-    "POST /api/guest-links/redeem"
+    "POST /api/guest-links/redeem",
+    "GET /api/documents/print/{doc_id}/bundle"
   ],
 
   "routes": {
@@ -223,6 +224,10 @@
     "GET /api/documents/{doc_id}/download":                         "documents.read",
     "GET /api/documents/{doc_id}/stream":                           "documents.read",
     "GET /api/documents/{doc_id}/content":                          "documents.read",
+    "GET /api/documents/{doc_id}/pdf":                              "documents.read",
+    "GET /api/documents/{doc_id}/pdf-status":                       "documents.read",
+    "POST /api/documents/{doc_id}/regenerate-pdf":                  "chord_input.edit",
+    "POST /api/documents/{doc_id}/clear-stale-annotations":         "annotations.write",
     "PUT /api/documents/{doc_id}/content":                          "chord_input.edit",
     "POST /api/documents/{doc_id}/rename":                          "documents.rename",
     "DELETE /api/documents/{doc_id}":                               "documents.delete",

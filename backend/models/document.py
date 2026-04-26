@@ -26,3 +26,11 @@ class Document(SQLModel, table=True):
     sort_order: int = Field(default=0)
     uploaded_by: Optional[str] = Field(default=None, foreign_key="users.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
+    # Companion-PDF-System (RTF -> Auto-PDF):
+    # source_doc_id zeigt vom generierten PDF auf das Quell-RTF.
+    # pdf_status wird am Quell-RTF gepflegt: 'pending' waehrend Hintergrund-
+    # Generierung, 'ready' wenn Companion-PDF in Dropbox liegt, 'failed' bei
+    # Fehler. Companion-Documents werden in Browse-Listings ausgefiltert.
+    source_doc_id: Optional[int] = Field(default=None, foreign_key="documents.id", index=True)
+    pdf_status: Optional[str] = Field(default=None, max_length=10)
+    annotations_stale: bool = Field(default=False)

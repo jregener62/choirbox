@@ -1015,10 +1015,23 @@ Drei Inline-Marker funktionieren in `.rtf` (ausschliesslich) sowie mit Abstriche
 | `backend/services/document_service.py` | `.rtf` als DOCUMENT_EXTENSION + Text-Caching |
 | `backend/api/documents.py` | `.rtf` in GET/PUT /content und paste-text |
 
+### Companion-PDF (RTF-Anzeige als A4-PDF)
+
+Ab dieser Version wird ein .rtf nicht mehr im Endlos-Viewer angezeigt sondern als **automatisch generiertes Companion-PDF**. Damit hat der gerenderte Inhalt eine fixe A4-Geometrie, und Annotations sind pixel-genau ausgerichtet — unabhaengig von Viewport, Zoom und Schriftgroesse.
+
+- **Server-Pipeline** (`backend/services/pdf_service.py`): Headless-Chromium (Playwright) laedt eine "naked" Print-React-Route (`/print/rtf/{id}?token=...`), wartet auf das DOM-Marker-Element `#rtf-print-ready`, exportiert via `page.pdf({format:A4, prefer_css_page_size})`, lade die Bytes nach `<folder>/.rendered/<basename>.pdf` in Dropbox + lege/aktualisiere die Companion-Document-Row mit `source_doc_id`, `content_hash`, `page_count`.
+- **Trigger**: BackgroundTask in `PUT /documents/{id}/content` (RTF-Save) und `POST /documents/paste-text` (neue RTF). Lazy-Trigger im `GET /documents/{id}/pdf-status`-Endpoint, falls beim ersten Aufruf noch kein Companion existiert (Altbestand). Manuelles Re-Trigger via `POST /documents/{id}/regenerate-pdf`.
+- **Frontend** (`useCompanionPdf`-Hook + `DocumentPanel`): Pollt `/pdf-status` alle 1.5 s waehrend `pending`. Sobald `ready` schaltet die Anzeige auf die Companion-Document-id ueber die bestehende `AnnotatedPage`-Pipeline; Annotations leben am Companion-PDF.
+- **Stale-Markierungen**: Wird das RTF re-gespeichert, regeneriert das Companion. Existierende Annotations bleiben am PDF, die Companion bekommt `annotations_stale=True`. Eine kleine Pille in der Anzeige weist den User darauf hin und bietet einen Ein-Klick-Hinweis-Ausblenden (`POST /documents/{id}/clear-stale-annotations`).
+- **Dropbox-Layout**: Companion-PDFs liegen in `<folder>/.rendered/<basename>.pdf`. Browse-Listings filtern Ordner mit `.`-Praefix; Document-Listen filtern `source_doc_id IS NOT NULL`. Damit sind Companion-Files nicht user-facing.
+- **Cascade-Delete**: Loeschen des RTF entfernt die Companion-Document-Row inkl. ihrer Annotations.
+- **Print-Token-Service** (`backend/services/print_token_service.py`): kurzlebige (60 s) HMAC-signierte Tokens fuer Playwright, gebunden an `(doc_id, user_id)`. User-Session-Token verlaesst nie das Frontend.
+- **Fallback**: Wenn Playwright nicht installiert ist oder die Generierung fehlschlaegt, faellt die Anzeige auf den klassischen Endlos-`RtfViewer` zurueck (mit dem dort eingebauten `beforeprint`-Per-Stroke-Slicing fuer Browser-Print-Annotations).
+
 ### Teilen und Drucken
 
-- **Teilen-Button** in der RTF-Toolbar laedt den RTF-Inhalt via `/content` und uebergibt ihn an `navigator.share({ files: [...] })` — auf iOS/Android und macOS Safari 16.4+ oeffnet sich das native Teilen-Menue (AirDrop, Mail, Nachrichten, Notizen, Kopieren). Browser ohne Web-Share-File-Support (macOS Chrome/Edge) fallen auf einen Download zurueck.
-- **Drucken-Button** in der RTF-Toolbar ruft `window.print()`. Ein `@media print`-Stylesheet blendet Chrome (Topbar, PDF-Toolbar, Bottom-Nav, Mini-Player, Global-Player, FABs, Floating-Recorder, Footer-Slot, Annotations) aus und laesst den RTF-Inhalt im Dokumentfluss paginieren. PDF-Dateiname (beim "Save as PDF"-Weg) wird temporaer auf den RTF-Basisnamen gesetzt.
+- **Teilen-Button** in der RTF-Toolbar uebergibt das Companion-PDF an `navigator.share({ files: [...] })` (oder Quell-Inhalt fuer `.txt` / `.cho`). Auf iOS/Android und macOS Safari 16.4+ oeffnet sich das native Teilen-Menue (AirDrop, Mail, Nachrichten, Kopieren). Browser ohne Web-Share-File-Support fallen auf Download zurueck.
+- **Drucken-Button** ruft `window.print()`. Da der Anzeige-Inhalt bereits das fertige A4-PDF ist, druckt der Browser die Seitenbilder direkt — kein eigenes RTF-Print-CSS noetig.
 
 ### Seitenansicht im Editor (RtfPagedView)
 

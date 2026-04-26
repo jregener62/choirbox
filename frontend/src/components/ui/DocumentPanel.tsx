@@ -1,11 +1,12 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File as FileIcon, Plus, Minus, Music, SquarePen, Share2, Printer } from 'lucide-react'
+import { Download, Maximize2, Minimize2, PenLine, FileText, Video, File as FileIcon, Plus, Minus, Music, SquarePen, Share2, Printer, X } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore.ts'
 import { useSheetEditMode } from '@/hooks/useSheetEditMode'
 import { hasMinRole, isGuest } from '@/utils/roles.ts'
 import { usePlayerStore, AUTO_SCROLL_SPEEDS, AUTO_SCROLL_BASE_PX_PER_SEC } from '@/stores/playerStore.ts'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { useAnnotationStore } from '@/hooks/useAnnotations.ts'
+import { useCompanionPdf } from '@/hooks/useCompanionPdf.ts'
 import { useChordPreference } from '@/hooks/useChordPreference.ts'
 import { useChordInput } from '@/hooks/useChordInput.ts'
 import { useAutoScroll } from '@/hooks/useAutoScroll.ts'
@@ -110,6 +111,12 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const isChoActive = activeDoc?.file_type === 'cho'
   const { transposition, updateTransposition } = useChordPreference(isChoActive ? activeDoc!.id : null)
 
+  // Companion-PDF-Status fuer RTF-Dokumente. Pollt waehrend Generierung,
+  // liefert die Companion-Document-id sobald sie ready ist — die nutzen
+  // wir dann fuer die PDF-Anzeige + Annotationen.
+  const isRtfActive = activeDoc?.file_type === 'rtf'
+  const companionPdf = useCompanionPdf(isRtfActive ? activeDoc!.id : null, isRtfActive && !rtfEditing)
+
   // Flush annotations on unmount
   useEffect(() => {
     return () => { useAnnotationStore.getState().flushAll() }
@@ -199,6 +206,31 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const handleShareFile = useCallback(async () => {
     if (!activeDoc) return
     try {
+      // RTF mit Companion: PDF teilen (das ist, was der User gerade sieht).
+      // Andere Text-Files: Quell-Inhalt teilen.
+      if (activeDoc.file_type === 'rtf' && companionPdf.status === 'ready') {
+        const resp = await fetch(`/api/documents/${activeDoc.id}/pdf`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+        })
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`)
+        const blob = await resp.blob()
+        const baseName = activeDoc.original_name.replace(/\.[^.]+$/, '')
+        const file = new File([blob], `${baseName}.pdf`, { type: 'application/pdf' })
+        const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
+        if (nav.share && nav.canShare?.({ files: [file] })) {
+          await nav.share({ files: [file], title: baseName })
+          return
+        }
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${baseName}.pdf`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+        return
+      }
       const data = await api<{ content: string }>(`/documents/${activeDoc.id}/content`)
       const blob = new Blob([data.content], { type: 'application/rtf' })
       const file = new File([blob], activeDoc.original_name, { type: 'application/rtf' })
@@ -219,7 +251,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
       if (err instanceof Error && err.name === 'AbortError') return
       console.error('Teilen fehlgeschlagen', err)
     }
-  }, [activeDoc])
+  }, [activeDoc, token, companionPdf.status])
 
   useEffect(() => {
     if (!pdfFullscreen) {
@@ -425,7 +457,11 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
       )}
 
       {(isPdf || isCho || (isRtf && !rtfEditing)) && drawingMode && !editMode && (
-        <AnnotationToolbar pageKey={`${activeDoc.id}::1`} />
+        <AnnotationToolbar
+          pageKey={isRtf && companionPdf.companionDocId
+            ? `${companionPdf.companionDocId}::1`
+            : `${activeDoc.id}::1`}
+        />
       )}
 
       {/* Content area */}
@@ -468,7 +504,52 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
         />
       )}
 
-      {activeDoc.file_type === 'rtf' && !rtfEditing && (
+      {activeDoc.file_type === 'rtf' && !rtfEditing && companionPdf.status === 'ready' && companionPdf.companionDocId && (
+        <div
+          ref={(el) => {
+            pagesRef.current = el
+            scrollContainerRef.current = el
+          }}
+          className={`pdf-pages${drawingMode ? ' pdf-pages--drawing' : ''}`}
+          onTouchStart={(e) => { handleDoubleTap(e); handlePdfAreaTouch() }}
+        >
+          {companionPdf.annotationsStale && !drawingMode && (
+            <div className="rtf-companion-stale-pill">
+              <span>PDF wurde aktualisiert — Markierungen pruefen</span>
+              <button
+                type="button"
+                className="rtf-companion-stale-btn"
+                onClick={() => companionPdf.clearStale()}
+                title="Hinweis ausblenden"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          )}
+          {Array.from({ length: companionPdf.companionPageCount }, (_, i) => i + 1).map((page) => (
+            <AnnotatedPage
+              key={`${companionPdf.companionDocId}-${page}-${rtfReloadToken}`}
+              page={page}
+              scale={scale}
+              src={`/api/documents/${companionPdf.companionDocId}/page/${page}?token=${token}&v=${rtfReloadToken}`}
+              alt={`Seite ${page}`}
+              loading={page > 2 ? 'lazy' : 'eager'}
+              docId={companionPdf.companionDocId!}
+            />
+          ))}
+        </div>
+      )}
+
+      {activeDoc.file_type === 'rtf' && !rtfEditing && companionPdf.status === 'pending' && (
+        <div className="pdf-upload">
+          <span style={{ color: 'var(--text-muted)', fontSize: 'var(--text-sm)' }}>PDF wird erstellt…</span>
+        </div>
+      )}
+
+      {activeDoc.file_type === 'rtf' && !rtfEditing
+        && (companionPdf.status === 'failed'
+            || (companionPdf.status === null && companionPdf.companionDocId === null)
+            || (companionPdf.status === 'ready' && !companionPdf.companionDocId)) && (
         <RtfViewer
           key={rtfReloadToken}
           docId={activeDoc.id}
@@ -481,7 +562,12 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
         <RtfEditor
           docId={activeDoc.id}
           originalName={activeDoc.original_name}
-          onSaved={() => { setRtfEditing(false); setRtfReloadToken((n) => n + 1) }}
+          onSaved={() => {
+            setRtfEditing(false)
+            setRtfReloadToken((n) => n + 1)
+            // Sofort polling ankicken — Backend hat Generierung bereits gestartet
+            companionPdf.refresh()
+          }}
           onCancel={() => setRtfEditing(false)}
         />
       )}

@@ -5802,6 +5802,37 @@ body.body-scroll-fs .autoscroll-stepper {
   background: #ffffff;
 }
 
+/* Companion-PDF: Pille oben in der RTF-PDF-Anzeige, wenn das PDF nach
+   bestehenden Annotationen neu generiert wurde — Marker koennen verschoben
+   sein, User wird gewarnt und kann den Hinweis ausblenden. */
+.rtf-companion-stale-pill {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin: var(--space-2) auto;
+  padding: var(--space-1) var(--space-2);
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.5);
+  border-radius: var(--radius-md);
+  color: #92400e;
+  font-size: var(--text-xs);
+  max-width: 90%;
+  width: fit-content;
+}
+.rtf-companion-stale-btn {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: var(--space-0-5);
+  display: inline-flex;
+  align-items: center;
+  border-radius: var(--radius-xs);
+}
+.rtf-companion-stale-btn:hover {
+  background: rgba(146, 64, 14, 0.12);
+}
+
 /* RTF-Seitenansicht (A4) — pro Seite Inhalt + Fusszeile + Seitenzahl. */
 .rtf-paged-container {
   flex: 1;
@@ -5849,6 +5880,37 @@ body.body-scroll-fs .autoscroll-stepper {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  position: relative;
+}
+.rtf-page-annotations {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+/* Print-Host fuer den server-side PDF-Generator: keine App-Chrome,
+   keine Bildschirm-Margins — Playwright laedt diese Seite headless. */
+.rtf-print-host {
+  width: 100vw;
+  min-height: 100vh;
+  background: #ffffff;
+  margin: 0;
+  padding: 0;
+}
+.rtf-print-host .rtf-paged-container {
+  background: #ffffff;
+  padding: 0;
+  gap: 0;
+  align-items: flex-start;
+}
+.rtf-print-host .rtf-paged-wrapper {
+  margin: 0;
+}
+.rtf-print-host .rtf-page {
+  box-shadow: none !important;
 }
 .rtf-page-footer {
   margin-top: 4mm;
@@ -5943,15 +6005,19 @@ body.body-scroll-fs .autoscroll-stepper {
     break-inside: avoid;
   }
 
-  /* Paged-Viewer: jede A4-Seite wird zu einer eigenen Druckseite. Mess-Container
-     und Skalierungs-Wrapper werden im Druck flach gemacht, damit der Browser
-     1:1 paginiert und nicht das transformierte/skalierte Layout druckt. */
+  /* Paged-Viewer-Druck: jeder Wrapper bleibt in voller A4-Groesse, damit
+     page-break-after eine Seite mit echtem A4-Inhalt erzeugt. Wir entfernen
+     nur die Bildschirm-Skalierung und den Schatten. */
   .rtf-paged-measure {
     display: none !important;
   }
+  .rtf-paged-container {
+    padding: 0 !important;
+    gap: 0 !important;
+  }
   .rtf-paged-wrapper {
-    width: auto !important;
-    height: auto !important;
+    width: 210mm !important;
+    height: 297mm !important;
     margin: 0 !important;
     page-break-after: always;
     break-after: page;
@@ -5961,11 +6027,10 @@ body.body-scroll-fs .autoscroll-stepper {
     break-after: auto;
   }
   .rtf-page {
+    width: 210mm !important;
+    height: 297mm !important;
     transform: none !important;
-    width: auto !important;
-    height: auto !important;
     box-shadow: none !important;
-    padding: 0 !important;
     background: #fff !important;
   }
   .rtf-page-footer {
@@ -5973,5 +6038,8 @@ body.body-scroll-fs .autoscroll-stepper {
     color: #000 !important;
   }
 
-  @page { margin: 15mm; }
+  /* @page-Margin = 0, weil der A4-Innenraum bereits das 18 mm Padding der
+     .rtf-page hat. Sonst ergaeben sich doppelte Raender und der Inhalt
+     wuerde abgeschnitten. */
+  @page { margin: 0; size: A4; }
 }

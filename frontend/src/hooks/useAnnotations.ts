@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { api } from '@/api/client.ts'
-import type { Stroke } from '@/types/index.ts'
+import type { Stroke, StrokeAnchor } from '@/types/index.ts'
 
 interface AnnotationState {
   drawingMode: boolean
@@ -19,7 +19,9 @@ interface AnnotationState {
   setColor: (color: string) => void
   setStrokeWidth: (width: number) => void
   setActiveStroke: (stroke: Stroke | null) => void
-  commitStroke: (key: string) => void
+  /** Beim Commit kann optional ein semantischer Anker mitgegeben werden,
+   *  der den Stroke an eine Doc-Zeile bindet (siehe StrokeAnchor). */
+  commitStroke: (key: string, anchor?: StrokeAnchor) => void
   eraseStroke: (key: string, strokeId: string) => void
   undo: (key: string) => void
   clearPage: (key: string) => void
@@ -67,17 +69,18 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
   setStrokeWidth: (width) => set({ strokeWidth: width }),
   setActiveStroke: (stroke) => set({ activeStroke: stroke }),
 
-  commitStroke: (key) => {
+  commitStroke: (key, anchor) => {
     const { activeStroke, pages } = get()
     if (!activeStroke || activeStroke.points.length < 2) {
       set({ activeStroke: null })
       return
     }
+    const finalStroke: Stroke = anchor ? { ...activeStroke, anchor } : activeStroke
     const existing = pages[key] || []
     const dirty = new Set(get().dirty)
     dirty.add(key)
     set({
-      pages: { ...pages, [key]: [...existing, activeStroke] },
+      pages: { ...pages, [key]: [...existing, finalStroke] },
       activeStroke: null,
       dirty,
     })
