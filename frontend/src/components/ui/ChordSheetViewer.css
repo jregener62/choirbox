@@ -5,6 +5,9 @@
   /* font-size wird vom Parent (.cho-viewer-wrap) via Inline-Style gesetzt, damit Zoom durchschlaegt */
   line-height: 1.4;
   padding: var(--space-3);
+  /* Tab- und Grid-Bloecke behalten `pre` und koennen breiter sein —
+     daher hier weiterhin horizontal scrollbar. Akkord-/Lyric-Zeilen
+     wrappen ueber den Flow-Renderer. */
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   /* iOS Safari blaeht Text im Landscape auf, ohne dass `ch` mitskaliert →
@@ -55,22 +58,54 @@
   white-space: pre;
 }
 
-/* Akkord-Zeile (über dem Text) — etwas mehr Luft nach oben, enger an Lyric. */
-.chord-row {
-  position: relative;
-  height: 1em;
-  margin-top: 4px;
-  margin-bottom: -2px;
-  line-height: 1;
-  white-space: pre;
+/* Flow-Zeile mit Akkord-Zellen — wrappt automatisch */
+.chord-line--flow {
+  white-space: normal;
 }
 
-.chord-symbol {
+/* Container der Akkord-Zellen + plain-text Whitespace-Wrap-Punkte */
+.chord-flow {
+  line-height: 1.2;
+}
+
+/* Wort: haelt Zellen zusammen, kein Umbruch innerhalb. padding-top
+   reserviert die Hoehe fuer die Akkord-Reihe — auch bei umgebrochenen
+   Folgezeilen, weil jedes Wort sein eigenes padding-top mitbringt. */
+.chord-flow-word {
+  display: inline-block;
+  vertical-align: baseline;
+  white-space: nowrap;
+  padding-top: 1.1em;
+}
+
+/* Zelle: bleibt INLINE (kein inline-block!), damit die Breite genau
+   einem Lyric-Zeichen entspricht. position: relative dient nur als
+   Anker fuer den absolut positionierten Akkord. */
+.chord-flow-cell {
+  position: relative;
+}
+
+/* Akkord ueber dem Zeichen — absolut, nimmt keinen Platz im Inline-Flow.
+   Damit verschiebt sich kein Folgezeichen, auch wenn der Akkord
+   breiter ist als das Anker-Zeichen. */
+.chord-flow-chord {
   position: absolute;
+  bottom: 100%;
+  left: 0;
+  line-height: 1;
+  white-space: nowrap;
   font-weight: 700;
   color: var(--accent);
-  white-space: nowrap;
-  line-height: 1;
+  padding-bottom: 0.1em;
+}
+
+/* Anker-Zelle: Lyric-Zeichen unterstrichen */
+.chord-flow-cell--anchor {
+  text-decoration: underline;
+  text-decoration-color: var(--accent);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
+  text-decoration-skip-ink: none;
 }
 
 /* Gesangsanweisungs-Zeile (über/unter der Text-Zeile) */
@@ -172,6 +207,13 @@
   color: var(--text-primary);
   white-space: pre;
   min-height: 1em;
+}
+
+/* Plain-Lyric-Zeilen (ohne Akkord) duerfen umbrechen, Whitespace bleibt erhalten */
+.chord-text--wrap {
+  white-space: pre-wrap;
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 /* Takt-Marker: `|` am Zeilenanfang (Eingabe) wird im Parser gestrippt und zu

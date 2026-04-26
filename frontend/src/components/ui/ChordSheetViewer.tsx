@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { Fragment, useMemo } from 'react'
 import { transposeChord, shouldUseFlats } from '@/utils/chordTransposer'
 import type { ChordLine, ChordSheetMetadata, ParsedChordContent } from '@/types/index'
 import './ChordSheetViewer.css'
@@ -151,66 +151,84 @@ function ChordLineView({
   if (line.chords.length === 0 || hideChords) {
     return (
       <div className={`chord-line${commentClass}`}>
-        <div className="chord-text">
-          {renderTextWithAnchors(line.text, new Set())}
+        <div className="chord-text chord-text--wrap">
+          {line.text}
           {annotations}
         </div>
       </div>
     )
   }
 
-  // Build chord overlay using character positions
+  // Inline flow rendering: each character becomes a "cell" stacking the
+  // chord (top) over the lyric char (bottom). Cells inside a word are
+  // glued together; whitespace cells without a chord are wrap points so
+  // the line reflows when horizontal space is tight.
   const transposedChords = line.chords.map((c) => ({
     chord: transposeChord(c.chord, transposition, flats),
     col: c.col,
   }))
+  const chordByCol = new Map<number, string>(
+    transposedChords.map((c) => [c.col, c.chord]),
+  )
+  const maxCol = Math.max(
+    line.text.length,
+    ...transposedChords.map((c) => c.col + 1),
+  )
 
-  const anchorCols = new Set(line.chords.map((c) => c.col))
+  type Cell = { char: string; chord?: string; col: number }
+  type Token = { type: 'word' | 'space'; cells: Cell[] }
+  const tokens: Token[] = []
+  let curr: Token | null = null
+  for (let i = 0; i < maxCol; i++) {
+    const ch = line.text[i] ?? ' '
+    const chord = chordByCol.get(i)
+    const isSpace = (ch === ' ' || ch === '\t') && chord === undefined
+    const want: Token['type'] = isSpace ? 'space' : 'word'
+    if (!curr || curr.type !== want) {
+      curr = { type: want, cells: [] }
+      tokens.push(curr)
+    }
+    curr.cells.push({ char: ch, chord, col: i })
+  }
+
+  // Trim a trailing all-blank space token (cells without chord, only spaces)
+  // so we don't draw phantom width at end of line.
+  while (
+    tokens.length > 0 &&
+    tokens[tokens.length - 1].type === 'space' &&
+    tokens[tokens.length - 1].cells.every((c) => !c.chord)
+  ) {
+    tokens.pop()
+  }
 
   return (
-    <div className={`chord-line${commentClass}`}>
-      <div className="chord-row">
-        {transposedChords.map((c, i) => (
-          <span
-            key={i}
-            className="chord-symbol"
-            style={{ left: `${c.col}ch` }}
-          >
-            {c.chord}
-          </span>
-        ))}
+    <div className={`chord-line chord-line--flow${commentClass}`}>
+      <div className="chord-flow">
+        {tokens.map((tok, ti) => {
+          if (tok.type === 'space') {
+            // Render whitespace as plain text so the browser can break here.
+            return (
+              <Fragment key={ti}>{tok.cells.map((c) => c.char).join('')}</Fragment>
+            )
+          }
+          return (
+            <span key={ti} className="chord-flow-word">
+              {tok.cells.map((c, ci) => (
+                <span
+                  key={ci}
+                  className={`chord-flow-cell${c.chord ? ' chord-flow-cell--anchor' : ''}`}
+                >
+                  {c.chord && (
+                    <span className="chord-flow-chord">{c.chord}</span>
+                  )}
+                  {c.char === ' ' ? ' ' : c.char}
+                </span>
+              ))}
+            </span>
+          )
+        })}
+        {annotations}
       </div>
-      {(line.text || annotations) && (
-        <div className="chord-text">
-          {renderTextWithAnchors(line.text, anchorCols)}
-          {annotations}
-        </div>
-      )}
     </div>
   )
-}
-
-/**
- * Render lyric text as a sequence of spans. Characters at chord-anchor
- * positions get `.chord-anchor`. Preserves whitespace (parent uses
- * `white-space: pre`).
- */
-function renderTextWithAnchors(text: string, anchorCols: Set<number>): ReactNode {
-  if (anchorCols.size === 0) return text
-  const parts: ReactNode[] = []
-  let run = ''
-  const flush = () => {
-    if (run) parts.push(run)
-    run = ''
-  }
-  for (let i = 0; i < text.length; i++) {
-    if (anchorCols.has(i)) {
-      flush()
-      parts.push(<span key={i} className="chord-anchor">{text[i]}</span>)
-    } else {
-      run += text[i]
-    }
-  }
-  flush()
-  return parts
 }

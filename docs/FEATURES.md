@@ -803,6 +803,7 @@ So liegt die Datei immer im standardisierten ChordPro-Format auf der Disk und ka
 - `.cho`-Dateien oeffnen sich im selben DocumentPanel wie PDFs/TXTs/Videos — kein eigener Player
 - Beim Oeffnen wird der ChordPro-Text geparst und in die kanonische `ParsedChordContent`-Struktur konvertiert
 - Akkorde werden ueber den Textzeilen in Monospace-Font positioniert (spaltentreu)
+- **Auto-Umbruch**: Lyric-Zeilen brechen automatisch um, wenn der horizontale Anzeigeplatz nicht ausreicht. Akkorde sitzen weiterhin ueber ihren Anker-Buchstaben und folgen dem Text bei Umbruch. Tab-/Grid-Sektionen behalten festes Spaltenraster (horizontaler Scroll).
 - Sektions-Header (`[Verse]`, `[Chorus]`, etc.) farblich abgesetzt
 - Liest BEIDE Formate transparent: ChordPro UND Plain (Backwards-Compat)
 - **Paper-Style**: `.cho`- und `.txt`-Viewer rendern unabhaengig vom App-Theme immer mit dunklem Text auf weissem "Papier"-Hintergrund — sowohl in Hell als auch in Dunkel. So bleibt der Lese-Komfort wie bei einem echten Notenblatt erhalten.
