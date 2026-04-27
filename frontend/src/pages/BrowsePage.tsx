@@ -560,18 +560,18 @@ export function BrowsePage() {
           <div className="view-bar">
             <div className="meta-bricks">
               <button
-                className={`meta-brick meta-brick--songs${!isTexteMode ? ' meta-brick--active' : ''}`}
-                onClick={() => setViewMode('songs')}
-              >
-                <Headphones size={16} />
-                {!isTexteMode && <span className="meta-brick__label">Songs</span>}
-              </button>
-              <button
                 className={`meta-brick meta-brick--texte${isTexteMode ? ' meta-brick--active' : ''}`}
                 onClick={() => setViewMode('texts')}
               >
                 <FileText size={16} />
                 {isTexteMode && <span className="meta-brick__label">Texte</span>}
+              </button>
+              <button
+                className={`meta-brick meta-brick--songs${!isTexteMode ? ' meta-brick--active' : ''}`}
+                onClick={() => setViewMode('songs')}
+              >
+                <Headphones size={16} />
+                {!isTexteMode && <span className="meta-brick__label">Songs</span>}
               </button>
             </div>
           </div>
