@@ -70,6 +70,20 @@ Beide URIs müssen in der Dropbox App unter OAuth 2 > Redirect URIs eingetragen 
 | Nginx | 1.24.0 |
 | FFmpeg | 6.1.1 (Audio-Konvertierung zu MP3) |
 | Certbot | (Let's Encrypt) |
+| Playwright + Chromium | fuer RTF→Companion-PDF (Headless-Render) |
+
+### Playwright / Chromium Setup
+
+Die Companion-PDF-Generierung (RTF wird als A4-PDF gerendert) nutzt Headless-Chromium via Playwright. Beim Deploy wird die Chromium-Binary ueber `python -m playwright install chromium` (im Venv) installiert. Die System-Bibliotheken (libnspr4, libnss3, libxkbcommon, libgbm1, libasound2t64 …) muessen einmalig **mit root** nachgezogen werden:
+
+```bash
+ssh root@204.168.218.188 '/home/choirbox/choirbox/venv/bin/playwright install-deps chromium'
+ssh root@204.168.218.188 'systemctl restart choirbox'
+```
+
+Ohne diese Libs scheitert `chromium.launch()` mit `error while loading shared libraries: libnspr4.so` und der Background-Task setzt `pdf_status='failed'` — der Frontend-Fallback (RtfViewer ohne Pagination) greift, aber das Companion-PDF wird nicht erzeugt.
+
+`playwright install-deps` braucht Root, weil es intern `apt-get install -y` ausfuehrt. Der App-User (`choirbox`) hat dafuer keine Rechte — daher kein Auto-Schritt im `deploy.sh`.
 
 ## Verzeichnisstruktur auf dem Server
 
@@ -215,7 +229,8 @@ Falls du den Server neu aufsetzen musst, hier die Reihenfolge:
 7. Nginx + Certbot: `apt install nginx certbot python3-certbot-nginx -y`
 8. FFmpeg: `apt install ffmpeg -y` (für Audio-Konvertierung zu MP3)
 9. DuckDNS-Cronjob einrichten (siehe DNS-Sektion)
-10. App deployen (siehe Deployment-Sektion)
-11. Systemd Service einrichten + `systemctl enable choirbox`
-12. Nginx konfigurieren + `certbot --nginx -d choirbox.duckdns.org`
-13. Dropbox verbinden (Admin-UI), dann DB-Backup-Cronjob einrichten (siehe Datenbank-Backup)
+10. App deployen (siehe Deployment-Sektion) — danach `venv/bin/playwright install chromium` ausfuehren (laedt nur Binaries)
+11. Chromium-System-Libs nachziehen: `playwright install-deps chromium` als root (siehe Playwright/Chromium Setup) — ohne diese fehlt `libnspr4.so` und die Companion-PDF-Generierung crasht
+12. Systemd Service einrichten + `systemctl enable choirbox`
+13. Nginx konfigurieren + `certbot --nginx -d choirbox.duckdns.org`
+14. Dropbox verbinden (Admin-UI), dann DB-Backup-Cronjob einrichten (siehe Datenbank-Backup)

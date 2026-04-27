@@ -381,6 +381,10 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   const isTxt = activeDoc.file_type === 'txt'
   const isCho = activeDoc.file_type === 'cho'
   const isRtf = activeDoc.file_type === 'rtf'
+  // RTF wird als Companion-PDF angezeigt (fixe A4-Geometrie) — Text-Zoom
+  // ist dort sinnlos. Nur im RtfViewer-Fallback (failed/null) brauchen
+  // wir die +/- Buttons noch.
+  const rtfShowingPdf = isRtf && !rtfEditing && companionPdf.status === 'ready' && !!companionPdf.companionDocId
   const pdfUrl = `/api/documents/${activeDoc.id}/download?token=${token}`
 
   return (
@@ -597,7 +601,7 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
           <PenLine size={18} />
         </button>
       )}
-      {(isTxt || isCho || (isRtf && !rtfEditing)) && pdfFullscreen && (
+      {(isTxt || isCho || (isRtf && !rtfEditing && !rtfShowingPdf)) && pdfFullscreen && (
         <>
           <button
             className={`pdf-fab pdf-fab--small pdf-fab--zoom-in${pdfFullscreen && fabFaded ? ' pdf-fab--faded' : ''}`}
