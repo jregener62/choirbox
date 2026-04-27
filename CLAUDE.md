@@ -122,6 +122,12 @@ Danach reicht `python run.py` allein — FastAPI liefert das React-Build aus `st
 - Nach jeder Aenderung **selbststaendig E2E in der UI testen** (Preview-Server nutzen, Screenshot/Snapshot pruefen).
 - **Kleine, inkrementelle Changes** bevorzugen. Lieber mehrere kleine Schritte als ein grosser Umbau.
 
+### Frontend nach jeder Aenderung neu bauen
+
+- Nach **jeder** Frontend-Code-Aenderung lokal `cd frontend && npm run build` ausfuehren.
+- Grund: Der User testet auf `http://127.0.0.1:8001/#/` — dort liefert FastAPI das gebaute React aus `static/react/` aus, **nicht** den Vite-Dev-Server. Ohne Rebuild ist die Aenderung dort nicht sichtbar.
+- Auch nach `./deploy.sh` neu bauen — der Deploy baut nur auf den Remote-Servern, nicht lokal.
+
 ### Aenderungen mit integrierter Vorschau testen
 
 - **Jede Aenderung** muss mit der **integrierten Preview-Funktion** (Claude Code Browser-Vorschau) getestet werden — nicht manuell vom Entwickler.
@@ -204,6 +210,13 @@ Nach jedem abgeschlossenen Change:
 
 - Bei unklaren Anforderungen oder mehreren moeglichen Ansaetzen: **nachfragen statt raten**.
 - Keine Over-Engineering-Entscheidungen eigenstaendig treffen.
+
+### Notify!-Befehl (iMessage-Benachrichtigung)
+
+- **Trigger:** User tippt `Notify!` (optional `Notify! <Task-Name>`).
+- **Wirkung:** UserPromptSubmit-Hook (`~/.claude/bin/claude-notify-command.sh`) sendet automatisch iMessage an `jregener@mac.com` mit Text `Task fertig` bzw. `Task <Name> fertig`.
+- **Bei absehbar langen Tasks** (Builds, lange Test-Laeufe, Deploys, mehrstufige Refactorings, Hintergrund-Agents): **proaktiv einmal fragen**, ob nach Abschluss notifyt werden soll — nicht automatisch senden, nicht bei kurzen/interaktiven Tasks anbieten.
+- **Bestaetigung im Chat genuegt nicht** — der Hook macht das deterministisch via osascript. Wenn der Hook fehlt oder nicht greift, ist das ein Konfigurationsproblem in `~/.claude/settings.json`.
 
 ## Wichtige technische Details
 
