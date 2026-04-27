@@ -265,6 +265,9 @@ def delete_user(
     from backend.models.user_chord_preference import UserChordPreference
     from backend.models.user_selected_document import UserSelectedDocument
     from backend.models.guest_link import GuestLink
+    from backend.models.section import Section
+    from backend.models.document import Document
+    from backend.models.draft_entry import DraftEntry
 
     target = session.get(User, user_id)
     if not target or target.choir_id != user.choir_id:
@@ -281,6 +284,18 @@ def delete_user(
 
     for link in session.exec(select(GuestLink).where(GuestLink.created_by_user_id == target.id)).all():
         session.delete(link)
+
+    # Choir-geteilte Daten bleiben erhalten — Provenance-Felder gehen auf den
+    # loeschenden Admin ueber, sonst verletzt der Delete die FK auf users.id.
+    for sec in session.exec(select(Section).where(Section.created_by == target.id)).all():
+        sec.created_by = user.id
+        session.add(sec)
+    for doc in session.exec(select(Document).where(Document.uploaded_by == target.id)).all():
+        doc.uploaded_by = user.id
+        session.add(doc)
+    for de in session.exec(select(DraftEntry).where(DraftEntry.created_by == target.id)).all():
+        de.created_by = user.id
+        session.add(de)
 
     session.delete(target)
     session.commit()

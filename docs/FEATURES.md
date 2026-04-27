@@ -2031,6 +2031,13 @@ nie geloescht).
 - `delete_choir` um die drei fehlenden Modelle erweitert, damit ein
   Chor mit aktiven Chorleitern/Gast-Links ebenfalls sauber geloescht
   werden kann.
+- **Nachzug:** `Section.created_by`, `Document.uploaded_by` und
+  `DraftEntry.created_by` referenzieren ebenfalls `users.id` und liessen
+  den Delete weiterhin auf 500 laufen, sobald der Ziel-Nutzer eine
+  Section/Document/Draft erzeugt hatte. Provenance-Felder werden jetzt
+  auf den loeschenden Admin umgehaengt — die Choir-geteilten Daten
+  bleiben erhalten und die FK ist erfuellt. Regression-Test:
+  `backend/tests/test_admin_delete_user.py`.
 
 ### Gast-Session laeuft nach 2h ab, unabhaengig von der Link-TTL
 
