@@ -21,11 +21,11 @@ const VIEW_MODE_APPLICABLE_ROLES = new Set(['guest', 'member', 'pro-member'])
 function loadStoredMode(): ViewMode {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    if (raw === 'texts') return 'texts'
+    if (raw === 'songs') return 'songs'
   } catch {
     // ignore
   }
-  return 'songs'
+  return 'texts'
 }
 
 interface ViewModeState {
@@ -74,6 +74,6 @@ export const useViewModeStore = create<ViewModeState>((set, get) => ({
   },
 
   reset: () => {
-    set({ mode: 'songs', locked: false })
+    set({ mode: 'texts', locked: false })
   },
 }))
