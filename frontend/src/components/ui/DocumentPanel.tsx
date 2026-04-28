@@ -337,7 +337,10 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
       el.removeEventListener('touchmove', onTouchMove)
       el.removeEventListener('touchend', onTouchEnd)
     }
-  }, [activeDoc?.id])
+    // RTF-Companion: das pdf-pages-Div wird erst gerendert, wenn die
+    // Companion-PDF ready ist. Effect muss re-run, sobald sich das Mounting
+    // aendert, sonst wird kein touchmove-Handler gebunden.
+  }, [activeDoc?.id, companionPdf.status, companionPdf.companionDocId, rtfEditing])
 
   // Double-tap to toggle zoom
   const lastTapRef = useRef(0)
