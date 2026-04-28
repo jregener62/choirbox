@@ -19,6 +19,8 @@ export interface User {
   can_report_bugs: boolean
   /** "songs" (Vollzugriff) oder "texts" (nur Texte/Noten). */
   view_mode: 'songs' | 'texts'
+  /** ISO-Datum des ersten Welcome-Modal-Abschlusses — null = noch nicht gesehen. */
+  onboarded_at: string | null
 }
 
 export interface LoginResponse {

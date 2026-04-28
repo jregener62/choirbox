@@ -211,4 +211,5 @@ def user_response(user: User, session: Session) -> dict:
         "must_change_password": user.must_change_password,
         "can_report_bugs": user.can_report_bugs,
         "view_mode": user.view_mode,
+        "onboarded_at": user.onboarded_at.isoformat() if user.onboarded_at else None,
     }

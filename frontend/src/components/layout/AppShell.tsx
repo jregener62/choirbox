@@ -1,6 +1,6 @@
 import { useRef, useState, useEffect } from 'react'
 import { useLocation } from 'react-router-dom'
-import { PwaInstallGuide } from '@/components/PwaInstallGuide.tsx'
+import { WelcomeModal } from '@/components/WelcomeModal.tsx'
 import { GlobalPlayerBar } from '@/components/layout/GlobalPlayerBar.tsx'
 import { FloatingRecorder } from '@/components/layout/FloatingRecorder.tsx'
 import { EdgeBugTab } from '@/components/layout/EdgeBugTab.tsx'
@@ -22,6 +22,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   const user = useAuthStore((s) => s.user)
   const guest = isGuest(user?.role)
+  const needsWelcome = !!user && !guest && !user.onboarded_at
 
   useEffect(() => {
     setFooterEl(footerRef.current)
@@ -58,9 +59,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <FooterPortalProvider targetRef={footerEl}>
       <div className="app-shell">
-        {/* PWA-Install-Prompt bekommen Gaeste nicht zu sehen — eine 2h-Session
-            fuer einen Proben-Link gehoert nicht auf den Homescreen. */}
-        {!guest && <PwaInstallGuide />}
+        {/* Welcome-Modal beim ersten Login (inkl. PWA-Install als letztem Slide).
+            Gaeste bekommen es nicht — eine 2h-Session braucht keinen Onboarding-Flow. */}
+        {needsWelcome && <WelcomeModal />}
         <div className="main-content">
           {children}
         </div>

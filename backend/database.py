@@ -103,6 +103,7 @@ def _migrate(eng):
         ("documents", "source_doc_id", "INTEGER"),
         ("documents", "pdf_status", "VARCHAR(10)"),
         ("documents", "annotations_stale", "BOOLEAN DEFAULT 0"),
+        ("users", "onboarded_at", "DATETIME"),
     ]
     with eng.begin() as conn:
         for table, column, col_type in column_migrations:

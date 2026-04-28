@@ -1491,6 +1491,41 @@ Die Settings sind in eine schlanke Hauptseite und thematische Sub-Seiten aufgete
 
 ---
 
+## Welcome-Modal (Onboarding)
+
+Beim ersten Login bekommen Nicht-Gast-User einen 3-Slide-Onboarding-Flow ueber die App. Der Status wird pro User gespeichert (`users.onboarded_at`) — das Modal kommt nicht wieder von alleine, wenn es einmal abgeschlossen oder uebersprungen wurde.
+
+### Slide-Flow
+
+1. **Willkommen** — Begruessung + Kurzbeschreibung der App
+2. **So funktioniert's** — Platzhalter, Inhalte folgen separat (TBD)
+3. **App installieren** — Plattformspezifische PWA-Install-Anleitung (iOS/Android/Desktop). Wird **uebersprungen**, wenn die App bereits als Standalone-PWA laeuft (`display-mode: standalone`); das Modal hat dann nur 2 Slides
+
+### Trigger und Persistenz
+
+- Anzeige-Bedingung: eingeloggter User, kein Gast, `user.onboarded_at IS NULL`
+- "Loslegen" oder "Ueberspringen" → `POST /auth/me/onboarded` setzt `onboarded_at = NOW()`
+- Modal kann ueber das X (oder Loslegen) geschlossen werden — der Onboarded-Status wird in beiden Faellen gesetzt
+- Gaeste sehen das Modal nicht (eine 2h-Session braucht keinen Onboarding-Flow)
+- Bei API-Fehler beim Markieren wird der Modal-Schluss nicht blockiert; das Modal kann beim naechsten Login wieder kommen
+
+### Reset / erneutes Anzeigen
+
+- DB-seitig: `UPDATE users SET onboarded_at = NULL WHERE role != 'guest';`
+- Geplante Hilfe-Seite (Settings → Hilfe) bekommt einen "Quickstart erneut anzeigen"-Knopf — noch nicht implementiert
+
+| Datei | Rolle |
+|-------|-------|
+| `frontend/src/components/WelcomeModal.tsx` | 3-Slide-Komponente, Standalone-Erkennung, Plattform-Erkennung |
+| `frontend/src/components/layout/AppShell.tsx` | Mount-Bedingung (`!guest && !user.onboarded_at`) |
+| `frontend/src/styles/index.css` | `.welcome-*`-Styles |
+| `backend/api/auth.py` | `POST /auth/me/onboarded` Endpoint |
+| `backend/services/auth_service.py` | `onboarded_at` in `user_response` |
+| `backend/models/user.py` | Spalte `onboarded_at: Optional[datetime]` |
+| `backend/database.py` | Migration fuer neue Spalte |
+
+---
+
 ## Progressive Web App (PWA)
 
 ### Installation
@@ -1501,12 +1536,7 @@ ChoirBox ist als PWA installierbar — ohne App Store, direkt aus dem Browser.
 - App-Icon auf dem Homescreen, erscheint im App-Switcher wie eine native App
 - Orientierung auf Portrait fixiert
 
-Nach dem Login wird ein Install-Guide als Overlay angezeigt mit Schritt-fuer-Schritt-Anleitungen fuer iOS (Safari) und Android (Chrome).
-
-- Plattform-Erkennung: zeigt nur die relevante Anleitung (iOS, Android, oder beide auf Desktop)
-- "Verstanden" schliesst den Guide fuer die aktuelle Session
-- "Nicht mehr anzeigen" speichert die Wahl permanent in `localStorage` (`choirbox_pwa_dismissed`)
-- Guide erscheint nicht, wenn die App bereits als PWA laeuft (`display-mode: standalone`)
+Die Install-Anleitung ist seit dem Welcome-Modal-Refactor Teil des Onboarding-Flows (siehe Abschnitt **Welcome-Modal**). Sie erscheint als letzter Slide beim ersten Login und wird automatisch uebersprungen, wenn die App bereits als PWA laeuft (`display-mode: standalone`). Plattform-Erkennung zeigt nur die relevante Anleitung (iOS, Android, oder beide auf Desktop).
 
 ### Service Worker
 
@@ -1531,7 +1561,7 @@ Network-first Service Worker — frische Inhalte haben Prioritaet, Cache dient n
 | `frontend/public/sw.js` | Service Worker |
 | `frontend/public/icon.svg` | Quell-Icon (SVG) |
 | `frontend/public/icons/` | Generierte PNG-Icons |
-| `frontend/src/components/PwaInstallGuide.tsx` | Install-Anleitung |
+| `frontend/src/components/WelcomeModal.tsx` | Onboarding-Modal inkl. Install-Slide |
 | `frontend/index.html` | Meta-Tags, Manifest-Link |
 | `frontend/src/main.tsx` | Service Worker Registrierung |
 

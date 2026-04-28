@@ -19,3 +19,4 @@ class User(SQLModel, table=True):
     last_login_at: Optional[datetime] = Field(default=None)
     can_report_bugs: bool = Field(default=False)
     view_mode: str = Field(default="songs", max_length=10)  # "songs" (alles) oder "texts" (nur Texte/Noten)
+    onboarded_at: Optional[datetime] = Field(default=None)

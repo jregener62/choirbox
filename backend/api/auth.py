@@ -141,6 +141,20 @@ class ChangePasswordBody(BaseModel):
     new_password: str = ""
 
 
+@router.post("/me/onboarded")
+def mark_onboarded(
+    user: User = Depends(require_permission("profile.read")),
+    session: Session = Depends(get_session),
+):
+    """Markiere den User als onboardet — Welcome-Modal kommt nicht wieder von alleine."""
+    if user.onboarded_at is None:
+        user.onboarded_at = datetime.utcnow()
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+    return ActionResponse.success(data=user_response(user, session))
+
+
 @router.put("/me/password")
 def change_password(
     body: ChangePasswordBody,

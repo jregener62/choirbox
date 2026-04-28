@@ -200,6 +200,7 @@
     "GET /api/auth/me":                                             "profile.read",
     "PUT /api/auth/me":                                             "profile.write",
     "PUT /api/auth/me/password":                                    "profile.password",
+    "POST /api/auth/me/onboarded":                                  "profile.read",
 
     "GET /api/policy/active":                                       "policy.read",
 

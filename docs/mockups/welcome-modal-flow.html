@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Welcome-Modal — Slide-Flow mit PWA</title>
+<style>
+  :root {
+    --space-1: 4px; --space-1-5: 6px; --space-2: 8px; --space-2-5: 10px;
+    --space-3: 12px; --space-3-5: 14px; --space-4: 16px; --space-5: 20px;
+    --space-6: 24px; --space-8: 32px;
+    --text-2xs: 10px; --text-xs: 11px; --text-sm: 12px; --text-caption: 13px;
+    --text-body-sm: 14px; --text-body: 15px; --text-md: 16px; --text-lg: 17px;
+    --text-xl: 18px; --text-2xl: 20px;
+    --radius-sm: 6px; --radius-md: 8px; --radius-lg: 10px; --radius-xl: 12px; --radius-2xl: 16px;
+    --shadow-sm: 0 1px 3px rgba(0,0,0,0.08);
+    --shadow-md: 0 4px 12px rgba(0,0,0,0.10);
+    --shadow-lg: 0 8px 28px rgba(0,0,0,0.16);
+    --bg-primary: #F0F2F6; --bg-secondary: #FFFFFF; --bg-tertiary: #E4E7EE;
+    --text-primary: #1A1F2E; --text-secondary: #4A5064; --text-muted: #6E7486;
+    --border: rgba(0,0,0,0.12);
+    --accent: #6366f1; --accent-hover: #4f46e5;
+    --confirm: #2563eb; --confirm-hover: #1d4ed8;
+    --success: #16a34a; --warning: #d97706;
+    --sopran: #ec4899; --alt: #f97316; --tenor: #3b82f6; --bass: #22c55e;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: #0f172a; color: #f1f5f9;
+    padding: var(--space-6) var(--space-4);
+    min-height: 100vh;
+  }
+
+  .page-header { max-width: 1500px; margin: 0 auto var(--space-6); }
+  .page-header h1 { font-size: var(--text-2xl); margin-bottom: var(--space-2); }
+  .page-header p { font-size: var(--text-caption); color: #94a3b8; line-height: 1.55; }
+  .page-header code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+  .flow-row {
+    max-width: 1500px;
+    margin: 0 auto;
+    display: flex;
+    gap: var(--space-4);
+    overflow-x: auto;
+    padding-bottom: var(--space-4);
+  }
+  .flow-arrow {
+    align-self: center;
+    color: #475569;
+    flex-shrink: 0;
+  }
+
+  .scene { display: flex; flex-direction: column; gap: var(--space-3); flex-shrink: 0; }
+  .scene-header { display: flex; align-items: center; gap: var(--space-2); }
+  .scene-num {
+    width: 26px; height: 26px;
+    background: var(--accent); color: white;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: var(--text-sm); font-weight: 700;
+  }
+  .scene-title { font-size: var(--text-body); font-weight: 600; }
+  .scene-tag {
+    font-size: var(--text-2xs); font-weight: 600;
+    padding: 2px 8px; border-radius: var(--radius-sm);
+    background: rgba(99,102,241,0.18); color: #a5b4fc;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .scene-tag.cond { background: rgba(217,119,6,0.18); color: #fbbf24; }
+  .scene-desc { font-size: var(--text-xs); color: #94a3b8; line-height: 1.5; max-width: 320px; }
+
+  /* Phone Frame */
+  .phone {
+    background: var(--bg-primary);
+    border-radius: 28px;
+    box-shadow: 0 0 0 6px #1e293b, 0 0 0 7px #0f172a, var(--shadow-lg);
+    overflow: hidden;
+    width: 320px;
+    height: 600px;
+    position: relative;
+    color: var(--text-primary);
+  }
+  .phone-status {
+    height: 24px;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 0 var(--space-4);
+    font-size: var(--text-2xs); font-weight: 600; color: var(--text-primary);
+  }
+  .phone-content {
+    height: calc(100% - 24px);
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .topbar {
+    height: 48px;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; padding: 0 var(--space-4);
+  }
+  .topbar-title { font-size: var(--text-lg); font-weight: 700; }
+  .bottomnav {
+    height: 56px;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-around;
+    padding: 0 var(--space-2);
+  }
+  .nav-item {
+    flex: 1;
+    display: flex; flex-direction: column; align-items: center; gap: 2px;
+    color: var(--text-muted); font-size: var(--text-2xs); font-weight: 500;
+  }
+  .nav-item.active { color: var(--accent); }
+
+  .body-area { flex: 1; overflow: hidden; position: relative; background: var(--bg-primary); }
+  .blurred-bg {
+    position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(240,242,246,0.6), rgba(240,242,246,0.92)), var(--bg-primary);
+  }
+  .blurred-list {
+    padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-2);
+    filter: blur(2px); opacity: 0.6;
+  }
+  .blur-row { background: var(--bg-secondary); height: 56px; border-radius: var(--radius-lg); border: 1px solid var(--border); }
+
+  .modal-overlay {
+    position: absolute; inset: 0;
+    background: rgba(15,23,42,0.55);
+    display: flex; align-items: center; justify-content: center;
+    padding: var(--space-3);
+  }
+  .modal {
+    background: var(--bg-secondary);
+    border-radius: var(--radius-2xl);
+    width: 100%;
+    max-height: 100%;
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    position: relative;
+  }
+  .modal-close {
+    position: absolute; top: 12px; right: 12px;
+    width: 28px; height: 28px;
+    border-radius: 50%;
+    background: rgba(0,0,0,0.06);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--text-muted); z-index: 2;
+  }
+
+  .slide-body {
+    padding: var(--space-6) var(--space-5) var(--space-3);
+    text-align: center;
+    overflow-y: auto;
+    flex: 1;
+  }
+  .slide-icon {
+    width: 64px; height: 64px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    border-radius: var(--radius-xl);
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; margin-bottom: var(--space-4);
+    box-shadow: 0 8px 20px rgba(99,102,241,0.35);
+  }
+  .slide-icon.success {
+    background: linear-gradient(135deg, var(--success), #4ade80);
+    box-shadow: 0 8px 20px rgba(34,197,94,0.35);
+  }
+  .slide-icon.install {
+    background: linear-gradient(135deg, #0ea5e9, var(--accent));
+    box-shadow: 0 8px 20px rgba(14,165,233,0.35);
+  }
+  .slide-title {
+    font-size: var(--text-xl); font-weight: 700;
+    color: var(--text-primary); margin-bottom: var(--space-2);
+  }
+  .slide-text {
+    font-size: var(--text-body-sm); color: var(--text-secondary);
+    line-height: 1.55;
+  }
+  .slide-features {
+    margin-top: var(--space-4);
+    display: flex; flex-direction: column; gap: var(--space-2);
+    text-align: left;
+  }
+  .feature-row {
+    display: flex; align-items: flex-start; gap: var(--space-3);
+    background: var(--bg-primary);
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+  }
+  .feature-icon {
+    width: 32px; height: 32px;
+    border-radius: var(--radius-md);
+    background: rgba(99,102,241,0.10); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .feature-icon.fav { background: rgba(220,38,38,0.10); color: #dc2626; }
+  .feature-icon.player { background: rgba(34,197,94,0.10); color: var(--success); }
+  .feature-text { flex: 1; }
+  .feature-title { font-size: var(--text-sm); font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+  .feature-desc { font-size: var(--text-xs); color: var(--text-secondary); line-height: 1.45; }
+
+  /* PWA-Slide-Specific */
+  .pwa-platform {
+    margin-top: var(--space-4);
+    text-align: left;
+    background: var(--bg-primary);
+    border-radius: var(--radius-lg);
+    padding: var(--space-3) var(--space-3-5);
+  }
+  .pwa-platform-title {
+    font-size: var(--text-xs); font-weight: 700;
+    color: var(--text-primary); margin-bottom: var(--space-2);
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .pwa-steps {
+    list-style: none; padding: 0; display: flex; flex-direction: column; gap: var(--space-2);
+  }
+  .pwa-steps li {
+    display: flex; align-items: center; gap: var(--space-2-5);
+    font-size: var(--text-xs); color: var(--text-secondary); line-height: 1.4;
+  }
+  .pwa-step-icon {
+    width: 26px; height: 26px;
+    background: var(--bg-secondary); border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    display: flex; align-items: center; justify-content: center;
+    color: var(--accent); flex-shrink: 0;
+  }
+  .pwa-steps li b { color: var(--text-primary); }
+
+  /* Bottom (dots + actions) */
+  .slide-bottom {
+    border-top: 1px solid var(--border);
+    background: var(--bg-secondary);
+  }
+  .slide-dots {
+    display: flex; justify-content: center; gap: 6px;
+    padding: var(--space-3) 0 var(--space-1);
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--bg-tertiary); }
+  .dot.active { background: var(--accent); width: 22px; border-radius: 4px; }
+  .dot.skipped { background: var(--bg-tertiary); opacity: 0.4; }
+  .modal-actions {
+    display: flex; gap: var(--space-2);
+    padding: var(--space-2) var(--space-4) var(--space-4);
+  }
+  .btn {
+    flex: 1;
+    padding: var(--space-3);
+    border-radius: var(--radius-md);
+    font-size: var(--text-body-sm); font-weight: 600;
+    border: none; cursor: pointer; font-family: inherit;
+    min-height: 44px;
+  }
+  .btn-primary { background: var(--confirm); color: white; }
+  .btn-secondary { background: var(--bg-tertiary); color: var(--text-secondary); }
+  .btn-text { background: transparent; color: var(--text-muted); flex: 0 0 auto; padding: var(--space-3); }
+
+  /* Logic Box */
+  .logic-box {
+    max-width: 1500px; margin: var(--space-6) auto 0;
+    background: rgba(99,102,241,0.08);
+    border: 1px solid rgba(99,102,241,0.25);
+    border-radius: var(--radius-lg);
+    padding: var(--space-4) var(--space-5);
+    color: #cbd5e1;
+    font-size: var(--text-caption);
+    line-height: 1.6;
+  }
+  .logic-box h3 { color: #f1f5f9; font-size: var(--text-md); margin-bottom: var(--space-2); }
+  .logic-box ul { padding-left: var(--space-4); }
+  .logic-box li { margin-bottom: 4px; }
+  .logic-box code { background: rgba(255,255,255,0.08); padding: 1px 6px; border-radius: 4px; font-size: 12px; font-family: ui-monospace, monospace; }
+
+  svg { display: block; }
+</style>
+</head>
+<body>
+
+<div class="page-header">
+  <h1>Welcome-Modal — Slide-Flow für neue User</h1>
+  <p>3 Slides: <b>Willkommen → So funktioniert's → App installieren</b>. Triggert beim ersten Login (Flag <code>onboarded_at</code> in <code>User</code>-Tabelle). Letzter Slide übernimmt das vorhandene <code>PwaInstallGuide</code> und wird übersprungen, wenn die App schon als PWA läuft (<code>display-mode: standalone</code>) — User landet dann direkt auf „Loslegen".</p>
+</div>
+
+<div class="flow-row">
+
+  <!-- Slide 1: Willkommen -->
+  <div class="scene">
+    <div class="scene-header">
+      <div class="scene-num">1</div>
+      <div class="scene-title">Willkommen</div>
+    </div>
+    <div class="scene-desc">Begrüßung mit App-Logo und Kurzbeschreibung. Zeigt was die App kann.</div>
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="phone-content">
+        <div class="topbar"><div class="topbar-title">CantaBox</div></div>
+        <div class="body-area">
+          <div class="blurred-bg"></div>
+          <div class="blurred-list">
+            <div class="blur-row"></div><div class="blur-row"></div>
+            <div class="blur-row"></div><div class="blur-row"></div>
+          </div>
+          <div class="modal-overlay">
+            <div class="modal">
+              <div class="modal-close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </div>
+              <div class="slide-body">
+                <div class="slide-icon">
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+                </div>
+                <div class="slide-title">Willkommen bei CantaBox</div>
+                <div class="slide-text">Üb deine Stimme von überall — alle Audios und Texte deines Chors griffbereit auf dem Handy.</div>
+              </div>
+              <div class="slide-bottom">
+                <div class="slide-dots">
+                  <div class="dot active"></div>
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                </div>
+                <div class="modal-actions">
+                  <button class="btn btn-text">Überspringen</button>
+                  <button class="btn btn-primary">Weiter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottomnav">
+          <div class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 12 2l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Browse</span></div>
+          <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg><span>Favoriten</span></div>
+          <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Einstellungen</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </div>
+
+  <!-- Slide 2: So funktioniert's (TBD) -->
+  <div class="scene">
+    <div class="scene-header">
+      <div class="scene-num">2</div>
+      <div class="scene-title">So funktioniert's</div>
+      <span class="scene-tag cond">TBD</span>
+    </div>
+    <div class="scene-desc">Inhalt noch zu definieren — was sollen neue User über Browse, Favoriten, Üben wissen? Texte folgen separat.</div>
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="phone-content">
+        <div class="topbar"><div class="topbar-title">CantaBox</div></div>
+        <div class="body-area">
+          <div class="blurred-bg"></div>
+          <div class="blurred-list">
+            <div class="blur-row"></div><div class="blur-row"></div>
+            <div class="blur-row"></div><div class="blur-row"></div>
+          </div>
+          <div class="modal-overlay">
+            <div class="modal">
+              <div class="modal-close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </div>
+              <div class="slide-body">
+                <div class="slide-icon" style="background: linear-gradient(135deg, #94a3b8, #64748b); box-shadow: 0 8px 20px rgba(100,116,139,0.35);">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+                </div>
+                <div class="slide-title">So funktioniert's</div>
+                <div class="slide-text" style="color: var(--text-muted); font-style: italic;">Texte folgen — Inhalte werden noch festgelegt.</div>
+
+                <div style="margin-top: var(--space-4); display: flex; flex-direction: column; gap: var(--space-2);">
+                  <div style="background: repeating-linear-gradient(45deg, var(--bg-tertiary), var(--bg-tertiary) 6px, var(--bg-primary) 6px, var(--bg-primary) 12px); height: 56px; border-radius: var(--radius-md); border: 1px dashed rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); color: var(--text-muted); font-weight: 600;">Platzhalter Feature 1</div>
+                  <div style="background: repeating-linear-gradient(45deg, var(--bg-tertiary), var(--bg-tertiary) 6px, var(--bg-primary) 6px, var(--bg-primary) 12px); height: 56px; border-radius: var(--radius-md); border: 1px dashed rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); color: var(--text-muted); font-weight: 600;">Platzhalter Feature 2</div>
+                  <div style="background: repeating-linear-gradient(45deg, var(--bg-tertiary), var(--bg-tertiary) 6px, var(--bg-primary) 6px, var(--bg-primary) 12px); height: 56px; border-radius: var(--radius-md); border: 1px dashed rgba(0,0,0,0.15); display: flex; align-items: center; justify-content: center; font-size: var(--text-xs); color: var(--text-muted); font-weight: 600;">Platzhalter Feature 3</div>
+                </div>
+              </div>
+              <div class="slide-bottom">
+                <div class="slide-dots">
+                  <div class="dot"></div>
+                  <div class="dot active"></div>
+                  <div class="dot"></div>
+                </div>
+                <div class="modal-actions">
+                  <button class="btn btn-secondary">Zurück</button>
+                  <button class="btn btn-primary">Weiter</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottomnav">
+          <div class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 12 2l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Browse</span></div>
+          <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg><span>Favoriten</span></div>
+          <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Einstellungen</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="flow-arrow">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+  </div>
+
+  <!-- Slide 3: App installieren (PWA) -->
+  <div class="scene">
+    <div class="scene-header">
+      <div class="scene-num">3</div>
+      <div class="scene-title">App installieren</div>
+      <span class="scene-tag cond">Bedingt</span>
+    </div>
+    <div class="scene-desc">Inhalt aus bestehendem <code>PwaInstallGuide</code>. Wird übersprungen wenn schon Standalone — Modal hat dann nur 2 Slides.</div>
+    <div class="phone">
+      <div class="phone-status"><span>9:41</span><span>● ● ●</span></div>
+      <div class="phone-content">
+        <div class="topbar"><div class="topbar-title">CantaBox</div></div>
+        <div class="body-area">
+          <div class="blurred-bg"></div>
+          <div class="blurred-list">
+            <div class="blur-row"></div><div class="blur-row"></div>
+            <div class="blur-row"></div><div class="blur-row"></div>
+          </div>
+          <div class="modal-overlay">
+            <div class="modal">
+              <div class="modal-close">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+              </div>
+              <div class="slide-body">
+                <div class="slide-icon install">
+                  <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                </div>
+                <div class="slide-title">App installieren</div>
+                <div class="slide-text">Für schnellen Zugriff direkt vom Startbildschirm — ohne App Store.</div>
+
+                <div class="pwa-platform">
+                  <div class="pwa-platform-title">iPhone (Safari)</div>
+                  <ol class="pwa-steps">
+                    <li>
+                      <span class="pwa-step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16 6 12 2 8 6"/><line x1="12" y1="2" x2="12" y2="15"/></svg></span>
+                      <span><b>Teilen</b>-Button antippen</span>
+                    </li>
+                    <li>
+                      <span class="pwa-step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></span>
+                      <span><b>Zum Home-Bildschirm</b></span>
+                    </li>
+                    <li>
+                      <span class="pwa-step-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span>
+                      <span><b>Hinzufügen</b> bestätigen</span>
+                    </li>
+                  </ol>
+                </div>
+              </div>
+              <div class="slide-bottom">
+                <div class="slide-dots">
+                  <div class="dot"></div>
+                  <div class="dot"></div>
+                  <div class="dot active"></div>
+                </div>
+                <div class="modal-actions">
+                  <button class="btn btn-secondary">Zurück</button>
+                  <button class="btn btn-primary">Loslegen</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="bottomnav">
+          <div class="nav-item active"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9 12 2l9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg><span>Browse</span></div>
+          <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"/></svg><span>Favoriten</span></div>
+          <div class="nav-item"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Einstellungen</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="logic-box">
+  <h3>Anzeige-Logik (Vorschlag)</h3>
+  <ul>
+    <li><b>Trigger:</b> Beim ersten erfolgreichen Login eines Users — neue Spalte <code>onboarded_at</code> in <code>users</code>-Tabelle (NULL = noch nicht gesehen).</li>
+    <li><b>Slide 3 (PWA):</b> Wird übersprungen wenn <code>display-mode: standalone</code> erkannt wird → Modal hat dann nur 2 Slides, der Loslegen-Button rückt auf Slide 2. Damit kein doppeltes Install-Prompt für User, die die App schon installiert haben.</li>
+    <li><b>Gäste:</b> Bekommen den Welcome-Flow nicht (analog zur bestehenden Logik bei <code>PwaInstallGuide</code>).</li>
+    <li><b>"Überspringen" / "Loslegen":</b> Setzt <code>onboarded_at = now()</code>. Modal kommt nicht wieder von alleine.</li>
+    <li><b>Wiederöffnen:</b> Über Hilfe-Seite — Button "Quickstart erneut anzeigen".</li>
+    <li><b>Bestehender <code>PwaInstallGuide</code>:</b> Wird ersetzt — kein Standalone-Modal mehr. Inhalt lebt nur noch als Slide 3 weiter.</li>
+  </ul>
+</div>
+
+</body>
+</html>
