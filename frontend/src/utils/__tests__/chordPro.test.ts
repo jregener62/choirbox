@@ -6,6 +6,7 @@ import {
   serializeToChordPro,
   ensureChordPro,
   normalizeChordProDirectives,
+  splitChordProHeader,
 } from '@/utils/chordPro'
 
 // ---------------------------------------------------------------------------
@@ -428,6 +429,62 @@ describe('normalizeChordProDirectives', () => {
   it('handles multiple directives on one line', () => {
     expect(normalizeChordProDirectives('{start of verse} {end of verse}'))
       .toBe('{start_of_verse} {end_of_verse}')
+  })
+})
+
+describe('splitChordProHeader', () => {
+  it('returns empty header for plain text', () => {
+    const r = splitChordProHeader('   C       G\nHello world')
+    expect(r.header).toBe('')
+    expect(r.body).toBe('   C       G\nHello world')
+  })
+
+  it('extracts {title:} + blank line as header, plain body stays separate', () => {
+    const text = '{title: Demo}\n# Angelegt 2026-05-01\n\n   C       G\nHello world'
+    const r = splitChordProHeader(text)
+    expect(r.header).toBe('{title: Demo}\n# Angelegt 2026-05-01\n')
+    expect(r.body).toBe('   C       G\nHello world')
+  })
+
+  it('treats {key:} and {artist:} as header directives', () => {
+    const text = '{title: T}\n{key: G}\n{artist: A}\nLyrics line'
+    const r = splitChordProHeader(text)
+    expect(r.header).toBe('{title: T}\n{key: G}\n{artist: A}')
+    expect(r.body).toBe('Lyrics line')
+  })
+
+  it('stops header at first section directive', () => {
+    const text = '{title: T}\n{start_of_verse}\n[C]Hello\n{end_of_verse}'
+    const r = splitChordProHeader(text)
+    expect(r.header).toBe('{title: T}')
+    expect(r.body).toBe('{start_of_verse}\n[C]Hello\n{end_of_verse}')
+  })
+
+  it('stops header at first inline-chord lyric line', () => {
+    const text = '{title: T}\n[C]Hello [G]world'
+    const r = splitChordProHeader(text)
+    expect(r.header).toBe('{title: T}')
+    expect(r.body).toBe('[C]Hello [G]world')
+  })
+
+  it('returns whole text as header when only metadata directives exist', () => {
+    const text = '{title: T}\n{key: G}\n'
+    const r = splitChordProHeader(text)
+    expect(r.body.trim()).toBe('')
+  })
+})
+
+describe('serializeToChordPro with omitMetadata', () => {
+  it('skips title and key block', () => {
+    const plain = `[Verse 1]
+   C       G
+Hello world`
+    const parsed = parseChordSheet(plain)
+    const out = serializeToChordPro(parsed, { title: 'Foo', omitMetadata: true })
+    expect(out).not.toContain('{title:')
+    expect(out).not.toContain('{key:')
+    expect(out).toContain('{start_of_verse: Verse 1}')
+    expect(out).toContain('[C]')
   })
 })
 

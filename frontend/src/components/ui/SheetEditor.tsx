@@ -13,7 +13,8 @@ import {
   wrapLinesAsSection,
   type SectionType,
 } from '@/utils/chordProEdit'
-import { parseChordPro, ensureChordPro, isChordPro } from '@/utils/chordPro'
+import { parseChordPro, ensureChordPro, isChordPro, splitChordProHeader, serializeToChordPro } from '@/utils/chordPro'
+import { parseChordText } from '@/utils/chordParser'
 import { SheetEditToolbar, type ActiveTool } from './SheetEditToolbar'
 import { SyntaxTextarea } from './SyntaxTextarea'
 import { ChordSheetViewer } from './ChordSheetViewer'
@@ -396,15 +397,31 @@ export function SheetEditor({
   }, [originalName])
 
   /** Plain-Text (UG-Stil) in ChordPro-Format konvertieren — bestehender Text
-   *  wird ersetzt; Undo-Stack faengt die Aenderung auf. */
+   *  wird ersetzt; Undo-Stack faengt die Aenderung auf. Ein vorhandener
+   *  Metadata-/Kommentar-Header bleibt unveraendert; nur der Body wird
+   *  durch den Plain→ChordPro-Parser geschickt. */
   const handleConvertToChordPro = () => {
     if (!chordText.trim()) return
-    const converted = ensureChordPro(chordText, convertTitle || 'Untitled')
-    if (converted === chordText) return
-    applyTextChange(converted)
+    const { header, body } = splitChordProHeader(chordText)
+    if (!body.trim() || isChordPro(body)) return
+    if (header.trim()) {
+      const parsed = parseChordText(body)
+      const convertedBody = serializeToChordPro(parsed, { omitMetadata: true })
+      const result = `${header.replace(/\n+$/, '')}\n\n${convertedBody}`
+      if (result === chordText) return
+      applyTextChange(result)
+    } else {
+      const converted = ensureChordPro(chordText, convertTitle || 'Untitled')
+      if (converted === chordText) return
+      applyTextChange(converted)
+    }
   }
 
-  const convertDisabled = !chordText.trim() || isChordPro(chordText)
+  const convertDisabled = useMemo(() => {
+    if (!chordText.trim()) return true
+    const { body } = splitChordProHeader(chordText)
+    return !body.trim() || isChordPro(body)
+  }, [chordText])
 
   /** Haupt-Aktion des aktiven Tools: Akkord/Kommentar aktivieren
    *  (Click-to-Place), Sektion auf Selektion anwenden. */

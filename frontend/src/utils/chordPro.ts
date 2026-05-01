@@ -26,6 +26,48 @@ import type {
 // --- Format detection ---
 
 /**
+ * Directives that may appear at the top of a `.cho` as metadata header
+ * without making the *body* below them ChordPro. Used by
+ * `splitChordProHeader()` so the editor can convert plain-text bodies even
+ * when the file was seeded with `{title:}` / `{key:}` etc.
+ */
+const HEADER_DIRECTIVES = new Set([
+  'title', 't', 'subtitle', 'st', 'su',
+  'artist', 'composer', 'lyricist', 'copyright', 'album', 'year',
+  'time', 'tempo', 'duration', 'capo', 'key', 'meta',
+  'comment', 'c', 'comment_italic', 'ci', 'comment_box', 'cb',
+])
+
+/**
+ * Split text into a leading metadata/comment header and the remaining body.
+ *
+ * Header lines are: empty lines, `#`-prefixed comments, and single-directive
+ * lines whose directive name is in `HEADER_DIRECTIVES`. The first line that
+ * doesn't match any of these (lyrics, section directive, inline chord) ends
+ * the header and starts the body.
+ */
+export function splitChordProHeader(text: string): { header: string; body: string } {
+  const lines = text.split('\n')
+  let i = 0
+  while (i < lines.length) {
+    const trimmed = lines[i].trim()
+    if (trimmed === '' || trimmed.startsWith('#')) {
+      i++
+      continue
+    }
+    const m = trimmed.match(/^\{\s*([A-Za-z_][A-Za-z_ ]*?)\s*(?::[^}]*)?\}$/)
+    if (!m) break
+    const name = m[1].toLowerCase().trim().replace(/\s+/g, '_')
+    if (!HEADER_DIRECTIVES.has(name)) break
+    i++
+  }
+  return {
+    header: lines.slice(0, i).join('\n'),
+    body: lines.slice(i).join('\n'),
+  }
+}
+
+/**
  * Detect whether `text` is already in ChordPro format.
  *
  * Indicators:
@@ -468,16 +510,21 @@ function unbracket(label: string): string {
 
 /**
  * Serialize a ParsedChordContent structure to a ChordPro string.
+ *
+ * `omitMetadata: true` skips the leading `{title:}` / `{key:}` block — used
+ * when the caller already has its own header to preserve.
  */
 export function serializeToChordPro(
   parsed: ParsedChordContent,
-  meta: { title?: string; key?: string } = {},
+  meta: { title?: string; key?: string; omitMetadata?: boolean } = {},
 ): string {
   const out: string[] = []
-  if (meta.title) out.push(`{title: ${meta.title}}`)
-  const keyToWrite = meta.key || parsed.detected_key
-  if (keyToWrite) out.push(`{key: ${keyToWrite}}`)
-  if (out.length > 0) out.push('')
+  if (!meta.omitMetadata) {
+    if (meta.title) out.push(`{title: ${meta.title}}`)
+    const keyToWrite = meta.key || parsed.detected_key
+    if (keyToWrite) out.push(`{key: ${keyToWrite}}`)
+    if (out.length > 0) out.push('')
+  }
 
   for (const section of parsed.sections) {
     let startDirective = ''
