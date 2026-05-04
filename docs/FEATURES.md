@@ -1975,6 +1975,30 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### Texte/Dokumente blieben in „Laden..." haengen
+
+Im DocViewer (`/doc-viewer?folder=...`) blieb der Spinner gelegentlich endlos auf „Laden...", besonders auf mobilen Geraeten oder bei langsamen Dropbox-Antworten. Ursachen-Mix:
+
+1. **Kein Timeout im Frontend-`fetch()`** (`api/client.ts`) — wenn das Backend haengt oder die Verbindung stale wird (Tab-Backgrounding, Network-Switch), wartet `loading: true` ohne Abort.
+2. **Backend-Sync ohne Zeitbudget** — `/documents/list` triggerte `sync_documents_from_dropbox`, das pro neuer PDF die Datei laedt + Pagecount rechnet, plus bis zu 31 s Rate-Limit-Backoff im Dropbox-Service. Bei vielen Files = mehr als 30 s.
+3. **Race-Condition bei Folder-Wechsel** — paralleler `load(A)` konnte das Ergebnis von `load(B)` ueberschreiben (kein AbortController, keine Cancellation).
+4. **Stiller Fehler** — Im `catch` wurde `loadedFolder` auf den fehlerhaften Folder gesetzt, sodass der `useEffect` keinen Retry triggerte. UI zeigte dann „Dokument nicht verfuegbar" ohne Retry-Knopf.
+
+**Fix:**
+- `api/client.ts`: Default-Timeout 30 s (`api`), 120 s (`apiUpload`), via `withTimeout()` mit AbortController. Optional `signal`-Param fuer Caller-Cancellation. Neue Helfer `isAbortError`, `isTimeoutError`. Network-Errors (`TypeError`) werden zu `ApiError(0, 'Netzwerkfehler')`.
+- `hooks/useDocuments.ts`: AbortController pro `load()`, Folder-Wechsel cancelt den alten Request. Race-Schutz nach `await` (kein `set()` wenn ein neuerer Loader laeuft). Neuer `error`-State (`{ kind: 'timeout' | 'network' | 'unknown' }`). `loadedFolder` wird im Fehlerpfad **nicht** gesetzt, damit Retry moeglich ist.
+- `pages/DocViewerPage.tsx`: Bei `error`-State Fehler-UI mit Icon (Timeout/Offline/sonst) + „Erneut versuchen"-Button. `useEffect` mit `!error`-Guard gegen Endlos-Loop.
+- `components/layout/GlobalPlayerBar.tsx`: Gleiche `!error`-/`!loading`-Guards im Auto-Load-Effect.
+- `backend/api/documents.py`: `asyncio.timeout(10s)` umschliesst `resolve_texte_folder + sync_documents_from_dropbox`. Bei Ueberschreitung Rollback der Session, anschliessend wird die DB-Snapshot-Liste zurueckgegeben — beim naechsten Aufruf erneut versucht.
+
+| Datei | Inhalt |
+|-------|--------|
+| `frontend/src/api/client.ts` | `withTimeout()`, normalizeFetchError, `isAbortError`, `isTimeoutError` |
+| `frontend/src/hooks/useDocuments.ts` | AbortController, error-State, retry() |
+| `frontend/src/pages/DocViewerPage.tsx` | Fehler-UI mit Retry-Button |
+| `frontend/src/components/layout/GlobalPlayerBar.tsx` | Loop-Guard fuer Auto-Load |
+| `backend/api/documents.py` | `LIST_SYNC_TIMEOUT_SECONDS = 10`, `asyncio.timeout()` |
+
 ### ChordPro-Konverter blockierte, wenn die `.cho` mit Titel-Header geseedet war
 
 Beim Anlegen einer neuen `.cho` ueber „Neues Chordsheet" wird die Datei mit `{title: <Name>}` + `# Angelegt <Datum>` geseedet (siehe Bugfix oben zu 0-Byte-Files). Pastete man darunter Plain-Text im Ultimate-Guitar-Stil (Akkord-Zeile ueber Lyrics) und wollte ihn ueber den ChordPro-Konvertier-Button im SheetEditor in das ChordPro-Format transformieren, war der Button stets disabled mit Tooltip „Text ist bereits im ChordPro-Format". Ursache: `isChordPro()` in `frontend/src/utils/chordPro.ts` triggerte schon auf dem Titel-Header und ignorierte den nachfolgenden Body. Fix: Neuer Helper `splitChordProHeader()` separiert fuehrenden Metadata-/Kommentar-Block (`{title:}`, `{key:}`, `{artist:}`, …, `#`-Kommentare) vom Body. Der Editor pruefe `isChordPro()` jetzt nur noch auf dem Body; `serializeToChordPro()` bekam eine `omitMetadata`-Option, mit der der Konverter den existierenden Header unveraendert laesst und nur den Body durch den Plain→ChordPro-Parser schickt.

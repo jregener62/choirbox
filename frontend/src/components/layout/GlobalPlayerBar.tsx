@@ -27,7 +27,7 @@ export function GlobalPlayerBar() {
   const { togglePlay, skip, seek } = useAudioPlayer()
   const { addMarker, handleLoopTap } = useLoopControls()
   const { selectedDoc, loadedFolder, loadSelected, select: selectDoc, deselect: deselectDoc } = useSelectedDocumentStore()
-  const { documents, loadedFolder: docsLoadedFolder, loading: docsLoading, load: loadDocs } = useDocumentsStore()
+  const { documents, loadedFolder: docsLoadedFolder, loading: docsLoading, error: docsError, load: loadDocs } = useDocumentsStore()
 
   // Derive song folder path from current track (same logic as ViewerPage)
   const folderPath = currentPath ? currentPath.split('/').slice(0, -1).join('/') : ''
@@ -42,8 +42,12 @@ export function GlobalPlayerBar() {
   }, [songFolderPath, loadedFolder, loadSelected])
 
   useEffect(() => {
-    if (songFolderPath && songFolderPath !== docsLoadedFolder) loadDocs(songFolderPath)
-  }, [songFolderPath, docsLoadedFolder, loadDocs])
+    // !docsError: bei Fehler bleibt loadedFolder null -> ohne Guard
+    // wuerde der Effect endlos retriggern.
+    if (songFolderPath && songFolderPath !== docsLoadedFolder && !docsLoading && !docsError) {
+      loadDocs(songFolderPath)
+    }
+  }, [songFolderPath, docsLoadedFolder, docsLoading, docsError, loadDocs])
 
   const [menuOpen, setMenuOpen] = useState(false)
   const [docMenuOpen, setDocMenuOpen] = useState(false)

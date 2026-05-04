@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ChevronLeft, FileX, Mic } from 'lucide-react'
+import { ChevronLeft, FileX, Mic, RefreshCw, WifiOff, AlertTriangle } from 'lucide-react'
 import { DocumentPanel } from '@/components/ui/DocumentPanel.tsx'
 import { useDocumentsStore } from '@/hooks/useDocuments.ts'
 import { usePlayerStore } from '@/stores/playerStore.ts'
@@ -22,7 +22,7 @@ export function DocViewerPage() {
   const canUpload = hasMinRole(userRole, 'pro-member')
   const pdfFullscreen = usePlayerStore((s) => s.pdfFullscreen)
 
-  const { loadedFolder, load, documents, activeDocId, loading, setActive } = useDocumentsStore()
+  const { loadedFolder, load, documents, activeDocId, loading, error, setActive } = useDocumentsStore()
   const online = useOnlineStatus()
 
   const editorActive = useEditorCommands((s) => s.active)
@@ -38,10 +38,13 @@ export function DocViewerPage() {
   }, [docIdParam])
 
   useEffect(() => {
-    if (folder && folder !== loadedFolder) {
+    // !error: bei Fehler bleibt loadedFolder absichtlich null. Ohne diesen
+    // Guard wuerde der Effect nach dem Fehler-Render sofort erneut feuern
+    // -> Endlos-Schleife. Retry geht ueber den expliziten Button.
+    if (folder && folder !== loadedFolder && !loading && !error) {
       load(folder)
     }
-  }, [folder, loadedFolder, load])
+  }, [folder, loadedFolder, loading, error, load])
 
   // Auto-select document — priorisiere id (eindeutig), sonst name.
   useEffect(() => {
@@ -98,6 +101,36 @@ export function DocViewerPage() {
       </div>
       <div className="player-scroll-content">
         {(() => {
+          if (error && !loading) {
+            const isOffline = !online
+            const Icon = error.kind === 'timeout'
+              ? AlertTriangle
+              : (error.kind === 'network' || isOffline) ? WifiOff : AlertTriangle
+            const title = error.kind === 'timeout'
+              ? 'Laden hat zu lange gedauert'
+              : (error.kind === 'network' || isOffline) ? 'Keine Verbindung' : 'Fehler beim Laden'
+            const hint = error.kind === 'timeout'
+              ? 'Der Server antwortet gerade nicht. Bitte erneut versuchen.'
+              : (error.kind === 'network' || isOffline) ? 'Pruefe deine Internetverbindung und versuche es erneut.'
+              : ('message' in error ? error.message : 'Bitte erneut versuchen.')
+            return (
+              <div className="doc-unavailable">
+                <Icon size={32} aria-hidden="true" />
+                <div className="doc-unavailable-title">{title}</div>
+                <div className="doc-unavailable-hint">{hint}</div>
+                <button
+                  type="button"
+                  className="btn btn-primary"
+                  style={{ marginTop: 'var(--space-4)' }}
+                  onClick={() => load(folder)}
+                  disabled={loading}
+                >
+                  <RefreshCw size={16} style={{ marginRight: 'var(--space-2)' }} />
+                  Erneut versuchen
+                </button>
+              </div>
+            )
+          }
           const hasDoc = documents.some((d) => d.id === activeDocId)
           const finishedWithoutDoc = !loading && loadedFolder === folder && !hasDoc
           if (finishedWithoutDoc) {

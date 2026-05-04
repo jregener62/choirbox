@@ -1,5 +1,6 @@
 """Documents API — upload, view and manage folder-level documents."""
 
+import asyncio
 import json
 import logging
 from datetime import datetime
@@ -35,6 +36,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/documents", tags=["documents"])
 
 
+# Hartes Zeitbudget fuer den Dropbox-Sync im List-Endpoint. Liefert bei
+# Ueberschreitung die existierenden DB-Daten aus, statt das Frontend endlos
+# warten zu lassen. Beim naechsten Aufruf wird der Sync erneut versucht.
+LIST_SYNC_TIMEOUT_SECONDS = 10.0
+
+
 # ---------------------------------------------------------------------------
 # List + Dropbox Sync
 # ---------------------------------------------------------------------------
@@ -47,10 +54,31 @@ async def list_documents(
 ):
     from backend.services import draft_service
 
-    texte_path = await document_service.resolve_texte_folder(folder, user, session)
+    # Gemeinsames Zeitbudget fuer resolve + sync — beide koennen Dropbox-Calls
+    # ausloesen, die im worst case minutenlang im Rate-Limit-Backoff haengen.
+    texte_path: str | None = None
+    sync_timed_out = False
+    try:
+        async with asyncio.timeout(LIST_SYNC_TIMEOUT_SECONDS):
+            texte_path = await document_service.resolve_texte_folder(folder, user, session)
+            if texte_path:
+                await document_service.sync_documents_from_dropbox(texte_path, user, session)
+    except asyncio.TimeoutError:
+        sync_timed_out = True
+        logger.warning(
+            "list_documents(%s): resolve+sync exceeded %.1fs budget, serving DB snapshot",
+            folder, LIST_SYNC_TIMEOUT_SECONDS,
+        )
+        # Session koennte mid-transaction gecancelt worden sein -> rollback,
+        # damit das nachgelagerte SELECT nicht mit PendingRollbackError kippt.
+        session.rollback()
+
     if texte_path:
-        await document_service.sync_documents_from_dropbox(texte_path, user, session)
         docs = document_service.list_documents(texte_path, user.id, session)
+    elif sync_timed_out:
+        # Resolve haengt -> Frontend bekommt zumindest eine schnelle, leere
+        # Liste statt endlosem Spinner. Beim naechsten Aufruf wird erneut versucht.
+        docs = []
     else:
         docs = []
 
