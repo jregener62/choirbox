@@ -16,6 +16,8 @@ interface Props {
   scrollContainerRef?: React.RefObject<HTMLElement | null>
   strokes?: Stroke[]
   onPaginated?: (pageCount: number) => void
+  /** Wird (wenn gesetzt) links in der Fusszeile angezeigt — z.B. der Dokumenttitel im Companion-PDF. */
+  footerTitle?: string
 }
 
 const PAGE_W_MM = 210
@@ -57,6 +59,7 @@ export function RtfPagedView({
   scrollContainerRef,
   strokes,
   onPaginated,
+  footerTitle,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const measureRef = useRef<HTMLDivElement>(null)
@@ -322,8 +325,13 @@ export function RtfPagedView({
                     {footerLines.map((l) => l.node)}
                   </div>
                 )}
-                <div className="rtf-page-number">
-                  Seite {idx + 1} von {pages.length}
+                <div className={footerTitle ? 'rtf-page-footer-meta' : ''}>
+                  {footerTitle && (
+                    <div className="rtf-page-footer-title">{footerTitle}</div>
+                  )}
+                  <div className="rtf-page-number">
+                    Seite {idx + 1} von {pages.length}
+                  </div>
                 </div>
               </div>
             </div>

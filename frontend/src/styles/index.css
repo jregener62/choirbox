@@ -5966,6 +5966,23 @@ body.body-scroll-fs .autoscroll-stepper {
   font-variant-numeric: tabular-nums;
   letter-spacing: 0.02em;
 }
+.rtf-page-footer-meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4mm;
+}
+.rtf-page-footer-meta .rtf-page-number {
+  text-align: right;
+  flex-shrink: 0;
+}
+.rtf-page-footer-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 @media print {
   .topbar,

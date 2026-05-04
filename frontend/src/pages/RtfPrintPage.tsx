@@ -84,6 +84,8 @@ export function RtfPrintPage() {
   if (!bundle || !paragraphs) {
     return <div style={{ padding: 24, fontFamily: 'sans-serif', color: '#666' }}>Lade…</div>
   }
+  // Dateiendung fuer den Footer-Titel entfernen — ".rtf" ist Implementierungsdetail.
+  const footerTitle = bundle.doc_name.replace(/\.rtf$/i, '')
   return (
     <div className="rtf-print-host">
       {/* Companion-PDF wird ohne Annotations gerendert — Annotations werden
@@ -92,6 +94,7 @@ export function RtfPrintPage() {
         paragraphs={paragraphs}
         fontSize={16}
         onPaginated={handlePaginated}
+        footerTitle={footerTitle}
       />
     </div>
   )

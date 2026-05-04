@@ -1041,7 +1041,7 @@ Ab dieser Version wird ein .rtf nicht mehr im Endlos-Viewer angezeigt sondern al
 - Zweck: Seitenumbrueche an der richtigen Stelle setzen — Workflow ist Edit → Vorschau → Bruch identifizieren → Edit → Cursor positionieren → Seitenumbruch-Button → Vorschau.
 - Bei jedem Wechsel in den Vorschau-Modus wird der aktuelle Tiptap-State serialisiert + neu geparst, sodass die Pagination 1:1 dem entspricht, was nach Speichern in der RTF-Datei landet.
 - Eine Seite = 210 × 297 mm mit 18 mm Padding. Pagination misst Inhalt off-screen in voller A4-Breite und verteilt virtuelle Zeilen ueber `useLayoutEffect`. Auf schmalen Viewports skaliert jede Seite proportional via CSS-Transform — Pagination bleibt viewportunabhaengig stabil.
-- **Fusszeile pro Seite**: alle Zeilen mit Heading-Level-6 (`### …` mit 6 Hashes, im Editor `Fusszeile`-Style) werden aus dem Hauptfluss entfernt und unten auf jeder Seite wiederholt — darunter `Seite X von Y` als laufende Seitenzahl.
+- **Fusszeile pro Seite**: alle Zeilen mit Heading-Level-6 (`### …` mit 6 Hashes, im Editor `Fusszeile`-Style) werden aus dem Hauptfluss entfernt und unten auf jeder Seite wiederholt — darunter eine Meta-Zeile mit dem Dokumenttitel links und `Seite X von Y` rechts. Im Companion-PDF leitet `RtfPrintPage` den Dokumentnamen (ohne `.rtf`-Endung) als `footerTitle`-Prop an `RtfPagedView` weiter; bei zu langen Titeln greift Ellipsis. Im Editor-Preview ohne Titel bleibt die Seitenzahl wie zuvor zentriert.
 
 ### Manueller Seitenumbruch
 
