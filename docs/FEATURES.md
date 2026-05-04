@@ -1975,6 +1975,14 @@ Alle Modals nutzen das geteilte `<Modal>` Base-Component (`components/ui/Modal.t
 
 ## Behobene Bugs
 
+### `PUT /documents/{id}/content`: falscher Typ ergab 422 statt 400
+
+`UpdateTextContentBody.content` war als `str | None = None` getypt mit der Absicht, fehlendes/null-Feld einheitlich als 400 mit deutscher Fehlermeldung zu liefern. Bei einem Body mit falschem Typ (z.B. `{"content": 42}`) fing aber Pydantic die Validation **vor** dem Endpoint ab und FastAPI antwortete mit 422 — der explizite 400-Check griff nur fuer „fehlend/null". `test_update_rejects_non_string_content` schlug dadurch fehl. Fix: `content: Any = None`, dann im Endpoint `if not isinstance(body.content, str)` -> 400. Damit liefern „fehlt", „null" und „falscher Typ" konsistent denselben Fehler.
+
+| Datei | Inhalt |
+|-------|--------|
+| `backend/api/documents.py` | `UpdateTextContentBody.content: Any`, `isinstance`-Check im Endpoint |
+
 ### Texte/Dokumente blieben in „Laden..." haengen
 
 Im DocViewer (`/doc-viewer?folder=...`) blieb der Spinner gelegentlich endlos auf „Laden...", besonders auf mobilen Geraeten oder bei langsamen Dropbox-Antworten. Ursachen-Mix:

@@ -4,6 +4,7 @@ import asyncio
 import json
 import logging
 from datetime import datetime
+from typing import Any
 
 import httpx
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile
@@ -505,9 +506,11 @@ async def get_text_content(
 
 
 class UpdateTextContentBody(BaseModel):
-    # Optional + expliziter 400-Check, damit der Endpoint bei fehlendem Feld
-    # dieselbe Fehlermeldung liefert wie vorher (statt einem Pydantic-422).
-    content: str | None = None
+    # Bewusst `Any` statt `str | None`: Pydantic gaebe bei falschem Typ (int,
+    # dict, ...) sonst automatisch 422 zurueck, bevor der Endpoint-Code
+    # ueberhaupt zum Zug kommt. Wir wollen aber sowohl "fehlt" als auch
+    # "falscher Typ" einheitlich als 400 mit unserer Fehlermeldung.
+    content: Any = None
 
 
 @router.put("/{doc_id}/content")
@@ -528,7 +531,7 @@ async def update_text_content(
     if not doc or doc.file_type not in ("cho", "txt", "rtf"):
         raise HTTPException(404, "Textdokument nicht gefunden")
 
-    if body.content is None:
+    if not isinstance(body.content, str):
         raise HTTPException(400, "content muss ein String sein")
 
     content_bytes = body.content.encode("utf-8")
