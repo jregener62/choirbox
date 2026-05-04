@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react'
-import { Trash2, ListX, X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { usePlayerStore } from '@/stores/playerStore.ts'
 import { useAudioPlayer } from '@/hooks/useAudioPlayer.ts'
 import { formatTime } from '@/utils/formatters.ts'
@@ -20,11 +20,6 @@ export function MarkerRow({ markers, variant }: MarkerRowProps) {
 
   const handleDeleteMarker = (id: string) => {
     usePlayerStore.getState().removeMarker(id)
-  }
-
-  const handleClearAll = () => {
-    usePlayerStore.getState().clearMarkers()
-    setDeleteMode(false)
   }
 
   const handleMarkerTap = (m: Marker) => {
@@ -69,15 +64,6 @@ export function MarkerRow({ markers, variant }: MarkerRowProps) {
 
   return (
     <div className={outerClass}>
-      {deleteMode && (
-        <button
-          className="marker-clear-all-btn"
-          onClick={handleClearAll}
-          aria-label="Alle Marker löschen"
-        >
-          <ListX size={16} />
-        </button>
-      )}
       <div className={scrollClass}>
         {markers.map((m) => {
           const isPending = m.id === pendingLoopMarkerId || (loopMarkerIds && loopMarkerIds.includes(m.id))

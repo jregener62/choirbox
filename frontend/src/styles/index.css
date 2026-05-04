@@ -1135,26 +1135,6 @@ textarea::placeholder {
   color: #fff;
 }
 
-.marker-clear-all-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 44px;
-  min-height: 34px;
-  padding: 5px var(--space-3);
-  border-radius: var(--radius-lg);
-  border: 1.5px solid var(--danger);
-  background: var(--danger);
-  color: #fff;
-  cursor: pointer;
-  flex-shrink: 0;
-  touch-action: manipulation;
-}
-
-.marker-clear-all-btn:active {
-  opacity: 0.85;
-}
-
 /* Player page scroll content */
 .player-scroll-content {
   flex: 1;
