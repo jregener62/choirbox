@@ -730,8 +730,8 @@ Chormitglieder koennen auf PDF-Seiten und Chord Sheets handschriftliche Markieru
 Auf Chord Sheets (`.cho`) wird `page=1` als virtuelle Seite verwendet (ein Chord Sheet ist eine durchgehende Scroll-Flaeche). Der SVG-Overlay passt sich per ResizeObserver an die tatsaechliche Inhaltshoehe an, sodass Strokes auch nach Aenderungen der Schriftgroesse oder Transposition korrekt ausgerichtet bleiben.
 
 - **Zeichenmodus-Toggle**: Floating Action Button (Stift-Icon) unten-links auf dem PDF-Panel. Wird blau wenn aktiv
-- **Zeichenwerkzeuge**: Stift, Textmarker (halbtransparent, 3x breiter), Radierer (Distanz-basierter Hit-Test)
-- **6 Farben**: Rot, Blau, Gruen, Gelb, Lila, Schwarz
+- **Zeichenwerkzeuge**: Stift, Textmarker (3x breiter), Radierer (Distanz-basierter Hit-Test)
+- **Farbpaletten je Tool**: Stift bietet 6 gedeckte Farben (Rot, Blau, Gruen, Gelb, Lila, Schwarz). Textmarker bietet 4 leuchtende Farben (Neon-Gelb, Neon-Gruen, Neon-Blau, Hellgrau). Beide Werkzeuge zeichnen mit 60 % Deckkraft (40 % Transparenz), damit darunterliegender Text lesbar bleibt. Beim Tool-Wechsel wird die aktive Farbe automatisch auf die erste der jeweiligen Palette gesetzt, falls die bisherige Farbe in der neuen Palette fehlt.
 - **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8)
 - **Undo**: Letzter Strich rueckgaengig machen
 - **Seite loeschen**: Alle Annotationen einer Seite entfernen
