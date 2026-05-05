@@ -22,18 +22,11 @@ function getScrollParent(el: Element | null): Element | Window {
   return window
 }
 
-function pointerCentroid(positions: Map<number, { x: number; y: number }>): { x: number; y: number } | null {
-  let sx = 0, sy = 0, n = 0
-  for (const p of positions.values()) { sx += p.x; sy += p.y; n++ }
-  return n > 0 ? { x: sx / n, y: sy / n } : null
-}
-
 export function AnnotatedPage({ page, src, alt, scale, loading, docId }: AnnotatedPageProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const activePointersRef = useRef<Set<number>>(new Set())
   const wasPinchRef = useRef(false)
-  const pointerPositionsRef = useRef<Map<number, { x: number; y: number }>>(new Map())
   const panningRef = useRef(false)
   const panLastRef = useRef<{ x: number; y: number } | null>(null)
   const scrollParentRef = useRef<Element | Window | null>(null)
@@ -137,7 +130,6 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       if (!drawingMode || e.button !== 0) return
 
       activePointersRef.current.add(e.pointerId)
-      pointerPositionsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
       if (e.pointerType === 'pen') hasStylusBeenUsedRef.current = true
 
       const fingerCount = activePointersRef.current.size
@@ -153,20 +145,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
         return
       }
 
-      // 3+ Finger = Pan-Geste
-      if (fingerCount >= 3) {
-        panningRef.current = true
-        wasPinchRef.current = false
-        if (activeStroke) setActiveStroke(null)
-        for (const id of activePointersRef.current) {
-          try { (e.currentTarget as Element).releasePointerCapture(id) } catch { /* no-op */ }
-        }
-        panLastRef.current = pointerCentroid(pointerPositionsRef.current) ?? { x: e.clientX, y: e.clientY }
-        if (!scrollParentRef.current) scrollParentRef.current = getScrollParent(svgRef.current)
-        return
-      }
-
-      // 2 Finger = Pinch-Geste, kein Zeichnen. Falls vorher Pan lief: beenden.
+      // 2+ Finger = Pinch-Geste, kein Zeichnen. Falls vorher Pan lief: beenden.
       if (fingerCount >= 2) {
         wasPinchRef.current = true
         panningRef.current = false
@@ -235,21 +214,14 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!drawingMode) return
-      pointerPositionsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
 
       if (panningRef.current && panLastRef.current && scrollParentRef.current) {
-        const fingerCount = activePointersRef.current.size
-        const cur = fingerCount >= 3
-          ? pointerCentroid(pointerPositionsRef.current)
-          : { x: e.clientX, y: e.clientY }
-        if (cur) {
-          const dx = cur.x - panLastRef.current.x
-          const dy = cur.y - panLastRef.current.y
-          const sp = scrollParentRef.current
-          if (sp === window) window.scrollBy(-dx, -dy)
-          else (sp as Element).scrollBy(-dx, -dy)
-          panLastRef.current = cur
-        }
+        const dx = e.clientX - panLastRef.current.x
+        const dy = e.clientY - panLastRef.current.y
+        const sp = scrollParentRef.current
+        if (sp === window) window.scrollBy(-dx, -dy)
+        else (sp as Element).scrollBy(-dx, -dy)
+        panLastRef.current = { x: e.clientX, y: e.clientY }
         return
       }
 
@@ -283,7 +255,6 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)
-    pointerPositionsRef.current.delete(e.pointerId)
     if (activePointersRef.current.size === 0) {
       wasPinchRef.current = false
       panningRef.current = false
@@ -308,7 +279,6 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)
-    pointerPositionsRef.current.delete(e.pointerId)
     if (activePointersRef.current.size === 0) {
       wasPinchRef.current = false
       panningRef.current = false
