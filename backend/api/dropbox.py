@@ -70,8 +70,8 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
     # Folder verstecken wuerde (false negative -> Songs/Texte unsichtbar).
     if "/" in dbx_path.lstrip("/"):
         parent_path, _, child_name = dbx_path.rpartition("/")
-        from backend.services.folder_types import is_reserved_folder
-        if is_reserved_folder(child_name):
+        from backend.services.folder_types import is_reserved_name
+        if is_reserved_name(child_name):
             parent_cached = folder_cache.get(parent_path or "/")
             if parent_cached is not None:
                 child_lower = child_name.lower()
