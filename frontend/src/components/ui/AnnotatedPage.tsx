@@ -12,11 +12,32 @@ interface AnnotatedPageProps {
   docId: number
 }
 
+function getScrollParent(el: Element | null): Element | Window {
+  let cur = el?.parentElement ?? null
+  while (cur) {
+    const s = window.getComputedStyle(cur)
+    if (/(auto|scroll)/.test(s.overflowY) || /(auto|scroll)/.test(s.overflowX)) return cur
+    cur = cur.parentElement
+  }
+  return window
+}
+
+function pointerCentroid(positions: Map<number, { x: number; y: number }>): { x: number; y: number } | null {
+  let sx = 0, sy = 0, n = 0
+  for (const p of positions.values()) { sx += p.x; sy += p.y; n++ }
+  return n > 0 ? { x: sx / n, y: sy / n } : null
+}
+
 export function AnnotatedPage({ page, src, alt, scale, loading, docId }: AnnotatedPageProps) {
   const svgRef = useRef<SVGSVGElement>(null)
   const imgRef = useRef<HTMLImageElement>(null)
   const activePointersRef = useRef<Set<number>>(new Set())
   const wasPinchRef = useRef(false)
+  const pointerPositionsRef = useRef<Map<number, { x: number; y: number }>>(new Map())
+  const panningRef = useRef(false)
+  const panLastRef = useRef<{ x: number; y: number } | null>(null)
+  const scrollParentRef = useRef<Element | Window | null>(null)
+  const hasStylusBeenUsedRef = useRef(false)
   const [viewBoxHeight, setViewBoxHeight] = useState(1414) // A4 default
   const [imgLoaded, setImgLoaded] = useState(false)
 
@@ -55,6 +76,12 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       setDragDelta(null)
     }
   }, [tool])
+
+  // Stylus-Detection nur fuer die Dauer einer Annotations-Session merken,
+  // damit Finger-Zeichnen nach Aus-/Einschalten wieder moeglich ist.
+  useEffect(() => {
+    if (!drawingMode) hasStylusBeenUsedRef.current = false
+  }, [drawingMode])
 
   // Load annotations when component mounts
   useEffect(() => {
@@ -110,12 +137,41 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       if (!drawingMode || e.button !== 0) return
 
       activePointersRef.current.add(e.pointerId)
+      pointerPositionsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (e.pointerType === 'pen') hasStylusBeenUsedRef.current = true
 
-      // 2+ fingers = pinch gesture, not drawing
-      if (activePointersRef.current.size >= 2) {
-        wasPinchRef.current = true
+      const fingerCount = activePointersRef.current.size
+      const isFinger = e.pointerType === 'touch'
+
+      // Stylus-Detection: Sobald ein Pencil im Spiel war, scrollt der Finger
+      // (Apple-Notes-/Procreate-Konvention)
+      if (isFinger && hasStylusBeenUsedRef.current && fingerCount === 1) {
+        panningRef.current = true
         if (activeStroke) setActiveStroke(null)
-        // Release pointer capture on previously captured pointers
+        panLastRef.current = { x: e.clientX, y: e.clientY }
+        if (!scrollParentRef.current) scrollParentRef.current = getScrollParent(svgRef.current)
+        return
+      }
+
+      // 3+ Finger = Pan-Geste
+      if (fingerCount >= 3) {
+        panningRef.current = true
+        wasPinchRef.current = false
+        if (activeStroke) setActiveStroke(null)
+        for (const id of activePointersRef.current) {
+          try { (e.currentTarget as Element).releasePointerCapture(id) } catch { /* no-op */ }
+        }
+        panLastRef.current = pointerCentroid(pointerPositionsRef.current) ?? { x: e.clientX, y: e.clientY }
+        if (!scrollParentRef.current) scrollParentRef.current = getScrollParent(svgRef.current)
+        return
+      }
+
+      // 2 Finger = Pinch-Geste, kein Zeichnen. Falls vorher Pan lief: beenden.
+      if (fingerCount >= 2) {
+        wasPinchRef.current = true
+        panningRef.current = false
+        panLastRef.current = null
+        if (activeStroke) setActiveStroke(null)
         for (const id of activePointersRef.current) {
           if (id !== e.pointerId) {
             try { (e.currentTarget as Element).releasePointerCapture(id) } catch { /* no-op */ }
@@ -123,7 +179,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
         }
         return
       }
-      // After a pinch: remaining finger should not draw
+      // Nach Pinch: Restfinger soll nicht mehr zeichnen
       if (wasPinchRef.current) return
 
       const point = getPointerData(e)
@@ -179,6 +235,24 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
   const handlePointerMove = useCallback(
     (e: React.PointerEvent) => {
       if (!drawingMode) return
+      pointerPositionsRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+
+      if (panningRef.current && panLastRef.current && scrollParentRef.current) {
+        const fingerCount = activePointersRef.current.size
+        const cur = fingerCount >= 3
+          ? pointerCentroid(pointerPositionsRef.current)
+          : { x: e.clientX, y: e.clientY }
+        if (cur) {
+          const dx = cur.x - panLastRef.current.x
+          const dy = cur.y - panLastRef.current.y
+          const sp = scrollParentRef.current
+          if (sp === window) window.scrollBy(-dx, -dy)
+          else (sp as Element).scrollBy(-dx, -dy)
+          panLastRef.current = cur
+        }
+        return
+      }
+
       if (activePointersRef.current.size >= 2 || wasPinchRef.current) return
       const point = getPointerData(e)
       if (!point) return
@@ -209,10 +283,15 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
 
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)
+    pointerPositionsRef.current.delete(e.pointerId)
     if (activePointersRef.current.size === 0) {
       wasPinchRef.current = false
+      panningRef.current = false
+      panLastRef.current = null
+      scrollParentRef.current = null
     }
     if (!drawingMode) return
+    if (panningRef.current) return
 
     if (tool === 'move') {
       if (dragRef.current && dragDelta && (Math.abs(dragDelta.x) > 0.5 || Math.abs(dragDelta.y) > 0.5)) {
@@ -229,8 +308,12 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
 
   const handlePointerCancel = useCallback((e: React.PointerEvent) => {
     activePointersRef.current.delete(e.pointerId)
+    pointerPositionsRef.current.delete(e.pointerId)
     if (activePointersRef.current.size === 0) {
       wasPinchRef.current = false
+      panningRef.current = false
+      panLastRef.current = null
+      scrollParentRef.current = null
     }
     if (tool === 'move') {
       dragRef.current = null
