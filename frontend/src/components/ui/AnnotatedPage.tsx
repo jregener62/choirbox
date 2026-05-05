@@ -15,8 +15,14 @@ interface AnnotatedPageProps {
 function getScrollParent(el: Element | null): Element | Window {
   let cur = el?.parentElement ?? null
   while (cur) {
-    const s = window.getComputedStyle(cur)
-    if (/(auto|scroll)/.test(s.overflowY) || /(auto|scroll)/.test(s.overflowX)) return cur
+    const hasOverflowContent = cur.scrollHeight > cur.clientHeight || cur.scrollWidth > cur.clientWidth
+    if (hasOverflowContent) {
+      const s = window.getComputedStyle(cur)
+      // Match auto/scroll **und** hidden — im Annotations-Modus hat .pdf-pages
+      // overflow:hidden (Browser-Scroll unterbinden), wir setzen scrollTop aber
+      // programmatisch.
+      if (s.overflowY !== 'visible' || s.overflowX !== 'visible') return cur
+    }
     cur = cur.parentElement
   }
   return window
