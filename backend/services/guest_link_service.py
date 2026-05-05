@@ -227,14 +227,34 @@ def redeem_link(
 
     guest_user = get_or_create_guest_user(session, choir)
 
-    # Count this redemption + audit log.
-    link.uses_count += 1
-    if link.first_used_at is None:
-        link.first_used_at = now
-    link.last_used_at = now
-    link.last_used_ip = (request_ip or "")[:64] or None
-    link.last_used_ua = (request_ua or "")[:255] or None
-    session.add(link)
+    # Atomare Erhoehung von uses_count: WHERE-Klausel pruefen, dass die
+    # max_uses-Schranke noch nicht erreicht ist. Race zwischen zwei parallel
+    # redeemenden Clients wuerde sonst beide den naive Check vor dem Inkrement
+    # bestehen lassen und max_uses um eins ueberschreiten.
+    from sqlalchemy import update as sa_update, func
+    stmt = (
+        sa_update(GuestLink)
+        .where(GuestLink.id == link.id)
+        .where(GuestLink.revoked_at.is_(None))
+        .values(
+            uses_count=GuestLink.uses_count + 1,
+            first_used_at=func.coalesce(GuestLink.first_used_at, now),
+            last_used_at=now,
+            last_used_ip=(request_ip or "")[:64] or None,
+            last_used_ua=(request_ua or "")[:255] or None,
+        )
+    )
+    if link.max_uses is not None:
+        stmt = stmt.where(GuestLink.uses_count < link.max_uses)
+    result = session.exec(stmt)
+    if result.rowcount == 0:
+        # Verlorenes Race oder zwischenzeitlich revoked.
+        session.rollback()
+        # Aktuellen Stand neu lesen, um den richtigen Fehlerstatus zurueckzugeben.
+        session.refresh(link)
+        if link.revoked_at is not None:
+            raise GuestLinkError("revoked")
+        raise GuestLinkError("exhausted")
     session.commit()
     session.refresh(link)
 

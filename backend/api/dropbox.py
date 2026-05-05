@@ -64,18 +64,23 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
         return cached[0]
     # Cache miss: before hitting the API, check whether the parent knows this
     # sub-path exists. Reserved sub-folders (Audio, Texte, Videos, Multitrack)
-    # often don't exist for every song — querying them returns 409 path/not_found.
+    # often don't exist fuer jeden Song — querying them returns 409
+    # path/not_found. Die Optimierung greift nur fuer reservierte Namen, weil
+    # bei nicht-reservierten Sub-Pfaden ein veralteter Parent-Cache neue
+    # Folder verstecken wuerde (false negative -> Songs/Texte unsichtbar).
     if "/" in dbx_path.lstrip("/"):
         parent_path, _, child_name = dbx_path.rpartition("/")
-        parent_cached = folder_cache.get(parent_path or "/")
-        if parent_cached is not None:
-            child_lower = child_name.lower()
-            exists_as_folder = any(
-                e.get(".tag") == "folder" and e.get("name", "").lower() == child_lower
-                for e in parent_cached[0]
-            )
-            if not exists_as_folder:
-                return []
+        from backend.services.folder_types import is_reserved_folder
+        if is_reserved_folder(child_name):
+            parent_cached = folder_cache.get(parent_path or "/")
+            if parent_cached is not None:
+                child_lower = child_name.lower()
+                exists_as_folder = any(
+                    e.get(".tag") == "folder" and e.get("name", "").lower() == child_lower
+                    for e in parent_cached[0]
+                )
+                if not exists_as_folder:
+                    return []
     # Cache inconsistency: root was cached but this sub-path was invalidated.
     # Fetch just this folder instead of returning [] (which hides sub-folders).
     try:
@@ -85,7 +90,16 @@ async def _get_children(tree, dbx, dbx_path: str) -> list[dict]:
             logger.warning("_get_children(%s): Dropbox error: %s", dbx_path, e)
         return []
 
-_oauth_states: dict[str, str] = {}
+_oauth_states: dict[str, tuple[str, float]] = {}
+# OAuth-States verfallen nach 10 Minuten — laenger braucht der Dropbox-Login
+# nie. Abgebrochene Flows wuerden sonst Eintraege fuer immer leaken.
+_OAUTH_STATE_TTL = 600.0
+
+
+def _gc_oauth_states(now: float) -> None:
+    stale = [s for s, (_, ts) in _oauth_states.items() if now - ts > _OAUTH_STATE_TTL]
+    for s in stale:
+        _oauth_states.pop(s, None)
 
 
 def _get_or_create_settings(session: Session) -> AppSettings:
@@ -118,8 +132,10 @@ def dropbox_authorize(user: User = Depends(require_permission("dropbox.connect")
     if not DROPBOX_APP_KEY or not DROPBOX_APP_SECRET:
         raise HTTPException(400, "Dropbox App Key and App Secret must be configured in .env.")
 
+    now = time.time()
+    _gc_oauth_states(now)
     state = secrets.token_urlsafe(32)
-    _oauth_states[state] = user.id
+    _oauth_states[state] = (user.id, now)
 
     authorize_url = (
         "https://www.dropbox.com/oauth2/authorize"
@@ -141,14 +157,17 @@ async def dropbox_callback(
     session: Session = Depends(get_session),
 ):
     if error:
-        return HTMLResponse(_callback_html(success=False, message=f"Dropbox error: {error}"))
+        return HTMLResponse(_callback_html(success=False, message=f"Dropbox error: {error}"), status_code=400)
 
     if not code or not state:
-        return HTMLResponse(_callback_html(success=False, message="Missing parameters."))
+        return HTMLResponse(_callback_html(success=False, message="Missing parameters."), status_code=400)
 
-    user_id = _oauth_states.pop(state, None)
-    if not user_id:
-        return HTMLResponse(_callback_html(success=False, message="Invalid state. Please reconnect."))
+    state_entry = _oauth_states.pop(state, None)
+    if not state_entry:
+        return HTMLResponse(_callback_html(success=False, message="Invalid state. Please reconnect."), status_code=400)
+    user_id, issued_at = state_entry
+    if time.time() - issued_at > _OAUTH_STATE_TTL:
+        return HTMLResponse(_callback_html(success=False, message="State abgelaufen. Bitte erneut verbinden."), status_code=400)
 
     async with httpx.AsyncClient() as client:
         resp = await client.post(
@@ -163,7 +182,7 @@ async def dropbox_callback(
         )
 
     if resp.status_code != 200:
-        return HTMLResponse(_callback_html(success=False, message=f"Token exchange failed: {resp.text}"))
+        return HTMLResponse(_callback_html(success=False, message=f"Token exchange failed: {resp.text}"), status_code=502)
 
     token_data = resp.json()
     refresh_token = token_data.get("refresh_token", "")
@@ -171,7 +190,7 @@ async def dropbox_callback(
     account_id = token_data.get("account_id", "")
 
     if not refresh_token:
-        return HTMLResponse(_callback_html(success=False, message="No refresh token received."))
+        return HTMLResponse(_callback_html(success=False, message="No refresh token received."), status_code=400)
 
     # Fetch account info
     account_email = ""
@@ -1094,10 +1113,16 @@ async def dropbox_rename(
     # Update audio meta for renamed file
     new_user_path = to_user_path(result.get("path_display", to_dropbox), root_folder)
     from backend.models.audio_meta import AudioMeta
-    old_meta = session.get(AudioMeta, path)
-    if old_meta:
+    from sqlalchemy import func as _sa_func
+    # Case-insensitive Match — Dropbox-Pfade sind case-insensitive, AudioMeta
+    # speichert aber den Pfad-String wie er beim Sync ankam. Ohne lower-Vergleich
+    # bleiben alte Meta-Eintraege als Geist-Zellen, wenn die Casing-Variante
+    # zwischen DB und Request abweicht.
+    for old_meta in session.exec(
+        select(AudioMeta).where(_sa_func.lower(AudioMeta.dropbox_path) == path.lower())
+    ).all():
         session.delete(old_meta)
-        session.commit()
+    session.commit()
     from backend.services.audio_meta_service import sync_audio_meta
     sync_audio_meta(session, user.choir_id, [new_user_path])
 
@@ -1322,7 +1347,9 @@ def _callback_html(success: bool, message: str) -> str:
 </div>
 <script>
   if (window.opener) {{
-    window.opener.postMessage({{ type: 'dropbox-oauth', success: {'true' if success else 'false'} }}, '*');
+    // Wildcard '*' wuerde das Signal an beliebige Opener leaken — auf gleiche
+    // Origin beschraenken (Popup und Opener teilen die App-Origin).
+    window.opener.postMessage({{ type: 'dropbox-oauth', success: {'true' if success else 'false'} }}, window.location.origin);
   }}
   setTimeout(() => window.close(), 3000);
 </script>

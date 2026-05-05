@@ -54,11 +54,26 @@ REDEEM_MAX_ATTEMPTS = 30
 REDEEM_WINDOW = 60  # seconds
 
 
+def _gc_redeem_attempts(now: float) -> None:
+    # Periodisches Aufraeumen, damit das Dict bei langer Uptime nicht
+    # unbeschraenkt waechst. Wird nur ausgeloest, wenn der Dict ueber
+    # 1000 Eintraege hat — bis dahin minimaler Overhead.
+    cutoff = now - REDEEM_WINDOW
+    stale = [ip for ip, ts in _redeem_attempts.items() if not ts or ts[-1] < cutoff]
+    for ip in stale:
+        _redeem_attempts.pop(ip, None)
+
+
 def _check_redeem_rate_limit(ip: str) -> None:
     now = time.time()
+    if len(_redeem_attempts) > 1000:
+        _gc_redeem_attempts(now)
     attempts = _redeem_attempts.get(ip, [])
     attempts = [t for t in attempts if now - t < REDEEM_WINDOW]
-    _redeem_attempts[ip] = attempts
+    if attempts:
+        _redeem_attempts[ip] = attempts
+    else:
+        _redeem_attempts.pop(ip, None)
     if len(attempts) >= REDEEM_MAX_ATTEMPTS:
         raise HTTPException(429, "Zu viele Einloese-Versuche. Bitte warte eine Minute.")
 
@@ -90,9 +105,13 @@ def _link_to_dict(link) -> dict:
 
 def _client_ip(request: Request) -> str:
     # Behind a reverse proxy (Caddy) the real IP is in X-Forwarded-For.
-    xff = request.headers.get("X-Forwarded-For", "")
-    if xff:
-        return xff.split(",")[0].strip()
+    # Im Direct-Access-Modus DARF der Header nicht vertraut werden, weil
+    # ein Angreifer ihn dann frei setzen und Rate-Limits vergiften koennte.
+    from backend.config import TRUST_PROXY
+    if TRUST_PROXY:
+        xff = request.headers.get("X-Forwarded-For", "")
+        if xff:
+            return xff.split(",")[0].strip()
     return request.client.host if request.client else "unknown"
 
 

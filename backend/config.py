@@ -36,3 +36,9 @@ REGISTRATION_CODE = os.getenv("REGISTRATION_CODE", "")
 # GitHub Issue Reporting
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN", "")
 GITHUB_REPO = os.getenv("GITHUB_REPO", "")  # Format: "owner/repo"
+
+# Wenn die App hinter einem Reverse-Proxy (Caddy/nginx) laeuft, liefert
+# X-Forwarded-For die Original-IP. Im Direct-Access-Modus (lokal/Dev) darf
+# der Header NICHT vertraut werden, weil ein Angreifer ihn frei setzen
+# und damit Rate-Limits umgehen kann.
+TRUST_PROXY = os.getenv("TRUST_PROXY", "false").lower() in ("true", "1", "yes")

@@ -41,12 +41,27 @@ LOGIN_MAX_ATTEMPTS = 5
 LOGIN_WINDOW = 60  # seconds
 
 
+def _gc_login_attempts(now: float) -> None:
+    # Periodisches Aufraeumen: Eintraege fuer IPs, die seit dem Window-
+    # Ende nichts mehr beigetragen haben, komplett entfernen. Sonst waechst
+    # das Dict bei langer Uptime und wechselnden Client-IPs unbeschraenkt.
+    cutoff = now - LOGIN_WINDOW
+    stale = [ip for ip, ts in _login_attempts.items() if not ts or ts[-1] < cutoff]
+    for ip in stale:
+        _login_attempts.pop(ip, None)
+
+
 def _check_rate_limit(ip: str):
     """Raise 429 if too many login attempts from this IP."""
     now = time.time()
+    if len(_login_attempts) > 1000:
+        _gc_login_attempts(now)
     attempts = _login_attempts.get(ip, [])
     attempts = [t for t in attempts if now - t < LOGIN_WINDOW]
-    _login_attempts[ip] = attempts
+    if attempts:
+        _login_attempts[ip] = attempts
+    else:
+        _login_attempts.pop(ip, None)
     if len(attempts) >= LOGIN_MAX_ATTEMPTS:
         raise HTTPException(429, "Zu viele Anmeldeversuche. Bitte warte eine Minute.")
 
