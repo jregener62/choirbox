@@ -1417,6 +1417,9 @@ body.body-scroll-fs .autoscroll-stepper {
 .annotation-svg--move:active {
   cursor: grabbing;
 }
+.annotation-svg--duplicate {
+  cursor: copy;
+}
 
 /* Annotation Toolbar */
 .annotation-toolbar {

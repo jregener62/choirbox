@@ -2,7 +2,7 @@ import { create } from 'zustand'
 import { api } from '@/api/client.ts'
 import type { Stroke, StrokeAnchor } from '@/types/index.ts'
 
-export type AnnotationTool = 'pen' | 'highlighter' | 'eraser' | 'move'
+export type AnnotationTool = 'pen' | 'highlighter' | 'eraser' | 'move' | 'duplicate'
 
 interface AnnotationState {
   drawingMode: boolean
@@ -28,6 +28,9 @@ interface AnnotationState {
   /** Verschiebt einen bestehenden Stroke um (dx, dy) in viewBox-Koordinaten.
    *  Wird vom Move-Tool nach Pointer-Up aufgerufen, triggert debounced save. */
   moveStroke: (key: string, strokeId: string, dx: number, dy: number) => void
+  /** Dupliziert einen Stroke an Ort+Offset. Liefert die neue Stroke-ID
+   *  oder null wenn der Quell-Stroke nicht existiert. */
+  duplicateStroke: (key: string, strokeId: string, dx: number, dy: number) => string | null
   undo: (key: string) => void
   clearPage: (key: string) => void
   loadPage: (docId: number, page: number) => Promise<void>
@@ -127,6 +130,30 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     set({ pages: { ...pages, [key]: updated }, dirty })
     const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
     debouncedSave(docId, page)
+  },
+
+  duplicateStroke: (key, strokeId, dx, dy) => {
+    const { pages } = get()
+    const existing = pages[key]
+    if (!existing) return null
+    const source = existing.find((s) => s.id === strokeId)
+    if (!source) return null
+    const newId = Math.random().toString(36).slice(2) + Date.now().toString(36)
+    const copy: Stroke = {
+      ...source,
+      id: newId,
+      points: source.points.map((p) => [p[0] + dx, p[1] + dy, p[2] ?? 0.5]),
+      anchor: undefined,
+    }
+    const dirty = new Set(get().dirty)
+    dirty.add(key)
+    set({
+      pages: { ...pages, [key]: [...existing, copy] },
+      dirty,
+    })
+    const parsed = parseKey(key); if (!parsed) return newId; const { docId, page } = parsed
+    debouncedSave(docId, page)
+    return newId
   },
 
   undo: (key) => {

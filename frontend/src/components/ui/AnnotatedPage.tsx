@@ -34,6 +34,9 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
   const commitStroke = useAnnotationStore((s) => s.commitStroke)
   const eraseStroke = useAnnotationStore((s) => s.eraseStroke)
   const moveStrokeAction = useAnnotationStore((s) => s.moveStroke)
+  const duplicateStrokeAction = useAnnotationStore((s) => s.duplicateStroke)
+
+  const DUPLICATE_OFFSET = 30
 
   // Move-Mode-State: ausgewaehlter Stroke + Drag-Delta in viewBox-Koordinaten
   const [selectedId, setSelectedId] = useState<string | null>(null)
@@ -148,6 +151,19 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
         return
       }
 
+      if (tool === 'duplicate') {
+        const id = findStrokeAtPoint(point)
+        if (!id) return
+        const newId = duplicateStrokeAction(key, id, DUPLICATE_OFFSET, DUPLICATE_OFFSET)
+        if (newId) {
+          setSelectedId(newId)
+          window.setTimeout(() => {
+            setSelectedId((current) => (current === newId ? null : current))
+          }, 600)
+        }
+        return
+      }
+
       const newStroke: Stroke = {
         id: Math.random().toString(36).slice(2) + Date.now().toString(36),
         points: [point],
@@ -157,7 +173,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       }
       setActiveStroke(newStroke)
     },
-    [drawingMode, tool, color, strokeWidth, activeStroke, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, key],
+    [drawingMode, tool, color, strokeWidth, activeStroke, getPointerData, setActiveStroke, findStrokeAtPoint, eraseStroke, duplicateStrokeAction, key],
   )
 
   const handlePointerMove = useCallback(
@@ -276,7 +292,7 @@ export function AnnotatedPage({ page, src, alt, scale, loading, docId }: Annotat
       {imgLoaded && (
         <svg
           ref={svgRef}
-          className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}${tool === 'move' ? ' annotation-svg--move' : ''}`}
+          className={`annotation-svg${drawingMode ? ' annotation-svg--active' : ''}${tool === 'move' ? ' annotation-svg--move' : ''}${tool === 'duplicate' ? ' annotation-svg--duplicate' : ''}`}
           viewBox={`0 0 1000 ${viewBoxHeight}`}
           preserveAspectRatio="none"
           onPointerDown={handlePointerDown}

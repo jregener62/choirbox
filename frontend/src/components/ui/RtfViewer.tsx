@@ -220,9 +220,9 @@ export function RtfViewer({
         if (id) eraseStroke(key, id)
         return
       }
-      if (tool === 'move') {
-        // Move-Tool wird auf dem Companion-PDF (AnnotatedPage) genutzt —
-        // im Endlos-Fallback hier ignorieren wir den Mode.
+      if (tool === 'move' || tool === 'duplicate') {
+        // Move- und Duplicate-Tool werden auf dem Companion-PDF
+        // (AnnotatedPage) genutzt — im Endlos-Fallback hier ignorieren.
         return
       }
       // Zeile unter dem Cursor finden und merken — wird im PointerUp zum

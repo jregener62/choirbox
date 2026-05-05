@@ -154,8 +154,8 @@ export function ChordSheetTextViewer({
         if (id) eraseStroke(key, id)
         return
       }
-      if (tool === 'move') {
-        // Move-Tool ist nur fuer den PDF-Viewer (AnnotatedPage) implementiert.
+      if (tool === 'move' || tool === 'duplicate') {
+        // Move- und Duplicate-Tool sind nur fuer den PDF-Viewer (AnnotatedPage) implementiert.
         return
       }
 

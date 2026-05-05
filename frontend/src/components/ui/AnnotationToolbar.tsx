@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { Pen, Highlighter, Eraser, Hand, Undo2, Trash2 } from 'lucide-react'
+import { Pen, Highlighter, Eraser, Hand, Copy, Undo2, Trash2 } from 'lucide-react'
 import { useAnnotationStore, type AnnotationTool } from '@/hooks/useAnnotations.ts'
 
 const PEN_COLORS = [
@@ -81,6 +81,13 @@ export function AnnotationToolbar({ pageKey }: AnnotationToolbarProps) {
           title="Markierung verschieben"
         >
           <Hand size={18} />
+        </button>
+        <button
+          className={`annotation-tool-btn${tool === 'duplicate' ? ' annotation-tool-btn--active' : ''}`}
+          onClick={() => switchTool('duplicate')}
+          title="Markierung duplizieren"
+        >
+          <Copy size={18} />
         </button>
       </div>
 
