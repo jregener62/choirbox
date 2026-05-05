@@ -189,21 +189,25 @@ def update_section(
     if not section:
         raise HTTPException(404, "Section not found")
 
+    # Validierung VOR der Mutation, damit ein 400 nicht halb-aktualisierten
+    # Zustand im ORM-Objekt zurueckliesse (autoflush-anfaellig).
+    new_start = float(body.start_time) if body.start_time is not None else section.start_time
+    new_end = float(body.end_time) if body.end_time is not None else section.end_time
+    if new_end <= new_start:
+        raise HTTPException(400, "end_time must be greater than start_time")
+
     if body.label is not None:
         section.label = body.label.strip()
     if body.color is not None:
         section.color = body.color.strip()
     if body.start_time is not None:
-        section.start_time = float(body.start_time)
+        section.start_time = new_start
     if body.end_time is not None:
-        section.end_time = float(body.end_time)
+        section.end_time = new_end
     if body.sort_order is not None:
         section.sort_order = int(body.sort_order)
     if body.lyrics is not None:
         section.lyrics = body.lyrics.strip() or None
-
-    if section.end_time <= section.start_time:
-        raise HTTPException(400, "end_time must be greater than start_time")
 
     section.updated_at = datetime.utcnow()
     session.add(section)

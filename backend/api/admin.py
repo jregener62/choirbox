@@ -87,13 +87,21 @@ def create_user(body: CreateUserBody, user: User = Depends(require_permission("u
     if body.role not in VALID_ROLES:
         raise HTTPException(400, f"Role must be one of: {', '.join(sorted(VALID_ROLES))}")
 
+    # Ein User MUSS einen aktiven Chor haben — sonst zerbrechen alle
+    # choir-scoped Queries fuer ihn (er sieht weder Songs, Texte noch Labels).
+    # Developer ohne aktiven Chor muessen vorher per /switch einen waehlen.
+    if not user.choir_id:
+        raise HTTPException(400, "Kein aktiver Chor gesetzt — bitte zuerst Chor wechseln")
+    choir = session.get(Choir, user.choir_id)
+    if not choir:
+        raise HTTPException(400, "Aktiver Chor nicht gefunden")
+
     # view_mode: explizit aus dem Body, sonst Chor-Default uebernehmen.
     view_mode = body.view_mode
     if view_mode is not None and view_mode not in VALID_VIEW_MODES:
         raise HTTPException(400, f"view_mode must be one of: {', '.join(sorted(VALID_VIEW_MODES))}")
     if view_mode is None:
-        choir = session.get(Choir, user.choir_id) if user.choir_id else None
-        view_mode = choir.default_view_mode if choir else "songs"
+        view_mode = choir.default_view_mode
 
     new_user = User(
         username=username,
@@ -461,6 +469,9 @@ def delete_choir(choir_id: str, user: User = Depends(require_permission("choirs.
     from backend.models.guest_link import GuestLink
     from backend.models.label import Label
     from backend.models.section_preset import SectionPreset
+    from backend.models.section import Section
+    from backend.models.document import Document
+    from backend.models.draft_entry import DraftEntry
 
     choir = session.get(Choir, choir_id)
     if not choir:
@@ -482,6 +493,19 @@ def delete_choir(choir_id: str, user: User = Depends(require_permission("choirs.
                 session.delete(row)
         for link in session.exec(select(GuestLink).where(GuestLink.created_by_user_id.in_(user_ids))).all():
             session.delete(link)
+
+        # Provenance-FKs auf den loeschenden Admin umhaengen — sonst verletzt
+        # der Delete der Users die FK-Constraints (PRAGMA foreign_keys=ON).
+        for sec in session.exec(select(Section).where(Section.created_by.in_(user_ids))).all():
+            sec.created_by = user.id
+            session.add(sec)
+        for doc in session.exec(select(Document).where(Document.uploaded_by.in_(user_ids))).all():
+            doc.uploaded_by = user.id
+            session.add(doc)
+        for de in session.exec(select(DraftEntry).where(DraftEntry.created_by.in_(user_ids))).all():
+            de.created_by = user.id
+            session.add(de)
+        session.flush()
 
     # Delete users
     for u in choir_users:
@@ -779,8 +803,11 @@ async def resync_all(
             if d.song_id != song.id:
                 d.song_id = song.id
                 session.add(d)
-        if matched_song_ids:
-            session.commit()
+    # Einmal am Ende committen — vorher fuehrte ein Commit pro Iteration zu
+    # N statt 1 Commits und konnte bei Mid-Loop-Fehlern Teil-Aenderungen
+    # persistieren (kein atomarer Resync).
+    if not dry_run and matched_song_ids:
+        session.commit()
 
     # Songs ohne Match in den dbx-IDs als orphan markieren
     if not dry_run:
@@ -788,11 +815,20 @@ async def resync_all(
             if song.dropbox_file_id and song.dropbox_file_id not in song_folder_ids.values():
                 song_service.mark_orphan(session, song)
 
-    # Clean up documents whose .tx folder no longer exists in Dropbox
+    # Clean up documents whose .tx folder no longer exists in Dropbox.
+    # Pfade werden normalisiert verglichen, weil DB-Eintraege historisch teils
+    # mit, teils ohne fuehrendem Slash gespeichert wurden — der naive Set-Diff
+    # wuerde sonst fp="foo" gegen texte_folder_paths={"foo"} faelschlich als
+    # "fehlt in Dropbox" markieren und legitime Documents loeschen.
+    def _norm_fp(p: str) -> str:
+        return (p or "").strip("/").lower()
+    texte_norm = {_norm_fp(p) for p in texte_folder_paths}
     db_doc_folders = set(
         d.folder_path for d in session.exec(select(Document)).all()
     )
-    for fp in db_doc_folders - texte_folder_paths:
+    for fp in db_doc_folders:
+        if _norm_fp(fp) in texte_norm:
+            continue
         for doc in session.exec(
             select(Document).where(Document.folder_path == fp)
         ).all():
