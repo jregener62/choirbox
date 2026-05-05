@@ -105,6 +105,14 @@ export function useRecorder(): UseRecorderReturn {
       }
 
       recorder.onstop = () => {
+        // Race-Schutz: Wurde nach stopRecording() aber vor diesem async
+        // onstop-Event ein reset() ausgeloest, hat reset() _recorder bereits
+        // null gesetzt. Dann darf onstop die zurueckgesetzte State nicht
+        // mit altem Blob ueberschreiben.
+        if (_recorder !== recorder) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
         const recorded = new Blob(_chunks, {
           type: recorder.mimeType || mimeType || 'audio/webm',
         })
@@ -120,6 +128,10 @@ export function useRecorder(): UseRecorderReturn {
       }
 
       recorder.onerror = () => {
+        if (_recorder !== recorder) {
+          stream.getTracks().forEach((t) => t.stop())
+          return
+        }
         _sError = 'Aufnahme fehlgeschlagen'
         _sState = 'error'
         stream.getTracks().forEach((t) => t.stop())

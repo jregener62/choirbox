@@ -9,6 +9,9 @@ interface ModalProps {
   onClose: () => void
   closeOnOverlay?: boolean
   showClose?: boolean
+  /** Pausiert die Wiedergabe beim Oeffnen — opt-in. Default false, damit
+   *  Confirm/Import/Rename-Dialoge nicht ungewollt den Player pausieren. */
+  pauseAudio?: boolean
   children: ReactNode
 }
 
@@ -17,15 +20,18 @@ export function Modal({
   onClose,
   closeOnOverlay = true,
   showClose = true,
+  pauseAudio = false,
   children,
 }: ModalProps) {
   const setModalOpen = useAppStore((s) => s.setModalOpen)
 
   useEffect(() => {
     setModalOpen(true)
-    usePlayerStore.getState().setPlaying(false)
+    if (pauseAudio) {
+      usePlayerStore.getState().setPlaying(false)
+    }
     return () => setModalOpen(false)
-  }, [setModalOpen])
+  }, [setModalOpen, pauseAudio])
 
   return createPortal(
     <div

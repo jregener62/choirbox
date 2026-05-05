@@ -143,7 +143,7 @@ export function RecordingModal({ targetPath, onClose, onUploadComplete }: Record
   }
 
   return (
-    <Modal title="Aufnahme" onClose={handleClose}>
+    <Modal title="Aufnahme" onClose={handleClose} pauseAudio>
       <div className="recording-path" style={{ padding: 0 }}>
         Zielordner: {targetPath || 'Root'}
       </div>

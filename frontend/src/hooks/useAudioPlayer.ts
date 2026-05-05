@@ -82,9 +82,30 @@ export function useAudioPlayer() {
       usePlayerStore.getState().setCurrentTime(0)
     })
 
-    audio.addEventListener('error', () => {
+    audio.addEventListener('error', async () => {
       const err = audio.error
       console.error('Audio element error:', err?.code, err?.message, 'src:', audio.currentSrc)
+      // Wenn der Dropbox-Temp-Link abgelaufen ist (4h TTL) oder das Netz
+      // den Stream verloren hat, ist err.code === MEDIA_ERR_NETWORK (2) bzw.
+      // MEDIA_ERR_SRC_NOT_SUPPORTED (4). Dann den Link einmalig neu holen
+      // und den Track erneut laden — sonst muesste der User den Track erst
+      // umschalten, damit er wieder spielt.
+      const path = usePlayerStore.getState().currentPath
+      if (path && (err?.code === 2 || err?.code === 4)) {
+        linkCache.delete(path)
+        try {
+          const link = await fetchStreamLink(path)
+          if (usePlayerStore.getState().currentPath !== path) return
+          audio.src = link
+          audio.load()
+          if (usePlayerStore.getState().isPlaying) {
+            audio.play().catch(() => usePlayerStore.getState().setPlaying(false))
+          }
+          return
+        } catch (refetchErr) {
+          console.error('Audio refetch after error failed:', refetchErr)
+        }
+      }
       usePlayerStore.getState().setPlaying(false)
     })
   }, [])

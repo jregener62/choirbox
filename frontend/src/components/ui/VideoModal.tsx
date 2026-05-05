@@ -28,7 +28,7 @@ export function VideoModal({ path, name, onClose }: VideoModalProps) {
   }, [path])
 
   return (
-    <Modal title={formatDisplayName(name)} onClose={onClose}>
+    <Modal title={formatDisplayName(name)} onClose={onClose} pauseAudio>
       {error ? (
         <div style={{ color: 'var(--danger)', textAlign: 'center', padding: 'var(--space-4)' }}>
           {error}

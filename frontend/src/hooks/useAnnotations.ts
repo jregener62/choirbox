@@ -39,9 +39,13 @@ function pageKey(docId: number, page: number) {
   return `${docId}::${page}`
 }
 
-function parseKey(key: string): { docId: number; page: number } {
+function parseKey(key: string): { docId: number; page: number } | null {
   const idx = key.lastIndexOf('::')
-  return { docId: parseInt(key.slice(0, idx)), page: parseInt(key.slice(idx + 2)) }
+  if (idx <= 0) return null
+  const docId = parseInt(key.slice(0, idx))
+  const page = parseInt(key.slice(idx + 2))
+  if (Number.isNaN(docId) || Number.isNaN(page)) return null
+  return { docId, page }
 }
 
 const saveTimers: Record<string, ReturnType<typeof setTimeout>> = {}
@@ -89,7 +93,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       activeStroke: null,
       dirty,
     })
-    const { docId, page } = parseKey(key)
+    const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
     debouncedSave(docId, page)
   },
 
@@ -103,7 +107,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: existing.filter((s) => s.id !== strokeId) },
       dirty,
     })
-    const { docId, page } = parseKey(key)
+    const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
     debouncedSave(docId, page)
   },
 
@@ -121,7 +125,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     const dirty = new Set(get().dirty)
     dirty.add(key)
     set({ pages: { ...pages, [key]: updated }, dirty })
-    const { docId, page } = parseKey(key)
+    const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
     debouncedSave(docId, page)
   },
 
@@ -135,7 +139,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: existing.slice(0, -1) },
       dirty,
     })
-    const { docId, page } = parseKey(key)
+    const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
     debouncedSave(docId, page)
   },
 
@@ -147,7 +151,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
       pages: { ...pages, [key]: [] },
       dirty,
     })
-    const { docId, page } = parseKey(key)
+    const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
     debouncedSave(docId, page)
   },
 
@@ -194,7 +198,7 @@ export const useAnnotationStore = create<AnnotationState>((set, get) => ({
     }
     const { dirty } = get()
     const promises = Array.from(dirty).map((key) => {
-      const { docId, page } = parseKey(key)
+      const parsed = parseKey(key); if (!parsed) return; const { docId, page } = parsed
       return get().savePage(docId, page)
     })
     await Promise.all(promises)

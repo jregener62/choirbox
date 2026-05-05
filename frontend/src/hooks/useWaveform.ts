@@ -75,10 +75,15 @@ export function useWaveform(dropboxPath: string | null) {
         const arrayBuffer = await response.arrayBuffer()
         if (controller.signal.aborted) return
 
-        // Decode audio data
+        // Decode audio data — close() unbedingt im finally, sonst leaken
+        // AudioContexts bei korrupten Files (Browser-Limit ~6 in Chrome).
         const audioCtx = new AudioContext()
-        const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
-        await audioCtx.close()
+        let audioBuffer: AudioBuffer
+        try {
+          audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
+        } finally {
+          try { await audioCtx.close() } catch { /* already closed */ }
+        }
         if (controller.signal.aborted) return
 
         // Set precise duration from decoded audio (immediate, no waiting for loadedmetadata)
