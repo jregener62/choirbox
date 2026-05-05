@@ -84,33 +84,37 @@ export function AnnotationToolbar({ pageKey }: AnnotationToolbarProps) {
         </button>
       </div>
 
-      <div className="annotation-toolbar-group annotation-colors">
-        {palette.map((c) => (
-          <button
-            key={c.value}
-            className={`annotation-color-btn${color === c.value ? ' annotation-color-btn--active' : ''}`}
-            style={{ backgroundColor: c.value }}
-            onClick={() => setColor(c.value)}
-            title={c.label}
-          />
-        ))}
-      </div>
-
-      <div className="annotation-toolbar-group annotation-widths">
-        {WIDTHS.map((w) => (
-          <button
-            key={w.value}
-            className={`annotation-width-btn${strokeWidth === w.value ? ' annotation-width-btn--active' : ''}`}
-            onClick={() => setStrokeWidth(w.value)}
-            title={w.label}
-          >
-            <span
-              className="annotation-width-dot"
-              style={{ width: w.value + 4, height: w.value + 4 }}
+      {(tool === 'pen' || tool === 'highlighter') && (
+        <div className="annotation-toolbar-group annotation-colors">
+          {palette.map((c) => (
+            <button
+              key={c.value}
+              className={`annotation-color-btn${color === c.value ? ' annotation-color-btn--active' : ''}`}
+              style={{ backgroundColor: c.value }}
+              onClick={() => setColor(c.value)}
+              title={c.label}
             />
-          </button>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
+
+      {(tool === 'pen' || tool === 'highlighter') && (
+        <div className="annotation-toolbar-group annotation-widths">
+          {WIDTHS.map((w) => (
+            <button
+              key={w.value}
+              className={`annotation-width-btn${strokeWidth === w.value ? ' annotation-width-btn--active' : ''}`}
+              onClick={() => setStrokeWidth(w.value)}
+              title={w.label}
+            >
+              <span
+                className="annotation-width-dot"
+                style={{ width: w.value + 4, height: w.value + 4 }}
+              />
+            </button>
+          ))}
+        </div>
+      )}
 
       <div className="annotation-toolbar-group">
         <button

@@ -732,7 +732,7 @@ Auf Chord Sheets (`.cho`) wird `page=1` als virtuelle Seite verwendet (ein Chord
 - **Zeichenmodus-Toggle**: Floating Action Button (Stift-Icon) unten-links auf dem PDF-Panel. Wird blau wenn aktiv
 - **Zeichenwerkzeuge**: Stift, Textmarker (3x breiter), Radierer (Distanz-basierter Hit-Test)
 - **Farbpaletten je Tool**: Stift bietet 6 gedeckte Farben (Rot, Blau, Gruen, Gelb, Lila, Schwarz). Textmarker bietet 4 leuchtende Farben (Neon-Gelb, Neon-Gruen, Neon-Blau, Hellgrau). Beide Werkzeuge zeichnen mit 60 % Deckkraft (40 % Transparenz), damit darunterliegender Text lesbar bleibt. Beim Tool-Wechsel wird die aktive Farbe automatisch auf die erste der jeweiligen Palette gesetzt, falls die bisherige Farbe in der neuen Palette fehlt.
-- **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8)
+- **3 Strichbreiten**: Fein (2), Mittel (4), Dick (8). Farbpalette und Strichbreiten werden nur fuer Stift und Textmarker eingeblendet — bei Radierer und Verschiebe-Tool entfaellt die Auswahl, weil sie dort keine Wirkung hat.
 - **Undo**: Letzter Strich rueckgaengig machen
 - **Seite loeschen**: Alle Annotationen einer Seite entfernen
 - **Pinch-to-Zoom im Zeichenmodus**: Zwei-Finger-Geste zoomt auch bei aktivem Zeichenmodus. Multi-Touch-Erkennung verwirft angefangene Striche und leitet Pinch an den Zoom-Handler weiter
