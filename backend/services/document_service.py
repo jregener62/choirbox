@@ -124,27 +124,40 @@ def _clear_cached_text(doc_id: int) -> None:
 
 
 # --- Rendered JPEG Page Cache (LRU) ---
+class _RenderUncacheable(Exception):
+    """Markiert Faelle, in denen das Render-Ergebnis NICHT memoisiert werden
+    darf — zB. wenn die PDF-Bytes voruebergehend nicht im Cache sind. lru_cache
+    cached Exceptions nicht, daher fuehrt das nicht zu permanentem 404."""
+    pass
+
+
 @lru_cache(maxsize=128)
-def _render_page_from_bytes(doc_id: int, page: int, pdf_hash: str) -> bytes | None:
+def _render_page_from_bytes(doc_id: int, page: int, pdf_hash: str) -> bytes:
     """Render a single PDF page from cached bytes. The pdf_hash parameter
     ensures the LRU cache invalidates when the PDF content changes."""
     pdf_bytes = _get_cached_pdf(doc_id)
     if not pdf_bytes:
-        return None
+        # Bytes-Cache (voruebergehend) leer — NICHT als None cachen, sonst bleibt
+        # die Seite dauerhaft 404 bis zum naechsten Hash-Wechsel.
+        raise _RenderUncacheable()
     doc = fitz.open(stream=pdf_bytes, filetype="pdf")
-    if page < 1 or page > len(doc):
+    try:
+        if page < 1 or page > len(doc):
+            raise _RenderUncacheable()
+        zoom = PAGE_RENDER_DPI / 72
+        pix = doc[page - 1].get_pixmap(matrix=fitz.Matrix(zoom, zoom))
+        data = pix.tobytes(output="jpeg", jpg_quality=85)
+    finally:
         doc.close()
-        return None
-    zoom = PAGE_RENDER_DPI / 72
-    pix = doc[page - 1].get_pixmap(matrix=fitz.Matrix(zoom, zoom))
-    data = pix.tobytes(output="jpeg", jpg_quality=85)
-    doc.close()
     return data
 
 
 def render_page(doc_id: int, page: int, content_hash: str) -> bytes | None:
     """Render a PDF page as JPEG. Uses memory cache for both PDF bytes and rendered pages."""
-    return _render_page_from_bytes(doc_id, page, content_hash or "")
+    try:
+        return _render_page_from_bytes(doc_id, page, content_hash or "")
+    except _RenderUncacheable:
+        return None
 
 
 def clear_render_cache() -> None:
