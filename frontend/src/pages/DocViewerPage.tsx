@@ -28,6 +28,15 @@ export function DocViewerPage() {
   const editorActive = useEditorCommands((s) => s.active)
   const editorOnClose = useEditorCommands((s) => s.onClose)
 
+  // Auf den Song-Folder normalisieren — gleiche Form wie GlobalPlayerBar.
+  // Sonst pingen sich beide useEffects gegenseitig (DocViewer laedt
+  // /song-A/Texte, GlobalPlayer laedt /song-A) und der Spinner haengt.
+  const segments = folder.split('/').filter(Boolean)
+  const lastSeg = segments[segments.length - 1] || 'Dokumente'
+  const songFolderPath = isReservedName(lastSeg) && segments.length >= 2
+    ? '/' + segments.slice(0, -1).join('/')
+    : folder
+
   // Vor dem Load die erwartete activeDocId pre-setzen. Der Store-Fallback
   // (docs[0]) koennte sonst kurz ein anderes Dokument als aktiv zeigen,
   // bevor der name-/id-basierte Auto-Select-useEffect greift.
@@ -41,10 +50,10 @@ export function DocViewerPage() {
     // !error: bei Fehler bleibt loadedFolder absichtlich null. Ohne diesen
     // Guard wuerde der Effect nach dem Fehler-Render sofort erneut feuern
     // -> Endlos-Schleife. Retry geht ueber den expliziten Button.
-    if (folder && folder !== loadedFolder && !loading && !error) {
-      load(folder)
+    if (songFolderPath && songFolderPath !== loadedFolder && !loading && !error) {
+      load(songFolderPath)
     }
-  }, [folder, loadedFolder, loading, error, load])
+  }, [songFolderPath, loadedFolder, loading, error, load])
 
   // Auto-select document — priorisiere id (eindeutig), sonst name.
   useEffect(() => {
@@ -67,14 +76,9 @@ export function DocViewerPage() {
     return () => { usePlayerStore.getState().setPdfFullscreen(false) }
   }, [])
 
-  const segments = folder.split('/').filter(Boolean)
-  const lastSeg = segments[segments.length - 1] || 'Dokumente'
   const folderName = isReservedName(lastSeg) && segments.length >= 2
     ? stripFolderExtension(segments[segments.length - 2])
     : stripFolderExtension(lastSeg)
-  const songFolderPath = isReservedName(lastSeg) && segments.length >= 2
-    ? '/' + segments.slice(0, -1).join('/')
-    : folder
 
   return (
     <div className="player-page">
@@ -122,7 +126,7 @@ export function DocViewerPage() {
                   type="button"
                   className="btn btn-primary"
                   style={{ marginTop: 'var(--space-4)' }}
-                  onClick={() => load(folder)}
+                  onClick={() => load(songFolderPath)}
                   disabled={loading}
                 >
                   <RefreshCw size={16} style={{ marginRight: 'var(--space-2)' }} />
@@ -132,7 +136,7 @@ export function DocViewerPage() {
             )
           }
           const hasDoc = documents.some((d) => d.id === activeDocId)
-          const finishedWithoutDoc = !loading && loadedFolder === folder && !hasDoc
+          const finishedWithoutDoc = !loading && loadedFolder === songFolderPath && !hasDoc
           if (finishedWithoutDoc) {
             return (
               <div className="doc-unavailable">
@@ -146,7 +150,7 @@ export function DocViewerPage() {
               </div>
             )
           }
-          return <DocumentPanel folderPath={folder} autoEdit={autoEdit} />
+          return <DocumentPanel folderPath={songFolderPath} autoEdit={autoEdit} />
         })()}
       </div>
     </div>
