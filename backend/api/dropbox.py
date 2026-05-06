@@ -1288,6 +1288,38 @@ async def dropbox_duplicate(
     from backend.services.dropbox_cache import folder_cache
     folder_cache.invalidate_subtree(parent_dropbox)
 
+    # DB-Eintrag fuer die Kopie synchron anlegen — sonst entsteht der Eintrag
+    # erst beim naechsten Browse INNERHALB des Texte-Ordners (nur dort laeuft
+    # sync_documents_from_dropbox). Browse aus dem .song-Folder triggert keinen
+    # Sync, also haette die Kopie keine doc_id und der DocViewer wuerde
+    # "Dokument nicht verfuegbar" zeigen.
+    if not is_folder:
+        from backend.services.document_service import detect_file_type
+        from backend.models.document import Document
+        new_dbx_id = result.get("id")
+        if new_dbx_id and detect_file_type(new_name):
+            source_id = metadata.get("id")
+            source_doc = session.exec(
+                select(Document).where(Document.dropbox_file_id == source_id)
+            ).first() if source_id else None
+            if source_doc:
+                dropbox_dir = source_doc.dropbox_path.rsplit("/", 1)[0] if "/" in source_doc.dropbox_path else ""
+                new_dbx_path = f"{dropbox_dir}/{new_name}" if dropbox_dir else new_name
+                new_doc = Document(
+                    folder_path=source_doc.folder_path,
+                    file_type=source_doc.file_type,
+                    original_name=new_name,
+                    file_size=result.get("size", source_doc.file_size),
+                    page_count=source_doc.page_count,
+                    content_hash=result.get("content_hash") or source_doc.content_hash,
+                    dropbox_path=new_dbx_path,
+                    dropbox_file_id=new_dbx_id,
+                    song_id=source_doc.song_id,
+                    uploaded_by=user.id,
+                )
+                session.add(new_doc)
+                session.commit()
+
     return ActionResponse.success(data={
         "name": result.get("name", new_name),
         "path": to_user_path(result.get("path_display", to_dropbox), root_folder),

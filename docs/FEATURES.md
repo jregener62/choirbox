@@ -447,7 +447,7 @@ Dateien und Ordner haben rechts ein Drei-Punkte-Menue (EllipsisVertical). Ein Ta
 - **Datei-Einstellungen** (Info): Oeffnet die Datei-Einstellungen-Seite fuer diese Datei (nur pro-member+)
 - **Loeschen** (Papierkorb): Ab Chorleiter (Level 3+) sichtbar. Bestaetigungsdialog vor dem Loeschen.
 - **Umbenennen** (Stift): Ab Pro-Mitglied (Level 2+). Dialog mit vorausgefuelltem Namen.
-- **Duplizieren** (Copy): Ab Pro-Mitglied (Level 2+). Legt im selben Ordner eine Kopie mit Auto-Suffix `(Kopie)` bzw. `(Kopie 2)`, `(Kopie 3)`, ... an — ohne Dialog.
+- **Duplizieren** (Copy): Ab Pro-Mitglied (Level 2+). Legt im selben Ordner eine Kopie mit Auto-Suffix `(Kopie)` bzw. `(Kopie 2)`, `(Kopie 3)`, ... an — ohne Dialog. Bei Dokumenten (Texte/PDFs) wird der DB-`Document`-Eintrag synchron vom Original geklont (gleicher `file_type`, `page_count`, `song_id`), damit die Kopie sofort ohne Browse-Round-Trip zum Texte-Ordner geoeffnet werden kann.
 
 **Ordner:**
 - **Favorit** (Herz): Ordner als Favorit markieren/entfernen
