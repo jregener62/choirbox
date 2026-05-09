@@ -10,6 +10,7 @@ import { useCompanionPdf } from '@/hooks/useCompanionPdf.ts'
 import { useChordPreference } from '@/hooks/useChordPreference.ts'
 import { useChordInput } from '@/hooks/useChordInput.ts'
 import { useAutoScroll } from '@/hooks/useAutoScroll.ts'
+import { useWakeLock } from '@/hooks/useWakeLock.ts'
 import { AnnotatedPage } from '@/components/ui/AnnotatedPage.tsx'
 import { AnnotationToolbar } from '@/components/ui/AnnotationToolbar.tsx'
 import { VideoViewer } from '@/components/ui/VideoViewer.tsx'
@@ -106,6 +107,9 @@ export function DocumentPanel({ folderPath, document: externalDoc, emptyHint, au
   // If external document is provided (player mode), use it; otherwise use store
   const isPlayerMode = externalDoc !== undefined
   const activeDoc = isPlayerMode ? (externalDoc ?? null) : (documents.find((d) => d.id === activeDocId) ?? null)
+
+  // Bildschirm wachhalten, solange ein Dokument angezeigt wird.
+  useWakeLock(activeDoc !== null)
 
   // Chord preference hook — must be called unconditionally; pass null when not a .cho doc
   const isChoActive = activeDoc?.file_type === 'cho'

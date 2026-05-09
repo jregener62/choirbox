@@ -1468,6 +1468,15 @@ CantaBox funktioniert ausschliesslich online (Dropbox-Streaming, API-Calls). Geh
 - Sichtbar auf allen Seiten (Login, App, Gast-Flows)
 - Verschwindet automatisch, sobald die Verbindung wieder steht
 
+### Bildschirm wachhalten beim Lesen
+
+Sobald ein Dokument (Text, PDF, Chord Sheet, RTF, Video) im Viewer geoeffnet ist, haelt CantaBox den Bildschirm via Screen Wake Lock API automatisch wach. Damit bleibt der Text auch ohne Beruehrung sichtbar — wichtig waehrend des Singens.
+
+- Greift in allen drei Viewer-Pages (`DocViewerPage`, `ViewerPage`, `PlayerPage`).
+- Lock wird automatisch wieder freigegeben, wenn das Dokument geschlossen oder die Seite verlassen wird.
+- Tab-Wechsel gibt den Lock systembedingt frei; CantaBox holt ihn beim Zurueckkehren via `visibilitychange` neu.
+- Plattformen: Android Chrome/Edge sowie iOS Safari ab 16.4. Aeltere iOS-Versionen ignorieren den Aufruf still — kein Crash.
+
 ### Einstellungen-Seiten
 
 Die Settings sind in eine schlanke Hauptseite und thematische Sub-Seiten aufgeteilt, damit insbesondere Chorleiter (Admin) nicht mehr durch eine lange Liste scrollen muessen.
