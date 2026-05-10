@@ -20,6 +20,7 @@ from backend.models.user_chord_preference import UserChordPreference
 from backend.policy import require_permission, require_permission_query
 from backend.schemas import ActionResponse
 from backend.services import document_service, pdf_service
+from backend.services.dropbox_cache import folder_cache
 from backend.services.dropbox_service import get_dropbox_service
 from backend.services.print_token_service import (
     PRINT_TOKEN_TTL_SECONDS,
@@ -136,6 +137,9 @@ async def upload_document(
                 await dbx.create_folder(song_dbx)
             except RuntimeError:
                 pass  # Already exists
+            # Cache des Eltern-Ordners liegt evtl. ohne den frischen .song-Ordner
+            # vor; ohne Invalidierung haengt der Browse danach in stale-State.
+            folder_cache.invalidate_subtree(song_dbx)
         folder_path = song_path
 
     content = await file.read()
@@ -173,6 +177,11 @@ async def upload_document(
                 actual_name = actual_path.rsplit("/", 1)[-1]
                 if actual_name and actual_name != original_name:
                     original_name = actual_name
+            # Invalidiert sowohl den Texte-Cache (mit der frischen Datei) als
+            # auch den Eltern-Cache (mit dem ggf. frischen Texte/-Subfolder),
+            # damit der unmittelbar nachfolgende /documents/list-Aufruf den
+            # Texte-Ordner ueber find_reserved_child wieder findet.
+            folder_cache.invalidate_subtree(texte_dbx)
     except Exception:
         logger.exception("upload_document: Dropbox upload failed for %s", original_name)
 
@@ -289,6 +298,10 @@ async def paste_text(
                 await dbx.create_folder(song_dbx)
             except RuntimeError:
                 pass  # Already exists
+            # Eltern-Cache war evtl. ohne den frischen .song-Ordner gesetzt;
+            # ohne Invalidierung greifen Folge-Reads (Browse, find_reserved_child)
+            # auf stale Daten zurueck.
+            folder_cache.invalidate_subtree(song_dbx)
         folder_path = song_path
 
     # Resolve / create the Texte folder
@@ -328,6 +341,11 @@ async def paste_text(
                 actual_name = actual_path.rsplit("/", 1)[-1]
                 if actual_name and actual_name != filename:
                     filename = actual_name
+            # Texte- und Song-Cache koennen vor diesem Aufruf als leer/ohne
+            # Texte-Subfolder gecached worden sein (z.B. durch das vorherige
+            # resolve_texte_folder); ohne Invalidierung sieht der direkt
+            # folgende /documents/list-Aufruf weder den Ordner noch die Datei.
+            folder_cache.invalidate_subtree(texte_dbx)
     except Exception:
         logger.exception("paste_text: Dropbox upload failed for %s", filename)
 
