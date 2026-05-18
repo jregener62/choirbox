@@ -5,6 +5,7 @@
 #        ./deploy.sh 2   → Staging
 #        ./deploy.sh 3   → Prod (Staging + Produktion)
 #        ./deploy.sh 4   → Alle (Dev + Staging + Produktion)
+#        ./deploy.sh 5   → nur Produktion
 #        ./deploy.sh     → Fragt nach
 # ─────────────────────────────────────────────────────────────
 
@@ -115,6 +116,7 @@ if [ -z "$TARGET" ]; then
   echo "  2 = Staging"
   echo "  3 = Prod (Staging + Produktion)"
   echo "  4 = Alle (Dev + Staging + Produktion)"
+  echo "  5 = nur Produktion"
   echo ""
   read -rp "Nummer: " TARGET
 fi
@@ -160,9 +162,14 @@ case "$TARGET" in
     deploy_staging
     deploy_prod
     ;;
+  5)
+    echo -e "${BOLD}Deploy → nur Produktion${NC}"
+    echo ""
+    deploy_prod
+    ;;
   *)
     echo -e "${RED}Unbekanntes Ziel: $TARGET${NC}"
-    echo "Erlaubt: 1 (Dev), 2 (Staging), 3 (Prod), 4 (Alle)"
+    echo "Erlaubt: 1 (Dev), 2 (Staging), 3 (Prod), 4 (Alle), 5 (nur Prod)"
     exit 1
     ;;
 esac
