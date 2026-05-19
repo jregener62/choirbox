@@ -14,7 +14,9 @@ import type { ParsedChordContent, ChordPosition, ChordSection } from '@/types/in
 const CHORD_PATTERN =
   /\b([A-G][b#]?(?:m(?:aj|in)?|M(?:aj)?|maj|dim|aug|sus)?(?:2|4|5|6|7|9|11|13|add[0-9]+|no[0-9]+)?(?:sus[24]?)?(?:\/[A-G][b#]?)?)\b/g
 
-const SECTION_PATTERN = /^\[([A-Za-z0-9\s+\-.]+)\]\s*$/
+// Section header: `[Label]`, optionally followed by a parenthetical
+// annotation, e.g. `[Verse 3] (Reprise)` or `[Outro] (fade out)`.
+const SECTION_PATTERN = /^\[([A-Za-z0-9\s+\-.]+)\]\s*(\([^)]*\))?\s*$/
 
 const CHORD_RE = /^([A-G][b#]?)/
 
@@ -51,7 +53,9 @@ function extractChordsWithPositions(line: string): ChordPosition[] {
 
 function isSectionHeader(line: string): string | null {
   const m = line.trim().match(SECTION_PATTERN)
-  return m ? m[1].trim() : null
+  if (!m) return null
+  const annotation = m[2]?.trim()
+  return annotation ? `${m[1].trim()} ${annotation}` : m[1].trim()
 }
 
 function classifySectionType(label: string): string {

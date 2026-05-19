@@ -35,6 +35,11 @@ describe('isChordPro', () => {
     expect(isChordPro('[Chorus]')).toBe(false)
   })
 
+  it('does NOT detect section headers with a trailing annotation as ChordPro', () => {
+    expect(isChordPro('[Verse 3] (Reprise)')).toBe(false)
+    expect(isChordPro('[Outro] (Repeat and fade out)')).toBe(false)
+  })
+
   it('does NOT detect Ultimate Guitar style as ChordPro', () => {
     const plain = `[Verse 1]
    C       G

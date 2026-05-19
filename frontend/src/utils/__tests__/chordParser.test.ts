@@ -18,6 +18,20 @@ Hello`
     expect(r.sections[0].label).toBe('[Verse 1]')
   })
 
+  it('detects section headers with a trailing parenthetical annotation', () => {
+    const text = `[Verse 3] (Reprise)
+   C
+Hello
+
+[Outro] (Repeat and fade out)
+   F
+bye`
+    const r = parseChordText(text)
+    expect(r.sections.map((s) => s.type)).toEqual(['verse', 'outro'])
+    expect(r.sections[0].label).toBe('[Verse 3 (Reprise)]')
+    expect(r.sections[1].label).toBe('[Outro (Repeat and fade out)]')
+  })
+
   it('classifies common section types', () => {
     const text = `[Chorus]
 C

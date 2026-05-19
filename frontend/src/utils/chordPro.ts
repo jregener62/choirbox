@@ -68,36 +68,34 @@ export function splitChordProHeader(text: string): { header: string; body: strin
 }
 
 /**
+ * Chord token: root + optional quality/extension/bass. Anchored, so it only
+ * matches when the whole string is a chord (e.g. `Am`, `F/A`, `C#m7`).
+ */
+const CHORD_TOKEN_RE = /^[A-G][b#]?(?:m(?:aj|in)?|M(?:aj)?|maj|dim|aug|sus)?(?:[0-9]+)?(?:sus[24]?)?(?:add[0-9]+)?(?:\/[A-G][b#]?)?$/
+
+/**
  * Detect whether `text` is already in ChordPro format.
  *
  * Indicators:
  * - Any directive `{x: ...}` or `{x}` (e.g. `{title:}`, `{sov}`)
- * - Inline chord syntax: `[Chord]` brackets that are NOT a section header
- *   (i.e. either multiple brackets on one line, or a single bracket with
- *   surrounding text)
+ * - Inline chord syntax: a `[Chord]` bracket whose content is an actual chord.
+ *   Section labels like `[Verse 1]` or `[Outro] (fade out)` contain words,
+ *   not chords, so they are NOT treated as ChordPro.
  */
 export function isChordPro(text: string): boolean {
   // Any ChordPro directive (name may include spaces, e.g. `{start of verse}`)
   if (/\{\s*[a-z_][a-z_ ]*\s*[:}]/i.test(text)) return true
 
-  // Inline chord syntax detection
-  const lines = text.split('\n')
-  for (const line of lines) {
-    const trimmed = line.trim()
-    if (!trimmed) continue
-    const matches = [...trimmed.matchAll(/\[([^\]]+)\]/g)]
-    if (matches.length === 0) continue
-    if (matches.length > 1) return true
-    // Single bracket — only counts as inline chord if there's other content on the line
-    const single = `[${matches[0][1]}]`
-    if (trimmed !== single) return true
+  // Inline chord syntax: any `[Chord]` whose bracket content is a chord token.
+  for (const line of text.split('\n')) {
+    for (const m of line.matchAll(/\[([^\]]+)\]/g)) {
+      if (CHORD_TOKEN_RE.test(m[1].trim())) return true
+    }
   }
   return false
 }
 
 // --- ChordPro parser ---
-
-const CHORD_TOKEN_RE = /^[A-G][b#]?(?:m(?:aj|in)?|M(?:aj)?|maj|dim|aug|sus)?(?:[0-9]+)?(?:sus[24]?)?(?:add[0-9]+)?(?:\/[A-G][b#]?)?$/
 
 function classifySectionType(label: string): string {
   const l = label.toLowerCase()
