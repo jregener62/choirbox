@@ -144,9 +144,12 @@ function parseInlineChordLine(line: string): { text: string; chords: ChordPositi
           // Happens with instrumental lines like "[Em] [D/F#] [G] [C]" where
           // only single spaces separate brackets — without padding, chord cols
           // end up 0,1,2,3 and all render on top of each other.
+          // Gap of 2 cells (not 1): bold chord glyphs in Courier render slightly
+          // wider than the monospace anchor cells, so 1 cell of breathing room
+          // causes adjacent chords like "F#m G" to visually touch/overlap.
           if (chords.length > 0) {
             const prev = chords[chords.length - 1]
-            const minCol = prev.col + prev.chord.length + 1
+            const minCol = prev.col + prev.chord.length + 2
             if (text.length < minCol) {
               text += ' '.repeat(minCol - text.length)
             }

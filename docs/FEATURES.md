@@ -2342,6 +2342,10 @@ Wenn in einem Chor ausser Stimme-Labels keine weiteren Labels definiert waren, o
 
 Beim Anlegen einer neuen `.cho` oder `.rtf` (mit oder ohne neuem `.song`-Folder im Root-Modus) zeigte der DocViewer "Dokument nicht verfuegbar". Der User musste sowohl im Root als auch im neuen `.song`-Folder einmal zurueck/refreshen, dann tauchte die Datei erst auf. Ursache: `paste-text` und `documents/upload` haben den Backend-`list_folder`-Cache (5-Min-TTL) nach `create_folder`/`upload_file` nicht invalidiert. Der Cache fuer den `.song`-Ordner wurde innerhalb desselben Requests von `resolve_texte_folder` → `find_reserved_child` als leer befuellt (vor dem Anlegen des `Texte/`-Subfolders). Der direkt folgende `/documents/list`-Aufruf bekam den stale Cache-Hit zurueck und damit kein `texte_path`. Fix: `folder_cache.invalidate_subtree(...)` in `paste-text` und `upload_document` nach jedem `create_folder`/`upload_file` (Pattern analog zu `backend/api/dropbox.py`).
 
+### Akkorde ueberlappen in reinen Akkord-Zeilen (Interludes/Intros)
+
+In `{start_of_interlude}`-Bloecken ohne Text (z.B. `[D] [F#m] [G] [G] [D] [F#m] [C#m]`) ueberlappten benachbarte Akkord-Labels visuell — das "m" eines F#m verschmolz mit dem naechsten Akkord. Ursache: `parseInlineChordLine()` in `frontend/src/utils/chordPro.ts` polsterte den Cleantext fuer instrumentale Zeilen nur mit `prev.chord.length + 1` Zellen — also 1 Zeichen Luft zwischen den Akkorden. Die Akkord-Labels werden im Renderer fett (`font-weight: 700`) auf monospaced Courier-Anker-Zellen positioniert; bold Courier-Glyphen sind in vielen Browsern minimal breiter als die regulaere Zellbreite, sodass 1 Zelle Abstand nicht reicht. Fix: Padding auf `prev.chord.length + 2` erhoeht — 2 Zellen Lueftung verhindert Ueberlapp ohne den Layout-Charakter zu veraendern.
+
 ## Sicherheit
 
 ### Security Headers Middleware
