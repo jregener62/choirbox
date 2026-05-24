@@ -217,6 +217,14 @@ function ChordLineView({
                 <span
                   key={ci}
                   className={`chord-flow-cell${c.chord ? ' chord-flow-cell--anchor' : ''}`}
+                  style={
+                    c.chord && (c.char === ' ' || c.char === undefined)
+                      ? {
+                          display: 'inline-block',
+                          minWidth: `calc(${c.chord.length}ch + 0.5ch)`,
+                        }
+                      : undefined
+                  }
                 >
                   {c.chord && (
                     <span className="chord-flow-chord">{c.chord}</span>
