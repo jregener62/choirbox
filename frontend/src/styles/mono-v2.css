@@ -1,0 +1,1152 @@
+/* ChoirBox — Mono v2 Overrides & Utilities
+   Visuelle Ergaenzungen/Anpassungen fuer das Swiss-Minimalist Redesign.
+   Wird nach index.css / tokens.css geladen — ueberschreibt punktuell.
+
+   Referenz: design_handoff_mono_v2/README.md
+*/
+
+/* ============================================================ */
+/* 1. Globale Typo-Basis                                        */
+/* ============================================================ */
+
+body {
+  font-family: var(--font-sans);
+}
+
+/* Tabular numbers fuer Timer, Bar-Counter, dB-Readouts */
+.tabular-nums,
+.seek-bar-time,
+.timer-display {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================ */
+/* 2. Mono-Typo Utilities                                       */
+/* ============================================================ */
+
+/* Kicker: kleine uppercase mono-Labels ueber Titeln / Sektionen */
+.mono-kicker {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+/* Meta-Zeilen: Metadaten unter Titeln (z.B. "D-DUR · 72 BPM") */
+.mono-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+/* Wortmarke oben ("CANTABOX") */
+.mono-wordmark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Grosse Hero-Titel ("Willkommen zurueck.", "Pie Jesu.") */
+.mono-hero {
+  font-family: var(--font-sans);
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+/* Bildschirm-Titel */
+.mono-screen-title {
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+  color: var(--text-primary);
+}
+
+/* ============================================================ */
+/* 3. Voice-Chip Utility                                        */
+/* Ersetzt gefuellte Badges durch Outline-Chips.                */
+/* ============================================================ */
+
+.voice-chip {
+  display: inline-block;
+  padding: 2px 7px;
+  border: 1px solid var(--voice-color, var(--text-primary));
+  color: var(--voice-color, var(--text-primary));
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 0;
+  background: transparent;
+  white-space: nowrap;
+}
+
+.voice-chip--sopran { --voice-color: var(--sopran); }
+.voice-chip--alt    { --voice-color: var(--alt); }
+.voice-chip--tenor  { --voice-color: var(--tenor); }
+.voice-chip--bass   { --voice-color: var(--bass); }
+.voice-chip--satb   { --voice-color: var(--satb); }
+.voice-chip--piano  { --voice-color: var(--piano); }
+
+/* Existierendes topbar-voice-badge auf Outline-Style umstellen */
+.topbar-voice-badge {
+  background: transparent !important;
+  border: 1px solid currentColor;
+  border-radius: 0 !important;
+  font-family: var(--font-mono);
+  font-size: 9px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 2px 7px !important;
+  font-weight: 700;
+}
+
+/* ============================================================ */
+/* 4. Pulse Animation (Recorder)                                */
+/* ============================================================ */
+
+@keyframes mono-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.3; }
+}
+
+.mono-pulse {
+  animation: mono-pulse 1s ease-in-out infinite;
+}
+
+.mono-rec-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  background: var(--accent);
+  display: inline-block;
+  animation: mono-pulse 1s ease-in-out infinite;
+  vertical-align: middle;
+}
+
+/* ============================================================ */
+/* 5. Filter-Tabs (Browse + Admin)                              */
+/* ============================================================ */
+
+.mono-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  margin: 0;
+  padding: 0 var(--space-6);
+}
+
+.mono-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--space-3) var(--space-4);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: color 0.15s ease;
+}
+
+.mono-tab--active {
+  color: var(--text-primary);
+  border-bottom-color: var(--accent);
+  font-weight: 700;
+}
+
+/* Admin-Tabs: 2px accent-Oberkante statt Unterkante */
+.mono-tabs--top {
+  border-top: 1px solid var(--border);
+  border-bottom: none;
+}
+.mono-tabs--top .mono-tab {
+  border-bottom: none;
+  border-top: 2px solid transparent;
+  margin-top: -1px;
+  margin-bottom: 0;
+}
+.mono-tabs--top .mono-tab--active {
+  border-top-color: var(--accent);
+}
+
+/* ============================================================ */
+/* 6. Action-Strip (Player: LOOP / + MARKER / TEXT / AUFN.)     */
+/* ============================================================ */
+
+.mono-action-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+}
+
+.mono-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1);
+  padding: 9px 6px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 0;
+  cursor: pointer;
+  min-height: 40px;
+  transition: all 0.15s ease;
+}
+
+.mono-action-btn--active {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.mono-action-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ============================================================ */
+/* 7. Outline-Button (Empty / Error States)                     */
+/* ============================================================ */
+
+.mono-outline-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px var(--space-4);
+  border: 1px solid var(--text-primary);
+  background: transparent;
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+.mono-outline-btn--muted {
+  border-color: var(--border);
+  color: var(--text-muted);
+}
+
+.mono-fill-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px var(--space-4);
+  border: 1px solid var(--text-primary);
+  background: var(--text-primary);
+  color: var(--bg-primary);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  border-radius: 0;
+  cursor: pointer;
+}
+
+/* ============================================================ */
+/* 8. Progress-Bar (Browse Stats)                               */
+/* ============================================================ */
+
+.mono-progress {
+  height: 2px;
+  background: var(--border);
+  width: 100%;
+  overflow: hidden;
+}
+.mono-progress-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+/* ============================================================ */
+/* 9. Voice-Dot (Admin Stats-Bar)                               */
+/* ============================================================ */
+
+.mono-voice-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: var(--radius-full);
+  margin-right: 3px;
+  vertical-align: middle;
+}
+.mono-voice-dot--sopran { background: var(--sopran); }
+.mono-voice-dot--alt    { background: var(--alt); }
+.mono-voice-dot--tenor  { background: var(--tenor); }
+.mono-voice-dot--bass   { background: var(--bass); }
+
+.mono-stats-bar {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-6);
+  border-bottom: 1px solid var(--border);
+}
+
+.mono-stats-bar-count {
+  font-family: var(--font-sans);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.mono-stats-bar-breakdown {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+/* ============================================================ */
+/* 10. Initial-Circle (Admin Members)                           */
+/* ============================================================ */
+
+.mono-initial-circle {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--voice-color, var(--text-primary));
+  color: var(--voice-color, var(--text-primary));
+  border-radius: var(--radius-full);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  flex-shrink: 0;
+}
+.mono-initial-circle--sopran { --voice-color: var(--sopran); }
+.mono-initial-circle--alt    { --voice-color: var(--alt); }
+.mono-initial-circle--tenor  { --voice-color: var(--tenor); }
+.mono-initial-circle--bass   { --voice-color: var(--bass); }
+
+/* ============================================================ */
+/* 11. Settings-Sections                                        */
+/* ============================================================ */
+
+.mono-section {
+  border-top: 1px solid var(--border);
+  padding: var(--space-5) 0 var(--space-2);
+}
+.mono-section:last-of-type {
+  border-bottom: 1px solid var(--border);
+}
+
+.mono-section-header {
+  padding: 0 var(--space-6) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.mono-section-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--border);
+  background: transparent;
+  width: 100%;
+  border-left: none;
+  border-right: none;
+  border-bottom: none;
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.mono-section-row:first-of-type {
+  border-top: none;
+}
+
+.mono-section-row-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.mono-section-row-value {
+  font-size: 12px;
+  color: var(--text-muted);
+  display: inline-flex;
+  gap: var(--space-1);
+  align-items: center;
+}
+
+.mono-section-row--danger .mono-section-row-label {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+/* ============================================================ */
+/* 12. Empty / Error States                                     */
+/* ============================================================ */
+
+.mono-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  padding: var(--space-8) var(--space-6);
+  text-align: center;
+  height: 100%;
+}
+
+.mono-empty-icon {
+  width: 56px;
+  height: 56px;
+  border: 1px solid var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+  border-radius: 0;
+}
+
+.mono-empty-title {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+  color: var(--text-primary);
+}
+
+.mono-empty-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 240px;
+  line-height: 1.5;
+}
+
+.mono-error {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-6);
+  height: 100%;
+  justify-content: center;
+}
+
+.mono-error-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.mono-error-title {
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -1px;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+
+.mono-error-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-top: var(--space-1);
+}
+
+.mono-error-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
+}
+.mono-error-actions > * {
+  flex: 1;
+}
+
+/* ============================================================ */
+/* 13. Mini-Player / GlobalPlayerBar Re-Skin                    */
+/* Solid black on light, invers auf dark — Accent-Play-Button.  */
+/* ============================================================ */
+
+.global-player {
+  background: var(--player-bg) !important;
+  color: var(--player-text) !important;
+  border-radius: var(--radius-sm) !important;
+  border-color: transparent !important;
+  box-shadow: var(--shadow-md) !important;
+}
+
+.global-player .seek-bar-time,
+.global-player .gpc-skip-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--player-text);
+  opacity: 0.85;
+}
+
+.global-player .seek-bar-track {
+  background: rgba(128, 128, 128, 0.25);
+}
+
+.global-player .seek-bar-played {
+  background: var(--accent);
+}
+.global-player .seek-bar-loop-fill {
+  background: var(--player-text);
+}
+.global-player .seek-bar-thumb {
+  background: var(--player-text);
+  border-radius: 0;
+  width: 10px;
+  height: 10px;
+}
+
+.global-player .gpc-btn {
+  color: var(--player-text);
+}
+.global-player .gpc-btn:disabled {
+  opacity: 0.3;
+}
+.global-player .gpc-btn--active {
+  color: var(--accent);
+}
+
+/* Orange-red, kreisfoermiger Play-Button */
+.global-player .gpc-btn-play {
+  background: var(--accent);
+  color: #FFFFFF;
+  border-radius: var(--radius-full);
+}
+.global-player .gpc-btn-play:hover {
+  background: var(--accent-hover);
+}
+
+/* ============================================================ */
+/* 14. Button-Overrides fuer Mono v2                            */
+/* btn-primary = solid black (light) / solid white (dark)       */
+/* ============================================================ */
+
+.btn {
+  border-radius: 0;
+  font-family: var(--font-sans);
+}
+
+.btn-primary {
+  color: var(--player-text);
+}
+
+/* ============================================================ */
+/* 15. Auth / Login                                             */
+/* Underline-only inputs, kein Karten-Rand, Wordmark oben.      */
+/* ============================================================ */
+
+.auth-page {
+  background: var(--bg-primary);
+}
+
+.auth-card {
+  background: transparent;
+  border: none;
+  padding: var(--space-6) var(--space-6);
+  box-shadow: none;
+}
+
+.auth-logo {
+  text-align: left;
+  margin-bottom: var(--space-8);
+}
+.auth-logo-icon {
+  display: none;
+}
+.auth-title {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.8px;
+  color: var(--text-primary);
+  margin-top: var(--space-4);
+  margin-bottom: var(--space-1);
+}
+.auth-subtitle {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.auth-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.auth-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: var(--space-2) 0;
+  font-size: 15px;
+  min-height: 40px;
+}
+.auth-input:focus {
+  border-color: var(--text-primary);
+  outline: none;
+}
+.auth-input-wrap .auth-input {
+  padding-right: 40px;
+}
+.auth-pw-toggle {
+  right: 0;
+  color: var(--text-muted);
+}
+
+.auth-form .btn-primary {
+  border-radius: 0;
+  font-family: var(--font-sans);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 15px var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.auth-footer a,
+.auth-footer button {
+  color: var(--accent) !important;
+}
+
+/* Wordmark ueber Hero */
+.mono-auth-wordmark {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-8);
+  display: block;
+}
+
+/* ============================================================ */
+/* 16. Browse-Header Typographie                                */
+/* ============================================================ */
+
+.mono-list-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: var(--space-3);
+  align-items: center;
+  padding: var(--space-3) var(--space-6);
+  border-top: 1px solid var(--border);
+}
+
+.mono-list-num {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.mono-list-title {
+  font-family: var(--font-sans);
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.25;
+}
+
+.mono-list-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  margin-top: 2px;
+}
+
+.mono-list-row--done .mono-list-title {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--text-muted);
+}
+
+/* ============================================================ */
+/* 17. Recorder Timer                                           */
+/* ============================================================ */
+
+.mono-timer {
+  font-family: var(--font-sans);
+  font-size: 40px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+/* ============================================================ */
+/* 18. Settings-Overrides (Mono-Pattern ohne JSX-Umbau)         */
+/* Wirkt auf bestehende .settings-* Klassen.                    */
+/* ============================================================ */
+
+.settings-heading {
+  font-family: var(--font-mono);
+  font-size: 9px !important;
+  letter-spacing: 2px !important;
+  text-transform: uppercase;
+  color: var(--text-muted) !important;
+  font-weight: 700 !important;
+  padding: var(--space-2) 0 var(--space-3);
+  margin-bottom: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.settings-rows {
+  gap: 0 !important;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-row {
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--border);
+  min-height: 44px;
+}
+.settings-row:first-child {
+  border-top: none;
+}
+.settings-label {
+  font-family: var(--font-sans);
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+.settings-nav-list {
+  gap: 0 !important;
+  border-top: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-nav-item {
+  background: transparent !important;
+  border-radius: 0 !important;
+  border-top: 1px solid var(--border) !important;
+  padding: var(--space-3) 0 !important;
+  font-size: 14px !important;
+}
+.settings-nav-list .settings-nav-item:first-child {
+  border-top: none !important;
+}
+.settings-nav-item:active {
+  background: var(--bg-tertiary) !important;
+}
+
+/* Rechtliches-Footer in Mono-Stil */
+.settings-legal {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin-top: var(--space-8);
+}
+
+/* Browse: file-meta als Mono-Zeile */
+.file-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.file-name {
+  letter-spacing: -0.2px;
+}
+
+/* ============================================================ */
+/* 21b. UploadChoiceModal → Mono                                */
+/* Entfernt die Tint-Icon-Boxen (lila/indigo/peach).            */
+/* ============================================================ */
+
+.upload-choice {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  background: transparent !important;
+  padding: var(--space-3) var(--space-3-5) !important;
+}
+.upload-choice:active {
+  background: var(--bg-tertiary) !important;
+  border-color: var(--text-primary) !important;
+}
+
+.upload-choice-icon,
+.upload-choice-icon--text,
+.upload-choice-icon--chord,
+.upload-choice-icon--file {
+  background: transparent !important;
+  border-radius: 0 !important;
+  width: 32px !important;
+  height: 32px !important;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary) !important;
+}
+.upload-choice-icon--file {
+  border-color: var(--accent);
+  color: var(--accent) !important;
+}
+
+.upload-choice-label {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.upload-choice-desc {
+  font-family: var(--font-sans);
+}
+
+.upload-choice-divider {
+  margin: var(--space-2) 0 !important;
+}
+
+/* ============================================================ */
+/* 22. Meta-Bricks (View-Bar + Song-Card-Header) → Mono         */
+/* Ersetzt Indigo/Cyan/Pink/Amber durch Schwarz/Weiss + Accent. */
+/* ============================================================ */
+
+.meta-brick {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600 !important;
+  background: transparent !important;
+  color: var(--text-muted) !important;
+  border-color: var(--border) !important;
+  box-shadow: none !important;
+  min-height: 36px !important;
+}
+
+.meta-brick:active {
+  transform: scale(0.97);
+}
+
+/* Leerer Brick: dashed muted border, unveraendert ausser Farben */
+.meta-brick--empty,
+.meta-brick--texte.meta-brick--empty,
+.meta-brick--doc.meta-brick--empty,
+.meta-brick--audio.meta-brick--empty,
+.meta-brick--videos.meta-brick--empty,
+.meta-brick--multitrack.meta-brick--empty {
+  border-color: var(--border) !important;
+  border-style: dashed !important;
+  color: var(--text-muted) !important;
+  background: transparent !important;
+  opacity: 0.4 !important;
+}
+
+/* Gefuellte Varianten (inaktiv): alle gleich — flat outline */
+.meta-brick--doc,
+.meta-brick--texte,
+.meta-brick--audio,
+.meta-brick--videos,
+.meta-brick--multitrack,
+.meta-brick--songs {
+  background: transparent !important;
+  color: var(--text-secondary) !important;
+  border-color: var(--border) !important;
+}
+
+/* Active: solid black (light) bzw. white (dark) mit Invers-Text */
+.meta-brick--active,
+.meta-brick--songs.meta-brick--active,
+.meta-brick--texte.meta-brick--active,
+.meta-brick--doc.meta-brick--active,
+.meta-brick--audio.meta-brick--active,
+.meta-brick--videos.meta-brick--active,
+.meta-brick--multitrack.meta-brick--active {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--text-primary) !important;
+  box-shadow: none !important;
+}
+
+.meta-brick__label {
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ============================================================ */
+/* 23. File-Type-Badges → Mono                                  */
+/* Alte Tint-Farben (Blau/Cyan/Pink/Amber) → Text-Primary/Muted */
+/* ============================================================ */
+
+.file-type-badge--folder,
+.file-type-badge--texte,
+.file-type-badge--folder-audio,
+.file-type-badge--folder-videos,
+.file-type-badge--folder-multitrack,
+.file-type-badge--song,
+.file-type-badge--audio,
+.file-type-badge--videos,
+.file-type-badge--multitrack,
+.file-type-badge--text {
+  color: var(--text-primary) !important;
+}
+
+.file-type-badge--playing {
+  color: var(--accent) !important;
+}
+
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: 9px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  border-radius: 0 !important;
+  padding: 1px 6px !important;
+}
+
+/* Generic Input + Search-Bar + Footer-Buttons → Mono */
+.input,
+.search-bar,
+.browse-footer-btn {
+  border-radius: 0 !important;
+}
+
+.browse-footer-btn {
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.breadcrumb {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+/* Voice-Part-Buttons → Mono */
+.voice-part-btn {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  font-weight: 600;
+  min-height: 36px !important;
+  padding: 8px 12px !important;
+}
+.voice-part-btn.selected {
+  background: var(--text-primary) !important;
+  color: var(--bg-primary) !important;
+  border-color: var(--text-primary) !important;
+}
+
+/* Filter-Chips → Mono (Outline statt Pill) */
+.filter-chip {
+  border-radius: 0 !important;
+  border-width: 1px !important;
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 6px 10px !important;
+}
+.filter-chip.active {
+  background: transparent !important;
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+
+/* Modal → Mono: zero-radius, 1px border, schlichter Header */
+.modal-container {
+  border-radius: 0 !important;
+  border: 1px solid var(--border);
+  background: var(--bg-secondary) !important;
+}
+.modal-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+/* Empty-State → Mono */
+.empty-state {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.empty-state-icon {
+  opacity: 0.6;
+}
+
+/* Admin User-Avatar → outline-circle Mono */
+.user-avatar {
+  background: transparent !important;
+  border: 1px solid var(--text-primary);
+  color: var(--text-primary);
+  width: 32px !important;
+  height: 32px !important;
+  font-size: 12px !important;
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+/* ============================================================ */
+/* 19. Topbar (Back-Pfeil + Titel)                              */
+/* ============================================================ */
+
+.topbar {
+  border-bottom: 1px solid var(--border);
+}
+.topbar-title {
+  font-family: var(--font-sans);
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+
+/* ============================================================ */
+/* 20. Recording-Modal (Mono v2)                                */
+/* ============================================================ */
+
+.recording-mic-btn {
+  background: var(--accent) !important;
+  border-radius: 0 !important;
+  width: 68px !important;
+  height: 68px !important;
+  color: #FFFFFF !important;
+}
+
+.recording-stop-btn {
+  background: var(--accent) !important;
+  border-radius: 0 !important;
+  width: 68px !important;
+  height: 68px !important;
+  color: #FFFFFF !important;
+}
+.recording-stop-btn svg {
+  width: 22px;
+  height: 22px;
+}
+
+.recording-indicator {
+  flex-direction: column;
+  gap: var(--space-2) !important;
+  align-items: center;
+  text-align: center;
+}
+
+.recording-pulse {
+  width: 8px !important;
+  height: 8px !important;
+  background: var(--accent) !important;
+  animation: mono-pulse 1s ease-in-out infinite !important;
+}
+
+.recording-indicator-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.recording-time {
+  font-family: var(--font-sans) !important;
+  font-size: 40px !important;
+  font-weight: 700 !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1.5px;
+  line-height: 1;
+  color: var(--text-primary) !important;
+}
+
+.recording-hint {
+  font-family: var(--font-mono);
+  font-size: 10px !important;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.recording-preview-info {
+  font-family: var(--font-mono);
+  font-size: 11px !important;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.recording-section-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  font-weight: 700;
+}
+
+.recording-filename-preview {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+/* ============================================================ */
+/* 21. Accessibility / Misc                                     */
+/* ============================================================ */
+
+/* Mono-System: alle Buttons ohne abgerundete Ecken per default */
+.mono-square,
+.mono-square button {
+  border-radius: 0 !important;
+}

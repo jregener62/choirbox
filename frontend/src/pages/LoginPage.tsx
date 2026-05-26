@@ -32,11 +32,9 @@ export function LoginPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">
-            <img src="/icons/bird-white.png" alt="" width={28} height={28} />
-          </div>
-          <h1 className="auth-title">CantaBox</h1>
-          <p className="auth-subtitle">Anmelden</p>
+          <span className="mono-auth-wordmark">CANTABOX</span>
+          <h1 className="auth-title">Willkommen zurück.</h1>
+          <p className="auth-subtitle">Melde dich mit deinen Zugangsdaten an.</p>
         </div>
 
         {error && <div className="auth-error">{error}</div>}
@@ -75,7 +73,7 @@ export function LoginPage() {
             </div>
           </div>
           <button className="btn btn-primary" style={{ width: '100%' }} type="submit" disabled={loading}>
-            {loading ? 'Anmelden...' : 'Anmelden'}
+            {loading ? 'ANMELDEN…' : 'ANMELDEN'}
           </button>
         </form>
 

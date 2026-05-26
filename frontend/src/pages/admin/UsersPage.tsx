@@ -156,15 +156,38 @@ export function UsersPage() {
     return d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
 
+  const voiceCounts = users.reduce<Record<string, number>>((acc, u) => {
+    const v = (u.voice_part || '').toLowerCase()
+    if (v.startsWith('sopran') || v === 's') acc.S = (acc.S || 0) + 1
+    else if (v.startsWith('alt') || v === 'a') acc.A = (acc.A || 0) + 1
+    else if (v.startsWith('tenor') || v === 't') acc.T = (acc.T || 0) + 1
+    else if (v.startsWith('bass') || v === 'b') acc.B = (acc.B || 0) + 1
+    return acc
+  }, {})
+
   return (
     <div>
       <div className="topbar">
         <button className="topbar-back" onClick={() => navigate('/settings')}>
           <ChevronLeft size={22} />
         </button>
-        <div className="topbar-title">Nutzer verwalten</div>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)', padding: '0 8px' }}>{users.length}</div>
+        <div className="topbar-title">
+          <span className="mono-kicker" style={{ display: 'block', marginBottom: 2 }}>ADMIN</span>
+          Mitglieder
+        </div>
       </div>
+
+      {!loading && users.length > 0 && (
+        <div className="mono-stats-bar">
+          <span className="mono-stats-bar-count">{users.length}</span>
+          <span className="mono-stats-bar-breakdown">
+            {voiceCounts.S ? <span><span className="mono-voice-dot mono-voice-dot--sopran" />{voiceCounts.S}S</span> : null}
+            {voiceCounts.A ? <span><span className="mono-voice-dot mono-voice-dot--alt" />{voiceCounts.A}A</span> : null}
+            {voiceCounts.T ? <span><span className="mono-voice-dot mono-voice-dot--tenor" />{voiceCounts.T}T</span> : null}
+            {voiceCounts.B ? <span><span className="mono-voice-dot mono-voice-dot--bass" />{voiceCounts.B}B</span> : null}
+          </span>
+        </div>
+      )}
 
       {message && (
         <div style={{ padding: '10px 16px', background: 'var(--bg-tertiary)', fontSize: 13 }}

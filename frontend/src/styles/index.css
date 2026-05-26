@@ -1,5 +1,6 @@
 /* ChoirBox — Mobile-First CSS */
 @import './tokens.css';
+/* Mono v2 Redesign Overrides werden in main.tsx nach index.css geladen (mono-v2.css). */
 
 /* Colors + Tokens sind in tokens.css definiert */
 

@@ -318,7 +318,7 @@ export function SettingsPage() {
 
         {/* -- Abmelden -- */}
         <section>
-          <button className="settings-nav-item" style={{ color: 'var(--danger)' }} onClick={logout}>
+          <button className="settings-nav-item" style={{ color: 'var(--accent)', fontWeight: 700 }} onClick={logout}>
             <LogOut size={18} />
             <span>Abmelden</span>
           </button>

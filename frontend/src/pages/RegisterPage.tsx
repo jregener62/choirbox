@@ -39,12 +39,10 @@ export function RegisterPage() {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">
-              <img src="/icons/bird-white.png" alt="" width={28} height={28} />
-            </div>
-            <h1 className="auth-title">CantaBox</h1>
+            <span className="mono-auth-wordmark">CANTABOX</span>
+            <h1 className="auth-title">Einladung benötigt.</h1>
           </div>
-          <p style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
+          <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
             Du brauchst einen Einladungslink von deinem Chorleiter, um ein Konto zu erstellen.
           </p>
           <p className="auth-footer">
@@ -61,10 +59,8 @@ export function RegisterPage() {
       <div className="auth-page">
         <div className="auth-card">
           <div className="auth-logo">
-            <div className="auth-logo-icon">
-              <img src="/icons/bird-white.png" alt="" width={28} height={28} />
-            </div>
-            <h1 className="auth-title">CantaBox</h1>
+            <span className="mono-auth-wordmark">CANTABOX</span>
+            <h1 className="auth-title">Einladung ungültig.</h1>
           </div>
           <div className="auth-error">{choirError}</div>
           <p className="auth-footer">
@@ -113,14 +109,12 @@ export function RegisterPage() {
     <div className="auth-page">
       <div className="auth-card">
         <div className="auth-logo">
-          <div className="auth-logo-icon">
-            <img src="/icons/bird-white.png" alt="" width={28} height={28} />
-          </div>
-          <h1 className="auth-title">CantaBox</h1>
-          <p className="auth-subtitle">Konto erstellen</p>
+          <span className="mono-auth-wordmark">CANTABOX</span>
+          <h1 className="auth-title">Konto erstellen.</h1>
+          <p className="auth-subtitle">Lege deine Zugangsdaten fest.</p>
           {choirName && (
-            <p style={{ marginTop: 'var(--space-2)', opacity: 0.8 }}>
-              Chor: <strong>{choirName}</strong>
+            <p className="mono-meta" style={{ marginTop: 'var(--space-3)' }}>
+              CHOR · {choirName}
             </p>
           )}
         </div>
@@ -181,7 +175,7 @@ export function RegisterPage() {
             type="submit"
             disabled={loading || !pwCheck.acceptable || password !== passwordConfirm}
           >
-            {loading ? 'Wird erstellt...' : 'Konto erstellen'}
+            {loading ? 'KONTO WIRD ERSTELLT…' : 'KONTO ERSTELLEN'}
           </button>
         </form>
 
