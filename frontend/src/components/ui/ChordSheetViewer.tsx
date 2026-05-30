@@ -201,6 +201,49 @@ function ChordLineView({
     tokens.pop()
   }
 
+  // Reserve horizontal room so a chord label never overlaps the next chord.
+  // Chords render as position:absolute (they take no inline width), so a long
+  // chord over a short word would otherwise spill into the following chord.
+  // For each chord we measure the collapse-aware width available before the
+  // next chord; if it's tighter than the label needs, we widen the rightmost
+  // word cell before that next chord, pushing it right. Targeting the word's
+  // trailing edge keeps the word visually intact instead of splitting it.
+  const GAP_CH = 0.5
+  const isWordCol = (col: number) => {
+    const ch = line.text[col] ?? ' '
+    return chordByCol.has(col) || (ch !== ' ' && ch !== '\t')
+  }
+  const sortedChords = [...transposedChords].sort((a, b) => a.col - b.col)
+  const reserve = new Map<number, number>() // col -> extra ch beyond the natural 1ch
+  for (let k = 0; k < sortedChords.length; k++) {
+    const { chord, col } = sortedChords[k]
+    if (k + 1 >= sortedChords.length) continue // last chord can't overlap anything
+    const nextCol = sortedChords[k + 1].col
+    // Collapse-aware available width: consecutive whitespace cells collapse to a
+    // single rendered space under white-space:normal, so a run counts as 1ch.
+    let avail = 0
+    let inSpaceRun = false
+    for (let t = col; t < nextCol; t++) {
+      if (isWordCol(t)) {
+        avail += 1
+        inSpaceRun = false
+      } else if (!inSpaceRun) {
+        avail += 1
+        inSpaceRun = true
+      }
+    }
+    const deficit = chord.length + GAP_CH - avail
+    if (deficit <= 0) continue
+    let target = col
+    for (let t = nextCol - 1; t >= col; t--) {
+      if (isWordCol(t)) {
+        target = t
+        break
+      }
+    }
+    reserve.set(target, Math.max(reserve.get(target) ?? 0, deficit))
+  }
+
   return (
     <div className={`chord-line chord-line--flow${commentClass}`}>
       <div className="chord-flow">
@@ -213,15 +256,17 @@ function ChordLineView({
           }
           return (
             <span key={ti} className="chord-flow-word">
-              {tok.cells.map((c, ci) => (
+              {tok.cells.map((c, ci) => {
+                const extra = reserve.get(c.col) ?? 0
+                return (
                 <span
                   key={ci}
                   className={`chord-flow-cell${c.chord ? ' chord-flow-cell--anchor' : ''}`}
                   style={
-                    c.chord && (c.char === ' ' || c.char === undefined)
+                    extra > 0
                       ? {
                           display: 'inline-block',
-                          minWidth: `calc(${c.chord.length}ch + 0.5ch)`,
+                          minWidth: `${(1 + extra).toFixed(3)}ch`,
                         }
                       : undefined
                   }
@@ -231,7 +276,8 @@ function ChordLineView({
                   )}
                   {c.char === ' ' ? ' ' : c.char}
                 </span>
-              ))}
+                )
+              })}
             </span>
           )
         })}
