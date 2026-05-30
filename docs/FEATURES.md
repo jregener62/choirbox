@@ -863,7 +863,14 @@ Ein klassischer Texteditor fuer den ChordPro-Quelltext — **keine tap-to-place-
 
 **Kein ChoirBox-eigener Tag-Dialekt mehr:** Vocal-Marks (`{v:…}`), Farb-Formate (`# choirbox-format:`) und das alte tap-to-place-System sind aus dem Editor entfernt. `.cho` haelt sich strikt an den ChordPro-Standard und bleibt mit externen Tools kompatibel.
 
-**Tools in der Haupt-Tool-Bar:**
+**Zwei Tool-Bar-Modi (abhaengig vom Body-Format):**
+
+- **Plain-Text-Modus** (Body enthaelt keine ChordPro-Marker — leer oder reine Lyrics/Akkord-Zeilen): zeigt **nur** den gruenen „ChordPro"-Konvertier-Button mit Hinweistext „Text einfuegen und in ChordPro umwandeln". Der auto-generierte Header (`{title:}` + `# Angelegt …`) wird via `splitChordProHeader()` ignoriert, damit eine frische `.cho` korrekt als Plain-Text-Modus erkannt wird.
+- **ChordPro-Modus** (Body enthaelt mind. eine ChordPro-Direktive oder `[Akkord]`-Inline-Markup): zeigt die Sektions-Toolbar (Akkord / Strophe / Refrain / Bridge / Intro / Interlude / Outro / Kommentar / Text). Der ChordPro-Button verschwindet — Konvertierung waere ein No-Op.
+
+Umschalter ist `isPlainText` in `SheetEditor.tsx`, abgeleitet aus `!isChordPro(body)`. Sobald der User Plain-Text in den Body einfuegt und „ChordPro" klickt (oder direkt `[C]` tippt), schaltet die Toolbar automatisch auf die Sektions-Tools um.
+
+**Tools in der Haupt-Tool-Bar (ChordPro-Modus):**
 
 | Tool | Aktion |
 |------|--------|
@@ -871,7 +878,8 @@ Ein klassischer Texteditor fuer den ChordPro-Quelltext — **keine tap-to-place-
 | Strophe / Refrain / Bridge / Intro / Interlude / Outro | Label eingeben, Textbereich markieren, „Wrappen"-Button → markierte Zeilen werden mit `{start_of_<typ>[: Label]}` davor und `{end_of_<typ>}` danach umschlossen (eigene Zeilen). Ohne Selektion: Template mit Cursor zwischen den Tags. |
 | Kommentar | Text eingeben, „Aktivieren"-Button macht `{c: TEXT}` zum aktiven Insert-Tag. |
 | Text | Deaktiviert aktives Tool und aktiven Insert-Tag — reiner Text-Edit-Modus. |
-| ChordPro | Konvertiert „Akkord-Zeile-ueber-Lyrics"-Plain-Text (z.B. Ultimate Guitar) in ChordPro: Inline-`[Chord]`-Brackets, `{start_of_verse}`/`{end_of_verse}`-Direktiven + `{title:}`-Header (aus Dateiname). Button ist deaktiviert, wenn der Text bereits ChordPro ist. Aenderung ist ueber Undo revertierbar. |
+
+**ChordPro-Konvertier-Button (Plain-Text-Modus):** Konvertiert „Akkord-Zeile-ueber-Lyrics"-Plain-Text (z.B. Ultimate Guitar) in ChordPro: Inline-`[Chord]`-Brackets, `{start_of_verse}`/`{end_of_verse}`-Direktiven + `{title:}`-Header (aus Dateiname). Aenderung ist ueber Undo revertierbar.
 
 **Click-to-Place-Modus (Akkord / Kommentar):**
 

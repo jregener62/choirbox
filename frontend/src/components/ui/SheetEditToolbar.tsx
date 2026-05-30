@@ -27,8 +27,10 @@ interface SheetEditToolbarProps {
   onInsertChordFromHistory: (chord: string) => void
   /** Plain-Text (UG-Stil) in ChordPro konvertieren. */
   onConvertToChordPro: () => void
-  /** True wenn aktueller Text schon im ChordPro-Format ist (Button deaktivieren). */
-  convertDisabled: boolean
+  /** True wenn der aktuelle Body Plain-Text ist (noch nicht im ChordPro-Format).
+   *  Steuert, ob der ChordPro-Konvertierungs-Button oder die Sektions-Toolbar
+   *  angezeigt wird. */
+  isPlainText: boolean
 }
 
 const NOTES = ['A', 'B', 'C', 'D', 'E', 'F', 'G'] as const
@@ -64,7 +66,7 @@ export function SheetEditToolbar({
   toolApplyDisabled,
   onInsertChordFromHistory,
   onConvertToChordPro,
-  convertDisabled,
+  isPlainText,
 }: SheetEditToolbarProps) {
   const chordBuilder = useChordInput((s) => s.chordBuilder)
   const appendBuilder = useChordInput((s) => s.appendBuilder)
@@ -96,104 +98,109 @@ export function SheetEditToolbar({
   return (
     <div className="set-toolbar" role="toolbar" aria-label="Bearbeiten">
       <div className="set-main-row">
-        <button
-          type="button"
-          className={`set-tool set-tool--chord${activeTool === 'chord' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('chord')}
-          title="Akkord"
-          aria-pressed={activeTool === 'chord'}
-        >
-          <span className="set-tool-label">Akkord</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'verse' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('verse')}
-          title="Strophe"
-          aria-pressed={activeTool === 'verse'}
-        >
-          <span className="set-tool-label">Strophe</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'chorus' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('chorus')}
-          title="Refrain"
-          aria-pressed={activeTool === 'chorus'}
-        >
-          <span className="set-tool-label">Refrain</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'bridge' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('bridge')}
-          title="Bridge"
-          aria-pressed={activeTool === 'bridge'}
-        >
-          <span className="set-tool-label">Bridge</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'intro' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('intro')}
-          title="Intro"
-          aria-pressed={activeTool === 'intro'}
-        >
-          <span className="set-tool-label">Intro</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'interlude' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('interlude')}
-          title="Zwischenspiel"
-          aria-pressed={activeTool === 'interlude'}
-        >
-          <span className="set-tool-label">Interlude</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'outro' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('outro')}
-          title="Outro"
-          aria-pressed={activeTool === 'outro'}
-        >
-          <span className="set-tool-label">Outro</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === 'comment' ? ' set-tool--active' : ''}`}
-          onClick={() => toggle('comment')}
-          title="Kommentar"
-          aria-pressed={activeTool === 'comment'}
-        >
-          <span className="set-tool-label">Kommentar</span>
-        </button>
-        <button
-          type="button"
-          className={`set-tool${activeTool === null && !activeInsert ? ' set-tool--active' : ''}`}
-          onClick={() => {
-            onSelectTool(null)
-            setActiveInsert(null)
-          }}
-          title="Text editieren — deaktiviert den aktiven Tag"
-          aria-pressed={activeTool === null && !activeInsert}
-        >
-          <span className="set-tool-label">Text</span>
-        </button>
-        <button
-          type="button"
-          className="set-tool set-tool--convert"
-          onClick={onConvertToChordPro}
-          disabled={convertDisabled}
-          title={
-            convertDisabled
-              ? 'Text ist bereits im ChordPro-Format'
-              : 'Plain-Text (Akkord-Zeile ueber Lyrics) in ChordPro-Format konvertieren'
-          }
-        >
-          <Wand2 size={14} />
-          <span className="set-tool-label">ChordPro</span>
-        </button>
+        {isPlainText ? (
+          <>
+            <button
+              type="button"
+              className="set-tool set-tool--convert"
+              onClick={onConvertToChordPro}
+              title="Plain-Text (Akkord-Zeile ueber Lyrics) in ChordPro-Format konvertieren"
+            >
+              <Wand2 size={14} />
+              <span className="set-tool-label">ChordPro</span>
+            </button>
+            <span className="set-convert-hint">
+              Text einfuegen und in ChordPro umwandeln
+            </span>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              className={`set-tool set-tool--chord${activeTool === 'chord' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('chord')}
+              title="Akkord"
+              aria-pressed={activeTool === 'chord'}
+            >
+              <span className="set-tool-label">Akkord</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'verse' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('verse')}
+              title="Strophe"
+              aria-pressed={activeTool === 'verse'}
+            >
+              <span className="set-tool-label">Strophe</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'chorus' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('chorus')}
+              title="Refrain"
+              aria-pressed={activeTool === 'chorus'}
+            >
+              <span className="set-tool-label">Refrain</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'bridge' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('bridge')}
+              title="Bridge"
+              aria-pressed={activeTool === 'bridge'}
+            >
+              <span className="set-tool-label">Bridge</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'intro' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('intro')}
+              title="Intro"
+              aria-pressed={activeTool === 'intro'}
+            >
+              <span className="set-tool-label">Intro</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'interlude' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('interlude')}
+              title="Zwischenspiel"
+              aria-pressed={activeTool === 'interlude'}
+            >
+              <span className="set-tool-label">Interlude</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'outro' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('outro')}
+              title="Outro"
+              aria-pressed={activeTool === 'outro'}
+            >
+              <span className="set-tool-label">Outro</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === 'comment' ? ' set-tool--active' : ''}`}
+              onClick={() => toggle('comment')}
+              title="Kommentar"
+              aria-pressed={activeTool === 'comment'}
+            >
+              <span className="set-tool-label">Kommentar</span>
+            </button>
+            <button
+              type="button"
+              className={`set-tool${activeTool === null && !activeInsert ? ' set-tool--active' : ''}`}
+              onClick={() => {
+                onSelectTool(null)
+                setActiveInsert(null)
+              }}
+              title="Text editieren — deaktiviert den aktiven Tag"
+              aria-pressed={activeTool === null && !activeInsert}
+            >
+              <span className="set-tool-label">Text</span>
+            </button>
+          </>
+        )}
       </div>
 
       {activeTool === 'chord' && (

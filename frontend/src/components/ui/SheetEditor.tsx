@@ -417,10 +417,9 @@ export function SheetEditor({
     }
   }
 
-  const convertDisabled = useMemo(() => {
-    if (!chordText.trim()) return true
+  const isPlainText = useMemo(() => {
     const { body } = splitChordProHeader(chordText)
-    return !body.trim() || isChordPro(body)
+    return !isChordPro(body)
   }, [chordText])
 
   /** Haupt-Aktion des aktiven Tools: Akkord/Kommentar aktivieren
@@ -500,7 +499,7 @@ export function SheetEditor({
         toolApplyDisabled={toolApplyDisabled}
         onInsertChordFromHistory={activateChordFromHistory}
         onConvertToChordPro={handleConvertToChordPro}
-        convertDisabled={convertDisabled}
+        isPlainText={isPlainText}
       />
 
       {error && <div className="sheet-editor-error">{error}</div>}
