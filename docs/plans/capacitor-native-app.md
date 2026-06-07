@@ -139,6 +139,8 @@ Die Achsen "PWA vs. native" und "Single-Tenant vs. Multi-Tenant (Modell A)" sind
 
 Umgekehrt (erst Capacitor, dann Modell A) funktioniert auch, bringt aber weniger Nutzen, weil die meisten Capacitor-Vorteile (Keychain, Background Sync, Push) erst mit einem zentralen Server richtig zur Geltung kommen.
 
+**Serverlose Alternative:** Es gibt einen Gegenentwurf, der diese Reihenfolge bewusst umkehrt — Capacitor *ohne* Modell A, mit der Dropbox des Chorleiters als SSOT und einem Manifest-basierten Files-On-Demand-Sync. Dort wird der oben unter "Was native NICHT loest" genannte Token-Punkt nicht durch einen Server geloest, sondern dadurch, dass gar kein Token geteilt wird (Mitglieder sind read-only Puller). Siehe `choirbox-ondemand-sync.md`.
+
 ## Technischer Migrationsplan: PWA → Capacitor
 
 ### Phase 1 — Capacitor initialisieren (1-2 Tage)
@@ -146,7 +148,7 @@ Umgekehrt (erst Capacitor, dann Modell A) funktioniert auch, bringt aber weniger
 ```bash
 cd frontend
 npm install @capacitor/core @capacitor/cli
-npx cap init "ChoirBox" "com.choirbox.app" --web-dir ../static/react
+npx cap init "CantaBox" "de.cantabox.app" --web-dir ../static/react
 npx cap add ios
 npx cap add android
 ```
