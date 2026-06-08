@@ -140,8 +140,8 @@ local_file           // welche Einzeldateien wirklich liegen (Delta + Integritae
 ## Plattform-Voraussetzung
 
 - **Capacitor-Native noetig.** Persistenter Datei-Cache via `@capacitor/filesystem`; iOS-PWA-Storage wuerde nach 7 Tagen geloescht (ITP, siehe `capacitor-native-app.md`).
-- Eine reine Web-PWA haette zusaetzlich ein **CORS-Problem** beim `fetch()` der Inhalte vom Dropbox-Content-Host. Nativer HTTP-Stack umgeht das.
-- **Offen zu verifizieren:** Range-Verhalten und CORS-Header von Shared-Links. Fuer Download-to-own unkritisch (ganze Datei laden), nur relevant, falls je Streaming nachgeruestet wird.
+- CORS ist **kein** Hindernis: der Content-Host sendet `access-control-allow-origin: *` (verifiziert, siehe unten) — auch eine Web-PWA koennte `fetch()`en. Hauptgrund fuer Native bleibt der **persistente Speicher** (ITP-7-Tage-Eviction der PWA).
+- Range/Streaming **verifiziert** (HTTP 206) — siehe Abschnitt „Verifikation: Shared-Link-Mechanik".
 
 ---
 
@@ -249,6 +249,79 @@ Grob **2-4 Wochen Halbtagsarbeit**, abhaengig davon, wie sauber die Adapter-Tren
 3. **content_hash clientseitig:** Bibliothek vs. Eigenimplementierung des Dropbox-Block-Hashes.
 4. **Audio im Free-Tier:** ueberhaupt ueber diesen Sync, oder strikt "Free = lesen" und Audio nur ueber lokale Anhaenge/Premium? (Beeinflusst Bundle-Groesse und Traffic.)
 5. **Android:** parallel mitziehen oder iOS zuerst?
+
+## Verifikation: Shared-Link-Mechanik (Stand 2026-06-08)
+
+Empirisch gegen die echte Chor-Dropbox geprueft (Skript `scripts/test_shared_link.py`).
+
+**Voraussetzung Publisher-Seite:** Die Dropbox-App braucht die Scopes
+**`sharing.read` + `sharing.write`** (Permissions-Tab in der App Console
+anhaken **und „Submit"** — sonst wirkungslos), danach **neu autorisieren**
+(Scopes werden beim Autorisieren in den Token gebacken; ein bestehender Token
+bekommt sie nicht nachtraeglich). Der Authorize-Flow sendet keinen
+`scope`-Parameter → Dropbox vergibt alle aktivierten Scopes.
+
+**Token-loser Lesezugriff bestaetigt** — persistenter Shared-Link einer MP3
+(6.522.043 Bytes), Abruf **ohne jeden Auth-Header**:
+
+| Test | Ergebnis |
+|---|---|
+| Voll-Download | HTTP 200, exakte Groesse, vollstaendig |
+| Range (Streaming/Seek) | HTTP 206, `accept-ranges: bytes`, `content-range: …/6522043` |
+| CORS (`Origin` gesetzt) | `access-control-allow-origin: *` |
+
+→ Mitglieder koennen token-los **lesen und streamen** (Range), sogar aus einer
+Web-PWA (CORS offen). Die Kern-Annahme „Mitglieder halten keinen Token, lesen
+ueber read-only Shared-Links" traegt. Content-Host: `dl.dropboxusercontent.com`
+(gleiches Verhalten bei Temporary Links wie bei persistenten Shared-Links).
+
+## Dropbox Traffic-Limits
+
+Pro **Dropbox-Account und Tag** (Quelle: help.dropbox.com/share/banned-links,
+Stand Jan 2026) — gilt beim **Chorleiter** (dessen Links geteilt werden):
+
+| Account-Typ | Traffic/Tag | Downloads/Tag |
+|---|---|---|
+| Basic (kostenlos)/Trial | 20 GB | 100.000 |
+| Plus, Family, Professional, Essentials, Standard, Business | 1 TB | unbegrenzt |
+| Advanced, Business Plus, Enterprise | 4 TB | unbegrenzt |
+
+Ueberschreitung → Sharing 24 h pausiert (Wiederholung laenger).
+
+**Einordnung (40 Mitglieder):**
+- **Text-only** (Bundle ~82 KB fuer 15 Songs): ~3 MB/Tag — selbst auf Basis-
+  Account voellig unkritisch.
+- **Audio auf Basic (20 GB):** volle Audio-Bibliothek (~1 GB) × 40 ≈ 40 GB →
+  ueber dem Limit. Risikozone.
+- **Audio auf Plus/Professional (1 TB):** dasselbe = ~4 % des Limits → komfortabel.
+- **Download-to-own** (einmal pro Version statt pro Abspielen) senkt den
+  Dauerbetrieb zusaetzlich. Der 100.000-Downloads-Zaehler (nur Basic) ist v. a.
+  bei Range-Streaming relevant (jeder Seek = Request); bezahlte Plaene unbegrenzt.
+
+→ Free-Tier text-lastig (jeder Dropbox-Plan reicht); Audio sinnvoll nur mit
+bezahltem Chorleiter-Dropbox + Download-to-own.
+
+## Zugriffsschutz & Mitglieder-Churn
+
+Zwei harte Wahrheiten: ein Shared-Link ist ein **Bearer-Token in URL-Form**
+(serverlos keine pro-Person-Sperre), und **bereits geladene Inhalte sind in
+keinem serverlosen Modell zurueckholbar** (Offline-Kopie existiert). Kontrollierbar
+ist nur der **zukuenftige** Zugriff. Optionen:
+
+| Ansatz | Mechanik | Austritt | Bewertung |
+|---|---|---|---|
+| **Bundle-Uebergabe (kein Link)** | Export → AirDrop/Mail an aktuelle Mitglieder | nicht mehr in den Verteiler aufnehmen | sauberster Free-Tier-Weg; Zugriffskontrolle ist sozial |
+| **Link-/Key-Rotation** | bei Austritt/saisonal neue Links + Manifest, nur an Verbleibende | alte Links widerrufen → tot; alle re-syncen | pragmatisch; nicht pro Austritt, eher saisonal |
+| **Pro-User-Schluesseltresor (Envelope-Verschluesselung)** | Content verschluesselt (Key `K`); pro Mitglied eigene Tresor-Datei mit eigenem Link = `Enc_Km(K)` | neuer `K'` nur in Tresore der Verbleibenden; M's Link lebt, enthaelt altes `K` | bester serverloser Kompromiss; **Verschluesselung Pflicht** (Proxy-Datei ohne Krypto ist umgehbar, da Content-Links oeffentlich + gecacht); kuenftiger Content braucht Re-Encryption |
+| **Dropbox Shared *Folders*** (statt Links) | pro-Mitglied-Einladung via Dropbox-ACL | echtes per-User-Revoke | aber: jedes Mitglied braucht **Dropbox-Account** |
+| **Model A (Server)** | per-User-Token, serverseitige Pruefung | sofortiges granulares Revoke inkl. Altbestand | einzige echte Loesung — die Premium-Grenze |
+
+**Wichtig zur „Proxy-Datei"-Idee:** Eine pro-User-Datei, die andere Links
+„freischaltet", schuetzt **nur ohne Verschluesselung nicht** — sie gated nur das
+*Auffinden*; wer einmal gesynct hat, haelt die echten (oeffentlichen) Content-Links
+direkt. Erst als **verschluesselter Schluesseltresor** (Zeile oben) wird daraus
+echter Schutz. Kollusion (Mitglied gibt Link/Key weiter) bleibt serverlos
+ungeloest.
 
 ## Verwandte Dokumente
 
